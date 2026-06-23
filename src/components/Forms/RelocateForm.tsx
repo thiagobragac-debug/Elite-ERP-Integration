@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Beef,
-  Save
+  Save,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -28,7 +28,6 @@ import { logAudit } from '../../utils/audit';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
-
 
 interface RelocateFormProps {
   isOpen: boolean;
@@ -46,21 +45,27 @@ const MOTIVOS = [
   'Doença / Quarentena',
   'Preparação para venda',
   'Reagrupamento',
-  'Outro'
+  'Outro',
 ];
 
 function calcAge(birthDate: string | null): string {
-  if (!birthDate) return 'â€”';
+  if (!birthDate) {
+    return 'â€”';
+  }
   const diff = Date.now() - new Date(birthDate).getTime();
   const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44));
-  if (months < 12) return `${months}m`;
+  if (months < 12) {
+    return `${months}m`;
+  }
   const years = Math.floor(months / 12);
   const rem = months % 12;
   return rem > 0 ? `${years}a ${rem}m` : `${years}a`;
 }
 
 function CapacityBar({ current, max, adding }: { current: number; max: number; adding: number }) {
-  if (!max || max <= 0) return null;
+  if (!max || max <= 0) {
+    return null;
+  }
   const pct = Math.min(((current + adding) / max) * 100, 100);
   const beforePct = Math.min((current / max) * 100, 100);
   const color = pct > 100 ? '#ef4444' : pct > 85 ? '#f59e0b' : '#10b981';
@@ -69,19 +74,60 @@ function CapacityBar({ current, max, adding }: { current: number; max: number; a
   return (
     <div style={{ marginTop: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Capacidade</span>
-        <span style={{ fontSize: '10px', fontWeight: 800, color }}>{current + adding}/{max} â€” {label}</span>
+        <span
+          style={{
+            fontSize: '10px',
+            fontWeight: 700,
+            color: 'hsl(var(--text-muted))',
+            textTransform: 'uppercase',
+          }}
+        >
+          Capacidade
+        </span>
+        <span style={{ fontSize: '10px', fontWeight: 800, color }}>
+          {current + adding}/{max} â€” {label}
+        </span>
       </div>
-      <div style={{ background: 'hsl(var(--border))', borderRadius: '99px', height: '6px', overflow: 'hidden', position: 'relative' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${beforePct}%`, background: '#10b981', borderRadius: '99px' }} />
+      <div
+        style={{
+          background: 'hsl(var(--border))',
+          borderRadius: '99px',
+          height: '6px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            height: '100%',
+            width: `${beforePct}%`,
+            background: '#10b981',
+            borderRadius: '99px',
+          }}
+        />
         {adding > 0 && (
-          <div style={{ position: 'absolute', left: `${beforePct}%`, top: 0, height: '100%', width: `${Math.min((adding / max) * 100, 100 - beforePct)}%`, background: color, opacity: 0.7 }} />
+          <div
+            style={{
+              position: 'absolute',
+              left: `${beforePct}%`,
+              top: 0,
+              height: '100%',
+              width: `${Math.min((adding / max) * 100, 100 - beforePct)}%`,
+              background: color,
+              opacity: 0.7,
+            }}
+          />
         )}
       </div>
       {pct > 100 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
           <AlertTriangle size={10} color="#ef4444" />
-          <span style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444' }}>Destino será superlotado</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444' }}>
+            Destino será superlotado
+          </span>
         </div>
       )}
     </div>
@@ -91,8 +137,12 @@ function CapacityBar({ current, max, adding }: { current: number; max: number; a
 function Row({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>{label}</span>
-      <span style={{ fontSize: '12px', fontWeight: 800, color: color || 'hsl(var(--text-main))' }}>{value}</span>
+      <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
+        {label}
+      </span>
+      <span style={{ fontSize: '12px', fontWeight: 800, color: color || 'hsl(var(--text-main))' }}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -108,23 +158,36 @@ interface LotSearchProps {
   animalCount?: number; // for source lot badge
 }
 
-function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalCount }: LotSearchProps) {
+function LotSearch({
+  lots,
+  value,
+  onChange,
+  placeholder,
+  exclude,
+  label,
+  animalCount,
+}: LotSearchProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedLot = lots.find(l => l.id === value);
+  const selectedLot = lots.find((l) => l.id === value);
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return lots
-      .filter(l => l.id !== exclude)
-      .filter(l => !q || l.nome.toLowerCase().includes(q) || (l.descricao || '').toLowerCase().includes(q));
+      .filter((l) => l.id !== exclude)
+      .filter(
+        (l) =>
+          !q || l.nome.toLowerCase().includes(q) || (l.descricao || '').toLowerCase().includes(q)
+      );
   }, [lots, query, exclude]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -143,37 +206,93 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div
+      ref={ref}
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px' }}
+    >
       <label className="tauze-label">
         {label}
         {animalCount !== undefined && animalCount > 0 && (
-          <span style={{ background: 'hsl(var(--brand))', color: 'white', borderRadius: '99px', padding: '1px 6px', fontSize: '9px', fontWeight: 800, marginLeft: '4px' }}>
+          <span
+            style={{
+              background: 'hsl(var(--brand))',
+              color: 'white',
+              borderRadius: '99px',
+              padding: '1px 6px',
+              fontSize: '9px',
+              fontWeight: 800,
+              marginLeft: '4px',
+            }}
+          >
             {animalCount} animais
           </span>
         )}
       </label>
       <div
-        onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); }}
+        onClick={() => {
+          setOpen(true);
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }}
         className={`tauze-input ${open ? 'focus' : ''}`}
-        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'text', padding: '0 16px', outline: open ? 'none' : '', borderColor: open ? 'hsl(var(--brand))' : '', boxShadow: open ? '0 0 0 4px hsl(var(--brand) / 0.1)' : '' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'text',
+          padding: '0 16px',
+          outline: open ? 'none' : '',
+          borderColor: open ? 'hsl(var(--brand))' : '',
+          boxShadow: open ? '0 0 0 4px hsl(var(--brand) / 0.1)' : '',
+        }}
       >
         <Search size={14} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />
         {open ? (
           <input
             ref={inputRef}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={selectedLot ? selectedLot.nome : placeholder}
-            style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontWeight: 600, background: 'transparent', color: 'hsl(var(--text-main))', height: '100%' }}
+            style={{
+              border: 'none',
+              outline: 'none',
+              flex: 1,
+              fontSize: '14px',
+              fontWeight: 600,
+              background: 'transparent',
+              color: 'hsl(var(--text-main))',
+              height: '100%',
+            }}
             autoComplete="off"
           />
         ) : (
-          <span style={{ flex: 1, fontSize: '14px', color: selectedLot ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))', fontWeight: selectedLot ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span
+            style={{
+              flex: 1,
+              fontSize: '14px',
+              color: selectedLot ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
+              fontWeight: selectedLot ? 600 : 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {selectedLot ? selectedLot.nome : placeholder}
           </span>
         )}
         {value ? (
-          <button type="button" onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 2px', flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={handleClear}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'hsl(var(--text-muted))',
+              display: 'flex',
+              padding: '0 2px',
+              flexShrink: 0,
+            }}
+          >
             <X size={14} />
           </button>
         ) : (
@@ -182,48 +301,102 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
       </div>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1000,
-          background: 'hsl(var(--bg-card))', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: '220px', overflowY: 'auto'
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: 'hsl(var(--bg-card))',
+            border: '1.5px solid hsl(var(--brand))',
+            borderRadius: '10px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            maxHeight: '220px',
+            overflowY: 'auto',
+          }}
+        >
           {filtered.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
+            <div
+              style={{
+                padding: '16px',
+                textAlign: 'center',
+                fontSize: '12px',
+                color: 'hsl(var(--text-muted))',
+              }}
+            >
               Nenhum lote encontrado
             </div>
           ) : (
-            filtered.map(lot => (
+            filtered.map((lot) => (
               <div
                 key={lot.id}
                 onClick={() => handleSelect(lot)}
                 style={{
-                  padding: '10px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   background: lot.id === value ? 'hsl(var(--brand) / 0.08)' : 'white',
                   borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                  transition: 'background 0.1s'
+                  transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--brand) / 0.06)')}
-                onMouseLeave={e => (e.currentTarget.style.background = lot.id === value ? 'hsl(var(--brand) / 0.08)' : 'white')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'hsl(var(--brand) / 0.06)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    lot.id === value ? 'hsl(var(--brand) / 0.08)' : 'white')
+                }
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <Layers size={13} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-main))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: 'hsl(var(--text-main))',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {lot.nome}
                     </div>
                     {lot.descricao && (
-                      <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginTop: '1px' }}>{lot.descricao}</div>
+                      <div
+                        style={{
+                          fontSize: '10px',
+                          color: 'hsl(var(--text-muted))',
+                          marginTop: '1px',
+                        }}
+                      >
+                        {lot.descricao}
+                      </div>
                     )}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
                   {lot._animalCount !== undefined && (
-                    <span style={{ fontSize: '10px', fontWeight: 700, background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', borderRadius: '6px', padding: '2px 6px' }}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: 'hsl(var(--brand) / 0.1)',
+                        color: 'hsl(var(--brand))',
+                        borderRadius: '6px',
+                        padding: '2px 6px',
+                      }}
+                    >
                       {lot._animalCount} animais
                     </span>
                   )}
                   {lot.capacidade && (
-                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
+                    <span
+                      style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}
+                    >
                       cap. {lot.capacidade}
                     </span>
                   )}
@@ -238,7 +411,13 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
 }
 
 // â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSubmit, initialSourceLotId, actionId }) => {
+export const RelocateForm: React.FC<RelocateFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialSourceLotId,
+  actionId,
+}) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter, activeFarmId, isGlobalMode } = useFarmFilter();
   const { user } = useAuth();
@@ -260,7 +439,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     targetLotId: '',
     targetLotName: '',
     date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    motivo: ''
+    motivo: '',
   });
 
   const canFetch = activeFarmId || (isGlobalMode && activeTenantId);
@@ -282,8 +461,10 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         sourceLotName: '',
         targetLotId: '',
         targetLotName: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        motivo: ''
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .split('T')[0],
+        motivo: '',
       });
     }
   }, [isOpen, activeFarmId, isGlobalMode, activeTenantId]);
@@ -308,10 +489,14 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   const fetchLots = async () => {
     const baseQuery = supabase
       .from('lotes')
-      .select('id, nome, capacidade, descricao, status, sexo_permitido, exige_rastreabilidade, pastos ( nome )')
+      .select(
+        'id, nome, capacidade, descricao, status, sexo_permitido, exige_rastreabilidade, pastos ( nome )'
+      )
       .order('nome');
     const { data, error } = await applyFarmFilter(baseQuery);
-    if (error) console.error('[RelocateForm] fetchLots error:', error);
+    if (error) {
+      console.error('[RelocateForm] fetchLots error:', error);
+    }
     if (data) {
       // Enrich each lot with its current animal count
       const enriched = await Promise.all(
@@ -327,8 +512,10 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
       setLots(enriched);
       // If initialSourceLotId was passed, resolve the name
       if (initialSourceLotId) {
-        const found = enriched.find(l => l.id === initialSourceLotId);
-        if (found) setFormData(f => ({ ...f, sourceLotName: found.nome }));
+        const found = enriched.find((l) => l.id === initialSourceLotId);
+        if (found) {
+          setFormData((f) => ({ ...f, sourceLotName: found.nome }));
+        }
       }
     }
   };
@@ -342,13 +529,17 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
       .eq('lote_id', lotId)
       .in('status', ['ATIVO', 'Ativo', 'ativo'])
       .order('brinco');
-    if (error) console.error('[RelocateForm] fetchAnimals error:', error);
-    if (data) setAnimals(data);
+    if (error) {
+      console.error('[RelocateForm] fetchAnimals error:', error);
+    }
+    if (data) {
+      setAnimals(data);
+    }
     setLoading(false);
   };
 
   const fetchTargetCapacity = async (lotId: string) => {
-    const lot = lots.find(l => l.id === lotId);
+    const lot = lots.find((l) => l.id === lotId);
     const max = parseFloat(lot?.capacidade) || 0;
     const { count } = await supabase
       .from('animais')
@@ -359,8 +550,13 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   };
 
   const toggleAnimal = (id: string, animalSexo?: string, hasRFID?: boolean) => {
-    const targetLot = lots.find(l => l.id === formData.targetLotId);
-    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animalSexo && animalSexo !== targetLot.sexo_permitido) {
+    const targetLot = lots.find((l) => l.id === formData.targetLotId);
+    if (
+      targetLot?.sexo_permitido &&
+      targetLot.sexo_permitido !== 'MISTO' &&
+      animalSexo &&
+      animalSexo !== targetLot.sexo_permitido
+    ) {
       toast.error(`O lote de destino permite apenas ${targetLot.sexo_permitido}S.`);
       return;
     }
@@ -368,16 +564,20 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
       toast.error(`O lote de destino exige que o animal tenha Brinco Eletrônico cadastrado.`);
       return;
     }
-    setSelectedAnimals(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    setSelectedAnimals((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
   };
 
-  const categorias = useMemo(() => [...new Set(animals.map(a => a.categoria).filter(Boolean))], [animals]);
+  const categorias = useMemo(
+    () => [...new Set(animals.map((a) => a.categoria).filter(Boolean))],
+    [animals]
+  );
 
   const filteredAnimals = useMemo(() => {
-    return animals.filter(a => {
-      const matchSearch = (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return animals.filter((a) => {
+      const matchSearch =
+        (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (a.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchSexo = filterSexo ? a.sexo === filterSexo : true;
       const matchCat = filterCategoria ? a.categoria === filterCategoria : true;
@@ -386,60 +586,81 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   }, [animals, searchTerm, filterSexo, filterCategoria]);
 
   const selectAll = () => {
-    const targetLot = lots.find(l => l.id === formData.targetLotId);
+    const targetLot = lots.find((l) => l.id === formData.targetLotId);
     let allowedFiltered = filteredAnimals;
     let blockedCount = 0;
-    
-    allowedFiltered = filteredAnimals.filter(a => {
+
+    allowedFiltered = filteredAnimals.filter((a) => {
       let isAllowed = true;
       if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
-        if (a.sexo && a.sexo !== targetLot.sexo_permitido) isAllowed = false;
+        if (a.sexo && a.sexo !== targetLot.sexo_permitido) {
+          isAllowed = false;
+        }
       }
       if (targetLot?.exige_rastreabilidade && !a.brinco_eletronico) {
         isAllowed = false;
       }
-      if (!isAllowed) blockedCount++;
+      if (!isAllowed) {
+        blockedCount++;
+      }
       return isAllowed;
     });
-    
+
     if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
       setSelectedAnimals([]);
     } else {
-      setSelectedAnimals(allowedFiltered.map(a => a.id));
+      setSelectedAnimals(allowedFiltered.map((a) => a.id));
       if (blockedCount > 0) {
-        toast.error(`${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`);
+        toast.error(
+          `${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`
+        );
       }
     }
   };
 
   const selectEntireLot = () => {
-    const targetLot = lots.find(l => l.id === formData.targetLotId);
+    const targetLot = lots.find((l) => l.id === formData.targetLotId);
     let allowedAnimals = animals;
     let blockedCount = 0;
-    
-    allowedAnimals = animals.filter(a => {
+
+    allowedAnimals = animals.filter((a) => {
       let isAllowed = true;
       if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
-        if (a.sexo && a.sexo !== targetLot.sexo_permitido) isAllowed = false;
+        if (a.sexo && a.sexo !== targetLot.sexo_permitido) {
+          isAllowed = false;
+        }
       }
       if (targetLot?.exige_rastreabilidade && !a.brinco_eletronico) {
         isAllowed = false;
       }
-      if (!isAllowed) blockedCount++;
+      if (!isAllowed) {
+        blockedCount++;
+      }
       return isAllowed;
     });
 
-    setSelectedAnimals(allowedAnimals.map(a => a.id));
+    setSelectedAnimals(allowedAnimals.map((a) => a.id));
     if (blockedCount > 0) {
-      toast.error(`${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`);
+      toast.error(
+        `${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`
+      );
     }
   };
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
-    if (!formData.targetLotId) { toast.error('Selecione o lote de destino.'); return; }
-    if (!formData.motivo) { toast.error('Informe o motivo do remanejamento.'); return; }
+    if (selectedAnimals.length === 0) {
+      toast.error('Selecione ao menos um animal.');
+      return;
+    }
+    if (!formData.targetLotId) {
+      toast.error('Selecione o lote de destino.');
+      return;
+    }
+    if (!formData.motivo) {
+      toast.error('Informe o motivo do remanejamento.');
+      return;
+    }
     setShowConfirm(true);
   };
 
@@ -461,10 +682,14 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
             entity_id: formData.sourceLotId,
             description: `${selectedAnimals.length} animais transferidos de "${formData.sourceLotName}" → "${formData.targetLotName}" | ${formData.motivo} | ${formData.date}`,
             old_data: { lote_id: formData.sourceLotId },
-            new_data: { lote_id: formData.targetLotId, motivo: formData.motivo }
+            new_data: { lote_id: formData.targetLotId, motivo: formData.motivo },
           });
         }
-        onSubmit({ count: selectedAnimals.length, source: formData.sourceLotId, target: formData.targetLotId });
+        onSubmit({
+          count: selectedAnimals.length,
+          source: formData.sourceLotId,
+          target: formData.targetLotId,
+        });
         onClose();
       }
     } catch (err) {
@@ -476,365 +701,733 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   };
 
   // ──────────────────────────────────────────────────────────────────────────────────────────────────
-  const confirmOverlay = showConfirm ? ReactDOM.createPortal(
-    (() => {
-      const afterCount = (destCapacity?.current || 0) + selectedAnimals.length;
-      const afterPct = destCapacity?.max ? Math.round((afterCount / destCapacity.max) * 100) : null;
-      const isFullLot = selectedAnimals.length === animals.length;
-      return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'hsl(var(--brand) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--brand))' }}>
-                <ArrowRightLeft size={22} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Confirmar Remanejamento</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Revise antes de confirmar</p>
-              </div>
-            </div>
-
-            <div style={{ background: 'hsl(var(--bg-main))', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              <Row label="Lote de origem" value={formData.sourceLotName} />
-              <Row label="Lote de destino" value={formData.targetLotName} />
-              <Row label="Animais" value={`${selectedAnimals.length} ${isFullLot ? '(lote completo)' : 'selecionados'}`} />
-              <Row label="Motivo" value={formData.motivo} />
-              <Row label="Data" value={new Date(formData.date + 'T12:00:00').toLocaleDateString('pt-BR')} />
-              {afterPct !== null && (
-                <Row
-                  label="Ocupação do destino após mov."
-                  value={`${afterCount}/${destCapacity?.max} (${afterPct}%)`}
-                  color={afterPct > 100 ? '#ef4444' : afterPct > 85 ? '#f59e0b' : '#10b981'}
-                />
-              )}
-              {afterPct !== null && afterPct > 100 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>
-                  <AlertTriangle size={14} /> Aviso: Este remanejamento causará superlotação.
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '20px', maxHeight: '72px', overflowY: 'auto' }}>
-              {animals.filter(a => selectedAnimals.includes(a.id)).slice(0, 15).map(a => (
-                <span key={a.id} style={{ background: 'hsl(var(--brand) / 0.08)', color: 'hsl(var(--brand))', borderRadius: '6px', padding: '2px 7px', fontSize: '11px', fontWeight: 700 }}>
-                  #{a.brinco}
-                </span>
-              ))}
-              {selectedAnimals.length > 15 && <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px' }}>+{selectedAnimals.length - 15} mais</span>}
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '12px', border: '1px solid hsl(var(--border))', borderRadius: '10px', background: 'hsl(var(--bg-card))', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>
-                Voltar
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                style={{ flex: 2, padding: '12px', background: 'hsl(var(--brand))', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+  const confirmOverlay = showConfirm
+    ? ReactDOM.createPortal(
+        (() => {
+          const afterCount = (destCapacity?.current || 0) + selectedAnimals.length;
+          const afterPct = destCapacity?.max
+            ? Math.round((afterCount / destCapacity.max) * 100)
+            : null;
+          const isFullLot = selectedAnimals.length === animals.length;
+          return (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.65)',
+                zIndex: 99999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div
+                style={{
+                  background: 'hsl(var(--bg-card))',
+                  borderRadius: '20px',
+                  padding: '32px',
+                  maxWidth: '480px',
+                  width: '90%',
+                  boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+                }}
               >
-                <CheckCircle2 size={16} />
-                {submitting ? 'Transferindo...' : `Confirmar ${selectedAnimals.length} Animais`}
-              </button>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: 'hsl(var(--brand) / 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'hsl(var(--brand))',
+                    }}
+                  >
+                    <ArrowRightLeft size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>
+                      Confirmar Remanejamento
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
+                      Revise antes de confirmar
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: 'hsl(var(--bg-main))',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <Row label="Lote de origem" value={formData.sourceLotName} />
+                  <Row label="Lote de destino" value={formData.targetLotName} />
+                  <Row
+                    label="Animais"
+                    value={`${selectedAnimals.length} ${isFullLot ? '(lote completo)' : 'selecionados'}`}
+                  />
+                  <Row label="Motivo" value={formData.motivo} />
+                  <Row
+                    label="Data"
+                    value={new Date(`${formData.date}T12:00:00`).toLocaleDateString('pt-BR')}
+                  />
+                  {afterPct !== null && (
+                    <Row
+                      label="Ocupação do destino após mov."
+                      value={`${afterCount}/${destCapacity?.max} (${afterPct}%)`}
+                      color={afterPct > 100 ? '#ef4444' : afterPct > 85 ? '#f59e0b' : '#10b981'}
+                    />
+                  )}
+                  {afterPct !== null && afterPct > 100 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '10px',
+                        background: '#fef2f2',
+                        color: '#ef4444',
+                        border: '1px solid #fee2e2',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        marginTop: '4px',
+                      }}
+                    >
+                      <AlertTriangle size={14} /> Aviso: Este remanejamento causará superlotação.
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '5px',
+                    marginBottom: '20px',
+                    maxHeight: '72px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {animals
+                    .filter((a) => selectedAnimals.includes(a.id))
+                    .slice(0, 15)
+                    .map((a) => (
+                      <span
+                        key={a.id}
+                        style={{
+                          background: 'hsl(var(--brand) / 0.08)',
+                          color: 'hsl(var(--brand))',
+                          borderRadius: '6px',
+                          padding: '2px 7px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        #{a.brinco}
+                      </span>
+                    ))}
+                  {selectedAnimals.length > 15 && (
+                    <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px' }}>
+                      +{selectedAnimals.length - 15} mais
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '10px',
+                      background: 'hsl(var(--bg-card))',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      color: 'hsl(var(--text-muted))',
+                    }}
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      background: 'hsl(var(--brand))',
+                      border: 'none',
+                      borderRadius: '10px',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: submitting ? 'not-allowed' : 'pointer',
+                      opacity: submitting ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    {submitting ? 'Transferindo...' : `Confirmar ${selectedAnimals.length} Animais`}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      );
-    })()
-  , document.body) : null;
+          );
+        })(),
+        document.body
+      )
+    : null;
 
   // ──────────────────────────────────────────────────────────────────────────────────────────────────
   return (
     <>
-    <SidePanel size="xlarge"
-      isOpen={isOpen}
-      onClose={onClose}
-      onSubmit={handleConfirm}
-      title="Remanejamento de Lote"
-      subtitle="Transfira animais entre grupos com rastreabilidade total."
-      icon={ArrowRightLeft}
-      loading={false}
-      submitLabel={`Revisar Remanejamento (${selectedAnimals.length})`}
-      customFooter={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '16px' }}>
-          <div style={{ flex: 1, maxWidth: '400px' }}>
-            {destCapacity && (
-              <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <button type="button" className="glass-btn secondary" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="primary-btn" disabled={false} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
-              <Save size={18} />
-              {`Revisar Remanejamento (${selectedAnimals.length})`}
-            </button>
-          </div>
-        </div>
-      }
-    >
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Dados do Remanejamento</h4>
-        </div>
-
-        <div className="tauze-input-grid grid-col-4">
-          <div className="tauze-field-group">
-            <LotSearch
-              lots={lots}
-              value={formData.sourceLotId}
-              onChange={(id, name) => setFormData(f => ({ ...f, sourceLotId: id, sourceLotName: name, targetLotId: f.targetLotId === id ? '' : f.targetLotId }))}
-              placeholder="Buscar lote de origem..."
-              exclude={formData.targetLotId}
-              animalCount={animals.length || lots.find(l => l.id === formData.sourceLotId)?._animalCount}
-              label={<><Layers size={14} /> Lote de Origem</>}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <LotSearch
-              lots={lots}
-              value={formData.targetLotId}
-              onChange={(id, name) => setFormData(f => ({ ...f, targetLotId: id, targetLotName: name }))}
-              placeholder="Buscar lote de destino..."
-              exclude={formData.sourceLotId}
-              label={<><MapPin size={14} /> Lote de Destino</>}
-            />
-            {(() => {
-              const tl = lots.find(l => l.id === formData.targetLotId);
-              if (!tl) return null;
-              return (
-                <div style={{ marginTop: '8px' }}>
-                  {tl.pastos?.nome && (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
-                      📍 Indo para: {tl.pastos.nome}
-                    </div>
-                  )}
-                  {tl.sexo_permitido && tl.sexo_permitido !== 'MISTO' && (
-                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
-                        Restrito: {tl.sexo_permitido}S
-                     </div>
-                  )}
-                  {tl.exige_rastreabilidade && (
-                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
-                        Exige RFID
-                     </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data do Remanejamento</label>
-            <DateInput 
-              type="date" 
-              className="tauze-input"
-              value={formData.date} 
-              onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} 
-              required 
-              max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} 
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Motivo do Remanejamento</label>
-            <SearchableSelect 
-              value={formData.motivo}
-              onChange={(val: any) => setFormData(f => ({ ...f, motivo: val }))}
-              options={[
-                { value: ``, label: `Selecione o motivo...` },
-                ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Selecionar Animais</h4>
-        </div>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>
-            <Users size={13} />
-            Animais no Lote
-            {animals.length > 0 && (
-              <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-                {selectedAnimals.length}/{animals.length}
-              </span>
-            )}
-          </label>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="text-btn-sm"
-              onClick={() => setShowFilters(s => !s)}
-              disabled={animals.length === 0}
-              style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
-            >
-              <Filter size={11} style={{ marginRight: '3px' }} />
-              FILTROS{(filterSexo || filterCategoria) ? ' ● ' : ''}
-            </button>
-            <span style={{ color: 'hsl(var(--border))', fontSize: '12px' }}>|</span>
-            <button
-              type="button"
-              className="text-btn-sm"
-              onClick={selectEntireLot}
-              disabled={animals.length === 0}
-              style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
-              title="Selecionar todos os animais do lote"
-            >
-              <Beef size={11} style={{ marginRight: '3px' }} />
-              LOTE TODO
-            </button>
-            <button
-              type="button"
-              className="text-btn-sm"
-              onClick={selectAll}
-              disabled={filteredAnimals.length === 0}
-              style={{ opacity: filteredAnimals.length === 0 ? 0.35 : 1 }}
-            >
-              {selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0 ? 'DESMARCAR' : 'MARCAR VISÍVEIS'}
-            </button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        {showFilters && animals.length > 0 && (
-          <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
-            <div className="search-glass-box small" style={{ margin: 0, flex: 2 }}>
-              <Search size={13} className="s-icon" />
-              <input type="text" placeholder="Buscar por brinco, raça, categoria, sexo..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} autoFocus />
-              {searchTerm && (
-                <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
-                  <X size={13} />
-                </button>
+      <SidePanel
+        size="xlarge"
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={handleConfirm}
+        title="Remanejamento de Lote"
+        subtitle="Transfira animais entre grupos com rastreabilidade total."
+        icon={ArrowRightLeft}
+        loading={false}
+        submitLabel={`Revisar Remanejamento (${selectedAnimals.length})`}
+        customFooter={
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              gap: '16px',
+            }}
+          >
+            <div style={{ flex: 1, maxWidth: '400px' }}>
+              {destCapacity && (
+                <CapacityBar
+                  current={destCapacity.current}
+                  max={destCapacity.max}
+                  adding={selectedAnimals.length}
+                />
               )}
             </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button type="button" className="glass-btn secondary" onClick={onClose}>
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={false}
+                style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}
+              >
+                <Save size={18} />
+                {`Revisar Remanejamento (${selectedAnimals.length})`}
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 01</div>
+            <h4 className="tauze-section-title">Dados do Remanejamento</h4>
+          </div>
+
+          <div className="tauze-input-grid grid-col-4">
+            <div className="tauze-field-group">
+              <LotSearch
+                lots={lots}
+                value={formData.sourceLotId}
+                onChange={(id, name) =>
+                  setFormData((f) => ({
+                    ...f,
+                    sourceLotId: id,
+                    sourceLotName: name,
+                    targetLotId: f.targetLotId === id ? '' : f.targetLotId,
+                  }))
+                }
+                placeholder="Buscar lote de origem..."
+                exclude={formData.targetLotId}
+                animalCount={
+                  animals.length || lots.find((l) => l.id === formData.sourceLotId)?._animalCount
+                }
+                label={
+                  <>
+                    <Layers size={14} /> Lote de Origem
+                  </>
+                }
+              />
+            </div>
+
+            <div className="tauze-field-group">
+              <LotSearch
+                lots={lots}
+                value={formData.targetLotId}
+                onChange={(id, name) =>
+                  setFormData((f) => ({ ...f, targetLotId: id, targetLotName: name }))
+                }
+                placeholder="Buscar lote de destino..."
+                exclude={formData.sourceLotId}
+                label={
+                  <>
+                    <MapPin size={14} /> Lote de Destino
+                  </>
+                }
+              />
+              {(() => {
+                const tl = lots.find((l) => l.id === formData.targetLotId);
+                if (!tl) {
+                  return null;
+                }
+                return (
+                  <div style={{ marginTop: '8px' }}>
+                    {tl.pastos?.nome && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'hsl(var(--brand)/0.1)',
+                          color: 'hsl(var(--brand))',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          marginBottom: '6px',
+                        }}
+                      >
+                        📍 Indo para: {tl.pastos.nome}
+                      </div>
+                    )}
+                    {tl.sexo_permitido && tl.sexo_permitido !== 'MISTO' && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#eff6ff',
+                          color: '#3b82f6',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          marginBottom: '6px',
+                          marginLeft: '6px',
+                        }}
+                      >
+                        Restrito: {tl.sexo_permitido}S
+                      </div>
+                    )}
+                    {tl.exige_rastreabilidade && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#ecfdf5',
+                          color: '#059669',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          marginBottom: '6px',
+                          marginLeft: '6px',
+                        }}
+                      >
+                        Exige RFID
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <Calendar size={14} /> Data do Remanejamento
+              </label>
+              <DateInput
+                type="date"
+                className="tauze-input"
+                value={formData.date}
+                onChange={(e) => setFormData((f) => ({ ...f, date: e.target.value }))}
+                required
+                max={
+                  new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .split('T')[0]
+                }
+              />
+            </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <FileText size={14} /> Motivo do Remanejamento
+              </label>
+              <SearchableSelect
+                value={formData.motivo}
+                onChange={(val: any) => setFormData((f) => ({ ...f, motivo: val }))}
+                options={[
+                  { value: ``, label: `Selecione o motivo...` },
+                  ...(MOTIVOS || []).map((m) => ({ value: String(m), label: String(m) })),
+                ]}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 02</div>
+            <h4 className="tauze-section-title">Selecionar Animais</h4>
+          </div>
+
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '10px',
+            }}
+          >
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: 'hsl(var(--text-muted))',
+              }}
+            >
+              <Users size={13} />
+              Animais no Lote
+              {animals.length > 0 && (
+                <span
+                  style={{
+                    background: 'hsl(var(--border))',
+                    borderRadius: '99px',
+                    padding: '1px 7px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                  }}
+                >
+                  {selectedAnimals.length}/{animals.length}
+                </span>
+              )}
+            </label>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="text-btn-sm"
+                onClick={() => setShowFilters((s) => !s)}
+                disabled={animals.length === 0}
+                style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
+              >
+                <Filter size={11} style={{ marginRight: '3px' }} />
+                FILTROS{filterSexo || filterCategoria ? ' ● ' : ''}
+              </button>
+              <span style={{ color: 'hsl(var(--border))', fontSize: '12px' }}>|</span>
+              <button
+                type="button"
+                className="text-btn-sm"
+                onClick={selectEntireLot}
+                disabled={animals.length === 0}
+                style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
+                title="Selecionar todos os animais do lote"
+              >
+                <Beef size={11} style={{ marginRight: '3px' }} />
+                LOTE TODO
+              </button>
+              <button
+                type="button"
+                className="text-btn-sm"
+                onClick={selectAll}
+                disabled={filteredAnimals.length === 0}
+                style={{ opacity: filteredAnimals.length === 0 ? 0.35 : 1 }}
+              >
+                {selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0
+                  ? 'DESMARCAR'
+                  : 'MARCAR VISÍVEIS'}
+              </button>
+            </div>
+          </div>
+
+          {/* Filters */}
+          {showFilters && animals.length > 0 && (
+            <div
+              style={{
+                marginBottom: '16px',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center',
+                width: '100%',
+              }}
+            >
+              <div className="search-glass-box small" style={{ margin: 0, flex: 2 }}>
+                <Search size={13} className="s-icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar por brinco, raça, categoria, sexo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  autoFocus
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'hsl(var(--text-muted))',
+                      display: 'flex',
+                      padding: '0 4px',
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
               <div style={{ flex: 1 }}>
-                <SearchableSelect 
+                <SearchableSelect
                   value={filterSexo}
                   onChange={(v: any) => setFilterSexo(v)}
                   options={[
                     { value: '', label: 'Todos os Sexos' },
                     { value: 'MACHO', label: 'Apenas Machos' },
-                    { value: 'FEMEA', label: 'Apenas Fêmeas' }
+                    { value: 'FEMEA', label: 'Apenas Fêmeas' },
                   ]}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <SearchableSelect 
+                <SearchableSelect
                   value={filterCategoria}
                   onChange={(v: any) => setFilterCategoria(v)}
                   options={[
                     { value: '', label: 'Todas as Categorias' },
-                    ...categorias.map(c => ({ value: String(c), label: String(c) }))
+                    ...categorias.map((c) => ({ value: String(c), label: String(c) })),
                   ]}
                 />
               </div>
-          </div>
-        )}
-
-        {/* Animal grid */}
-        <div style={{ maxHeight: '400px', overflowY: 'auto', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '12px' }}>
-          {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              ⏳ Buscando animais no lote...
-            </div>
-          ) : !formData.sourceLotId ? (
-            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              Selecione um lote de origem para ver os animais.
-            </div>
-          ) : animals.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              Nenhum animal ativo neste lote.
-            </div>
-          ) : filteredAnimals.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              Nenhum animal com esse filtro.
-            </div>
-          ) : (
-            <div className="picker-list-adv">
-              {filteredAnimals.map(animal => {
-                const selected = selectedAnimals.includes(animal.id);
-                const targetLot = lots.find(l => l.id === formData.targetLotId);
-                const isSexBlocked = targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== targetLot.sexo_permitido;
-                const isRFIDBlocked = targetLot?.exige_rastreabilidade && !animal.brinco_eletronico;
-                const isBlocked = isSexBlocked || isRFIDBlocked;
-                
-                return (
-                  <div
-                    key={animal.id}
-                    onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo, !!animal.brinco_eletronico)}
-                    className={`picker-list-item ${selected ? 'active' : ''}`}
-                    style={isBlocked ? { opacity: 0.6, cursor: 'not-allowed', background: 'hsl(var(--danger) / 0.05)', borderColor: 'hsl(var(--danger) / 0.2)' } : {}}
-                    title={isSexBlocked ? `Lote permite apenas ${targetLot?.sexo_permitido}S` : isRFIDBlocked ? 'Lote exige brinco eletrônico (SISBOV)' : ''}
-                  >
-                    <div className="p-check-adv" style={{ marginTop: 0 }}>
-                      {selected
-                        ? <CheckCircle2 size={18} />
-                        : <div className="p-check-empty" style={{ width: '18px', height: '18px' }} />
-                      }
-                    </div>
-                    <div className="p-info-row">
-                      <span className="p-brinco-adv" style={{ minWidth: '70px', fontSize: '13px' }}>
-                        #{animal.brinco}
-                      </span>
-                      <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>
-                        {animal.raca || '—'}
-                      </span>
-                      {animal.brinco_eletronico && <span className="p-tag" style={{ background: '#ecfdf5', color: '#10b981' }}>RFID</span>}
-                      {animal.categoria && (
-                        <span className="p-tag">
-                          {animal.categoria}
-                        </span>
-                      )}
-                      {animal.sexo && (
-                        <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>
-                          {animal.sexo === 'MACHO' ? 'M' : 'F'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-stats-row">
-                      {animal.peso_atual && (
-                        <span>
-                          <Weight size={12} /> {animal.peso_atual}kg
-                        </span>
-                      )}
-                      {animal.data_nascimento && (
-                        <span style={{ minWidth: '70px' }}>
-                          ðŸŽ‚ {calcAge(animal.data_nascimento)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
-        </div>
 
-        {/* Selection summary bar */}
-        {selectedAnimals.length > 0 && (
-          <div style={{ marginTop: '8px', padding: '8px 12px', background: 'hsl(var(--brand) / 0.08)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--brand))' }}>
-              âœ“ {selectedAnimals.length} animal{selectedAnimals.length !== 1 ? 'is' : ''} selecionado{selectedAnimals.length !== 1 ? 's' : ''}
-              {selectedAnimals.length === animals.length && ' (lote completo)'}
-            </span>
-            <button type="button" onClick={() => setSelectedAnimals([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-              Limpar
-            </button>
+          {/* Animal grid */}
+          <div
+            style={{
+              maxHeight: '400px',
+              overflowY: 'auto',
+              background: 'hsl(var(--bg-main))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '12px',
+              padding: '12px',
+            }}
+          >
+            {loading ? (
+              <div
+                style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: 'hsl(var(--text-muted))',
+                }}
+              >
+                ⏳ Buscando animais no lote...
+              </div>
+            ) : !formData.sourceLotId ? (
+              <div
+                style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: 'hsl(var(--text-muted))',
+                }}
+              >
+                Selecione um lote de origem para ver os animais.
+              </div>
+            ) : animals.length === 0 ? (
+              <div
+                style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: 'hsl(var(--text-muted))',
+                }}
+              >
+                Nenhum animal ativo neste lote.
+              </div>
+            ) : filteredAnimals.length === 0 ? (
+              <div
+                style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: 'hsl(var(--text-muted))',
+                }}
+              >
+                Nenhum animal com esse filtro.
+              </div>
+            ) : (
+              <div className="picker-list-adv">
+                {filteredAnimals.map((animal) => {
+                  const selected = selectedAnimals.includes(animal.id);
+                  const targetLot = lots.find((l) => l.id === formData.targetLotId);
+                  const isSexBlocked =
+                    targetLot?.sexo_permitido &&
+                    targetLot.sexo_permitido !== 'MISTO' &&
+                    animal.sexo &&
+                    animal.sexo !== targetLot.sexo_permitido;
+                  const isRFIDBlocked =
+                    targetLot?.exige_rastreabilidade && !animal.brinco_eletronico;
+                  const isBlocked = isSexBlocked || isRFIDBlocked;
+
+                  return (
+                    <div
+                      key={animal.id}
+                      onClick={() =>
+                        !isBlocked &&
+                        toggleAnimal(animal.id, animal.sexo, !!animal.brinco_eletronico)
+                      }
+                      className={`picker-list-item ${selected ? 'active' : ''}`}
+                      style={
+                        isBlocked
+                          ? {
+                              opacity: 0.6,
+                              cursor: 'not-allowed',
+                              background: 'hsl(var(--danger) / 0.05)',
+                              borderColor: 'hsl(var(--danger) / 0.2)',
+                            }
+                          : {}
+                      }
+                      title={
+                        isSexBlocked
+                          ? `Lote permite apenas ${targetLot?.sexo_permitido}S`
+                          : isRFIDBlocked
+                            ? 'Lote exige brinco eletrônico (SISBOV)'
+                            : ''
+                      }
+                    >
+                      <div className="p-check-adv" style={{ marginTop: 0 }}>
+                        {selected ? (
+                          <CheckCircle2 size={18} />
+                        ) : (
+                          <div
+                            className="p-check-empty"
+                            style={{ width: '18px', height: '18px' }}
+                          />
+                        )}
+                      </div>
+                      <div className="p-info-row">
+                        <span
+                          className="p-brinco-adv"
+                          style={{ minWidth: '70px', fontSize: '13px' }}
+                        >
+                          #{animal.brinco}
+                        </span>
+                        <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>
+                          {animal.raca || '—'}
+                        </span>
+                        {animal.brinco_eletronico && (
+                          <span
+                            className="p-tag"
+                            style={{ background: '#ecfdf5', color: '#10b981' }}
+                          >
+                            RFID
+                          </span>
+                        )}
+                        {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
+                        {animal.sexo && (
+                          <span
+                            className="p-tag"
+                            style={{
+                              background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8',
+                              color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899',
+                            }}
+                          >
+                            {animal.sexo === 'MACHO' ? 'M' : 'F'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-stats-row">
+                        {animal.peso_atual && (
+                          <span>
+                            <Weight size={12} /> {animal.peso_atual}kg
+                          </span>
+                        )}
+                        {animal.data_nascimento && (
+                          <span style={{ minWidth: '70px' }}>
+                            ðŸŽ‚ {calcAge(animal.data_nascimento)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </section>
 
-      <style>{`
+          {/* Selection summary bar */}
+          {selectedAnimals.length > 0 && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                background: 'hsl(var(--brand) / 0.08)',
+                borderRadius: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                âœ“ {selectedAnimals.length} animal{selectedAnimals.length !== 1 ? 'is' : ''}{' '}
+                selecionado{selectedAnimals.length !== 1 ? 's' : ''}
+                {selectedAnimals.length === animals.length && ' (lote completo)'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedAnimals([])}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'hsl(var(--text-muted))',
+                }}
+              >
+                Limpar
+              </button>
+            </div>
+          )}
+        </section>
+
+        <style>{`
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; }
         .picker-list-adv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .picker-list-item { display: flex; align-items: center; padding: 10px 14px; background: hsl(var(--bg-card)); border: 1px solid hsl(var(--border)); border-radius: 12px; cursor: pointer; transition: all 0.15s; }
@@ -849,8 +1442,8 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         .p-raca-adv { font-size: 11px; font-weight: 600; color: hsl(var(--text-muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .p-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: hsl(var(--brand) / 0.08); color: hsl(var(--brand)); text-transform: uppercase; letter-spacing: 0.04em; }
       `}</style>
-    </SidePanel>
-    {confirmOverlay}
-  </>
+      </SidePanel>
+      {confirmOverlay}
+    </>
   );
 };

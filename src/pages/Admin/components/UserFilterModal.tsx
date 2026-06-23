@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
 
-
 interface UserFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,9 +17,11 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
   onClose,
   filters,
   setFilters,
-  profiles
+  profiles,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const handleClear = () => {
     setFilters({
@@ -28,23 +29,41 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
       profileId: 'all',
       mfaOnly: false,
       dateStart: '',
-      dateEnd: ''
+      dateEnd: '',
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#3b82f6',
+              }}
+            >
               <Users size={20} />
             </div>
             <div>
@@ -52,8 +71,15 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <p>Gerencie acessos e governança.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -62,44 +88,46 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Perfil de Acesso <Shield size={14} /></label>
+            <label className="tauze-filter-label">
+              Perfil de Acesso <Shield size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              <button 
-                style={{ 
-                  padding: '12px 16px', 
-                  fontSize: '11px', 
-                  fontWeight: 800, 
-                  color: filters.profileId === 'all' ? 'white' : 'hsl(var(--text-muted))', 
-                  background: filters.profileId === 'all' ? '#3b82f6' : 'hsl(var(--bg-card))', 
-                  borderRadius: '12px', 
+              <button
+                style={{
+                  padding: '12px 16px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: filters.profileId === 'all' ? 'white' : 'hsl(var(--text-muted))',
+                  background: filters.profileId === 'all' ? '#3b82f6' : 'hsl(var(--bg-card))',
+                  borderRadius: '12px',
                   border: '1px solid',
                   borderColor: filters.profileId === 'all' ? '#3b82f6' : 'hsl(var(--border))',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
                 }}
                 onClick={() => setFilters({ ...filters, profileId: 'all' })}
               >
                 <span>Todos os Perfis</span>
                 {filters.profileId === 'all' && <Check size={14} />}
               </button>
-              {profiles.map(p => (
-                <button 
+              {profiles.map((p) => (
+                <button
                   key={p.id}
-                  style={{ 
-                    padding: '12px 16px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.profileId === p.id ? 'white' : 'hsl(var(--text-muted))', 
-                    background: filters.profileId === p.id ? '#3b82f6' : 'hsl(var(--bg-card))', 
-                    borderRadius: '12px', 
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.profileId === p.id ? 'white' : 'hsl(var(--text-muted))',
+                    background: filters.profileId === p.id ? '#3b82f6' : 'hsl(var(--bg-card))',
+                    borderRadius: '12px',
                     border: '1px solid',
                     borderColor: filters.profileId === p.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
                   }}
                   onClick={() => setFilters({ ...filters, profileId: p.id })}
                 >
@@ -111,18 +139,20 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status da Conta <Monitor size={14} /></label>
+            <label className="tauze-filter-label">
+              Status da Conta <Monitor size={14} />
+            </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {['all', 'active', 'inactive'].map(status => (
-                <button 
+              {['all', 'active', 'inactive'].map((status) => (
+                <button
                   key={status}
                   className={`tauze-tag-chip ${filters.status === status ? 'active' : ''}`}
                   onClick={() => setFilters({ ...filters, status })}
-                  style={{ 
+                  style={{
                     flex: 1,
-                    borderColor: filters.status === status ? '#3b82f6' : 'hsl(var(--border))', 
+                    borderColor: filters.status === status ? '#3b82f6' : 'hsl(var(--border))',
                     background: filters.status === status ? '#3b82f6' : 'hsl(var(--bg-card))',
-                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))'
+                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {status === 'all' ? 'Todos' : status === 'active' ? 'Ativos' : 'Inativos'}
@@ -131,45 +161,64 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="tauze-filter-section" style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '16px', borderRadius: '16px' }}>
+          <div
+            className="tauze-filter-section"
+            style={{
+              background: 'rgba(139, 92, 246, 0.05)',
+              padding: '16px',
+              borderRadius: '16px',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ color: '#8b5cf6' }}>
                   <Lock size={18} />
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Apenas com MFA</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                  Apenas com MFA
+                </span>
               </div>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={filters.mfaOnly}
-                onChange={e => setFilters({ ...filters, mfaOnly: e.target.checked })}
+                onChange={(e) => setFilters({ ...filters, mfaOnly: e.target.checked })}
                 style={{ width: '20px', height: '20px', accentColor: '#8b5cf6' }}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Data de Cadastro <Calendar size={14} /></label>
+            <label className="tauze-filter-label">
+              Data de Cadastro <Calendar size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateStart}
-                onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateEnd}
-                onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#3b82f6' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,

@@ -63,14 +63,18 @@ export interface NFeParsed {
  */
 function getElementsByTagSafe(parent: Element | Document, tag: string): Element[] {
   let elements = parent.getElementsByTagName(tag);
-  if (elements.length > 0) return Array.from(elements);
-  
+  if (elements.length > 0) {
+    return Array.from(elements);
+  }
+
   elements = parent.getElementsByTagNameNS('*', tag);
-  if (elements.length > 0) return Array.from(elements);
-  
+  if (elements.length > 0) {
+    return Array.from(elements);
+  }
+
   // Fallback iterando em todos e comparando a tag sem prefixo
   const all = parent.getElementsByTagName('*');
-  return Array.from(all).filter(e => e.tagName.split(':').pop() === tag);
+  return Array.from(all).filter((e) => e.tagName.split(':').pop() === tag);
 }
 
 function getTagTextSafe(parent: Element | Document, tag: string): string {
@@ -97,13 +101,14 @@ export function parseNFeXML(xmlString: string): NFeParsed {
   }
 
   // Verifica se é uma NFS-e (Nota Fiscal de Serviços) - Padrões Municipais ou Padrão Nacional (DPS/NFSe)
-  const isNfse = getElementsByTagSafe(doc, 'InfNfse').length > 0 || 
-                 getElementsByTagSafe(doc, 'Nfse').length > 0 || 
-                 getElementsByTagSafe(doc, 'CompNfse').length > 0 ||
-                 getElementsByTagSafe(doc, 'infNFSe').length > 0 ||
-                 getElementsByTagSafe(doc, 'DPS').length > 0 ||
-                 getElementsByTagSafe(doc, 'infDPS').length > 0;
-                 
+  const isNfse =
+    getElementsByTagSafe(doc, 'InfNfse').length > 0 ||
+    getElementsByTagSafe(doc, 'Nfse').length > 0 ||
+    getElementsByTagSafe(doc, 'CompNfse').length > 0 ||
+    getElementsByTagSafe(doc, 'infNFSe').length > 0 ||
+    getElementsByTagSafe(doc, 'DPS').length > 0 ||
+    getElementsByTagSafe(doc, 'infDPS').length > 0;
+
   if (isNfse) {
     return parseNfseDoc(doc);
   }
@@ -115,10 +120,16 @@ function parseNfseDoc(doc: Document): NFeParsed {
   // --- PADRÃO NACIONAL NFS-e (DPS/infDPS) ---
   const infDps = getElementsByTagSafe(doc, 'infDPS')[0] || getElementsByTagSafe(doc, 'infNFSe')[0];
   if (infDps) {
-    const nNF = getTagTextSafe(infDps, 'nNFSe') || getTagTextSafe(infDps, 'nDPS') || getTagTextSafe(infDps, 'nNF');
+    const nNF =
+      getTagTextSafe(infDps, 'nNFSe') ||
+      getTagTextSafe(infDps, 'nDPS') ||
+      getTagTextSafe(infDps, 'nNF');
     const serie = getTagTextSafe(infDps, 'serie') || 'U';
     const dhEmi = getTagTextSafe(infDps, 'dhEmi');
-    const chNFe = getTagTextSafe(infDps, 'chNFSe') || infDps.getAttribute('Id')?.replace(/^DPS/, '') || undefined;
+    const chNFe =
+      getTagTextSafe(infDps, 'chNFSe') ||
+      infDps.getAttribute('Id')?.replace(/^DPS/, '') ||
+      undefined;
     const modelo = 'NFS-e (Nacional)';
     const natOp = 'Prestação de Serviços';
 
@@ -144,22 +155,46 @@ function parseNfseDoc(doc: Document): NFeParsed {
     // Valores e Serviço
     const valores = getElementsByTagSafe(infDps, 'valores')[0] || infDps;
     const vNF = getTagFloatSafe(valores, 'vServPrest') || 0;
-    const vDesc = getTagFloatSafe(valores, 'vDescIncond') || getTagFloatSafe(valores, 'vDescCond') || 0;
-    
+    const vDesc =
+      getTagFloatSafe(valores, 'vDescIncond') || getTagFloatSafe(valores, 'vDescCond') || 0;
+
     const serv = getElementsByTagSafe(infDps, 'serv')[0] || infDps;
     const discriminacao = getTagTextSafe(serv, 'descInteg') || 'Serviço Prestado (NFS-e Nacional)';
     const cServ = getTagTextSafe(serv, 'cServ') || 'SRV';
 
-    const itens: NFeItem[] = [{
-      nItem: 1, cProd: cServ, xProd: discriminacao.substring(0, 500), uCom: 'SV', qCom: 1, vUnCom: vNF, vProd: vNF
-    }];
+    const itens: NFeItem[] = [
+      {
+        nItem: 1,
+        cProd: cServ,
+        xProd: discriminacao.substring(0, 500),
+        uCom: 'SV',
+        qCom: 1,
+        vUnCom: vNF,
+        vProd: vNF,
+      },
+    ];
 
-    return { chNFe, nNF, serie, dhEmi, natOp, modelo, emit, dest, vNF, vDesc: vDesc || undefined, itens };
+    return {
+      chNFe,
+      nNF,
+      serie,
+      dhEmi,
+      natOp,
+      modelo,
+      emit,
+      dest,
+      vNF,
+      vDesc: vDesc || undefined,
+      itens,
+    };
   }
 
   // --- PADRÃO MUNICIPAL (ABRASF) ---
-  const infNfse = getElementsByTagSafe(doc, 'InfNfse')[0] || getElementsByTagSafe(doc, 'Nfse')[0] || doc.documentElement;
-  
+  const infNfse =
+    getElementsByTagSafe(doc, 'InfNfse')[0] ||
+    getElementsByTagSafe(doc, 'Nfse')[0] ||
+    doc.documentElement;
+
   const nNF = getTagTextSafe(infNfse, 'Numero');
   const serie = getTagTextSafe(infNfse, 'Serie') || 'U'; // NFS-e costuma usar U ou não ter série
   const dhEmi = getTagTextSafe(infNfse, 'DataEmissao');
@@ -168,10 +203,16 @@ function parseNfseDoc(doc: Document): NFeParsed {
   const modelo = 'NFS-e';
 
   // Emitente (Prestador de Serviço)
-  const prestador = getElementsByTagSafe(doc, 'PrestadorServico')[0] || getElementsByTagSafe(doc, 'Prestador')[0] || infNfse;
+  const prestador =
+    getElementsByTagSafe(doc, 'PrestadorServico')[0] ||
+    getElementsByTagSafe(doc, 'Prestador')[0] ||
+    infNfse;
   const emitCnpjCpf = getTagTextSafe(prestador, 'Cnpj') || getTagTextSafe(prestador, 'Cpf');
-  const emitNome = getTagTextSafe(prestador, 'RazaoSocial') || getTagTextSafe(prestador, 'NomeFantasia') || 'PRESTADOR DE SERVIÇO';
-  
+  const emitNome =
+    getTagTextSafe(prestador, 'RazaoSocial') ||
+    getTagTextSafe(prestador, 'NomeFantasia') ||
+    'PRESTADOR DE SERVIÇO';
+
   const emit = {
     CNPJ: emitCnpjCpf?.length > 11 ? emitCnpjCpf : undefined,
     CPF: emitCnpjCpf?.length <= 11 ? emitCnpjCpf : undefined,
@@ -180,7 +221,8 @@ function parseNfseDoc(doc: Document): NFeParsed {
   };
 
   // Destinatário (Tomador de Serviço)
-  const tomador = getElementsByTagSafe(doc, 'TomadorServico')[0] || getElementsByTagSafe(doc, 'Tomador')[0];
+  const tomador =
+    getElementsByTagSafe(doc, 'TomadorServico')[0] || getElementsByTagSafe(doc, 'Tomador')[0];
   let dest;
   if (tomador) {
     const destCnpjCpf = getTagTextSafe(tomador, 'Cnpj') || getTagTextSafe(tomador, 'Cpf');
@@ -195,64 +237,93 @@ function parseNfseDoc(doc: Document): NFeParsed {
   const servico = getElementsByTagSafe(doc, 'Servico')[0] || infNfse;
   const valores = getElementsByTagSafe(doc, 'Valores')[0] || servico;
 
-  const vNF = getTagFloatSafe(valores, 'ValorServicos') || getTagFloatSafe(servico, 'ValorServicos') || 0;
-  const vDesc = getTagFloatSafe(valores, 'DescontoIncondicionado') || getTagFloatSafe(valores, 'DescontoCondicionado') || 0;
-  
+  const vNF =
+    getTagFloatSafe(valores, 'ValorServicos') || getTagFloatSafe(servico, 'ValorServicos') || 0;
+  const vDesc =
+    getTagFloatSafe(valores, 'DescontoIncondicionado') ||
+    getTagFloatSafe(valores, 'DescontoCondicionado') ||
+    0;
+
   const discriminacao = getTagTextSafe(servico, 'Discriminacao') || 'Serviço Prestado (NFS-e)';
-  const codigoTributacao = getTagTextSafe(servico, 'ItemListaServico') || getTagTextSafe(servico, 'CodigoTributacaoMunicipio') || 'SRV';
+  const codigoTributacao =
+    getTagTextSafe(servico, 'ItemListaServico') ||
+    getTagTextSafe(servico, 'CodigoTributacaoMunicipio') ||
+    'SRV';
 
   // NFS-e vira um "item" único para dar match em serviços contratados no ERP
-  const itens: NFeItem[] = [{
-    nItem: 1,
-    cProd: codigoTributacao,
-    xProd: discriminacao.substring(0, 500), // Evitar estourar UI se a descrição for enorme
-    uCom: 'SV', // Serviço
-    qCom: 1,
-    vUnCom: vNF,
-    vProd: vNF
-  }];
+  const itens: NFeItem[] = [
+    {
+      nItem: 1,
+      cProd: codigoTributacao,
+      xProd: discriminacao.substring(0, 500), // Evitar estourar UI se a descrição for enorme
+      uCom: 'SV', // Serviço
+      qCom: 1,
+      vUnCom: vNF,
+      vProd: vNF,
+    },
+  ];
 
-  return { chNFe, nNF, serie, dhEmi, natOp, modelo, emit, dest, vNF, vDesc: vDesc || undefined, itens };
+  return {
+    chNFe,
+    nNF,
+    serie,
+    dhEmi,
+    natOp,
+    modelo,
+    emit,
+    dest,
+    vNF,
+    vDesc: vDesc || undefined,
+    itens,
+  };
 }
 
 function parseNfeDoc(doc: Document): NFeParsed {
   const infNFe = getElementsByTagSafe(doc, 'infNFe')[0];
   if (!infNFe) {
-    throw new Error('Estrutura inválida: elemento <infNFe> ou <InfNfse> não encontrado. Este arquivo é realmente um XML de NF-e ou NFS-e?');
+    throw new Error(
+      'Estrutura inválida: elemento <infNFe> ou <InfNfse> não encontrado. Este arquivo é realmente um XML de NF-e ou NFS-e?'
+    );
   }
 
   const chNFe = infNFe.getAttribute('Id')?.replace(/^NFe/, '') || undefined;
 
   const ide = getElementsByTagSafe(doc, 'ide')[0];
-  if (!ide) throw new Error('Elemento <ide> não encontrado na NF-e.');
+  if (!ide) {
+    throw new Error('Elemento <ide> não encontrado na NF-e.');
+  }
 
-  const nNF     = getTagTextSafe(ide, 'nNF');
-  const serie   = getTagTextSafe(ide, 'serie');
-  const dhEmi   = getTagTextSafe(ide, 'dhEmi') || getTagTextSafe(ide, 'dEmi');
-  const natOp   = getTagTextSafe(ide, 'natOp');
-  const modelo  = getTagTextSafe(ide, 'mod');
+  const nNF = getTagTextSafe(ide, 'nNF');
+  const serie = getTagTextSafe(ide, 'serie');
+  const dhEmi = getTagTextSafe(ide, 'dhEmi') || getTagTextSafe(ide, 'dEmi');
+  const natOp = getTagTextSafe(ide, 'natOp');
+  const modelo = getTagTextSafe(ide, 'mod');
 
   const emitEl = getElementsByTagSafe(doc, 'emit')[0];
-  if (!emitEl) throw new Error('Elemento <emit> não encontrado na NF-e.');
+  if (!emitEl) {
+    throw new Error('Elemento <emit> não encontrado na NF-e.');
+  }
 
   const emit = {
-    CNPJ:  getTagTextSafe(emitEl, 'CNPJ') || undefined,
-    CPF:   getTagTextSafe(emitEl, 'CPF') || undefined,
+    CNPJ: getTagTextSafe(emitEl, 'CNPJ') || undefined,
+    CPF: getTagTextSafe(emitEl, 'CPF') || undefined,
     xNome: getTagTextSafe(emitEl, 'xNome'),
     xFant: getTagTextSafe(emitEl, 'xFant') || undefined,
-    IE:    getTagTextSafe(emitEl, 'IE') || undefined,
+    IE: getTagTextSafe(emitEl, 'IE') || undefined,
   };
 
   const destEl = getElementsByTagSafe(doc, 'dest')[0];
-  const dest = destEl ? {
-    CNPJ:  getTagTextSafe(destEl, 'CNPJ') || undefined,
-    CPF:   getTagTextSafe(destEl, 'CPF') || undefined,
-    xNome: getTagTextSafe(destEl, 'xNome'),
-  } : undefined;
+  const dest = destEl
+    ? {
+        CNPJ: getTagTextSafe(destEl, 'CNPJ') || undefined,
+        CPF: getTagTextSafe(destEl, 'CPF') || undefined,
+        xNome: getTagTextSafe(destEl, 'xNome'),
+      }
+    : undefined;
 
   const ICMSTot = getElementsByTagSafe(doc, 'ICMSTot')[0];
-  const vNF    = getTagFloatSafe(ICMSTot || doc, 'vNF');
-  const vDesc  = getTagFloatSafe(ICMSTot || doc, 'vDesc');
+  const vNF = getTagFloatSafe(ICMSTot || doc, 'vNF');
+  const vDesc = getTagFloatSafe(ICMSTot || doc, 'vDesc');
   const vFrete = getTagFloatSafe(ICMSTot || doc, 'vFrete');
   const vOutro = getTagFloatSafe(ICMSTot || doc, 'vOutro');
 
@@ -274,15 +345,15 @@ function parseNfeDoc(doc: Document): NFeParsed {
       continue;
     }
 
-    const cProd  = getTagTextSafe(prod, 'cProd');
-    const xProd  = getTagTextSafe(prod, 'xProd');
-    const NCM    = getTagTextSafe(prod, 'NCM') || getTagTextSafe(prod, 'ncm') || undefined;
-    const CFOP   = getTagTextSafe(prod, 'CFOP') || undefined;
-    const uCom   = getTagTextSafe(prod, 'uCom') || getTagTextSafe(prod, 'uTrib') || 'UN';
-    const qCom   = getTagFloatSafe(prod, 'qCom') || getTagFloatSafe(prod, 'qTrib') || 0;
+    const cProd = getTagTextSafe(prod, 'cProd');
+    const xProd = getTagTextSafe(prod, 'xProd');
+    const NCM = getTagTextSafe(prod, 'NCM') || getTagTextSafe(prod, 'ncm') || undefined;
+    const CFOP = getTagTextSafe(prod, 'CFOP') || undefined;
+    const uCom = getTagTextSafe(prod, 'uCom') || getTagTextSafe(prod, 'uTrib') || 'UN';
+    const qCom = getTagFloatSafe(prod, 'qCom') || getTagFloatSafe(prod, 'qTrib') || 0;
     const vUnCom = getTagFloatSafe(prod, 'vUnCom') || getTagFloatSafe(prod, 'vUnTrib') || 0;
-    const vProd  = getTagFloatSafe(prod, 'vProd') || qCom * vUnCom;
-    const cEAN   = getTagTextSafe(prod, 'cEAN') || undefined;
+    const vProd = getTagFloatSafe(prod, 'vProd') || qCom * vUnCom;
+    const cEAN = getTagTextSafe(prod, 'cEAN') || undefined;
 
     if (!xProd) {
       warnings.push(`Item ${nItem}: campo xProd ausente, ignorado.`);
@@ -294,7 +365,23 @@ function parseNfeDoc(doc: Document): NFeParsed {
 
   const infAdic = getTagTextSafe(doc, 'infCpl') || getTagTextSafe(doc, 'infAdFisco') || undefined;
 
-  return { chNFe, nNF, serie, dhEmi, natOp, modelo, emit, dest, vNF, vDesc: vDesc || undefined, vFrete: vFrete || undefined, vOutro: vOutro || undefined, itens, infAdic, warnings: warnings.length > 0 ? warnings : undefined };
+  return {
+    chNFe,
+    nNF,
+    serie,
+    dhEmi,
+    natOp,
+    modelo,
+    emit,
+    dest,
+    vNF,
+    vDesc: vDesc || undefined,
+    vFrete: vFrete || undefined,
+    vOutro: vOutro || undefined,
+    itens,
+    infAdic,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  };
 }
 
 /**

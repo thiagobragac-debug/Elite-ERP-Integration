@@ -23,7 +23,7 @@ interface TauzeStatCardProps {
 
 const SPARKLINE_H = 44; // px — must match CSS
 
-export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
+const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
   label,
   value,
   subtitle,
@@ -37,9 +37,12 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   periodLabel = 'Histórico',
   className = '',
   children,
-  interpolate = false
+  interpolate = false,
 }) => {
-  const normalizedSparkline = React.useMemo(() => normalizeSparkline(sparkline, interpolate), [sparkline, interpolate]);
+  const normalizedSparkline = React.useMemo(
+    () => normalizeSparkline(sparkline, interpolate),
+    [sparkline, interpolate]
+  );
 
   const [mounted, setMounted] = React.useState(false);
   const [hoveredBar, setHoveredBar] = React.useState<number | null>(null);
@@ -50,11 +53,13 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   }, []);
 
   if (loading) {
-    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }}></div>;
+    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }} />;
   }
 
-  const maxVal = normalizedSparkline.length > 0 ? Math.max(...normalizedSparkline.map(s => s.value), 1) : 1;
-  const minVal = normalizedSparkline.length > 0 ? Math.min(...normalizedSparkline.map(s => s.value)) : 0;
+  const maxVal =
+    normalizedSparkline.length > 0 ? Math.max(...normalizedSparkline.map((s) => s.value), 1) : 1;
+  const minVal =
+    normalizedSparkline.length > 0 ? Math.min(...normalizedSparkline.map((s) => s.value)) : 0;
   const range = maxVal - minVal;
 
   return (
@@ -78,7 +83,7 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
               transition={{ duration: 1.5, ease: 'easeOut' }}
             />
           </svg>
-          <div className="icon-center" style={{ color: color }}>
+          <div className="icon-center" style={{ color }}>
             {Icon && <Icon size={28} />}
           </div>
         </div>
@@ -87,7 +92,17 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
           <span className="kpi-label-tauze">{label}</span>
           <span className="kpi-value-tauze">{value}</span>
           {subtitle && (
-            <span style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted, #94a3b8))', letterSpacing: '0.02em', marginTop: 2, display: 'block', lineHeight: 1.4 }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                color: 'hsl(var(--text-muted, #94a3b8))',
+                letterSpacing: '0.02em',
+                marginTop: 2,
+                display: 'block',
+                lineHeight: 1.4,
+              }}
+            >
               {subtitle}
             </span>
           )}
@@ -106,11 +121,18 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
         </div>
       )}
 
-      {!children && <div className="kpi-divider"></div>}
+      {!children && <div className="kpi-divider" />}
 
       <div
         className="kpi-footer-tauze"
-        style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px', flexShrink: 0, minHeight: `${SPARKLINE_H}px` }}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexShrink: 0,
+          minHeight: `${SPARKLINE_H}px`,
+        }}
       >
         {normalizedSparkline.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 3 }}>
@@ -126,69 +148,91 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
               }}
             >
               {/* Tooltip flutuante — data + valor empilhados */}
-              {hoveredBar !== null && normalizedSparkline[hoveredBar] && (() => {
-                const item = normalizedSparkline[hoveredBar];
-                const displayValue = item.value >= 1000
-                  ? item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
-                  : item.value % 1 !== 0
-                    ? item.value.toFixed(2)
-                    : item.value.toFixed(0);
-                const hasLabel = item.label && item.label !== String(hoveredBar + 1);
+              {hoveredBar !== null &&
+                normalizedSparkline[hoveredBar] &&
+                (() => {
+                  const item = normalizedSparkline[hoveredBar];
+                  const displayValue =
+                    item.value >= 1000
+                      ? item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+                      : item.value % 1 !== 0
+                        ? item.value.toFixed(2)
+                        : item.value.toFixed(0);
+                  const hasLabel = item.label && item.label !== String(hoveredBar + 1);
 
-                const barPct = hoveredBar / Math.max(normalizedSparkline.length - 1, 1);
-                const leftPct = Math.min(Math.max(barPct * 100, 10), 85);
+                  const barPct = hoveredBar / Math.max(normalizedSparkline.length - 1, 1);
+                  const leftPct = Math.min(Math.max(barPct * 100, 10), 85);
 
-                return (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: `${SPARKLINE_H + 8}px`,
-                      left: `${leftPct}%`,
-                      transform: 'translateX(-50%)',
-                      background: 'rgba(10,16,35,0.96)',
-                      borderRadius: '8px',
-                      padding: '6px 10px',
-                      whiteSpace: 'nowrap',
-                      zIndex: 100,
-                      pointerEvents: 'none',
-                      boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
-                      border: `1px solid ${color}55`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}
-                  >
-                    {/* Data no topo */}
-                    {hasLabel && (
-                      <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b', letterSpacing: '0.04em', lineHeight: 1 }}>
-                        {item.label}
+                  return (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: `${SPARKLINE_H + 8}px`,
+                        left: `${leftPct}%`,
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(10,16,35,0.96)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        whiteSpace: 'nowrap',
+                        zIndex: 100,
+                        pointerEvents: 'none',
+                        boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+                        border: `1px solid ${color}55`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}
+                    >
+                      {/* Data no topo */}
+                      {hasLabel && (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 500,
+                            color: '#64748b',
+                            letterSpacing: '0.04em',
+                            lineHeight: 1,
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                      )}
+                      {/* Valor em destaque */}
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color,
+                          letterSpacing: '0.01em',
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {displayValue}
                       </span>
-                    )}
-                    {/* Valor em destaque */}
-                    <span style={{ fontSize: '13px', fontWeight: 800, color, letterSpacing: '0.01em', lineHeight: 1.1 }}>
-                      {displayValue}
-                    </span>
-                    {/* Seta inferior */}
-                    <div style={{
-                      position: 'absolute',
-                      bottom: -5,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 0,
-                      height: 0,
-                      borderLeft: '5px solid transparent',
-                      borderRight: '5px solid transparent',
-                      borderTop: `5px solid rgba(10,16,35,0.96)`,
-                    }} />
-                  </div>
-                );
-              })()}
+                      {/* Seta inferior */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: -5,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '5px solid transparent',
+                          borderRight: '5px solid transparent',
+                          borderTop: `5px solid rgba(10,16,35,0.96)`,
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
 
               {normalizedSparkline.map((item, i) => {
                 const normalized = range === 0 ? 0.5 : (item.value - minVal) / range;
                 const targetH = Math.max(4, Math.round((0.18 + normalized * 0.82) * SPARKLINE_H));
-                const opacityVal = hoveredBar === i ? 1 : (hoveredBar !== null ? 0.3 : (0.45 + normalized * 0.55));
+                const opacityVal =
+                  hoveredBar === i ? 1 : hoveredBar !== null ? 0.3 : 0.45 + normalized * 0.55;
 
                 return (
                   <div
@@ -217,34 +261,42 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
             {/* ── Rótulos de período: primeira e última data ───────── */}
             {(() => {
               const first = normalizedSparkline[0]?.label;
-              const last  = normalizedSparkline[normalizedSparkline.length - 1]?.label;
-              if (!first && !last) return null;
+              const last = normalizedSparkline[normalizedSparkline.length - 1]?.label;
+              if (!first && !last) {
+                return null;
+              }
               return (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  paddingTop: 1,
-                }}>
-                  <span style={{
-                    fontSize: '9px',
-                    fontWeight: 600,
-                    color: hoveredBar === 0 ? color : '#475569',
-                    letterSpacing: '0.03em',
-                    lineHeight: 1,
-                    transition: 'color 0.15s',
-                    userSelect: 'none',
-                  }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    paddingTop: 1,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      color: hoveredBar === 0 ? color : '#475569',
+                      letterSpacing: '0.03em',
+                      lineHeight: 1,
+                      transition: 'color 0.15s',
+                      userSelect: 'none',
+                    }}
+                  >
                     {first}
                   </span>
-                  <span style={{
-                    fontSize: '9px',
-                    fontWeight: 600,
-                    color: hoveredBar === normalizedSparkline.length - 1 ? color : '#475569',
-                    letterSpacing: '0.03em',
-                    lineHeight: 1,
-                    transition: 'color 0.15s',
-                    userSelect: 'none',
-                  }}>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      color: hoveredBar === normalizedSparkline.length - 1 ? color : '#475569',
+                      letterSpacing: '0.03em',
+                      lineHeight: 1,
+                      transition: 'color 0.15s',
+                      userSelect: 'none',
+                    }}
+                  >
                     {last}
                   </span>
                 </div>
@@ -257,3 +309,5 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
     </motion.div>
   );
 };
+
+export const TauzeStatCard = React.memo(TauzeStatCardComponent);

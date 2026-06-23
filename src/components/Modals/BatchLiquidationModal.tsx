@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { 
-  CheckCircle2, 
-  CreditCard, 
-  Calendar, 
+import {
+  CheckCircle2,
+  CreditCard,
+  Calendar,
   Building2,
   DollarSign,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { DateInput } from '../../components/Form/DateInput';
-
 
 interface BatchLiquidationModalProps {
   isOpen: boolean;
@@ -26,21 +25,23 @@ interface BatchLiquidationModalProps {
   subtitle?: string;
 }
 
-export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
+export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
   selectedIds,
   type,
   title,
-  subtitle
+  subtitle,
 }) => {
   const { activeFarm } = useTenant();
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = usePersistentState('BatchLiquidationModal_formData', {
     bank_account_id: '',
-    payment_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+    payment_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0],
   });
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [fetchingTotal, setFetchingTotal] = useState(false);
@@ -60,13 +61,12 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
     setFetchingTotal(true);
     try {
       const table = type === 'payable' ? 'contas_pagar' : 'contas_receber';
-      const { data, error } = await supabase
-        .from(table)
-        .select('valor')
-        .in('id', selectedIds);
-        
-      if (error) throw error;
-      
+      const { data, error } = await supabase.from(table).select('valor').in('id', selectedIds);
+
+      if (error) {
+        throw error;
+      }
+
       const sum = data.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
       setTotalAmount(sum);
     } catch (err) {
@@ -77,38 +77,81 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
   };
 
   const fetchBankAccounts = async () => {
-    if (!activeFarm?.tenantId) return;
-    
+    if (!activeFarm?.tenantId) {
+      return;
+    }
+
     const { data } = await supabase
       .from('contas_bancarias')
       .select('id, descricao, banco')
       .eq('tenant_id', activeFarm.tenantId);
-    
-    if (data) setBankAccounts(data);
+
+    if (data) {
+      setBankAccounts(data);
+    }
   };
 
   const handleBatchLiquidation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.bank_account_id) return toast.error('Selecione uma conta bancária.');
-    
+    if (!formData.bank_account_id) {
+      return toast.error('Selecione uma conta bancária.');
+    }
+
     setLoading(true);
     try {
       const table = type === 'payable' ? 'contas_pagar' : 'contas_receber';
       const statusField = type === 'payable' ? 'PAGO' : 'RECEBIDO';
       const dateField = type === 'payable' ? 'data_pagamento' : 'data_recebimento';
 
+      // Fetch the records before updating to get payment details for analytics
+      const { data: records, error: fetchError } = await supabase
+        .from(table)
+        .select('valor, metodo_pagamento')
+        .in('id', selectedIds);
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
       // Perform updates in batch
       const { error } = await supabase
         .from(table)
-        .update({ 
-          status: statusField, 
+        .update({
+          status: statusField,
           [dateField]: formData.payment_date,
           // We could also store which bank account was used if we had that field in the table
           // For now, we update the status
         })
         .in('id', selectedIds);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      // Track payment received events (for receivables) or payment made events (for payables)
+      if (type === 'receivable' && records && records.length > 0) {
+        // Track payment received for receivables
+        import('../../lib/analytics').then(({ analytics }) => {
+          records.forEach((record) => {
+            analytics.paymentReceived({
+              valor: Number(record.valor) || 0,
+              metodo: record.metodo_pagamento || 'Não especificado',
+              tipo: 'recebimento',
+            });
+          });
+        });
+      } else if (type === 'payable' && records && records.length > 0) {
+        // Track payment made for payables (using paymentReceived with tipo: 'pagamento')
+        import('../../lib/analytics').then(({ analytics }) => {
+          records.forEach((record) => {
+            analytics.paymentReceived({
+              valor: Number(record.valor) || 0,
+              metodo: record.metodo_pagamento || 'Não especificado',
+              tipo: 'pagamento',
+            });
+          });
+        });
+      }
 
       onSuccess();
       onClose();
@@ -121,57 +164,125 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
   };
 
   return (
-    <SidePanel size="large"
+    <SidePanel
+      size="large"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleBatchLiquidation}
-      title={title || "Baixa em Lote"}
+      title={title || 'Baixa em Lote'}
       subtitle={subtitle || `Liquidando ${selectedIds.length} títulos selecionados.`}
       icon={CheckCircle2}
       loading={loading}
       submitLabel="Confirmar Baixa"
     >
       <div className="form-group full-width">
-        <label><Building2 size={14} /> Conta Bancária (Destino/Origem)</label>
-        <select 
+        <label>
+          <Building2 size={14} /> Conta Bancária (Destino/Origem)
+        </label>
+        <select
           value={formData.bank_account_id}
           onChange={(e) => setFormData({ ...formData, bank_account_id: e.target.value })}
           required
         >
           <option value="">Selecione a conta para liquidação...</option>
-          {bankAccounts.map(acc => (
-            <option key={acc.id} value={acc.id}>{acc.descricao} - {acc.banco}</option>
+          {bankAccounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.descricao} - {acc.banco}
+            </option>
           ))}
         </select>
       </div>
 
       <div className="form-group full-width">
-        <label><Calendar size={14} /> Data da Liquidação</label>
-        <DateInput 
-          type="date" 
+        <label>
+          <Calendar size={14} /> Data da Liquidação
+        </label>
+        <DateInput
+          type="date"
           value={formData.payment_date}
           onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
           required
         />
       </div>
 
-      <div style={{ gridColumn: 'span 2', padding: '16px', borderRadius: '12px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          gridColumn: 'span 2',
+          padding: '16px',
+          borderRadius: '12px',
+          background: 'hsl(var(--bg-main))',
+          border: '1px solid hsl(var(--border))',
+          marginTop: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Valor Total a {type === 'payable' ? 'Pagar' : 'Receber'}</div>
-          <div style={{ fontSize: '20px', fontWeight: 900, color: type === 'payable' ? '#ef4444' : '#10b981' }}>
-            {fetchingTotal ? 'Calculando...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: 'hsl(var(--text-muted))',
+              textTransform: 'uppercase',
+            }}
+          >
+            Valor Total a {type === 'payable' ? 'Pagar' : 'Receber'}
+          </div>
+          <div
+            style={{
+              fontSize: '20px',
+              fontWeight: 900,
+              color: type === 'payable' ? '#ef4444' : '#10b981',
+            }}
+          >
+            {fetchingTotal
+              ? 'Calculando...'
+              : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  totalAmount
+                )}
           </div>
         </div>
-        <DollarSign size={24} style={{ color: type === 'payable' ? '#ef4444' : '#10b981', opacity: 0.2 }} />
+        <DollarSign
+          size={24}
+          style={{ color: type === 'payable' ? '#ef4444' : '#10b981', opacity: 0.2 }}
+        />
       </div>
 
-      <div style={{ gridColumn: 'span 2', padding: '16px', borderRadius: '12px', background: 'hsl(var(--warning)/0.1)', border: '1px solid hsl(var(--warning)/0.2)', marginTop: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--warning))', fontSize: '12px', fontWeight: 800, marginBottom: '4px' }}>
+      <div
+        style={{
+          gridColumn: 'span 2',
+          padding: '16px',
+          borderRadius: '12px',
+          background: 'hsl(var(--warning)/0.1)',
+          border: '1px solid hsl(var(--warning)/0.2)',
+          marginTop: '8px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: 'hsl(var(--warning))',
+            fontSize: '12px',
+            fontWeight: 800,
+            marginBottom: '4px',
+          }}
+        >
           <AlertCircle size={14} />
           ATENÇÃO
         </div>
-        <p style={{ margin: 0, fontSize: '11px', lineHeight: '1.4', color: 'hsl(var(--text-muted))' }}>
-          Esta ação irá marcar todos os títulos selecionados como pagos/recebidos e não pode ser desfeita em lote.
+        <p
+          style={{
+            margin: 0,
+            fontSize: '11px',
+            lineHeight: '1.4',
+            color: 'hsl(var(--text-muted))',
+          }}
+        >
+          Esta ação irá marcar todos os títulos selecionados como pagos/recebidos e não pode ser
+          desfeita em lote.
         </p>
       </div>
     </SidePanel>

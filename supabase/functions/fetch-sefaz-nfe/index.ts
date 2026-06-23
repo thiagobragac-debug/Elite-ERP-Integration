@@ -41,7 +41,9 @@ serve(async (req) => {
     console.log('🔄 Iniciando comunicação com a SEFAZ para chave:', chave_acesso);
     
     // Simular o delay de comunicação com a SEFAZ (2 a 3 segundos)
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 2500);
+    });
 
     // Determinar se é NF-e ou NFS-e pelo tamanho da chave
     // Chave de 44 dígitos = NFe/CTe/MDFe Estadual/Nacional
@@ -114,7 +116,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: 'Nota Fiscal baixada com sucesso da SEFAZ.',
-        isNFSe: isNFSe,
+        isNFSe,
         xmlBase64: btoa(mockNFeXml), // Retornar em Base64 para o client parsear
         chave: chave_acesso
       }),

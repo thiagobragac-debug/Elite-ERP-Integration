@@ -14,7 +14,7 @@ export interface ConsumptionItem {
   custo_medio: number;
   custo_padrao?: number; // referência do cadastro do insumo
   deposito_id: string;
-  
+
   // Specific for Health/Sanidade
   via_aplicacao?: string;
   local_aplicacao?: string;
@@ -31,7 +31,7 @@ interface ConsumptionCartProps {
   onChange: (items: ConsumptionItem[]) => void;
   title?: string;
   subtitle?: string;
-  
+
   // Feature flags for specific modules
   showHealthFields?: boolean;
   filterModule?: string;
@@ -40,16 +40,16 @@ interface ConsumptionCartProps {
   hideDeposit?: boolean;
 }
 
-export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({ 
-  items, 
-  onChange, 
-  title = "Insumos Consumidos", 
-  subtitle = "Informe os produtos, quantidades e depósitos de saída.",
+export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
+  items,
+  onChange,
+  title = 'Insumos Consumidos',
+  subtitle = 'Informe os produtos, quantidades e depósitos de saída.',
   showHealthFields = false,
   filterModule,
   mode = 'consumption',
   isEntry = false,
-  hideDeposit = false
+  hideDeposit = false,
 }) => {
   const { activeTenantId, activeFarm } = useTenant();
   const [products, setProducts] = useState<any[]>([]);
@@ -70,39 +70,52 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .from('depositos')
         .select('id, nome')
         .eq('tenant_id', activeTenantId)
-        .eq('fazenda_id',  activeFarm?.id,)
+        .eq('fazenda_id', activeFarm?.id)
         .eq('status', 'ativo')
         .order('nome');
-      if (depData) setDeposits(depData);
+      if (depData) {
+        setDeposits(depData);
+      }
 
       // 2. Fetch Products
       let pQuery = supabase
         .from('produtos')
-        .select(`
+        .select(
+          `
           id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id,
           categorias_sistema(nome)
-        `)
+        `
+        )
         .eq('tenant_id', activeTenantId)
         .eq('is_active', true);
-      
+
       if (filterModule) {
-        let allowedModules = ['geral', filterModule];
-        if (filterModule.startsWith('pecuaria_')) allowedModules.push('pecuaria_geral');
-        if (filterModule.startsWith('frota_')) allowedModules.push('frota_geral');
+        const allowedModules = ['geral', filterModule];
+        if (filterModule.startsWith('pecuaria_')) {
+          allowedModules.push('pecuaria_geral');
+        }
+        if (filterModule.startsWith('frota_')) {
+          allowedModules.push('frota_geral');
+        }
 
         const { data: catData } = await supabase
           .from('categorias_sistema')
           .select('id')
           .eq('modulo', 'estoque')
           .in('modulo_vinculado', allowedModules);
-          
+
         if (catData && catData.length > 0) {
-          pQuery = pQuery.in('categoria_id', catData.map((c: any) => c.id));
+          pQuery = pQuery.in(
+            'categoria_id',
+            catData.map((c: any) => c.id)
+          );
         }
       }
 
       const { data: prodData } = await pQuery.order('nome');
-      if (prodData) setProducts(prodData);
+      if (prodData) {
+        setProducts(prodData);
+      }
     } catch (err) {
       console.error('Error fetching data for StockConsumptionCart', err);
     } finally {
@@ -124,23 +137,25 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       carencia_dias: showHealthFields ? 0 : undefined,
       valor_unitario: mode === 'movement' && isEntry ? 0 : undefined,
       lote: mode === 'movement' ? '' : undefined,
-      data_validade: mode === 'movement' ? '' : undefined
+      data_validade: mode === 'movement' ? '' : undefined,
     };
     onChange([...items, newItem]);
   };
 
   const handleRemoveItem = (id: string) => {
-    onChange(items.filter(item => item.id !== id));
+    onChange(items.filter((item) => item.id !== id));
   };
 
   const handleUpdateItem = (id: string, updates: Partial<ConsumptionItem>) => {
-    onChange(items.map(item => item.id === id ? { ...item, ...updates } : item));
+    onChange(items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
 
   const handleSelectProduct = (itemId: string, productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-    
+    const product = products.find((p) => p.id === productId);
+    if (!product) {
+      return;
+    }
+
     // Hierarquia de custo:
     // 1. is_storable=true  → custo_medio (calculado pelas NFs)
     // 2. is_storable=false → custo_ultima_compra (último preço da NF)
@@ -151,112 +166,332 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
     } else {
       custoRef = product.custo_ultima_compra || product.custo_padrao || 0;
     }
-    
+
     handleUpdateItem(itemId, {
       produto_id: product.id,
       nome: product.nome,
       unidade: product.unidade || 'UN',
       custo_medio: custoRef,
-      custo_padrao: product.custo_padrao || 0
+      custo_padrao: product.custo_padrao || 0,
     });
   };
 
   return (
-    <div style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '16px', overflow: 'hidden', marginTop: '16px' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--bg-main) / 0.3)' }}>
+    <div
+      style={{
+        background: 'hsl(var(--bg-card))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        marginTop: '16px',
+      }}
+    >
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid hsl(var(--border))',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'hsl(var(--bg-main) / 0.3)',
+        }}
+      >
         <div>
-          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h4
+            style={{
+              margin: 0,
+              fontSize: '13px',
+              fontWeight: 800,
+              color: 'hsl(var(--text-main))',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
             <Layers size={16} /> {title}
           </h4>
-          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>{subtitle}</p>
+          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+            {subtitle}
+          </p>
         </div>
-        <button 
+        <button
           type="button"
           onClick={handleAddItem}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'hsl(var(--brand))', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'hsl(var(--brand))',
+            color: '#fff',
+            border: 'none',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontSize: '11px',
+            fontWeight: 800,
+            cursor: 'pointer',
+          }}
         >
           <Plus size={14} /> Adicionar Item
         </button>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: showHealthFields ? '900px' : (mode === 'formulation' ? '100%' : '600px') }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            tableLayout: 'fixed',
+            minWidth: showHealthFields ? '900px' : mode === 'formulation' ? '100%' : '600px',
+          }}
+        >
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '250px' }}>Insumo / Produto</th>
+              <th
+                style={{
+                  textAlign: 'left',
+                  padding: '12px 8px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: 'hsl(var(--text-muted))',
+                  textTransform: 'uppercase',
+                  borderBottom: '1px solid hsl(var(--border))',
+                  width: '250px',
+                }}
+              >
+                Insumo / Produto
+              </th>
               {!hideDeposit && (mode === 'consumption' || mode === 'movement') && (
-                <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '200px' }}>{mode === 'movement' && isEntry ? 'Depósito de Destino' : mode === 'movement' ? 'Depósito' : 'Depósito de Saída'}</th>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '12px 8px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid hsl(var(--border))',
+                    width: '200px',
+                  }}
+                >
+                  {mode === 'movement' && isEntry
+                    ? 'Depósito de Destino'
+                    : mode === 'movement'
+                      ? 'Depósito'
+                      : 'Depósito de Saída'}
+                </th>
               )}
-              <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: mode === 'formulation' ? '80px' : '120px' }}>Qtd</th>
-              
+              <th
+                style={{
+                  textAlign: 'center',
+                  padding: '12px 8px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: 'hsl(var(--text-muted))',
+                  textTransform: 'uppercase',
+                  borderBottom: '1px solid hsl(var(--border))',
+                  width: mode === 'formulation' ? '80px' : '120px',
+                }}
+              >
+                Qtd
+              </th>
+
               {showHealthFields && (
                 <>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Via</th>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Local</th>
-                  <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '90px' }}>Carência</th>
-                </>
-              )}
-              
-              {mode === 'movement' && (
-                <>
-                  {isEntry && <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>V. Unitário</th>}
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Lote</th>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Validade</th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '120px',
+                    }}
+                  >
+                    Via
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '120px',
+                    }}
+                  >
+                    Local
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'center',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '90px',
+                    }}
+                  >
+                    Carência
+                  </th>
                 </>
               )}
 
-              {mode !== 'movement' && <th style={{ textAlign: 'right', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Custo (Est)</th>}
-              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: 'auto' }}></th>
+              {mode === 'movement' && (
+                <>
+                  {isEntry && (
+                    <th
+                      style={{
+                        textAlign: 'center',
+                        padding: '12px 8px',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        color: 'hsl(var(--text-muted))',
+                        textTransform: 'uppercase',
+                        borderBottom: '1px solid hsl(var(--border))',
+                        width: '100px',
+                      }}
+                    >
+                      V. Unitário
+                    </th>
+                  )}
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '120px',
+                    }}
+                  >
+                    Lote
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '120px',
+                    }}
+                  >
+                    Validade
+                  </th>
+                </>
+              )}
+
+              {mode !== 'movement' && (
+                <th
+                  style={{
+                    textAlign: 'right',
+                    padding: '12px 8px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid hsl(var(--border))',
+                    width: '100px',
+                  }}
+                >
+                  Custo (Est)
+                </th>
+              )}
+              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: 'auto' }} />
             </tr>
           </thead>
           <tbody>
-            {items.map(item => (
+            {items.map((item) => (
               <tr key={item.id}>
-                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                <td
+                  style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}
+                >
                   <SearchableSelect
                     value={item.produto_id}
                     onChange={(val: any) => handleSelectProduct(item.id, val)}
-                    options={products.map(p => ({ value: p.id, label: `${p.nome} (${p.unidade || 'UN'})` }))}
+                    options={products.map((p) => ({
+                      value: p.id,
+                      label: `${p.nome} (${p.unidade || 'UN'})`,
+                    }))}
                     placeholder="Selecione o produto..."
                     height="36px"
                   />
                 </td>
                 {!hideDeposit && (mode === 'consumption' || mode === 'movement') && (
-                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                  <td
+                    style={{
+                      padding: '8px 8px',
+                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                    }}
+                  >
                     <SearchableSelect
                       value={item.deposito_id}
                       onChange={(val: any) => handleUpdateItem(item.id, { deposito_id: val })}
-                      options={deposits.map(d => ({ value: d.id, label: d.nome }))}
+                      options={deposits.map((d) => ({ value: d.id, label: d.nome }))}
                       placeholder="Selecione..."
                       height="36px"
                     />
                   </td>
                 )}
-                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                <td
+                  style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}
+                >
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input 
+                    <input
                       type="number"
                       step="0.01"
                       className="tauze-input"
-                      style={{ padding: '0 8px', height: '36px', textAlign: 'center', width: '100%' }}
+                      style={{
+                        padding: '0 8px',
+                        height: '36px',
+                        textAlign: 'center',
+                        width: '100%',
+                      }}
                       value={item.quantidade || ''}
-                      onChange={(e) => handleUpdateItem(item.id, { quantidade: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        handleUpdateItem(item.id, { quantidade: parseFloat(e.target.value) || 0 })
+                      }
                       placeholder="0"
                     />
-                    <span style={{ position: 'absolute', right: '8px', fontSize: '10px', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        fontSize: '10px',
+                        color: 'hsl(var(--text-muted))',
+                        pointerEvents: 'none',
+                      }}
+                    >
                       {item.unidade}
                     </span>
                   </div>
                 </td>
-                
+
                 {showHealthFields && (
                   <>
-                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                      <select 
-                        className="tauze-input" 
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <select
+                        className="tauze-input"
                         style={{ height: '36px' }}
                         value={item.via_aplicacao || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { via_aplicacao: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { via_aplicacao: e.target.value })
+                        }
                       >
                         <option value="IM">Intramuscular (IM)</option>
                         <option value="SC">Subcutânea (SC)</option>
@@ -265,23 +500,39 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         <option value="TOPICO">Tópico/Pour-on</option>
                       </select>
                     </td>
-                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                      <input 
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <input
                         type="text"
                         className="tauze-input"
                         style={{ height: '36px' }}
                         value={item.local_aplicacao || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { local_aplicacao: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { local_aplicacao: e.target.value })
+                        }
                         placeholder="Ex: Tábua pescoço"
                       />
                     </td>
-                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                       <input 
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <input
                         type="number"
                         className="tauze-input"
                         style={{ height: '36px', textAlign: 'center' }}
                         value={item.carencia_dias || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { carencia_dias: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, {
+                            carencia_dias: parseInt(e.target.value) || 0,
+                          })
+                        }
                         placeholder="Dias"
                       />
                     </td>
@@ -291,23 +542,54 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 {mode === 'movement' && (
                   <>
                     {isEntry && (
-                      <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <span style={{ position: 'absolute', left: '8px', fontSize: '10px', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>R$</span>
-                          <input 
+                      <td
+                        style={{
+                          padding: '8px 8px',
+                          borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                        }}
+                      >
+                        <div
+                          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                        >
+                          <span
+                            style={{
+                              position: 'absolute',
+                              left: '8px',
+                              fontSize: '10px',
+                              color: 'hsl(var(--text-muted))',
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            R$
+                          </span>
+                          <input
                             type="number"
                             step="0.01"
                             className="tauze-input"
-                            style={{ padding: '0 8px 0 24px', height: '36px', textAlign: 'center', width: '100%' }}
+                            style={{
+                              padding: '0 8px 0 24px',
+                              height: '36px',
+                              textAlign: 'center',
+                              width: '100%',
+                            }}
                             value={item.valor_unitario || ''}
-                            onChange={(e) => handleUpdateItem(item.id, { valor_unitario: parseFloat(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              handleUpdateItem(item.id, {
+                                valor_unitario: parseFloat(e.target.value) || 0,
+                              })
+                            }
                             placeholder="0.00"
                           />
                         </div>
                       </td>
                     )}
-                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                      <input 
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <input
                         type="text"
                         className="tauze-input"
                         style={{ height: '36px' }}
@@ -316,49 +598,106 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         placeholder="Ex: L123"
                       />
                     </td>
-                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
-                       <input 
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <input
                         type="date"
                         className="tauze-input"
                         style={{ height: '36px' }}
                         value={item.data_validade || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { data_validade: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { data_validade: e.target.value })
+                        }
                       />
                     </td>
                   </>
                 )}
 
                 {mode !== 'movement' && (
-                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                  <td
+                    style={{
+                      padding: '8px 8px',
+                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-                        <span style={{ position: 'absolute', left: '8px', fontSize: '10px', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>R$</span>
+                      <div
+                        style={{
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          flex: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: '8px',
+                            fontSize: '10px',
+                            color: 'hsl(var(--text-muted))',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          R$
+                        </span>
                         <input
                           type="number"
                           step="0.01"
                           className="tauze-input"
-                          style={{ padding: '0 8px 0 26px', height: '36px', textAlign: 'right', width: '100%', fontSize: '12px', fontWeight: 700 }}
+                          style={{
+                            padding: '0 8px 0 26px',
+                            height: '36px',
+                            textAlign: 'right',
+                            width: '100%',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
                           value={item.custo_medio || ''}
-                          onChange={(e) => handleUpdateItem(item.id, { custo_medio: parseFloat(e.target.value) || 0 })}
+                          onChange={(e) =>
+                            handleUpdateItem(item.id, {
+                              custo_medio: parseFloat(e.target.value) || 0,
+                            })
+                          }
                           placeholder="0.00"
                         />
                       </div>
-                      {item.custo_padrao && item.custo_padrao > 0 && Math.abs((item.custo_medio || 0) - item.custo_padrao) > 0.01 && (
-                        <span
-                          title={`Custo padrão cadastrado: R$ ${item.custo_padrao.toFixed(2)}`}
-                          style={{ color: '#f59e0b', cursor: 'help', flexShrink: 0 }}
-                        >
-                          <AlertTriangle size={14} />
-                        </span>
-                      )}
+                      {item.custo_padrao &&
+                        item.custo_padrao > 0 &&
+                        Math.abs((item.custo_medio || 0) - item.custo_padrao) > 0.01 && (
+                          <span
+                            title={`Custo padrão cadastrado: R$ ${item.custo_padrao.toFixed(2)}`}
+                            style={{ color: '#f59e0b', cursor: 'help', flexShrink: 0 }}
+                          >
+                            <AlertTriangle size={14} />
+                          </span>
+                        )}
                     </div>
                   </td>
                 )}
-                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'center' }}>
-                  <button 
-                    type="button" 
+                <td
+                  style={{
+                    padding: '8px 8px',
+                    borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <button
+                    type="button"
                     onClick={() => handleRemoveItem(item.id)}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                     title="Remover"
                   >
                     <Trash2 size={16} />
@@ -368,27 +707,47 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
             ))}
           </tbody>
         </table>
-        
+
         {items.length === 0 && (
           <div style={{ padding: '32px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
             <Package size={24} style={{ margin: '0 auto 8px auto', opacity: 0.5 }} />
             <div style={{ fontSize: '12px', fontWeight: 600 }}>Nenhum insumo lançado.</div>
-            <div style={{ fontSize: '11px', marginTop: '4px' }}>Clique em "Adicionar Item" para informar o consumo.</div>
+            <div style={{ fontSize: '11px', marginTop: '4px' }}>
+              Clique em "Adicionar Item" para informar o consumo.
+            </div>
           </div>
         )}
       </div>
-      
+
       {items.length > 0 && (
-        <div style={{ padding: '12px 20px', background: 'hsl(var(--bg-main)/0.3)', borderTop: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
-           <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
-             Custo Total Estimado
-           </div>
-           <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-             {items.reduce((acc, curr) => acc + ((curr.custo_medio || 0) * (curr.quantidade || 0)), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-           </div>
+        <div
+          style={{
+            padding: '12px 20px',
+            background: 'hsl(var(--bg-main)/0.3)',
+            borderTop: '1px solid hsl(var(--border))',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '16px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: 'hsl(var(--text-muted))',
+              textTransform: 'uppercase',
+            }}
+          >
+            Custo Total Estimado
+          </div>
+          <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
+            {items
+              .reduce((acc, curr) => acc + (curr.custo_medio || 0) * (curr.quantidade || 0), 0)
+              .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </div>
         </div>
       )}
     </div>
   );
 };
-

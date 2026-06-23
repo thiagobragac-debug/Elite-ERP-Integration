@@ -1,9 +1,18 @@
 import React from 'react';
-import { X, Filter, Check, Scale, TrendingUp, Calendar, AlertCircle, Target, History } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Check,
+  Scale,
+  TrendingUp,
+  Calendar,
+  AlertCircle,
+  Target,
+  History,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface WeightFilterModalProps {
   isOpen: boolean;
@@ -16,14 +25,16 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const performanceLevels = [
     { id: 'high', label: 'Alto Ganho (> 1.0kg)', color: '#10b981' },
     { id: 'medium', label: 'Médio (0.5 - 1.0kg)', color: '#f59e0b' },
-    { id: 'low', label: 'Baixo Ganho (< 0.5kg)', color: '#ef4444' }
+    { id: 'low', label: 'Baixo Ganho (< 0.5kg)', color: '#ef4444' },
   ];
 
   const handleClear = () => {
@@ -35,23 +46,41 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
       dateStart: '',
       dateEnd: '',
       performanceLevel: 'all',
-      daysSinceLastWeighing: 0
+      daysSinceLastWeighing: 0,
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#3b82f6',
+              }}
+            >
               <Scale size={20} />
             </div>
             <div>
@@ -59,8 +88,15 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
               <p>Monitore o GMD e performance individual.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -69,24 +105,29 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Nível de Performance (GMD) <TrendingUp size={14} /></label>
+            <label className="tauze-filter-label">
+              Nível de Performance (GMD) <TrendingUp size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              {performanceLevels.map(level => (
-                <button 
+              {performanceLevels.map((level) => (
+                <button
                   key={level.id}
-                  style={{ 
-                    padding: '12px 16px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.performanceLevel === level.id ? 'white' : 'hsl(var(--text-muted))', 
-                    background: filters.performanceLevel === level.id ? level.color : 'hsl(var(--bg-card))', 
-                    borderRadius: '12px', 
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color:
+                      filters.performanceLevel === level.id ? 'white' : 'hsl(var(--text-muted))',
+                    background:
+                      filters.performanceLevel === level.id ? level.color : 'hsl(var(--bg-card))',
+                    borderRadius: '12px',
                     border: '1px solid',
-                    borderColor: filters.performanceLevel === level.id ? level.color : 'hsl(var(--border))',
+                    borderColor:
+                      filters.performanceLevel === level.id ? level.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
                   }}
                   onClick={() => setFilters({ ...filters, performanceLevel: level.id })}
                 >
@@ -98,74 +139,159 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Faixa de Peso (@ ou kg) <Target size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <label className="tauze-filter-label">
+              Faixa de Peso (@ ou kg) <Target size={14} />
+            </label>
+            <div
+              className="integrity-slider-container"
+              style={{
+                padding: '20px',
+                background: 'hsl(var(--bg-main))',
+                borderRadius: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+              }}
+            >
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Mínimo</label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.minWeight} kg</span>
+                <label
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                    display: 'block',
+                  }}
+                >
+                  Peso Mínimo
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>
+                    {filters.minWeight} kg
+                  </span>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="500" 
+                <input
+                  type="range"
+                  min="0"
+                  max="500"
                   step="5"
                   value={filters.minWeight}
-                  onChange={e => setFilters({ ...filters, minWeight: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#3b82f6', height: '6px', cursor: 'pointer' }}
+                  onChange={(e) => setFilters({ ...filters, minWeight: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    accentColor: '#3b82f6',
+                    height: '6px',
+                    cursor: 'pointer',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Máximo</label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxWeight} kg</span>
+                <label
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                    display: 'block',
+                  }}
+                >
+                  Peso Máximo
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>
+                    {filters.maxWeight} kg
+                  </span>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1000" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
                   step="10"
                   value={filters.maxWeight}
-                  onChange={e => setFilters({ ...filters, maxWeight: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#3b82f6', height: '6px', cursor: 'pointer' }}
+                  onChange={(e) => setFilters({ ...filters, maxWeight: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    accentColor: '#3b82f6',
+                    height: '6px',
+                    cursor: 'pointer',
+                  }}
                 />
               </div>
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Período da Pesagem <Calendar size={14} /></label>
+            <label className="tauze-filter-label">
+              Período da Pesagem <Calendar size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateStart}
-                onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateEnd}
-                onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Check-up de Manejo <History size={14} /></label>
-            <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>Dias sem pesar</span>
-                <span style={{ fontSize: '14px', fontWeight: 900, color: '#ef4444' }}>{filters.daysSinceLastWeighing}+ dias</span>
+            <label className="tauze-filter-label">
+              Check-up de Manejo <History size={14} />
+            </label>
+            <div
+              style={{
+                padding: '16px',
+                background: 'rgba(239, 68, 68, 0.05)',
+                borderRadius: '16px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '12px',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                  Dias sem pesar
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 900, color: '#ef4444' }}>
+                  {filters.daysSinceLastWeighing}+ dias
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="120" 
+              <input
+                type="range"
+                min="0"
+                max="120"
                 step="15"
                 value={filters.daysSinceLastWeighing}
-                onChange={e => setFilters({ ...filters, daysSinceLastWeighing: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setFilters({ ...filters, daysSinceLastWeighing: parseInt(e.target.value) })
+                }
                 style={{ width: '100%', accentColor: '#ef4444', height: '4px', cursor: 'pointer' }}
               />
             </div>
@@ -173,8 +299,16 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#3b82f6' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,

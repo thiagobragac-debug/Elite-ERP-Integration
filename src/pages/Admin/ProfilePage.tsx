@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { Search, 
-  User, 
-  Mail, 
-  Shield, 
-  Monitor, 
-  Bell, 
-  Lock, 
-  Edit2, 
+import {
+  Search,
+  User,
+  Mail,
+  Shield,
+  Monitor,
+  Bell,
+  Lock,
+  Edit2,
   FileText,
   Save,
   Camera,
-  History
+  History,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTenant } from '../../contexts/TenantContext';
@@ -23,18 +24,18 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const ProfilePage: React.FC = () => {
   const { userProfile } = useTenant();
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'pref' | 'security'>('info');
-  
+
   // Local state for personal info
   const [formData, setFormData] = usePersistentState('ProfilePage_formData', {
     name: userProfile?.full_name || '',
-    phone: ''
+    phone: '',
   });
-  
+
   // Local state for preferences
   const [preferences, setPreferences] = useState({
     darkMode: true,
     biAlerts: false,
-    dailySummary: true
+    dailySummary: true,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -50,18 +51,43 @@ export const ProfilePage: React.FC = () => {
   };
 
   const loginHistory = [
-    { id: '1', date: new Date().toISOString(), event: 'Login via Chrome/Windows', ip: '189.12.34.56', status: 'Sucesso' },
-    { id: '2', date: new Date(Date.now() - 86400000).toISOString(), event: 'Login via Mobile App', ip: '189.12.34.56', status: 'Sucesso' },
-    { id: '3', date: new Date(Date.now() - 172800000).toISOString(), event: 'Alteração de Senha', ip: '189.12.34.56', status: 'Seguro' },
+    {
+      id: '1',
+      date: new Date().toISOString(),
+      event: 'Login via Chrome/Windows',
+      ip: '189.12.34.56',
+      status: 'Sucesso',
+    },
+    {
+      id: '2',
+      date: new Date(Date.now() - 86400000).toISOString(),
+      event: 'Login via Mobile App',
+      ip: '189.12.34.56',
+      status: 'Sucesso',
+    },
+    {
+      id: '3',
+      date: new Date(Date.now() - 172800000).toISOString(),
+      event: 'Alteração de Senha',
+      ip: '189.12.34.56',
+      status: 'Seguro',
+    },
   ];
 
   return (
     <div className="profile-page-container">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Minha Identidade Digital' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Administração', href: '/admin/intelligence' },
+              { label: 'Minha Identidade Digital' },
+            ]}
+          />
           <h1 className="page-title">Minha Identidade Digital</h1>
-          <p className="page-subtitle">Gerencie suas informações pessoais, preferências de interface e histórico de segurança.</p>
+          <p className="page-subtitle">
+            Gerencie suas informações pessoais, preferências de interface e histórico de segurança.
+          </p>
         </div>
       </header>
 
@@ -72,28 +98,30 @@ export const ProfilePage: React.FC = () => {
             <div className="avatar-section">
               <div className="avatar-circle">
                 {userProfile?.full_name?.charAt(0) || 'U'}
-                <button className="avatar-edit-btn"><Camera size={16} /></button>
+                <button className="avatar-edit-btn">
+                  <Camera size={16} />
+                </button>
               </div>
               <h3>{userProfile?.full_name}</h3>
               <span className="role-badge">{userProfile?.role || 'Administrador'}</span>
             </div>
-            
+
             <nav className="profile-nav">
-              <button 
+              <button
                 className={`nav-item ${activeSubTab === 'info' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('info')}
               >
                 <User size={18} />
                 <span>Dados Pessoais</span>
               </button>
-              <button 
+              <button
                 className={`nav-item ${activeSubTab === 'pref' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('pref')}
               >
                 <Monitor size={18} />
                 <span>Preferências</span>
               </button>
-              <button 
+              <button
                 className={`nav-item ${activeSubTab === 'security' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('security')}
               >
@@ -107,32 +135,36 @@ export const ProfilePage: React.FC = () => {
         {/* Main Content Area */}
         <div className="profile-main">
           {activeSubTab === 'info' && (
-            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="content-panel">
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="content-panel"
+            >
               <div className="panel-header">
                 <h3>Informações Básicas</h3>
                 <p>Estes dados são usados para identificação em relatórios e auditorias.</p>
               </div>
-              
+
               <div className="fields-grid">
                 <div className="tauze-field">
                   <label>Nome Completo</label>
-                  <input 
-                    type="text" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div className="tauze-field">
                   <label>E-mail (Principal)</label>
-                  <input type="email" defaultValue={userProfile?.email} disabled />
+                  <input type="email" defaultValue={userProfile?.email ?? undefined} disabled />
                 </div>
                 <div className="tauze-field">
                   <label>Telefone / WhatsApp</label>
-                  <input 
-                    type="text" 
-                    placeholder="(00) 00000-0000" 
+                  <input
+                    type="text"
+                    placeholder="(00) 00000-0000"
                     value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})} 
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
                 <div className="tauze-field">
@@ -142,8 +174,8 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="panel-footer">
-                <button 
-                  className={`primary-btn ${saved ? 'success' : ''}`} 
+                <button
+                  className={`primary-btn ${saved ? 'success' : ''}`}
                   onClick={handleSave}
                   disabled={isSaving}
                   style={saved ? { background: '#16a34a', borderColor: '#16a34a' } : {}}
@@ -156,60 +188,86 @@ export const ProfilePage: React.FC = () => {
           )}
 
           {activeSubTab === 'pref' && (
-            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="content-panel">
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="content-panel"
+            >
               <div className="panel-header">
                 <h3>Preferências de Interface</h3>
                 <p>Personalize como o sistema se comporta para você.</p>
               </div>
-              
+
               <div className="switches-list">
-                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, darkMode: !p.darkMode}))} style={{ cursor: 'pointer' }}>
+                <div
+                  className="pref-switch"
+                  onClick={() => setPreferences((p) => ({ ...p, darkMode: !p.darkMode }))}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="info">
                     <span className="t">Modo Escuro Automático</span>
                     <span className="d">Sincronizar com o horário do seu dispositivo.</span>
                   </div>
-                  <div className={`toggle ${preferences.darkMode ? 'active' : ''}`}></div>
+                  <div className={`toggle ${preferences.darkMode ? 'active' : ''}`} />
                 </div>
-                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, biAlerts: !p.biAlerts}))} style={{ cursor: 'pointer' }}>
+                <div
+                  className="pref-switch"
+                  onClick={() => setPreferences((p) => ({ ...p, biAlerts: !p.biAlerts }))}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="info">
                     <span className="t">Notificações de BI</span>
                     <span className="d">Alertas críticos de GMD e metas no navegador.</span>
                   </div>
-                  <div className={`toggle ${preferences.biAlerts ? 'active' : ''}`}></div>
+                  <div className={`toggle ${preferences.biAlerts ? 'active' : ''}`} />
                 </div>
-                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, dailySummary: !p.dailySummary}))} style={{ cursor: 'pointer' }}>
+                <div
+                  className="pref-switch"
+                  onClick={() => setPreferences((p) => ({ ...p, dailySummary: !p.dailySummary }))}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="info">
                     <span className="t">Resumo Diário por E-mail</span>
                     <span className="d">Receber PDF com os KPIs da fazenda às 07:00.</span>
                   </div>
-                  <div className={`toggle ${preferences.dailySummary ? 'active' : ''}`}></div>
+                  <div className={`toggle ${preferences.dailySummary ? 'active' : ''}`} />
                 </div>
               </div>
             </motion.div>
           )}
 
           {activeSubTab === 'security' && (
-            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="content-panel">
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="content-panel"
+            >
               <div className="panel-header">
                 <h3>Logs de Acesso & Segurança</h3>
                 <p>Rastreabilidade completa das suas sessões no sistema.</p>
               </div>
-              
+
               <div className="security-content">
-                <ModernTable 
+                <ModernTable
                   emptyState={
                     <EmptyState
                       title="Nenhum registro encontrado"
                       description="Sua busca não retornou resultados."
                       icon={Search}
                     />
-                  } 
+                  }
                   data={loginHistory}
                   columns={[
                     { header: 'Evento', accessor: 'event' },
-                    { header: 'Data/Hora', accessor: (i: any) => new Date(i.date).toLocaleString() },
+                    {
+                      header: 'Data/Hora',
+                      accessor: (i: any) => new Date(i.date).toLocaleString(),
+                    },
                     { header: 'IP', accessor: 'ip' },
-                    { header: 'Status', accessor: (i: any) => <span className="status-pill active">{i.status}</span> }
+                    {
+                      header: 'Status',
+                      accessor: (i: any) => <span className="status-pill active">{i.status}</span>,
+                    },
                   ]}
                   hideHeader={true}
                 />

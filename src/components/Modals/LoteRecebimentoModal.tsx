@@ -10,14 +10,13 @@ import {
   MapPin,
   FileText,
   Users,
-  Scale
+  Scale,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
-
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface LoteRecebimentoModalProps {
@@ -64,7 +63,9 @@ function getDefaultSlaDate(): string {
 }
 
 function formatDateBR(iso: string): string {
-  if (!iso) return '';
+  if (!iso) {
+    return '';
+  }
   const [y, m, day] = iso.split('-');
   return `${day}/${m}/${y}`;
 }
@@ -99,14 +100,14 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
 
   // ── Derived: match summary ─────────────────────────────────────────────────
   const selectedLote = mockAvulsoLots.find((l) => l.id === selectedLoteId);
-  const diferenca = selectedLote
-    ? selectedLote.quantidade_animais - quantidadeCabecas
-    : 0;
+  const diferenca = selectedLote ? selectedLote.quantidade_animais - quantidadeCabecas : 0;
   const hasDivergencia = selectedLote && diferenca !== 0;
 
   // ── Fetch fazendas ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isOpen || !activeTenantId) return;
+    if (!isOpen || !activeTenantId) {
+      return;
+    }
     fetchFazendas();
   }, [isOpen, activeTenantId]);
 
@@ -116,10 +117,10 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
         .from('fazendas')
         .select('id, nome')
         .eq('tenant_id', activeTenantId);
-      if (error) throw error;
-      setFazendas(
-        (data || []).map((f: any) => ({ value: f.id, label: f.nome }))
-      );
+      if (error) {
+        throw error;
+      }
+      setFazendas((data || []).map((f: any) => ({ value: f.id, label: f.nome })));
       if (activeFarm?.id && !fazendaDestino) {
         setFazendaDestino(activeFarm.id);
       }
@@ -145,43 +146,39 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
   const handleCriarLotePendente = () => {
     const newId = generateUUID();
     setSubmittingPendente(true);
-    toast.promise(
-      new Promise<void>((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: 'Criando lote pendente…',
-        success: () => {
-          setSubmittingPendente(false);
-          onSuccess(newId, 'pendente');
-          onClose();
-          return 'Lote pendente criado com sucesso!';
-        },
-        error: () => {
-          setSubmittingPendente(false);
-          return 'Erro ao criar lote.';
-        },
-      }
-    );
+    toast.promise(new Promise<void>((resolve) => setTimeout(resolve, 1500)), {
+      loading: 'Criando lote pendente…',
+      success: () => {
+        setSubmittingPendente(false);
+        onSuccess(newId, 'pendente');
+        onClose();
+        return 'Lote pendente criado com sucesso!';
+      },
+      error: () => {
+        setSubmittingPendente(false);
+        return 'Erro ao criar lote.';
+      },
+    });
   };
 
   const handleVincularLote = () => {
-    if (!selectedLoteId) return;
+    if (!selectedLoteId) {
+      return;
+    }
     setSubmittingVincular(true);
-    toast.promise(
-      new Promise<void>((resolve) => setTimeout(resolve, 1200)),
-      {
-        loading: 'Vinculando lote e calculando custo/cabeça…',
-        success: () => {
-          setSubmittingVincular(false);
-          onSuccess(selectedLoteId, 'vinculado');
-          onClose();
-          return 'Lote vinculado! Custo/cabeça calculado.';
-        },
-        error: () => {
-          setSubmittingVincular(false);
-          return 'Erro ao vincular lote.';
-        },
-      }
-    );
+    toast.promise(new Promise<void>((resolve) => setTimeout(resolve, 1200)), {
+      loading: 'Vinculando lote e calculando custo/cabeça…',
+      success: () => {
+        setSubmittingVincular(false);
+        onSuccess(selectedLoteId, 'vinculado');
+        onClose();
+        return 'Lote vinculado! Custo/cabeça calculado.';
+      },
+      error: () => {
+        setSubmittingVincular(false);
+        return 'Erro ao vincular lote.';
+      },
+    });
   };
 
   const custoPorCabeca =
@@ -207,7 +204,14 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
       size="large"
       hideSubmit={true}
       customFooter={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
           <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
             Custo estimado/cabeça:{' '}
             <strong style={{ color: 'hsl(var(--text-main))' }}>{custoPorCabeca}</strong>
@@ -217,7 +221,13 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
               type="button"
               className="glass-btn secondary"
               onClick={onClose}
-              style={{ padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
             >
               Cancelar
             </button>
@@ -662,9 +672,7 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
           <span className="lrm-nf-label">
             {notaFiscalId ? `Nota Fiscal #${notaFiscalId}` : 'Nota Fiscal de Entrada'}
           </span>
-          <span className="lrm-nf-value">
-            {fornecedor || 'Fornecedor não informado'}
-          </span>
+          <span className="lrm-nf-value">{fornecedor || 'Fornecedor não informado'}</span>
           <div className="lrm-nf-chips">
             <span className="lrm-chip brand">
               <Users size={11} />
@@ -672,7 +680,9 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
             </span>
             <span className="lrm-chip">
               <Scale size={11} />
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotal)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                valorTotal
+              )}
             </span>
           </div>
         </div>
@@ -722,7 +732,14 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
               value={fazendaDestino}
               onChange={setFazendaDestino}
               placeholder="Selecione a fazenda de destino…"
-              options={fazendas.length > 0 ? fazendas : [{ value: 'mock-faz-1', label: 'Fazenda São Bento' }, { value: 'mock-faz-2', label: 'Fazenda Santa Cruz' }]}
+              options={
+                fazendas.length > 0
+                  ? fazendas
+                  : [
+                      { value: 'mock-faz-1', label: 'Fazenda São Bento' },
+                      { value: 'mock-faz-2', label: 'Fazenda Santa Cruz' },
+                    ]
+              }
             />
           </div>
 
@@ -761,8 +778,7 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
           {/* GTA Número */}
           <div className="lrm-field-group" style={{ marginTop: '16px' }}>
             <label className="lrm-label">
-              <FileText size={11} /> GTA Número{' '}
-              <span className="optional">(opcional)</span>
+              <FileText size={11} /> GTA Número <span className="optional">(opcional)</span>
             </label>
             <input
               type="text"
@@ -776,8 +792,7 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
           {/* Observações */}
           <div className="lrm-field-group">
             <label className="lrm-label">
-              <FileText size={11} /> Observações{' '}
-              <span className="optional">(opcional)</span>
+              <FileText size={11} /> Observações <span className="optional">(opcional)</span>
             </label>
             <textarea
               className="lrm-input"
@@ -821,9 +836,7 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
                 >
                   <div className="lrm-lot-header">
                     <span className="lrm-lot-name">{lote.nome}</span>
-                    <div className="lrm-lot-check">
-                      {isSelected && <CheckCircle2 size={14} />}
-                    </div>
+                    <div className="lrm-lot-check">{isSelected && <CheckCircle2 size={14} />}</div>
                   </div>
                   <div className="lrm-lot-meta">
                     <span className="lrm-lot-meta-item">
@@ -874,9 +887,14 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
 
               {hasDivergencia && (
                 <div className="lrm-divergence-warning">
-                  <AlertCircle size={16} color="hsl(38 92% 45%)" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <AlertCircle
+                    size={16}
+                    color="hsl(38 92% 45%)"
+                    style={{ flexShrink: 0, marginTop: 1 }}
+                  />
                   <p>
-                    <strong>Divergência detectada.</strong> Será possível resolver no próximo passo, após o vínculo.
+                    <strong>Divergência detectada.</strong> Será possível resolver no próximo passo,
+                    após o vínculo.
                   </p>
                 </div>
               )}

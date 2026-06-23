@@ -4,7 +4,6 @@ import { X, Calendar, ChevronRight, Check, ArrowLeft, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateInput } from '../../../components/Form/DateInput';
 
-
 interface PeriodSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,22 +15,54 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
   isOpen,
   onClose,
   selectedPeriod,
-  onSelect
+  onSelect,
 }) => {
   const [view, setView] = useState<'list' | 'custom'>('list');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
   const periods = [
-    { id: 'safra_atual', label: 'Safra Atual (2025/26)', desc: 'Dados consolidados do ciclo produtivo vigente.', type: 'harvest' },
-    { id: 'safra_anterior', label: 'Safra Anterior (2024/25)', desc: 'Comparativo histórico do último ciclo fechado.', type: 'harvest' },
-    { id: 'mes_atual', label: 'Mês Atual', desc: 'Performance operacional dos últimos 30 dias.', type: 'period' },
-    { id: 'trimestre', label: 'Último Trimestre', desc: 'Visão tática de médio prazo.', type: 'period' },
-    { id: 'ano_civil', label: 'Ano Civil (2025)', desc: 'Fechamento contábil baseado em calendário gregoriano.', type: 'period' },
-    { id: 'custom', label: 'Intervalo Personalizado', desc: 'Defina datas específicas de início e fim.', type: 'custom' },
+    {
+      id: 'safra_atual',
+      label: 'Safra Atual (2025/26)',
+      desc: 'Dados consolidados do ciclo produtivo vigente.',
+      type: 'harvest',
+    },
+    {
+      id: 'safra_anterior',
+      label: 'Safra Anterior (2024/25)',
+      desc: 'Comparativo histórico do último ciclo fechado.',
+      type: 'harvest',
+    },
+    {
+      id: 'mes_atual',
+      label: 'Mês Atual',
+      desc: 'Performance operacional dos últimos 30 dias.',
+      type: 'period',
+    },
+    {
+      id: 'trimestre',
+      label: 'Último Trimestre',
+      desc: 'Visão tática de médio prazo.',
+      type: 'period',
+    },
+    {
+      id: 'ano_civil',
+      label: 'Ano Civil (2025)',
+      desc: 'Fechamento contábil baseado em calendário gregoriano.',
+      type: 'period',
+    },
+    {
+      id: 'custom',
+      label: 'Intervalo Personalizado',
+      desc: 'Defina datas específicas de início e fim.',
+      type: 'custom',
+    },
   ];
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const handleApplyCustom = () => {
     if (startDate && endDate) {
@@ -42,14 +73,14 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
 
   return createPortal(
     <div className="tauze-global-modal-overlay" onClick={onClose}>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8, y: 40 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.8, y: 40 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="tauze-modal-container"
         style={{ maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-modal-header">
           <div className="header-content">
@@ -64,16 +95,22 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
             )}
             <div>
               <h3>{view === 'custom' ? 'Intervalo Customizado' : 'Período de Análise'}</h3>
-              <p>{view === 'custom' ? 'Defina as datas limites para filtragem.' : 'Selecione o horizonte temporal para os relatórios.'}</p>
+              <p>
+                {view === 'custom'
+                  ? 'Defina as datas limites para filtragem.'
+                  : 'Selecione o horizonte temporal para os relatórios.'}
+              </p>
             </div>
           </div>
-          <button className="close-btn" onClick={onClose}><X size={20} /></button>
+          <button className="close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
         </div>
 
         <div className="tauze-modal-body">
           <AnimatePresence mode="wait">
             {view === 'list' ? (
-              <motion.div 
+              <motion.div
                 key="list"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -81,7 +118,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                 className="period-list"
               >
                 {periods.map((period) => (
-                  <button 
+                  <button
                     key={period.id}
                     className={`period-item ${selectedPeriod === period.id ? 'active' : ''}`}
                     onClick={() => {
@@ -110,7 +147,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                 ))}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="custom"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -122,9 +159,9 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                     <label>DATA INICIAL</label>
                     <div className="date-input-wrapper">
                       <Calendar size={14} className="input-icon" />
-                      <DateInput 
-                        type="date" 
-                        value={startDate} 
+                      <DateInput
+                        type="date"
+                        value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                       />
                     </div>
@@ -133,17 +170,17 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                     <label>DATA FINAL</label>
                     <div className="date-input-wrapper">
                       <Calendar size={14} className="input-icon" />
-                      <DateInput 
-                        type="date" 
-                        value={endDate} 
+                      <DateInput
+                        type="date"
+                        value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                     </div>
                   </div>
                 </div>
 
-                <button 
-                  className="apply-range-btn" 
+                <button
+                  className="apply-range-btn"
                   disabled={!startDate || !endDate}
                   onClick={handleApplyCustom}
                 >
@@ -156,7 +193,9 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
         </div>
 
         <div className="tauze-modal-footer">
-          <p className="footer-hint">A alteração do período recalcula todos os indicadores do Dashboard em tempo real.</p>
+          <p className="footer-hint">
+            A alteração do período recalcula todos os indicadores do Dashboard em tempo real.
+          </p>
         </div>
       </motion.div>
 

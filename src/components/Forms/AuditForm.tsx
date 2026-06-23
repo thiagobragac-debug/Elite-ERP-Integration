@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { 
-  Package, 
+import {
   ClipboardCheck,
   Calendar,
   User,
@@ -13,7 +12,7 @@ import {
   RefreshCcw,
   Building2,
   FileText,
-  EyeOff
+  EyeOff,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -21,7 +20,6 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { SearchableSelect } from './SearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
-import { DateInput } from '../../components/Form/DateInput';
 
 interface AuditFormProps {
   isOpen: boolean;
@@ -31,10 +29,16 @@ interface AuditFormProps {
   actionId?: number;
 }
 
-export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
+export const AuditForm: React.FC<AuditFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  actionId,
+}) => {
   const { activeFarm } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
-  
+
   const [warehouses, setWarehouses] = useState<any[]>([]);
 
   const [formData, setFormData] = usePersistentState('AuditForm_formData', {
@@ -46,14 +50,16 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
     deposito_id: '',
     motivo: 'Rotina Mensal',
     ajuste_automatico: true,
-    contagem_cega: false
+    contagem_cega: false,
   });
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
+    if (!actionId) {
+      return;
+    } // Ignore on initial mount / refresh
 
     if (isOpen && activeFarm) {
       fetchWarehouses();
@@ -61,38 +67,42 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
   }, [isOpen, activeFarm]);
 
   const fetchWarehouses = async () => {
-    let query = supabase
-      .from('depositos')
-      .select('id, nome')
-      .neq('status', 'inativo');
+    let query = supabase.from('depositos').select('id, nome').neq('status', 'inativo');
     query = applyFarmFilter(query);
     const { data } = await query;
-    if (data) setWarehouses(data);
+    if (data) {
+      setWarehouses(data);
+    }
   };
 
   useEffect(() => {
-    if (initialData) { setFormData({
+    if (initialData) {
+      setFormData({
         title: initialData.titulo || '',
-        date: initialData.data_contagem || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        date:
+          initialData.data_contagem ||
+          new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         responsible: initialData.responsavel || '',
         category: initialData.categoria || 'Insumos (Sementes/Adubos)',
         description: initialData.descricao || '',
         deposito_id: initialData.deposito_id || '',
         motivo: initialData.motivo || 'Rotina Mensal',
         ajuste_automatico: initialData.ajuste_automatico !== false,
-        contagem_cega: !!initialData.contagem_cega
+        contagem_cega: !!initialData.contagem_cega,
       });
     } else {
       setFormData({
         title: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .split('T')[0],
         responsible: '',
         category: 'Insumos (Sementes/Adubos)',
         description: '',
         deposito_id: '',
         motivo: 'Rotina Mensal',
         ajuste_automatico: true,
-        contagem_cega: false
+        contagem_cega: false,
       });
     }
   }, [initialData, isOpen, actionId]);
@@ -108,15 +118,16 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
   };
 
   return (
-    <SidePanel size="medium"
+    <SidePanel
+      size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Inventário" : "Novo Inventário / Auditoria"}
+      title={initialData ? 'Editar Inventário' : 'Novo Inventário / Auditoria'}
       subtitle="Inicie um processo de contagem física para ajuste de saldo de estoque."
       icon={ClipboardCheck}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Iniciar Contagem"}
+      submitLabel={initialData ? 'Salvar Alterações' : 'Iniciar Contagem'}
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
@@ -125,33 +136,39 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><ClipboardCheck size={14} /> Título do Inventário</label>
-            <input 
+            <label className="tauze-label">
+              <ClipboardCheck size={14} /> Título do Inventário
+            </label>
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Ex: Inventário Geral - Almoxarifado Central..." 
+              type="text"
+              placeholder="Ex: Inventário Geral - Almoxarifado Central..."
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
             />
           </div>
-          
+
           <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> Depósito Alvo</label>
+            <label className="tauze-label">
+              <Building2 size={14} /> Depósito Alvo
+            </label>
             <SearchableSelect
               value={formData.deposito_id}
-              onChange={(val) => setFormData({...formData, deposito_id: val})}
-              options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
+              onChange={(val) => setFormData({ ...formData, deposito_id: val })}
+              options={warehouses.map((w) => ({ value: w.id, label: w.nome }))}
               placeholder="Selecione onde será a contagem..."
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Motivo da Auditoria</label>
-            <select 
+            <label className="tauze-label">
+              <FileText size={14} /> Motivo da Auditoria
+            </label>
+            <select
               className="tauze-input"
               value={formData.motivo}
-              onChange={(e) => setFormData({...formData, motivo: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
             >
               <option value="Rotina Mensal">Rotina Mensal / Cíclico</option>
               <option value="Fechamento de Safra">Fechamento de Safra</option>
@@ -162,24 +179,28 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
         </div>
         <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data da Contagem</label>
-            <input 
+            <label className="tauze-label">
+              <Calendar size={14} /> Data da Contagem
+            </label>
+            <input
               className="tauze-input"
-              type="date" 
+              type="date"
               value={formData.date}
-              onChange={(e) => setFormData({...formData, date: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><User size={14} /> Responsável</label>
-            <input 
+            <label className="tauze-label">
+              <User size={14} /> Responsável
+            </label>
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Nome do conferente..." 
+              type="text"
+              placeholder="Nome do conferente..."
               value={formData.responsible}
-              onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
               required
             />
           </div>
@@ -193,10 +214,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Layers size={14} /> Categoria de Itens</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <Layers size={14} /> Categoria de Itens
+            </label>
+            <SearchableSelect
               value={formData.category}
-              onChange={(val: any) => setFormData({...formData, category: val})}
+              onChange={(val: any) => setFormData({ ...formData, category: val })}
               options={[
                 { value: 'Insumos (Sementes/Adubos)', label: 'Insumos (Sementes/Adubos)' },
                 { value: 'Veterinária (Medicamentos)', label: 'Veterinária (Medicamentos)' },
@@ -210,41 +233,56 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
         </div>
         <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><ArrowRight size={14} /> Tipo de Ajuste Automático</label>
+            <label className="tauze-label">
+              <ArrowRight size={14} /> Tipo de Ajuste Automático
+            </label>
             <div className="tauze-form-radio-group" style={{ flexDirection: 'column', gap: '8px' }}>
-              <div 
+              <div
                 className={`tauze-form-radio-item ${formData.ajuste_automatico ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, ajuste_automatico: true})} 
+                onClick={() => setFormData({ ...formData, ajuste_automatico: true })}
               >
                 <RefreshCcw size={16} />
                 <span>Ajustar Saldo</span>
               </div>
-              <div 
+              <div
                 className={`tauze-form-radio-item ${!formData.ajuste_automatico ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, ajuste_automatico: false})}
+                onClick={() => setFormData({ ...formData, ajuste_automatico: false })}
               >
                 <ClipboardCheck size={16} />
                 <span>Apenas Conferência</span>
               </div>
             </div>
           </div>
-          
+
           <div className="tauze-field-group">
-            <label className="tauze-label" style={{ color: '#0f172a' }}><EyeOff size={14} /> Modalidade de Contagem</label>
-            <div 
+            <label className="tauze-label" style={{ color: '#0f172a' }}>
+              <EyeOff size={14} /> Modalidade de Contagem
+            </label>
+            <div
               className="tauze-form-radio-item"
               style={{
                 marginTop: '8px',
                 background: formData.contagem_cega ? '#f8fafc' : 'white',
-                border: formData.contagem_cega ? '1px solid #475569' : '1px solid hsl(var(--border))',
-                cursor: 'pointer'
+                border: formData.contagem_cega
+                  ? '1px solid #475569'
+                  : '1px solid hsl(var(--border))',
+                cursor: 'pointer',
               }}
-              onClick={() => setFormData({...formData, contagem_cega: !formData.contagem_cega})}
+              onClick={() => setFormData({ ...formData, contagem_cega: !formData.contagem_cega })}
             >
-              <input type="checkbox" checked={formData.contagem_cega} readOnly style={{ width: '18px', height: '18px', accentColor: '#334155' }} />
+              <input
+                type="checkbox"
+                checked={formData.contagem_cega}
+                readOnly
+                style={{ width: '18px', height: '18px', accentColor: '#334155' }}
+              />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 800, color: '#334155', fontSize: '13px' }}>Contagem Cega</span>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>Oculta o saldo esperado do aplicativo.</span>
+                <span style={{ fontWeight: 800, color: '#334155', fontSize: '13px' }}>
+                  Contagem Cega
+                </span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                  Oculta o saldo esperado do aplicativo.
+                </span>
               </div>
             </div>
           </div>
@@ -258,22 +296,35 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Search size={14} /> Instruções para a Equipe</label>
-            <textarea 
+            <label className="tauze-label">
+              <Search size={14} /> Instruções para a Equipe
+            </label>
+            <textarea
               className="tauze-input tauze-textarea"
-              placeholder="Ex: Contar todas as sacarias fechadas. Verificar lotes de vacinas no refrigerador..." 
+              placeholder="Ex: Contar todas as sacarias fechadas. Verificar lotes de vacinas no refrigerador..."
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               style={{ minHeight: '80px' }}
             />
           </div>
         </div>
-        
+
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', borderRadius: '12px', background: '#fff7ed', border: '1px solid #ffedd5' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '16px',
+              borderRadius: '12px',
+              background: '#fff7ed',
+              border: '1px solid #ffedd5',
+            }}
+          >
             <AlertTriangle size={24} style={{ color: '#ea580c', flexShrink: 0 }} />
             <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5, color: '#9a3412' }}>
-              <strong>Atenção:</strong> Ao iniciar, o estoque atual será "congelado" para fins de comparativo até a finalização do inventário.
+              <strong>Atenção:</strong> Ao iniciar, o estoque atual será "congelado" para fins de
+              comparativo até a finalização do inventário.
             </p>
           </div>
         </div>
@@ -285,16 +336,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
           <h4 className="tauze-section-title">Itens do Inventário (Ajuste Manual)</h4>
         </div>
         <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '16px' }}>
-          Se você quiser lançar os ajustes de quantidade diretamente na abertura da auditoria, adicione-os abaixo. Se a quantidade adicionada for diferente do saldo do sistema, será tratado como divergência.
+          Se você quiser lançar os ajustes de quantidade diretamente na abertura da auditoria,
+          adicione-os abaixo. Se a quantidade adicionada for diferente do saldo do sistema, será
+          tratado como divergência.
         </p>
-        <ConsumptionCart 
-          items={items}
-          onChange={setItems}
-          mode="consumption"
-          hideDeposit={true}
-        />
+        <ConsumptionCart items={items} onChange={setItems} mode="consumption" hideDeposit={true} />
       </section>
-
     </SidePanel>
   );
 };

@@ -5,10 +5,46 @@
  */
 
 const STOPWORDS = new Set([
-  'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
-  'para', 'por', 'com', 'sem', 'um', 'uma', 'e', 'ou', 'a', 'o',
-  'ao', 'as', 'os', 'se', 'que', 'kg', 'g', 'ml', 'l', 'un', 'cx',
-  'sc', 'lt', 'bd', 'pc', 'pct', 'cx', 'gl', 'cb', 'fdo'
+  'de',
+  'do',
+  'da',
+  'dos',
+  'das',
+  'em',
+  'no',
+  'na',
+  'nos',
+  'nas',
+  'para',
+  'por',
+  'com',
+  'sem',
+  'um',
+  'uma',
+  'e',
+  'ou',
+  'a',
+  'o',
+  'ao',
+  'as',
+  'os',
+  'se',
+  'que',
+  'kg',
+  'g',
+  'ml',
+  'l',
+  'un',
+  'cx',
+  'sc',
+  'lt',
+  'bd',
+  'pc',
+  'pct',
+  'cx',
+  'gl',
+  'cb',
+  'fdo',
 ]);
 
 /**
@@ -19,9 +55,9 @@ export function normalizeText(str: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // remove acentos
-    .replace(/[^a-z0-9\s]/g, ' ')   // remove pontuação
+    .replace(/[^a-z0-9\s]/g, ' ') // remove pontuação
     .split(/\s+/)
-    .filter(w => w.length > 1 && !STOPWORDS.has(w))
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w))
     .join(' ')
     .trim();
 }
@@ -30,10 +66,14 @@ export function normalizeText(str: string): string {
  * Calcula similaridade Jaro entre duas strings (0–1)
  */
 function jaro(s1: string, s2: string): number {
-  if (s1 === s2) return 1;
+  if (s1 === s2) {
+    return 1;
+  }
   const len1 = s1.length;
   const len2 = s2.length;
-  if (len1 === 0 || len2 === 0) return 0;
+  if (len1 === 0 || len2 === 0) {
+    return 0;
+  }
 
   const matchDist = Math.floor(Math.max(len1, len2) / 2) - 1;
   const s1Matches = new Array(len1).fill(false);
@@ -46,7 +86,9 @@ function jaro(s1: string, s2: string): number {
     const start = Math.max(0, i - matchDist);
     const end = Math.min(i + matchDist + 1, len2);
     for (let j = start; j < end; j++) {
-      if (s2Matches[j] || s1[i] !== s2[j]) continue;
+      if (s2Matches[j] || s1[i] !== s2[j]) {
+        continue;
+      }
       s1Matches[i] = true;
       s2Matches[j] = true;
       matches++;
@@ -54,21 +96,25 @@ function jaro(s1: string, s2: string): number {
     }
   }
 
-  if (matches === 0) return 0;
+  if (matches === 0) {
+    return 0;
+  }
 
   let k = 0;
   for (let i = 0; i < len1; i++) {
-    if (!s1Matches[i]) continue;
-    while (!s2Matches[k]) k++;
-    if (s1[i] !== s2[k]) transpositions++;
+    if (!s1Matches[i]) {
+      continue;
+    }
+    while (!s2Matches[k]) {
+      k++;
+    }
+    if (s1[i] !== s2[k]) {
+      transpositions++;
+    }
     k++;
   }
 
-  return (
-    matches / len1 +
-    matches / len2 +
-    (matches - transpositions / 2) / matches
-  ) / 3;
+  return (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3;
 }
 
 /**
@@ -78,7 +124,9 @@ function jaroWinkler(s1: string, s2: string, p = 0.1): number {
   const j = jaro(s1, s2);
   let prefixLen = 0;
   const maxPre = Math.min(4, Math.min(s1.length, s2.length));
-  while (prefixLen < maxPre && s1[prefixLen] === s2[prefixLen]) prefixLen++;
+  while (prefixLen < maxPre && s1[prefixLen] === s2[prefixLen]) {
+    prefixLen++;
+  }
   return j + prefixLen * p * (1 - j);
 }
 
@@ -86,8 +134,12 @@ function jaroWinkler(s1: string, s2: string, p = 0.1): number {
  * Dice Coefficient: baseado em bigramas — bom para texto com muitas palavras (0–1)
  */
 function diceCoefficient(s1: string, s2: string): number {
-  if (s1 === s2) return 1;
-  if (s1.length < 2 || s2.length < 2) return 0;
+  if (s1 === s2) {
+    return 1;
+  }
+  if (s1.length < 2 || s2.length < 2) {
+    return 0;
+  }
 
   const getBigrams = (str: string) => {
     const bigrams = new Map<string, number>();
@@ -146,15 +198,17 @@ export function findBestMatches(
   minScore = 30
 ): FuzzyMatchResult[] {
   const normQuery = normalizeText(xmlName);
-  if (!normQuery) return [];
+  if (!normQuery) {
+    return [];
+  }
 
   return products
-    .map(product => {
+    .map((product) => {
       const normTarget = normalizeText(product.nome);
       const score = combinedScore(normQuery, normTarget);
       return { product, score, normalizedQuery: normQuery, normalizedTarget: normTarget };
     })
-    .filter(r => r.score >= minScore)
+    .filter((r) => r.score >= minScore)
     .sort((a, b) => b.score - a.score);
 }
 
@@ -164,17 +218,28 @@ export function findBestMatches(
 export type MatchStatus = 'confirmed' | 'suggested' | 'weak' | 'unmatched' | 'manual';
 
 export function getMatchStatus(score: number | undefined, hasDePara: boolean): MatchStatus {
-  if (hasDePara) return 'confirmed';
-  if (score === undefined) return 'unmatched';
-  if (score >= 70) return 'suggested';
-  if (score >= 45) return 'weak';
+  if (hasDePara) {
+    return 'confirmed';
+  }
+  if (score === undefined) {
+    return 'unmatched';
+  }
+  if (score >= 70) {
+    return 'suggested';
+  }
+  if (score >= 45) {
+    return 'weak';
+  }
   return 'unmatched';
 }
 
-export const MATCH_STATUS_CONFIG: Record<MatchStatus, { label: string; color: string; bg: string; icon: string }> = {
-  confirmed:  { label: 'Vinculado',    color: '#059669', bg: 'rgba(5,150,105,0.10)',  icon: '✓' },
-  suggested:  { label: 'Sugerido',     color: '#d97706', bg: 'rgba(217,119,6,0.10)',  icon: '⚠' },
-  weak:       { label: 'Fraco',        color: '#ea580c', bg: 'rgba(234,88,12,0.10)',  icon: '~' },
-  unmatched:  { label: 'Sem vínculo',  color: '#dc2626', bg: 'rgba(220,38,38,0.10)',  icon: '✗' },
-  manual:     { label: 'Manual',       color: '#6366f1', bg: 'rgba(99,102,241,0.10)', icon: '✎' },
+export const MATCH_STATUS_CONFIG: Record<
+  MatchStatus,
+  { label: string; color: string; bg: string; icon: string }
+> = {
+  confirmed: { label: 'Vinculado', color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '✓' },
+  suggested: { label: 'Sugerido', color: '#d97706', bg: 'rgba(217,119,6,0.10)', icon: '⚠' },
+  weak: { label: 'Fraco', color: '#ea580c', bg: 'rgba(234,88,12,0.10)', icon: '~' },
+  unmatched: { label: 'Sem vínculo', color: '#dc2626', bg: 'rgba(220,38,38,0.10)', icon: '✗' },
+  manual: { label: 'Manual', color: '#6366f1', bg: 'rgba(99,102,241,0.10)', icon: '✎' },
 };

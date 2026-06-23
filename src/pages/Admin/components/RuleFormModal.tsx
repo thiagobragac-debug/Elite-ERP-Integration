@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 
-import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase, Clock, ArrowDown, Info } from 'lucide-react';
+import {
+  Shield,
+  Layers,
+  Plus,
+  Minus,
+  Trash2,
+  ArrowRight,
+  User,
+  Briefcase,
+  Clock,
+  ArrowDown,
+  Info,
+} from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
@@ -25,28 +37,25 @@ interface RuleFormModalProps {
   initialData?: any;
 }
 
-
 export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  initialData
+  initialData,
 }) => {
   const { activeTenantId } = useTenant();
   const [formData, setFormData] = usePersistentState('RuleFormModal_formData', {
     module: '',
     stages: 1,
-    active: true
+    active: true,
   });
-  
-  const [conditions, setConditions] = useState<RuleCondition[]>([
-    { id: '1', min: '', max: '' }
-  ]);
-  
+
+  const [conditions, setConditions] = useState<RuleCondition[]>([{ id: '1', min: '', max: '' }]);
+
   const [approvers, setApprovers] = useState<RuleApprover[]>([
-    { level: 1, profile: '', slaHours: 48 }
+    { level: 1, profile: '', slaHours: 48 },
   ]);
-  
+
   const [cargos, setCargos] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
@@ -55,21 +64,21 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       setFormData({
         module: initialData.module || '',
         stages: initialData.stages || 1,
-        active: initialData.active ?? true
+        active: initialData.active ?? true,
       });
       // Parse conditions and approvers if they existed, for now mock:
       setConditions([{ id: '1', min: '0', max: '10000' }]);
       const initApprovers = Array.from({ length: initialData.stages || 1 }).map((_, i) => ({
         level: i + 1,
         profile: '',
-        slaHours: 48
+        slaHours: 48,
       }));
       setApprovers(initApprovers);
     } else {
       setFormData({
         module: '',
         stages: 1,
-        active: true
+        active: true,
       });
       setConditions([{ id: '1', min: '', max: '' }]);
       setApprovers([{ level: 1, profile: '', slaHours: 48 }]);
@@ -85,22 +94,35 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   const fetchApproverOptions = async () => {
     try {
       const [cargosRes, usersRes] = await Promise.all([
-        supabase.from('cargos').select('id, nome').eq('tenant_id', activeTenantId).eq('is_active', true).order('nome'),
-        supabase.from('profiles_view').select('id, name, email').eq('tenant_id', activeTenantId).order('name')
+        supabase
+          .from('cargos')
+          .select('id, nome')
+          .eq('tenant_id', activeTenantId)
+          .eq('is_active', true)
+          .order('nome'),
+        supabase
+          .from('profiles_view')
+          .select('id, name, email')
+          .eq('tenant_id', activeTenantId)
+          .order('name'),
       ]);
 
-      if (cargosRes.data) setCargos(cargosRes.data);
-      if (usersRes.data) setUsuarios(usersRes.data);
+      if (cargosRes.data) {
+        setCargos(cargosRes.data);
+      }
+      if (usersRes.data) {
+        setUsuarios(usersRes.data);
+      }
     } catch (err) {
       console.error('Error fetching approver options', err);
     }
   };
 
   const handleStageChange = (newStages: number) => {
-    setFormData(p => ({ ...p, stages: newStages }));
-    
+    setFormData((p) => ({ ...p, stages: newStages }));
+
     // Adjust approvers array
-    setApprovers(prev => {
+    setApprovers((prev) => {
       const newApprovers = [...prev];
       if (newStages > prev.length) {
         for (let i = prev.length; i < newStages; i++) {
@@ -114,26 +136,26 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   };
 
   const addCondition = () => {
-    setConditions(prev => [...prev, { id: Math.random().toString(), min: '', max: '' }]);
+    setConditions((prev) => [...prev, { id: Math.random().toString(), min: '', max: '' }]);
   };
 
   const removeCondition = (id: string) => {
     if (conditions.length > 1) {
-      setConditions(prev => prev.filter(c => c.id !== id));
+      setConditions((prev) => prev.filter((c) => c.id !== id));
     }
   };
 
   const updateCondition = (id: string, field: 'min' | 'max', value: string) => {
-    setConditions(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    setConditions((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   };
 
   const updateApprover = (level: number, field: string, value: any) => {
-    setApprovers(prev => prev.map(a => a.level === level ? { ...a, [field]: value } : a));
+    setApprovers((prev) => prev.map((a) => (a.level === level ? { ...a, [field]: value } : a)));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Build a readable condition string for the UI demo based on the first condition
     let conditionStr = 'Sem condição';
     if (conditions[0]) {
@@ -147,7 +169,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
         conditionStr = 'Qualquer Valor';
       }
     }
-    
+
     if (conditions.length > 1) {
       conditionStr += ` (+${conditions.length - 1})`;
     }
@@ -156,17 +178,19 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       ...formData,
       condition: conditionStr,
       conditions,
-      approvers
+      approvers,
     });
   };
 
   // --- ORÁCULO DE TRADUÇÃO DE BUSINESS RULE ---
   const ruleTranslation = useMemo(() => {
-    if (!formData.module) return "Selecione um módulo para começar.";
+    if (!formData.module) {
+      return 'Selecione um módulo para começar.';
+    }
 
     const moduleName = formData.module;
     const cond = conditions[0];
-    let valString = "";
+    let valString = '';
 
     if (cond.min && cond.max) {
       valString = `entre R$ ${Number(cond.min).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} e R$ ${Number(cond.max).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
@@ -175,12 +199,14 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
     } else if (cond.max) {
       valString = `abaixo de R$ ${Number(cond.max).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     } else {
-      valString = "de qualquer valor";
+      valString = 'de qualquer valor';
     }
 
     const levels = formData.stages;
     let maxSLA = 0;
-    approvers.forEach(a => { maxSLA += (a.slaHours || 0) });
+    approvers.forEach((a) => {
+      maxSLA += a.slaHours || 0;
+    });
 
     return `Qualquer documento de "${moduleName}" que seja emitido com valor ${valString}, entrará num fluxo mandatório de ${levels} nível(is). O prazo máximo (SLA total) para aprovação final será de ${maxSLA}h.`;
   }, [formData.module, formData.stages, conditions, approvers]);
@@ -198,195 +224,340 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', flex: 1 }}>
-          
           {/* Lado Esquerdo: Módulo e Condições */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="section-title">1. Gatilho da Regra</div>
-          
-          <div className="form-group">
-            <label>Módulo / Documento *</label>
-            <select 
-              className="tauze-input"
-              value={formData.module}
-              onChange={(e) => setFormData({...formData, module: e.target.value})}
-              required
-              style={{ width: '100%' }}
-            >
-              <option value="">Selecione o módulo...</option>
-              <option value="Contas a Pagar">Contas a Pagar</option>
-              <option value="Pedidos de Compra">Pedidos de Compra</option>
-              <option value="Contratos de Venda">Contratos de Venda</option>
-              <option value="Adiantamentos">Adiantamentos</option>
-            </select>
-          </div>
+            <div className="section-title">1. Gatilho da Regra</div>
 
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <label style={{ margin: 0 }}>Condições de Valores (R$)</label>
-              <button type="button" onClick={addCondition} className="add-cond-btn">
-                <Plus size={12} /> Adicionar
-              </button>
+            <div className="form-group">
+              <label>Módulo / Documento *</label>
+              <select
+                className="tauze-input"
+                value={formData.module}
+                onChange={(e) => setFormData({ ...formData, module: e.target.value })}
+                required
+                style={{ width: '100%' }}
+              >
+                <option value="">Selecione o módulo...</option>
+                <option value="Contas a Pagar">Contas a Pagar</option>
+                <option value="Pedidos de Compra">Pedidos de Compra</option>
+                <option value="Contratos de Venda">Contratos de Venda</option>
+                <option value="Adiantamentos">Adiantamentos</option>
+              </select>
             </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {conditions.map((cond, idx) => (
-                <div key={cond.id} className="condition-row">
-                  <div className="cond-inputs">
-                    <div className="input-with-prefix">
-                      <span className="prefix">De</span>
-                      <input 
-                        type="number" 
-                        className="tauze-input small" 
-                        placeholder="0,00"
-                        value={cond.min}
-                        onChange={e => updateCondition(cond.id, 'min', e.target.value)}
-                      />
-                    </div>
-                    <ArrowRight size={14} style={{ color: '#94a3b8' }} />
-                    <div className="input-with-prefix">
-                      <span className="prefix">Até</span>
-                      <input 
-                        type="number" 
-                        className="tauze-input small" 
-                        placeholder="Ilimitado"
-                        value={cond.max}
-                        onChange={e => updateCondition(cond.id, 'max', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  {conditions.length > 1 && (
-                    <button type="button" className="remove-cond-btn" onClick={() => removeCondition(cond.id)}>
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <span className="input-hint" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '8px', display: 'block' }}>
-              Deixe "Até" vazio para valor ilimitado.
-            </span>
-          </div>
 
-          <div className="form-group" style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid hsl(var(--border))' }}>
-            <label className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-              <div className={`tauze-switch ${formData.active ? 'active' : ''}`} onClick={() => setFormData({...formData, active: !formData.active})}>
-                <div className="switch-handle" />
-              </div>
-              <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '13px' }}>Regra Ativa no Sistema</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Lado Direito: Hierarquia e Responsáveis */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingLeft: '24px', borderLeft: '1px solid hsl(var(--border))' }}>
-          <div className="section-title">2. Hierarquia de Aprovação</div>
-          
-          <div className="form-group">
-            <label>Níveis em Cadeia</label>
-            <div className="hierarchy-selector">
-              <div className="level-control">
-                <button 
-                  type="button" 
-                  className="lvl-btn"
-                  onClick={() => handleStageChange(Math.max(1, formData.stages - 1))}
-                >
-                  <Minus size={16} />
-                </button>
-                <div className="lvl-display">
-                  <Layers size={16} className="lvl-icon" />
-                  <span>{formData.stages} {formData.stages === 1 ? 'Nível' : 'Níveis'}</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="lvl-btn"
-                  onClick={() => handleStageChange(Math.min(3, formData.stages + 1))}
-                >
-                  <Plus size={16} />
+            <div className="form-group">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '8px',
+                }}
+              >
+                <label style={{ margin: 0 }}>Condições de Valores (R$)</label>
+                <button type="button" onClick={addCondition} className="add-cond-btn">
+                  <Plus size={12} /> Adicionar
                 </button>
               </div>
-            </div>
-          </div>
 
-          <div className="approvers-list">
-            <label style={{ marginBottom: '12px', display: 'block' }}>Árvore de Fluxo (BPMN)</label>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', position: 'relative' }}>
-              {/* Linha vertical mestra da Árvore */}
-              {approvers.length > 1 && (
-                <div style={{ position: 'absolute', left: '24px', top: '24px', bottom: '48px', width: '2px', background: 'hsl(var(--border))', zIndex: 0 }} />
-              )}
-              
-              {approvers.map((app, index) => (
-                <React.Fragment key={app.level}>
-                  <div className="approver-card" style={{ position: 'relative', zIndex: 1, background: 'white' }}>
-                    <div className="app-level-badge">Etapa {app.level}</div>
-                    
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <select 
-                        className="tauze-input small"
-                        value={app.profile}
-                        onChange={e => updateApprover(app.level, 'profile', e.target.value)}
-                        required
-                        style={{ width: '100%', background: 'hsl(var(--bg-main)/0.5)' }}
-                      >
-                        <option value="">Selecionar Aprovador...</option>
-                        <optgroup label="🏢 Cargos Corporativos">
-                          {cargos.map(c => (
-                            <option key={`cargo_${c.id}`} value={`cargo_${c.id}`}>{c.nome}</option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="👤 Usuários Específicos">
-                          {usuarios.map(u => (
-                            <option key={`user_${u.id}`} value={`user_${u.id}`}>{u.name} ({u.email})</option>
-                          ))}
-                        </optgroup>
-                      </select>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--bg-main)/0.3)', padding: '6px 12px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
-                        <Clock size={12} style={{ color: 'hsl(var(--text-muted))' }} />
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-secondary))' }}>SLA (Horas)</span>
-                        <input 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {conditions.map((cond, idx) => (
+                  <div key={cond.id} className="condition-row">
+                    <div className="cond-inputs">
+                      <div className="input-with-prefix">
+                        <span className="prefix">De</span>
+                        <input
                           type="number"
                           className="tauze-input small"
-                          style={{ width: '60px', height: '24px', padding: '0 8px', marginLeft: 'auto' }}
-                          value={app.slaHours}
-                          onChange={e => updateApprover(app.level, 'slaHours', parseInt(e.target.value) || 0)}
+                          placeholder="0,00"
+                          value={cond.min}
+                          onChange={(e) => updateCondition(cond.id, 'min', e.target.value)}
+                        />
+                      </div>
+                      <ArrowRight size={14} style={{ color: '#94a3b8' }} />
+                      <div className="input-with-prefix">
+                        <span className="prefix">Até</span>
+                        <input
+                          type="number"
+                          className="tauze-input small"
+                          placeholder="Ilimitado"
+                          value={cond.max}
+                          onChange={(e) => updateCondition(cond.id, 'max', e.target.value)}
                         />
                       </div>
                     </div>
+                    {conditions.length > 1 && (
+                      <button
+                        type="button"
+                        className="remove-cond-btn"
+                        onClick={() => removeCondition(cond.id)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
+                ))}
+              </div>
+              <span
+                className="input-hint"
+                style={{
+                  fontSize: '11px',
+                  color: 'hsl(var(--text-muted))',
+                  marginTop: '8px',
+                  display: 'block',
+                }}
+              >
+                Deixe "Até" vazio para valor ilimitado.
+              </span>
+            </div>
 
-                  {/* Seta ligando ao próximo */}
-                  {index < approvers.length - 1 && (
-                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', paddingLeft: '17px', margin: '8px 0' }}>
-                      <div style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid hsl(var(--border))' }}>
-                        <ArrowDown size={10} style={{ color: 'hsl(var(--text-muted))' }} />
+            <div
+              className="form-group"
+              style={{
+                marginTop: 'auto',
+                paddingTop: '16px',
+                borderTop: '1px solid hsl(var(--border))',
+              }}
+            >
+              <label
+                className="toggle-label"
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+              >
+                <div
+                  className={`tauze-switch ${formData.active ? 'active' : ''}`}
+                  onClick={() => setFormData({ ...formData, active: !formData.active })}
+                >
+                  <div className="switch-handle" />
+                </div>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '13px' }}>
+                  Regra Ativa no Sistema
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Lado Direito: Hierarquia e Responsáveis */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              paddingLeft: '24px',
+              borderLeft: '1px solid hsl(var(--border))',
+            }}
+          >
+            <div className="section-title">2. Hierarquia de Aprovação</div>
+
+            <div className="form-group">
+              <label>Níveis em Cadeia</label>
+              <div className="hierarchy-selector">
+                <div className="level-control">
+                  <button
+                    type="button"
+                    className="lvl-btn"
+                    onClick={() => handleStageChange(Math.max(1, formData.stages - 1))}
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <div className="lvl-display">
+                    <Layers size={16} className="lvl-icon" />
+                    <span>
+                      {formData.stages} {formData.stages === 1 ? 'Nível' : 'Níveis'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="lvl-btn"
+                    onClick={() => handleStageChange(Math.min(3, formData.stages + 1))}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="approvers-list">
+              <label style={{ marginBottom: '12px', display: 'block' }}>
+                Árvore de Fluxo (BPMN)
+              </label>
+
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: '0', position: 'relative' }}
+              >
+                {/* Linha vertical mestra da Árvore */}
+                {approvers.length > 1 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '24px',
+                      top: '24px',
+                      bottom: '48px',
+                      width: '2px',
+                      background: 'hsl(var(--border))',
+                      zIndex: 0,
+                    }}
+                  />
+                )}
+
+                {approvers.map((app, index) => (
+                  <React.Fragment key={app.level}>
+                    <div
+                      className="approver-card"
+                      style={{ position: 'relative', zIndex: 1, background: 'white' }}
+                    >
+                      <div className="app-level-badge">Etapa {app.level}</div>
+
+                      <div
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}
+                      >
+                        <select
+                          className="tauze-input small"
+                          value={app.profile}
+                          onChange={(e) => updateApprover(app.level, 'profile', e.target.value)}
+                          required
+                          style={{ width: '100%', background: 'hsl(var(--bg-main)/0.5)' }}
+                        >
+                          <option value="">Selecionar Aprovador...</option>
+                          <optgroup label="🏢 Cargos Corporativos">
+                            {cargos.map((c) => (
+                              <option key={`cargo_${c.id}`} value={`cargo_${c.id}`}>
+                                {c.nome}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="👤 Usuários Específicos">
+                            {usuarios.map((u) => (
+                              <option key={`user_${u.id}`} value={`user_${u.id}`}>
+                                {u.name} ({u.email})
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'hsl(var(--bg-main)/0.3)',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid hsl(var(--border))',
+                          }}
+                        >
+                          <Clock size={12} style={{ color: 'hsl(var(--text-muted))' }} />
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: 'hsl(var(--text-secondary))',
+                            }}
+                          >
+                            SLA (Horas)
+                          </span>
+                          <input
+                            type="number"
+                            className="tauze-input small"
+                            style={{
+                              width: '60px',
+                              height: '24px',
+                              padding: '0 8px',
+                              marginLeft: 'auto',
+                            }}
+                            value={app.slaHours}
+                            onChange={(e) =>
+                              updateApprover(app.level, 'slaHours', parseInt(e.target.value) || 0)
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </React.Fragment>
-              ))}
+
+                    {/* Seta ligando ao próximo */}
+                    {index < approvers.length - 1 && (
+                      <div
+                        style={{
+                          position: 'relative',
+                          zIndex: 1,
+                          display: 'flex',
+                          paddingLeft: '17px',
+                          margin: '8px 0',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            background: 'white',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid hsl(var(--border))',
+                          }}
+                        >
+                          <ArrowDown size={10} style={{ color: 'hsl(var(--text-muted))' }} />
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <span
+                className="input-hint"
+                style={{
+                  fontSize: '11px',
+                  color: 'hsl(var(--text-muted))',
+                  marginTop: '12px',
+                  display: 'block',
+                }}
+              >
+                A solicitação só passará para a próxima etapa se a anterior aprovar no prazo do SLA.
+              </span>
             </div>
-            <span className="input-hint" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '12px', display: 'block' }}>
-              A solicitação só passará para a próxima etapa se a anterior aprovar no prazo do SLA.
-            </span>
           </div>
         </div>
 
-      </div>
-
-      {/* PAINEL ORÁCULO DE RESUMO DE REGRA */}
-      <div style={{ marginTop: '24px', padding: '16px', background: 'hsl(var(--brand)/0.1)', border: '1px dashed hsl(var(--brand)/0.4)', borderRadius: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <Info size={24} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
-        <div>
-          <div style={{ fontSize: '11px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '4px' }}>Tradução da Regra Preditiva</div>
-          <div style={{ fontSize: '13px', color: 'hsl(var(--text-main))', lineHeight: '1.4', fontWeight: 500 }}>
-            {ruleTranslation}
+        {/* PAINEL ORÁCULO DE RESUMO DE REGRA */}
+        <div
+          style={{
+            marginTop: '24px',
+            padding: '16px',
+            background: 'hsl(var(--brand)/0.1)',
+            border: '1px dashed hsl(var(--brand)/0.4)',
+            borderRadius: '12px',
+            display: 'flex',
+            gap: '16px',
+            alignItems: 'center',
+          }}
+        >
+          <Info size={24} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
+          <div>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 900,
+                color: 'hsl(var(--brand))',
+                textTransform: 'uppercase',
+                marginBottom: '4px',
+              }}
+            >
+              Tradução da Regra Preditiva
+            </div>
+            <div
+              style={{
+                fontSize: '13px',
+                color: 'hsl(var(--text-main))',
+                lineHeight: '1.4',
+                fontWeight: 500,
+              }}
+            >
+              {ruleTranslation}
+            </div>
           </div>
         </div>
-      </div>
 
-      <style>{`
+        <style>{`
         .section-title {
           font-size: 13px;
           font-weight: 800;

@@ -104,6 +104,7 @@ export type Database = {
           status: string | null
           tenant_id: string | null
           valor_compra: number | null
+          valor_venda: number | null
         }
         Insert: {
           brinco: string
@@ -130,6 +131,7 @@ export type Database = {
           status?: string | null
           tenant_id?: string | null
           valor_compra?: number | null
+          valor_venda?: number | null
         }
         Update: {
           brinco?: string
@@ -156,6 +158,7 @@ export type Database = {
           status?: string | null
           tenant_id?: string | null
           valor_compra?: number | null
+          valor_venda?: number | null
         }
         Relationships: [
           {
@@ -319,6 +322,7 @@ export type Database = {
           modulo: string
           modulo_vinculado: string | null
           nome: string
+          parent_id: string | null
           tenant_id: string
           tipo_item: string | null
           updated_at: string | null
@@ -333,6 +337,7 @@ export type Database = {
           modulo: string
           modulo_vinculado?: string | null
           nome: string
+          parent_id?: string | null
           tenant_id: string
           tipo_item?: string | null
           updated_at?: string | null
@@ -347,6 +352,7 @@ export type Database = {
           modulo?: string
           modulo_vinculado?: string | null
           nome?: string
+          parent_id?: string | null
           tenant_id?: string
           tipo_item?: string | null
           updated_at?: string | null
@@ -355,6 +361,13 @@ export type Database = {
           {
             foreignKeyName: "categorias_sistema_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_sistema_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categorias_sistema"
             referencedColumns: ["id"]
@@ -795,6 +808,97 @@ export type Database = {
           },
         ]
       }
+      custos_animal: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          data_consumo: string | null
+          dieta_id: string | null
+          fase: string | null
+          fazenda_id: string | null
+          id: string
+          lote_id: string | null
+          produto_id: string | null
+          quantidade_consumida: number | null
+          tenant_id: string | null
+          valor_total_aplicado: number | null
+          valor_unitario_aplicado: number | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_consumo?: string | null
+          dieta_id?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          produto_id?: string | null
+          quantidade_consumida?: number | null
+          tenant_id?: string | null
+          valor_total_aplicado?: number | null
+          valor_unitario_aplicado?: number | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_consumo?: string | null
+          dieta_id?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          produto_id?: string | null
+          quantidade_consumida?: number | null
+          tenant_id?: string | null
+          valor_total_aplicado?: number | null
+          valor_unitario_aplicado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custos_animal_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_animal_dieta_id_fkey"
+            columns: ["dieta_id"]
+            isOneToOne: false
+            referencedRelation: "dietas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_animal_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_animal_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_animal_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_animal_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposito_categorias_permitidas: {
         Row: {
           categoria_permitida: string
@@ -876,6 +980,7 @@ export type Database = {
           id: string
           ingredientes: Json | null
           nome: string
+          percentual_ms: number | null
           status: string | null
           tenant_id: string | null
           tipo: string | null
@@ -889,6 +994,7 @@ export type Database = {
           id?: string
           ingredientes?: Json | null
           nome: string
+          percentual_ms?: number | null
           status?: string | null
           tenant_id?: string | null
           tipo?: string | null
@@ -902,6 +1008,7 @@ export type Database = {
           id?: string
           ingredientes?: Json | null
           nome?: string
+          percentual_ms?: number | null
           status?: string | null
           tenant_id?: string | null
           tipo?: string | null
@@ -965,6 +1072,7 @@ export type Database = {
         Row: {
           animal_id: string | null
           created_at: string | null
+          custo: number | null
           data_evento: string
           fazenda_id: string | null
           id: string
@@ -977,6 +1085,7 @@ export type Database = {
         Insert: {
           animal_id?: string | null
           created_at?: string | null
+          custo?: number | null
           data_evento?: string
           fazenda_id?: string | null
           id?: string
@@ -989,6 +1098,7 @@ export type Database = {
         Update: {
           animal_id?: string | null
           created_at?: string | null
+          custo?: number | null
           data_evento?: string
           fazenda_id?: string | null
           id?: string
@@ -1078,6 +1188,78 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_movimentacao_animal: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          data_movimentacao: string | null
+          fazenda_id: string | null
+          id: string
+          lote_destino_id: string | null
+          lote_origem_id: string | null
+          motivo: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_movimentacao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_destino_id?: string | null
+          lote_origem_id?: string | null
+          motivo?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_movimentacao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_destino_id?: string | null
+          lote_origem_id?: string | null
+          motivo?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_movimentacao_animal_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_movimentacao_animal_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_movimentacao_animal_lote_destino_id_fkey"
+            columns: ["lote_destino_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_movimentacao_animal_lote_origem_id_fkey"
+            columns: ["lote_origem_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_movimentacao_animal_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1583,11 +1765,17 @@ export type Database = {
       }
       movimentacoes_estoque: {
         Row: {
+          animal_id: string | null
           created_at: string | null
+          custo_unitario: number | null
           data_movimentacao: string
+          data_validade: string | null
           deposito_id: string | null
           fazenda_id: string | null
           id: string
+          lote: string | null
+          lote_pecuario_id: string | null
+          origem: string | null
           origem_destino: string | null
           produto_id: string | null
           quantidade: number
@@ -1595,14 +1783,19 @@ export type Database = {
           saldo_fifo: number | null
           tenant_id: string | null
           tipo: string | null
-          valor_unitario: number | null
         }
         Insert: {
+          animal_id?: string | null
           created_at?: string | null
+          custo_unitario?: number | null
           data_movimentacao?: string
+          data_validade?: string | null
           deposito_id?: string | null
           fazenda_id?: string | null
           id?: string
+          lote?: string | null
+          lote_pecuario_id?: string | null
+          origem?: string | null
           origem_destino?: string | null
           produto_id?: string | null
           quantidade: number
@@ -1610,14 +1803,19 @@ export type Database = {
           saldo_fifo?: number | null
           tenant_id?: string | null
           tipo?: string | null
-          valor_unitario?: number | null
         }
         Update: {
+          animal_id?: string | null
           created_at?: string | null
+          custo_unitario?: number | null
           data_movimentacao?: string
+          data_validade?: string | null
           deposito_id?: string | null
           fazenda_id?: string | null
           id?: string
+          lote?: string | null
+          lote_pecuario_id?: string | null
+          origem?: string | null
           origem_destino?: string | null
           produto_id?: string | null
           quantidade?: number
@@ -1625,9 +1823,15 @@ export type Database = {
           saldo_fifo?: number | null
           tenant_id?: string | null
           tipo?: string | null
-          valor_unitario?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_estoque_deposito_id_fkey"
             columns: ["deposito_id"]
@@ -1640,6 +1844,13 @@ export type Database = {
             columns: ["fazenda_id"]
             isOneToOne: false
             referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_lote_pecuario_id_fkey"
+            columns: ["lote_pecuario_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
             referencedColumns: ["id"]
           },
           {
@@ -1966,6 +2177,90 @@ export type Database = {
           },
           {
             foreignKeyName: "notas_saida_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutricao_animais: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          data_consumo: string | null
+          dieta_id: string | null
+          fase: string | null
+          fazenda_id: string | null
+          id: string
+          lote_id: string | null
+          quantidade_kg: number | null
+          tenant_id: string | null
+          trato_id: string | null
+          valor_total_consumido: number | null
+          valor_unitario_kg: number | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_consumo?: string | null
+          dieta_id?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          quantidade_kg?: number | null
+          tenant_id?: string | null
+          trato_id?: string | null
+          valor_total_consumido?: number | null
+          valor_unitario_kg?: number | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_consumo?: string | null
+          dieta_id?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          quantidade_kg?: number | null
+          tenant_id?: string | null
+          trato_id?: string | null
+          valor_total_consumido?: number | null
+          valor_unitario_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutricao_animais_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutricao_animais_dieta_id_fkey"
+            columns: ["dieta_id"]
+            isOneToOne: false
+            referencedRelation: "dietas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutricao_animais_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutricao_animais_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutricao_animais_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2423,6 +2718,58 @@ export type Database = {
           },
         ]
       }
+      produto_embalagens: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          fator: number
+          fazenda_id: string | null
+          id: string
+          produto_id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          fator: number
+          fazenda_id?: string | null
+          id?: string
+          produto_id: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          fator?: number
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_embalagens_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_embalagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_embalagens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_fornecedor_de_para: {
         Row: {
           created_at: string
@@ -2490,6 +2837,8 @@ export type Database = {
           codigo_tributacao_nacional: string | null
           created_at: string | null
           custo_medio: number | null
+          custo_padrao: number | null
+          custo_ultima_compra: number | null
           descricao: string | null
           ean: string | null
           estoque_atual: number | null
@@ -2505,6 +2854,7 @@ export type Database = {
           ncm: string | null
           nome: string
           preco_custo: number | null
+          subcategoria_id: string | null
           tenant_id: string | null
           tipo: string | null
           unidade: string | null
@@ -2518,6 +2868,8 @@ export type Database = {
           codigo_tributacao_nacional?: string | null
           created_at?: string | null
           custo_medio?: number | null
+          custo_padrao?: number | null
+          custo_ultima_compra?: number | null
           descricao?: string | null
           ean?: string | null
           estoque_atual?: number | null
@@ -2533,6 +2885,7 @@ export type Database = {
           ncm?: string | null
           nome: string
           preco_custo?: number | null
+          subcategoria_id?: string | null
           tenant_id?: string | null
           tipo?: string | null
           unidade?: string | null
@@ -2546,6 +2899,8 @@ export type Database = {
           codigo_tributacao_nacional?: string | null
           created_at?: string | null
           custo_medio?: number | null
+          custo_padrao?: number | null
+          custo_ultima_compra?: number | null
           descricao?: string | null
           ean?: string | null
           estoque_atual?: number | null
@@ -2561,6 +2916,7 @@ export type Database = {
           ncm?: string | null
           nome?: string
           preco_custo?: number | null
+          subcategoria_id?: string | null
           tenant_id?: string | null
           tipo?: string | null
           unidade?: string | null
@@ -2582,64 +2938,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "produtos_subcategoria_id_fkey"
+            columns: ["subcategoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "produtos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      produto_embalagens: {
-        Row: {
-          id: string
-          produto_id: string
-          descricao: string
-          fator: number
-          fazenda_id: string | null
-          tenant_id: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          produto_id: string
-          descricao: string
-          fator: number
-          fazenda_id?: string | null
-          tenant_id?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          produto_id?: string
-          descricao?: string
-          fator?: number
-          fazenda_id?: string | null
-          tenant_id?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_embalagens_fazenda_id_fkey"
-            columns: ["fazenda_id"]
-            isOneToOne: false
-            referencedRelation: "fazendas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "produto_embalagens_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "produto_embalagens_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          }
         ]
       }
       profiles: {
@@ -3332,6 +3643,87 @@ export type Database = {
           },
         ]
       }
+      sanidade_animais: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          data_aplicacao: string | null
+          fase: string | null
+          fazenda_id: string | null
+          id: string
+          produto_id: string | null
+          quantidade_dose: number | null
+          sanidade_id: string | null
+          tenant_id: string | null
+          valor_total_aplicado: number | null
+          valor_unitario_aplicado: number | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_aplicacao?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string | null
+          quantidade_dose?: number | null
+          sanidade_id?: string | null
+          tenant_id?: string | null
+          valor_total_aplicado?: number | null
+          valor_unitario_aplicado?: number | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_aplicacao?: string | null
+          fase?: string | null
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string | null
+          quantidade_dose?: number | null
+          sanidade_id?: string | null
+          tenant_id?: string | null
+          valor_total_aplicado?: number | null
+          valor_unitario_aplicado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sanidade_animais_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_animais_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_animais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_animais_sanidade_id_fkey"
+            columns: ["sanidade_id"]
+            isOneToOne: false
+            referencedRelation: "sanidade"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_animais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes_compra: {
         Row: {
           created_at: string | null
@@ -3814,6 +4206,18 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: undefined
+      }
+      recalcular_custos_animal: {
+        Args: {
+          p_data_inicio: string
+          p_novo_custo_medio: number
+          p_produto_id: string
+        }
+        Returns: undefined
+      }
+      recalcular_sanidade_animais_batch: {
+        Args: { p_tenant_id?: string }
+        Returns: Json
       }
       upsert_certificado_digital: {
         Args: {

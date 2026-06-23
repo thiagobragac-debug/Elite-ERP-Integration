@@ -2,9 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
   pull_request:
-    branches: [main, develop]
 
 jobs:
   test:
@@ -18,23 +16,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
         run: npm ci
       
-      - name: Type check
-        run: npm run type-check
-      
       - name: Lint
         run: npm run lint
+      
+      - name: Type check
+        run: npm run type-check
       
       - name: Format check
         run: npm run format:check
       
-      - name: Run tests
-        run: npm run test:run
+      - name: Run tests with coverage
+        run: npm run test:coverage
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
       
       - name: Build
         run: npm run build
@@ -61,7 +67,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
@@ -84,6 +90,49 @@ jobs:
           lcov-file: ./coverage/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      
+      - name: Upload videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: test-results/
+          retention-days: 7
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -95,7 +144,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       
       - name: Install dependencies
         run: npm ci
@@ -110,3 +159,231 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, e2e, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://your-production-url.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build for production
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL_PROD }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY_PROD }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PROD }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          VITE_SENTRY_AUTH_TOKEN: ${{ secrets.VITE_SENTRY_AUTH_TOKEN }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
+          VITE_ENVIRONMENT: production
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          CI: true
+      
+      - name: Create Sentry release
+        if: success()
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.VITE_SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          version: ${{ github.sha }}
+          ignore_missing: true
+          ignore_empty: false
+          set_commits: auto
+      
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production..."
+          echo "This step should be configured with your hosting provider's deployment method"
+          echo "Examples:"
+          echo "  - Vercel: vercel --prod --token=\${{ secrets.VERCEL_TOKEN }}"
+          echo "  - Netlify: netlify deploy --prod --auth=\${{ secrets.NETLIFY_TOKEN }}"
+          echo "  - AWS S3: aws s3 sync dist/ s3://\${{ secrets.S3_BUCKET }} --delete"
+          echo "  - Custom: Use your deployment script here"
+        # Uncomment and configure based on your hosting provider:
+        # - For Vercel:
+        #   run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        # - For Netlify:
+        #   run: npx netlify-cli deploy --prod --dir=dist --auth=${{ secrets.NETLIFY_TOKEN }}
+        # - For AWS S3 + CloudFront:
+        #   run: |
+        #     aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete
+        #     aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} --paths "/*"
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          echo "Deployment completed at $(date)"
+          echo "Environment: production"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+        # Add notification service here (Slack, Discord, Email, etc.):
+        # - uses: 8398a7/action-slack@v3
+        #   with:
+        #     status: success
+        #     text: '✅ Production deployment successful!'
+        #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Production deployment failed!"
+          echo "Please check the logs for details."
+        # Add notification service here (Slack, Discord, Email, etc.):
+        # - uses: 8398a7/action-slack@v3
+        #   with:
+        #     status: failure
+        #     text: '❌ Production deployment failed!'
+        #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, coverage, e2e, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build for staging
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STAGING_STRIPE_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.STAGING_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          VITE_SENTRY_AUTH_TOKEN: ${{ secrets.VITE_SENTRY_AUTH_TOKEN }}
+          VITE_POSTHOG_KEY: ${{ secrets.STAGING_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.STAGING_POSTHOG_HOST }}
+          VITE_ENVIRONMENT: staging
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          CI: true
+      
+      - name: Create Sentry release
+        if: success()
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.VITE_SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: staging
+          version: ${{ github.sha }}
+          ignore_missing: true
+          ignore_empty: false
+          set_commits: auto
+      
+      - name: Deploy to Vercel (Staging)
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
+          alias-domains: staging.tauze.app
+      
+      - name: Notify deployment success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "✅ Staging Deployment Successful",
+              attachments: [{
+                color: 'good',
+                text: `
+                  *Repository:* ${{ github.repository }}
+                  *Branch:* ${{ github.ref_name }}
+                  *Commit:* ${{ github.sha }}
+                  *Author:* ${{ github.actor }}
+                  *Environment:* Staging
+                  *URL:* ${{ steps.deploy.outputs.url }}
+                  *Message:* ${{ github.event.head_commit.message }}
+                `
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Notify deployment failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "❌ Staging Deployment Failed",
+              attachments: [{
+                color: 'danger',
+                text: `
+                  *Repository:* ${{ github.repository }}
+                  *Branch:* ${{ github.ref_name }}
+                  *Commit:* ${{ github.sha }}
+                  *Author:* ${{ github.actor }}
+                  *Environment:* Staging
+                  *Workflow:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  *Message:* ${{ github.event.head_commit.message }}
+                `
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Comment on commit with deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const deployUrl = '${{ steps.deploy.outputs.url }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            const message = status === 'success' 
+              ? `${emoji} **Staging Deployment Successful**\n\n🔗 [View Deployment](${deployUrl})`
+              : `${emoji} **Staging Deployment Failed**\n\n📋 [View Logs](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: message
+            });

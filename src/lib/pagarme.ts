@@ -16,7 +16,7 @@ export const pagarme = {
    */
   createSubscription: async (data: any) => {
     console.log('[Pagar.me] Iniciando criação de assinatura...', data);
-    
+
     // In a real scenario, this would use the Pagar.me SDK or API via Edge Function
     /*
     const response = await fetch('https://api.pagar.me/core/v5/subscriptions', {
@@ -29,7 +29,7 @@ export const pagarme = {
     });
     return await response.json();
     */
-    
+
     return { status: 'pending', id: 'sub_mock_123' };
   },
 
@@ -38,7 +38,7 @@ export const pagarme = {
    */
   handlePostback: async (payload: any) => {
     const { event, object } = payload;
-    
+
     switch (event) {
       case 'subscription.paid':
         console.log('[Pagar.me] Assinatura paga:', object.id);
@@ -47,5 +47,5 @@ export const pagarme = {
         console.log('[Pagar.me] Falha no pagamento:', object.id);
         break;
     }
-  }
+  },
 };

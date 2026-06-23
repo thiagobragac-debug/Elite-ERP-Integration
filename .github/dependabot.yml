@@ -1,0 +1,66 @@
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
+    # Group dependencies to reduce PR noise
+    groups:
+      # Group all patch and minor updates together
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    # Separate major updates (require more careful review)
+    open-pull-requests-limit: 5
+    # Add labels to PRs for better organization
+    labels:
+      - "dependencies"
+      - "automated"
+    # Commit message prefix
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore(dev)"
+      include: "scope"
+    # Ignore specific dependencies if needed
+    # ignore:
+    #   - dependency-name: "react"
+    #     update-types: ["version-update:semver-major"]
+    # Pull request branch name prefix
+    pull-request-branch-name:
+      separator: "/"
+    # Rebase strategy
+    rebase-strategy: "auto"
+    # Reviewers (optional - uncomment and add GitHub usernames)
+    # reviewers:
+    #   - "your-github-username"
+    # Assignees (optional)
+    # assignees:
+    #   - "your-github-username"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    open-pull-requests-limit: 3

@@ -1,9 +1,19 @@
 import React from 'react';
-import { X, Filter, Check, ShoppingCart, Clock, AlertTriangle, User, DollarSign, Calendar, Zap } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Check,
+  ShoppingCart,
+  Clock,
+  AlertTriangle,
+  User,
+  DollarSign,
+  Calendar,
+  Zap,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface PurchaseRequestFilterModalProps {
   isOpen: boolean;
@@ -16,15 +26,17 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const priorities = [
     { id: 'low', label: 'Baixa', color: 'hsl(var(--text-muted))' },
     { id: 'medium', label: 'Média', color: '#3b82f6' },
     { id: 'high', label: 'Alta', color: '#ed6c02' },
-    { id: 'urgent', label: 'Urgente', color: '#ef4444' }
+    { id: 'urgent', label: 'Urgente', color: '#ef4444' },
   ];
 
   const departments = ['Pecuária', 'Frota', 'Infraestrutura', 'Administrativo', 'Agrícola'];
@@ -43,23 +55,41 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
       departments: [],
       maxAmount: 100000,
       dateStart: '',
-      dateEnd: ''
+      dateEnd: '',
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(16, 163, 74, 0.1)', padding: '10px', borderRadius: '12px', color: '#10a34a' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(16, 163, 74, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#10a34a',
+              }}
+            >
               <ShoppingCart size={20} />
             </div>
             <div>
@@ -67,8 +97,15 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
               <p>Gerencie o fluxo interno de compras.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -77,25 +114,29 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Nível de Prioridade <AlertTriangle size={14} /></label>
+            <label className="tauze-filter-label">
+              Nível de Prioridade <AlertTriangle size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {priorities.map(p => (
-                <button 
+              {priorities.map((p) => (
+                <button
                   key={p.id}
-                  style={{ 
-                    padding: '12px 8px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.priorities?.includes(p.id) ? p.color : 'hsl(var(--text-muted))', 
-                    background: filters.priorities?.includes(p.id) ? `${p.color}10` : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.priorities?.includes(p.id) ? p.color : 'hsl(var(--text-muted))',
+                    background: filters.priorities?.includes(p.id) ? `${p.color}10` : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
-                    borderColor: filters.priorities?.includes(p.id) ? p.color : 'hsl(var(--border))',
+                    borderColor: filters.priorities?.includes(p.id)
+                      ? p.color
+                      : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px'
+                    gap: '6px',
                   }}
                   onClick={() => {
                     const newPrios = filters.priorities?.includes(p.id)
@@ -104,7 +145,14 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
                     setFilters({ ...filters, priorities: newPrios });
                   }}
                 >
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color }} />
+                  <div
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: p.color,
+                    }}
+                  />
                   {p.label}
                 </button>
               ))}
@@ -112,17 +160,23 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Departamentos <User size={14} /></label>
+            <label className="tauze-filter-label">
+              Departamentos <User size={14} />
+            </label>
             <div className="tauze-tag-cloud">
-              {departments.map(dept => (
-                <button 
+              {departments.map((dept) => (
+                <button
                   key={dept}
                   className={`tauze-tag-chip ${filters.departments?.includes(dept) ? 'active' : ''}`}
                   onClick={() => toggleDept(dept)}
-                  style={{ 
-                    borderColor: filters.departments?.includes(dept) ? '#10a34a' : 'hsl(var(--border))', 
-                    background: filters.departments?.includes(dept) ? '#10a34a' : 'hsl(var(--bg-card))',
-                    color: filters.departments?.includes(dept) ? 'white' : 'hsl(var(--text-muted))'
+                  style={{
+                    borderColor: filters.departments?.includes(dept)
+                      ? '#10a34a'
+                      : 'hsl(var(--border))',
+                    background: filters.departments?.includes(dept)
+                      ? '#10a34a'
+                      : 'hsl(var(--bg-card))',
+                    color: filters.departments?.includes(dept) ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {dept}
@@ -132,46 +186,74 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Valor Estimado (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Estimado</span>
+            <label className="tauze-filter-label">
+              Valor Estimado (R$) <DollarSign size={14} />
+            </label>
+            <div
+              className="integrity-slider-container"
+              style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>
+                  {filters.maxAmount.toLocaleString('pt-BR')}
+                </span>
+                <span
+                  style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}
+                >
+                  Teto Estimado
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="100000" 
+              <input
+                type="range"
+                min="0"
+                max="100000"
                 step="5000"
                 value={filters.maxAmount}
-                onChange={e => setFilters({ ...filters, maxAmount: parseInt(e.target.value) })}
+                onChange={(e) => setFilters({ ...filters, maxAmount: parseInt(e.target.value) })}
                 style={{ width: '100%', accentColor: '#10a34a', height: '6px', cursor: 'pointer' }}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Data da Solicitação <Calendar size={14} /></label>
+            <label className="tauze-filter-label">
+              Data da Solicitação <Calendar size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateStart}
-                onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateEnd}
-                onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#10a34a' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#10a34a' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,

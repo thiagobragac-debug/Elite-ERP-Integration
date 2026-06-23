@@ -14,15 +14,17 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const handleClear = () => {
     setFilters({
       status: 'all',
       occupation: 'all',
-      types: []
+      types: [],
     });
   };
 
@@ -34,18 +36,36 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '12px', color: '#10b981' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#10b981',
+              }}
+            >
               <Layout size={20} />
             </div>
             <div>
@@ -53,8 +73,15 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
               <p>Otimização de espaço e estrutura.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -63,25 +90,27 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status Operacional <Activity size={14} /></label>
+            <label className="tauze-filter-label">
+              Status Operacional <Activity size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'ativo', label: 'Ativos' },
-                { id: 'inativo', label: 'Inativos' }
-              ].map(s => (
-                <button 
+                { id: 'inativo', label: 'Inativos' },
+              ].map((s) => (
+                <button
                   key={s.id}
-                  style={{ 
-                    padding: '12px 8px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.status === s.id ? '#10b981' : 'hsl(var(--text-muted))', 
-                    background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px 8px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.status === s.id ? '#10b981' : 'hsl(var(--text-muted))',
+                    background: filters.status === s.id ? '#f0fdf4' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.status === s.id ? '#10b981' : 'hsl(var(--border))',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                   onClick={() => setFilters({ ...filters, status: s.id })}
                 >
@@ -92,27 +121,29 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Nível de Ocupação <Target size={14} /></label>
+            <label className="tauze-filter-label">
+              Nível de Ocupação <Target size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
                 { id: 'all', label: 'Qualquer Ocupação' },
                 { id: 'critical', label: 'Crítica (> 90%)' },
                 { id: 'high', label: 'Alta (> 70%)' },
-                { id: 'low', label: 'Baixa (< 20%)' }
-              ].map(o => (
-                <button 
+                { id: 'low', label: 'Baixa (< 20%)' },
+              ].map((o) => (
+                <button
                   key={o.id}
-                  style={{ 
-                    padding: '12px 16px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.occupation === o.id ? '#10b981' : 'hsl(var(--text-muted))', 
-                    background: filters.occupation === o.id ? '#f0fdf4' : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.occupation === o.id ? '#10b981' : 'hsl(var(--text-muted))',
+                    background: filters.occupation === o.id ? '#f0fdf4' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.occupation === o.id ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer',
-                    textAlign: 'left'
+                    textAlign: 'left',
                   }}
                   onClick={() => setFilters({ ...filters, occupation: o.id })}
                 >
@@ -123,17 +154,19 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Tipo de Estrutura <Boxes size={14} /></label>
+            <label className="tauze-filter-label">
+              Tipo de Estrutura <Boxes size={14} />
+            </label>
             <div className="tauze-tag-cloud">
-              {['Galpão', 'Silo', 'Tanque', 'Câmara Fria', 'Defensivos'].map(type => (
-                <button 
+              {['Galpão', 'Silo', 'Tanque', 'Câmara Fria', 'Defensivos'].map((type) => (
+                <button
                   key={type}
                   className={`tauze-tag-chip ${filters.types?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleType(type)}
-                  style={{ 
-                    borderColor: filters.types?.includes(type) ? '#10b981' : 'hsl(var(--border))', 
+                  style={{
+                    borderColor: filters.types?.includes(type) ? '#10b981' : 'hsl(var(--border))',
                     background: filters.types?.includes(type) ? '#10b981' : 'hsl(var(--bg-card))',
-                    color: filters.types?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
+                    color: filters.types?.includes(type) ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {type}
@@ -144,8 +177,16 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#10b981' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#10b981' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,

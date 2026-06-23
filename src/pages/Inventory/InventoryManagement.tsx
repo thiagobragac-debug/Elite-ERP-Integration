@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -12,20 +23,34 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Package, 
-  Plus, 
-  Search, 
+import {
+  Package,
+  Plus,
+  Search,
   Filter,
-  AlertTriangle, 
-  ChevronRight, 
+  AlertTriangle,
+  ChevronRight,
   FlaskConical,
   Wheat,
   Layers,
@@ -42,7 +67,7 @@ import {
   List as ListIcon,
   CheckCircle2,
   X,
-  ShoppingCart
+  ShoppingCart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -64,21 +89,44 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
-
 export const InventoryManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    applyTenantFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = usePersistentState('InventoryManagement_isModalOpen', false);
-  const [isMovementModalOpen, setIsMovementModalOpen] = usePersistentState('InventoryManagement_isMovementModalOpen', false);
-  const [selectedProduct, setSelectedProduct] = usePersistentState<any>('InventoryManagement_selectedProduct', null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('InventoryManagement_isHistoryModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState(
+    'InventoryManagement_isModalOpen',
+    false
+  );
+  const [isMovementModalOpen, setIsMovementModalOpen] = usePersistentState(
+    'InventoryManagement_isMovementModalOpen',
+    false
+  );
+  const [selectedProduct, setSelectedProduct] = usePersistentState<any>(
+    'InventoryManagement_selectedProduct',
+    null
+  );
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'InventoryManagement_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('inventory-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('InventoryManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'InventoryManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     categoria: 'all', // Corrected singular field
     categorias: [] as string[],
@@ -86,7 +134,7 @@ export const InventoryManagement: React.FC = () => {
     minStock: 0,
     maxStock: 1000000,
     minPrice: 0,
-    maxPrice: 1000000
+    maxPrice: 1000000,
   });
   const [requestedProducts, setRequestedProducts] = useState<Record<string, boolean>>({});
 
@@ -100,23 +148,34 @@ export const InventoryManagement: React.FC = () => {
 
   // React Query fetch
   const { data: queryData = { products: [], totalCount: 0 }, isLoading: loading } = useQuery({
-    queryKey: ['inventory_products', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues.categoria],
+    queryKey: [
+      'inventory_products',
+      activeFarmId,
+      activeTenantId,
+      isGlobalMode,
+      page,
+      debouncedSearch,
+      filterValues.categoria,
+    ],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
       let query = supabase
         .from('produtos')
-        .select(`
+        .select(
+          `
           id, nome, categoria_id,
           categorias_sistema (
             nome
           ),
           unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao, tipo, codigo_servico_lc116, codigo_tributacao_nacional, cnae_associado
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('nome', { ascending: true })
         .range(from, to);
-      
+
       query = applyTenantFilter(query);
 
       if (filterValues.categoria !== 'all') {
@@ -128,18 +187,20 @@ export const InventoryManagement: React.FC = () => {
       }
 
       const { data, count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       const mapped = (data || []).map((p: any) => ({
         ...p,
-        categoria: p.categorias_sistema?.nome || 'Geral'
+        categoria: p.categorias_sistema?.nome || 'Geral',
       }));
       return { products: mapped, totalCount: count || 0 };
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
-  const products = queryData.products;
-  const totalCount = queryData.totalCount;
+  const { products } = queryData;
+  const { totalCount } = queryData;
 
   const handleOpenCreate = () => {
     setSelectedProduct(null);
@@ -149,11 +210,21 @@ export const InventoryManagement: React.FC = () => {
   const handleOpenEdit = async (product: any) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
-    
+
     // Asynchronously check for history to disable the is_storable toggle
-    const { count } = await supabase.from('movimentacoes_estoque').select('*', { count: 'exact', head: true }).eq('produto_id', product.id);
-    const { data: embalagens } = await supabase.from('produto_embalagens').select('*').eq('produto_id', product.id);
-    setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false, embalagens: embalagens || [] }));
+    const { count } = await supabase
+      .from('movimentacoes_estoque')
+      .select('*', { count: 'exact', head: true })
+      .eq('produto_id', product.id);
+    const { data: embalagens } = await supabase
+      .from('produto_embalagens')
+      .select('*')
+      .eq('produto_id', product.id);
+    setSelectedProduct((prev: any) => ({
+      ...prev,
+      hasHistory: count ? count > 0 : false,
+      embalagens: embalagens || [],
+    }));
   };
 
   // Mutations
@@ -178,9 +249,10 @@ export const InventoryManagement: React.FC = () => {
         is_active: data.is_active,
         tipo: data.tipo || 'produto',
         codigo_servico_lc116: data.tipo === 'servico' ? data.codigo_servico_lc116 : null,
-        codigo_tributacao_nacional: data.tipo === 'servico' ? data.codigo_tributacao_nacional : null,
+        codigo_tributacao_nacional:
+          data.tipo === 'servico' ? data.codigo_tributacao_nacional : null,
         cnae_associado: data.tipo === 'servico' ? data.cnae_associado : null,
-        ...insertPayload
+        ...insertPayload,
       };
 
       let productId = selectedProduct?.id;
@@ -190,13 +262,14 @@ export const InventoryManagement: React.FC = () => {
           .from('produtos')
           .update(payload)
           .eq('id', selectedProduct.id);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       } else {
-        const { data: newProd, error } = await supabase
-          .from('produtos')
-          .insert([payload])
-          .select();
-        if (error) throw error;
+        const { data: newProd, error } = await supabase.from('produtos').insert([payload]).select();
+        if (error) {
+          throw error;
+        }
         if (newProd && newProd[0]) {
           productId = newProd[0].id;
         }
@@ -205,18 +278,22 @@ export const InventoryManagement: React.FC = () => {
       // Salvar embalagens
       if (productId && data.embalagens) {
         await supabase.from('produto_embalagens').delete().eq('produto_id', productId);
-        
+
         const embalagensToInsert = data.embalagens.map((emb: any) => ({
           produto_id: productId,
           descricao: emb.descricao,
           fator: Number(emb.fator),
           tenant_id: insertPayload.tenant_id,
-          fazenda_id: insertPayload.fazenda_id
+          fazenda_id: insertPayload.fazenda_id,
         }));
 
         if (embalagensToInsert.length > 0) {
-          const { error: embErr } = await supabase.from('produto_embalagens').insert(embalagensToInsert);
-          if (embErr) throw embErr;
+          const { error: embErr } = await supabase
+            .from('produto_embalagens')
+            .insert(embalagensToInsert);
+          if (embErr) {
+            throw embErr;
+          }
         }
       }
     },
@@ -227,13 +304,15 @@ export const InventoryManagement: React.FC = () => {
     },
     onError: (err: any) => {
       console.error('[Inventory] Erro ao salvar item:', err);
-      toast.error('❌ Erro ao salvar item: ' + (err.message || 'Erro desconhecido'));
-    }
+      toast.error(`❌ Erro ao salvar item: ${err.message || 'Erro desconhecido'}`);
+    },
   });
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedProduct) {
-      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
+      toast.error(
+        '⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.'
+      );
       return;
     }
     saveProductMutation.mutate(data);
@@ -243,19 +322,23 @@ export const InventoryManagement: React.FC = () => {
 
   const processMovementMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (!activeFarm) throw new Error('Unidade não selecionada');
+      if (!activeFarm) {
+        throw new Error('Unidade não selecionada');
+      }
       const { error } = await supabase.rpc('process_fifo_movement', {
         p_produto_id: data.produto_id,
         p_deposito_id: data.deposito_id,
         p_quantidade: Number(data.quantidade),
         p_tipo: data.tipo.toUpperCase(),
         p_valor_unitario: Number(data.valor_unitario || 0),
-        p_fazenda_id: activeFarm.id,
-        p_tenant_id: activeFarm.tenantId,
+        p_fazenda_id: activeFarm?.id,
+        p_tenant_id: activeFarm?.tenantId,
         p_responsavel: data.responsavel,
-        p_origem_destino: data.origem_destino
+        p_origem_destino: data.origem_destino,
       });
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
@@ -264,8 +347,8 @@ export const InventoryManagement: React.FC = () => {
     },
     onError: (err: any) => {
       console.error('[Inventory] Error processing FIFO movement:', err);
-      toast.error('❌ Erro ao processar movimentação FIFO: ' + err.message);
-    }
+      toast.error(`❌ Erro ao processar movimentação FIFO: ${err.message}`);
+    },
   });
 
   const handleMovementSubmit = async (data: any) => {
@@ -273,22 +356,32 @@ export const InventoryManagement: React.FC = () => {
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = products.filter(p => {
-      const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategorias = filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
-      const matchesStatus = filterValues.status === 'all' || 
-                           (filterValues.status === 'critico' ? Number(p.estoque_atual) <= Number(p.estoque_minimo) : Number(p.estoque_atual) > Number(p.estoque_minimo));
-      
+    const filteredData = products.filter((p) => {
+      const matchesSearch =
+        (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategorias =
+        filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
+      const matchesStatus =
+        filterValues.status === 'all' ||
+        (filterValues.status === 'critico'
+          ? Number(p.estoque_atual) <= Number(p.estoque_minimo)
+          : Number(p.estoque_atual) > Number(p.estoque_minimo));
+
       const stock = Number(p.estoque_atual || 0);
-      const matchesStock = filterValues.maxStock >= 1000000 || (stock >= filterValues.minStock && stock <= filterValues.maxStock);
-      
+      const matchesStock =
+        filterValues.maxStock >= 1000000 ||
+        (stock >= filterValues.minStock && stock <= filterValues.maxStock);
+
       const price = Number(p.custo_medio || 0);
-      const matchesPrice = filterValues.maxPrice >= 1000000 || (price >= filterValues.minPrice && price <= filterValues.maxPrice);
+      const matchesPrice =
+        filterValues.maxPrice >= 1000000 ||
+        (price >= filterValues.minPrice && price <= filterValues.maxPrice);
 
       return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
     });
 
-    const exportData = filteredData.map(item => ({
+    const exportData = filteredData.map((item) => ({
       Nome: item.nome,
       Categoria: item.categoria,
       Marca: item.marca || '-',
@@ -296,46 +389,81 @@ export const InventoryManagement: React.FC = () => {
       Estoque_Atual: item.estoque_atual || 0,
       Estoque_Minimo: item.estoque_minimo || 0,
       Custo_Medio: item.custo_medio || 0,
-      Valor_Total: (Number(item.estoque_atual || 0) * Number(item.custo_medio || 0)),
-      Localizacao: item.localizacao || 'Geral'
+      Valor_Total: Number(item.estoque_atual || 0) * Number(item.custo_medio || 0),
+      Localizacao: item.localizacao || 'Geral',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'inventario_produtos');
-    else if (format === 'excel') exportToExcel(exportData, 'inventario_produtos');
-    else if (format === 'pdf') exportToPDF(exportData, 'inventario_produtos', 'Relatório de Inventário de Insumos');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'inventario_produtos');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'inventario_produtos');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'inventario_produtos', 'Relatório de Inventário de Insumos');
+    }
   };
 
   const deleteProductMutation = useMutation({
     mutationFn: async (item: any) => {
-      const { count } = await supabase.from('estoque_movimentacao').select('*', { count: 'exact', head: true }).eq('produto_id', item.id);
+      const { count } = await supabase
+        .from('estoque_movimentacao')
+        .select('*', { count: 'exact', head: true })
+        .eq('produto_id', item.id);
       const hasHistory = count ? count > 0 : false;
 
       if (!hasHistory) {
-        const isConfirmed = await confirm({ title: 'Atenção', description: `Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return { cancelled: true };
-        const { error } = await supabase.from('produtos').delete().eq('id', item.id);
-        if (error) throw error;
-        return { type: 'hard' };
-      } else {
-        if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
-          throw new Error(`Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
+        const isConfirmed = await confirm({
+          title: 'Atenção',
+          description: `Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`,
+          confirmText: 'Confirmar',
+          cancelText: 'Cancelar',
+          variant: 'danger',
+        });
+        if (!isConfirmed) {
+          return { cancelled: true };
         }
-        const isConfirmed = await confirm({ title: 'Atenção', description: `O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return { cancelled: true };
-        
-        const { error } = await supabase.from('produtos').update({ is_active: false }).eq('id', item.id);
-        if (error) throw error;
-        return { type: 'soft' };
+        const { error } = await supabase.from('produtos').delete().eq('id', item.id);
+        if (error) {
+          throw error;
+        }
+        return { type: 'hard' };
       }
+      if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
+        throw new Error(
+          `Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`
+        );
+      }
+      const isConfirmed = await confirm({
+        title: 'Atenção',
+        description: `O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`,
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+      });
+      if (!isConfirmed) {
+        return { cancelled: true };
+      }
+
+      const { error } = await supabase
+        .from('produtos')
+        .update({ is_active: false })
+        .eq('id', item.id);
+      if (error) {
+        throw error;
+      }
+      return { type: 'soft' };
     },
     onSuccess: (res) => {
-      if (res?.cancelled) return;
+      if (res?.cancelled) {
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
-      toast.success(res.type === 'hard' ? 'Item excluído com sucesso!' : 'Item inativado com sucesso!');
+      toast.success(
+        res.type === 'hard' ? 'Item excluído com sucesso!' : 'Item inativado com sucesso!'
+      );
     },
     onError: (err: any) => {
-      toast.error('❌ Erro na operação: ' + err.message);
-    }
+      toast.error(`❌ Erro na operação: ${err.message}`);
+    },
   });
 
   const handleDelete = async (item: any) => {
@@ -351,7 +479,10 @@ export const InventoryManagement: React.FC = () => {
         throw new Error('Selecione uma fazenda específica para solicitar a compra.');
       }
 
-      const diff = Math.max(1, Number(product.estoque_minimo || 0) - Number(product.estoque_atual || 0));
+      const diff = Math.max(
+        1,
+        Number(product.estoque_minimo || 0) - Number(product.estoque_atual || 0)
+      );
       const valorEstimado = Math.max(100, diff * Number(product.custo_medio || 0));
 
       const payload = {
@@ -363,24 +494,24 @@ export const InventoryManagement: React.FC = () => {
         status: 'pending',
         solicitante: 'Sistema de Estoque (Auto)',
         fazenda_id: farmId,
-        tenant_id: tenantId
+        tenant_id: tenantId,
       };
 
-      const { error } = await supabase
-        .from('solicitacoes_compra')
-        .insert([payload]);
+      const { error } = await supabase.from('solicitacoes_compra').insert([payload]);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return product.id;
     },
     onSuccess: (productId) => {
-      setRequestedProducts(prev => ({ ...prev, [productId]: true }));
+      setRequestedProducts((prev) => ({ ...prev, [productId]: true }));
       toast.success('Solicitação de compra gerada com sucesso!');
     },
     onError: (err: any) => {
       console.error('[Inventory] Erro ao solicitar compra:', err);
-      toast.error('❌ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
-    }
+      toast.error(`❌ Erro ao solicitar compra: ${err.message || 'Erro desconhecido'}`);
+    },
   });
 
   const handleAutoPurchaseRequest = async (product: any) => {
@@ -389,14 +520,17 @@ export const InventoryManagement: React.FC = () => {
 
   const requestLoading = {
     ...Object.fromEntries(
-      (products || []).map(p => [p.id, autoPurchaseMutation.isPending && autoPurchaseMutation.variables?.id === p.id])
-    )
+      (products || []).map((p) => [
+        p.id,
+        autoPurchaseMutation.isPending && autoPurchaseMutation.variables?.id === p.id,
+      ])
+    ),
   };
 
   const handleViewHistory = async (product: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    
+
     const { data } = await supabase
       .from('estoque_movimentacao')
       .select('*')
@@ -405,14 +539,16 @@ export const InventoryManagement: React.FC = () => {
       .limit(10);
 
     if (data) {
-      setHistoryItems(data.map(m => ({
-        id: m.id,
-        date: m.created_at,
-        title: m.tipo === 'IN' ? 'Entrada de Estoque' : 'Saída para Consumo',
-        subtitle: `Qtd: ${m.quantidade} ${product.unidade}`,
-        value: `R$ ${formatNumber(Number(m.quantidade) * Number(product.custo_medio))}`,
-        status: m.tipo === 'IN' ? 'success' : 'warning'
-      })));
+      setHistoryItems(
+        data.map((m) => ({
+          id: m.id,
+          date: m.created_at,
+          title: m.tipo === 'IN' ? 'Entrada de Estoque' : 'Saída para Consumo',
+          subtitle: `Qtd: ${m.quantidade} ${product.unidade}`,
+          value: `R$ ${formatNumber(Number(m.quantidade) * Number(product.custo_medio))}`,
+          status: m.tipo === 'IN' ? 'success' : 'warning',
+        }))
+      );
     }
     setHistoryLoading(false);
   };
@@ -420,62 +556,89 @@ export const InventoryManagement: React.FC = () => {
   const currentProducts = products || [];
 
   const stats = [
-    { 
-      label: 'Capital Imobilizado', 
-      value: (() => { 
-        const v = currentProducts.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0); 
-        return v > 0 ? `R$ ${v.toLocaleString('pt-BR')}` : '---'; 
-      })(), 
-      icon: DollarSign, 
-      color: '#10b981', 
-      progress: (() => { 
-        const v = currentProducts.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0); 
-        return v > 0 ? Math.min(100, Math.log10(v) * 15) : 0; 
+    {
+      label: 'Capital Imobilizado',
+      value: (() => {
+        const v = currentProducts.reduce(
+          (acc, curr) => acc + Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0),
+          0
+        );
+        return v > 0 ? `R$ ${v.toLocaleString('pt-BR')}` : '---';
+      })(),
+      icon: DollarSign,
+      color: '#10b981',
+      progress: (() => {
+        const v = currentProducts.reduce(
+          (acc, curr) => acc + Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0),
+          0
+        );
+        return v > 0 ? Math.min(100, Math.log10(v) * 15) : 0;
       })(),
       trend: 'up' as const,
       change: currentProducts.length > 0 ? 'Patrimônio em Insumos' : 'Sem insumos',
       periodLabel: 'Atual',
-      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
-    { 
-      label: 'Ruptura de Estoque', 
-      value: (() => { 
-        const n = currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length;
-        return n > 0 ? n : '---'; 
-      })(), 
-      icon: AlertTriangle, 
-      color: '#ef4444', 
-      progress: currentProducts.length > 0 ? (currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / currentProducts.length) * 100 : 0, 
+    {
+      label: 'Ruptura de Estoque',
+      value: (() => {
+        const n = currentProducts.filter(
+          (p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)
+        ).length;
+        return n > 0 ? n : '---';
+      })(),
+      icon: AlertTriangle,
+      color: '#ef4444',
+      progress:
+        currentProducts.length > 0
+          ? (currentProducts.filter((p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo))
+              .length /
+              currentProducts.length) *
+            100
+          : 0,
       trend: 'down' as const,
-      change: currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length > 0 ? 'Itens abaixo do mínimo' : 'Sem rupturas',
+      change:
+        currentProducts.filter((p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo))
+          .length > 0
+          ? 'Itens abaixo do mínimo'
+          : 'Sem rupturas',
       periodLabel: 'Ação Necessária',
-      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
-    { 
-      label: 'Maturidade (30d)', 
-      value: (() => { 
-        const n = currentProducts.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length;
-        return n > 0 ? `${n} itens` : '---'; 
-      })(), 
-      icon: FlaskConical, 
-      color: '#f59e0b', 
-      progress: currentProducts.length > 0 ? (currentProducts.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length / currentProducts.length) * 100 : 0,
+    {
+      label: 'Maturidade (30d)',
+      value: (() => {
+        const n = currentProducts.filter(
+          (p) => p.categoria === 'Medicamento' || p.categoria === 'Vacina'
+        ).length;
+        return n > 0 ? `${n} itens` : '---';
+      })(),
+      icon: FlaskConical,
+      color: '#f59e0b',
+      progress:
+        currentProducts.length > 0
+          ? (currentProducts.filter(
+              (p) => p.categoria === 'Medicamento' || p.categoria === 'Vacina'
+            ).length /
+              currentProducts.length) *
+            100
+          : 0,
       trend: undefined,
       change: 'Risco de Vencimento',
       periodLabel: 'Monitoramento Lot',
-      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
-    { 
-      label: 'Giro de Estoque', 
-      value: '---', 
-      icon: Zap, 
-      color: '#3b82f6', 
+    {
+      label: 'Giro de Estoque',
+      value: '---',
+      icon: Zap,
+      color: '#3b82f6',
       progress: 0,
       trend: 'up' as const,
       change: 'Calculado no Dashboard',
       periodLabel: 'Média Mensal',
-      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
-    }
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
+    },
   ];
 
   const columns = [
@@ -484,19 +647,34 @@ export const InventoryManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+              {item.nome}
+            </span>
             {item.tipo === 'servico' && (
-              <span style={{ fontSize: '9px', fontWeight: 800, color: 'white', background: 'hsl(var(--brand))', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  color: 'white',
+                  background: 'hsl(var(--brand))',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase',
+                }}
+              >
                 Serviço
               </span>
             )}
           </div>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Categoria & Marca',
@@ -505,33 +683,60 @@ export const InventoryManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.categoria}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             {item.tipo === 'servico' ? 'Serviço' : item.marca || 'Sem Marca'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Localização / Armazém',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-            {item.tipo === 'servico' ? 'Sem Almoxarifado' : item.localizacao || 'Almoxarifado Geral'}
+            {item.tipo === 'servico'
+              ? 'Sem Almoxarifado'
+              : item.localizacao || 'Almoxarifado Geral'}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             {item.tipo === 'servico' ? 'Mão de Obra / Execução' : 'Estoque Físico'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Saldo & Nível de Estoque',
       accessor: (item: any) => {
         if (item.tipo === 'servico') {
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '11.5px', fontWeight: 700 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#64748b',
+                fontSize: '11.5px',
+                fontWeight: 700,
+              }}
+            >
               <Zap size={13} style={{ color: 'hsl(var(--brand))' }} />
               <span>Não Estocável</span>
             </div>
@@ -544,39 +749,84 @@ export const InventoryManagement: React.FC = () => {
         const capacityPercent = Math.min(100, (atual / max) * 100);
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '135px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '135px',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                color: '#64748b',
+              }}
+            >
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#1e293b' }}>
                 <Package size={12} color={isCritical ? '#f43f5e' : '#6366f1'} />
                 {atual} {item.unidade || 'un'}
               </span>
-              <span style={{ color: isCritical ? '#f43f5e' : '#10b981' }}>{capacityPercent.toFixed(0)}%</span>
+              <span style={{ color: isCritical ? '#f43f5e' : '#10b981' }}>
+                {capacityPercent.toFixed(0)}%
+              </span>
             </div>
-            <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  transition: 'width 0.5s', 
-                  backgroundColor: isCritical ? '#f43f5e' : capacityPercent > 80 ? '#10b981' : '#6366f1',
-                  width: `${capacityPercent}%` 
+            <div
+              style={{
+                height: '6px',
+                width: '100%',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  transition: 'width 0.5s',
+                  backgroundColor: isCritical
+                    ? '#f43f5e'
+                    : capacityPercent > 80
+                      ? '#10b981'
+                      : '#6366f1',
+                  width: `${capacityPercent}%`,
                 }}
               />
             </div>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Custo Médio & Total',
       accessor: (item: any) => {
         if (item.tipo === 'servico') {
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+              }}
+            >
               <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
-                {Number(item.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {Number(item.custo_medio || 0).toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
               </span>
-              <span className="sub-meta" style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8' }}>
+              <span
+                className="sub-meta"
+                style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8' }}
+              >
                 Por {item.unidade || 'un'}
               </span>
             </div>
@@ -584,17 +834,32 @@ export const InventoryManagement: React.FC = () => {
         }
         const totalValue = Number(item.estoque_atual || 0) * Number(item.custo_medio || 0);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+            }}
+          >
             <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
               {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
-            <span className="sub-meta" style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8' }}>
-              {Number(item.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / {item.unidade || 'un'}
+            <span
+              className="sub-meta"
+              style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8' }}
+            >
+              {Number(item.custo_medio || 0).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })}{' '}
+              / {item.unidade || 'un'}
             </span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status Reposição',
@@ -608,32 +873,48 @@ export const InventoryManagement: React.FC = () => {
         }
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <span className={`status-pill ${Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'danger' : 'success'}`}>
-              {Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'Reposição' : 'Disponível'}
+            <span
+              className={`status-pill ${Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'danger' : 'success'}`}
+            >
+              {Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0)
+                ? 'Reposição'
+                : 'Disponível'}
             </span>
           </div>
         );
       },
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Insumos & Serviços' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Estoque & Insumos', href: '/estoque/dashboard' },
+              { label: 'Insumos & Serviços' },
+            ]}
+          />
           <h1 className="page-title">Insumos & Serviços</h1>
-          <p className="page-subtitle">Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.</p>
+          <p className="page-subtitle">
+            Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.
+          </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => {
-            if (!activeFarmId || isGlobalMode) {
-              toast.error('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
-              return;
-            }
-            setIsMovementModalOpen(true);
-          }}>
+          <button
+            className="glass-btn secondary"
+            onClick={() => {
+              if (!activeFarmId || isGlobalMode) {
+                toast.error(
+                  '⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.'
+                );
+                return;
+              }
+              setIsMovementModalOpen(true);
+            }}
+          >
             <ArrowRightLeft size={18} />
             MOVIMENTAÇÃO
           </button>
@@ -645,32 +926,44 @@ export const InventoryManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color=""  periodLabel="Estoque Atual" />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-            trend={stat.trend}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <TauzeStatCard
+                  key={i}
+                  loading={true}
+                  label=""
+                  value=""
+                  icon={Package}
+                  color=""
+                  periodLabel="Estoque Atual"
+                />
+              ))
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                periodLabel={stat.periodLabel}
+                sparkline={stat.sparkline}
+                trend={stat.trend}
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
           {['All', 'Suplemento', 'Vacina', 'Combustível', 'Semente'].map((cat) => (
-            <button 
+            <button
               key={cat}
-              className={`tauze-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`} 
+              className={`tauze-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`}
               onClick={() => {
-                setFilterValues({...filterValues, categoria: cat === 'All' ? 'all' : cat});
+                setFilterValues({ ...filterValues, categoria: cat === 'All' ? 'all' : cat });
                 setPage(1);
               }}
             >
@@ -681,24 +974,24 @@ export const InventoryManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Pesquisar insumos por nome ou categoria..." 
+            placeholder="Pesquisar insumos por nome ou categoria..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -708,7 +1001,7 @@ export const InventoryManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -716,26 +1009,49 @@ export const InventoryManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-inventory');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-inventory" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-inventory')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-inventory')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-inventory')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <InventoryFilterModal 
+      <InventoryFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -744,9 +1060,9 @@ export const InventoryManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             emptyState={
-              (!searchTerm && filterValues.categoria === 'all') ? (
+              !searchTerm && filterValues.categoria === 'all' ? (
                 <EmptyState
                   title="Nenhum item cadastrado"
                   description="Esta unidade ainda não possui insumos ou serviços cadastrados. Cadastre o primeiro item para iniciar o monitoramento."
@@ -772,35 +1088,38 @@ export const InventoryManagement: React.FC = () => {
             itemsPerPage={pageSize}
             searchPlaceholder="Filtrar base de insumos..."
             actions={(item) => {
-              const isCritical = Number(item.estoque_atual || 0) <= Number(item.estoque_minimo || 0);
+              const isCritical =
+                Number(item.estoque_atual || 0) <= Number(item.estoque_minimo || 0);
               const isRequested = requestedProducts[item.id];
               const isLoading = requestLoading[item.id];
 
               return (
                 <div className="modern-actions">
                   {isCritical && (
-                    <button 
-                      className={`action-dot ${isRequested ? 'success' : 'warning'}`} 
+                    <button
+                      className={`action-dot ${isRequested ? 'success' : 'warning'}`}
                       onClick={() => !isRequested && !isLoading && handleAutoPurchaseRequest(item)}
-                      title={isRequested ? "Compra Solicitada" : "Solicitar Compra"}
+                      title={isRequested ? 'Compra Solicitada' : 'Solicitar Compra'}
                       disabled={isRequested || isLoading}
                       style={{
                         borderColor: isRequested ? '#10b981' : '#f59e0b',
                         color: isRequested ? '#10b981' : '#f59e0b',
-                        background: isRequested ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                        cursor: isRequested ? 'default' : 'pointer'
+                        background: isRequested
+                          ? 'rgba(16, 185, 129, 0.1)'
+                          : 'rgba(245, 158, 11, 0.1)',
+                        cursor: isRequested ? 'default' : 'pointer',
                       }}
                     >
                       {isLoading ? (
-                        <motion.div 
+                        <motion.div
                           animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, ease: "linear", duration: 1 }}
+                          transition={{ repeat: Infinity, ease: 'linear', duration: 1 }}
                           style={{
                             width: '14px',
                             height: '14px',
                             border: '2px solid currentColor',
                             borderTopColor: 'transparent',
-                            borderRadius: '50%'
+                            borderRadius: '50%',
                           }}
                         />
                       ) : isRequested ? (
@@ -810,13 +1129,25 @@ export const InventoryManagement: React.FC = () => {
                       )}
                     </button>
                   )}
-                  <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
+                  <button
+                    className="action-dot info"
+                    onClick={() => handleViewHistory(item)}
+                    title="Logs"
+                  >
                     <ArrowRightLeft size={18} />
                   </button>
-                  <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
                     <Edit3 size={18} />
                   </button>
-                  <button className="action-dot delete" onClick={() => handleDelete(item)} title="Excluir/Inativar">
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item)}
+                    title="Excluir/Inativar"
+                  >
                     <Trash2 size={18} />
                   </button>
                 </div>
@@ -824,53 +1155,78 @@ export const InventoryManagement: React.FC = () => {
             }}
           />
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="user-cards-grid">
             {products.length === 0 ? (
-              <div 
-                className="user-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="user-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
-                  {(!searchTerm && filterValues.categoria === 'all') ? <Package size={22} /> : <Search size={22} />}
+                  {!searchTerm && filterValues.categoria === 'all' ? (
+                    <Package size={22} />
+                  ) : (
+                    <Search size={22} />
+                  )}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {(!searchTerm && filterValues.categoria === 'all') ? 'Nenhum item cadastrado' : 'Nenhum registro encontrado'}
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {!searchTerm && filterValues.categoria === 'all'
+                    ? 'Nenhum item cadastrado'
+                    : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {(!searchTerm && filterValues.categoria === 'all') ? 'Não há insumos ou serviços cadastrados nesta unidade.' : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {!searchTerm && filterValues.categoria === 'all'
+                    ? 'Não há insumos ou serviços cadastrados nesta unidade.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
-                {(!searchTerm && filterValues.categoria === 'all') && (
-                  <button 
-                    className="primary-btn" 
+                {!searchTerm && filterValues.categoria === 'all' && (
+                  <button
+                    className="primary-btn"
                     onClick={handleOpenCreate}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO ITEM</span>
@@ -878,56 +1234,89 @@ export const InventoryManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              products.map(p => {
+              products.map((p) => {
                 const isService = p.tipo === 'servico';
-                const isCritical = !isService && Number(p.estoque_atual) <= Number(p.estoque_minimo);
-                
+                const isCritical =
+                  !isService && Number(p.estoque_atual) <= Number(p.estoque_minimo);
+
                 const getIcon = (cat: string) => {
-                  if (isService) return <Zap size={32} style={{ color: 'hsl(var(--brand))' }} />;
-                  if (cat?.includes('Semente')) return <Wheat size={32} />;
-                  if (cat?.includes('Vacina') || cat?.includes('Medicamento')) return <FlaskConical size={32} />;
-                  if (cat?.includes('Combustível')) return <Zap size={32} />;
+                  if (isService) {
+                    return <Zap size={32} style={{ color: 'hsl(var(--brand))' }} />;
+                  }
+                  if (cat?.includes('Semente')) {
+                    return <Wheat size={32} />;
+                  }
+                  if (cat?.includes('Vacina') || cat?.includes('Medicamento')) {
+                    return <FlaskConical size={32} />;
+                  }
+                  if (cat?.includes('Combustível')) {
+                    return <Zap size={32} />;
+                  }
                   return <Package size={32} />;
                 };
 
                 return (
-                  <motion.div 
-                    key={p.id} 
+                  <motion.div
+                    key={p.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`user-card-premium ${isCritical ? 'stopped-badge' : 'active'}`}
                   >
                     <div className="card-left-section">
-                      <div className="card-avatar">
-                        {getIcon(p.categoria)}
-                      </div>
+                      <div className="card-avatar">{getIcon(p.categoria)}</div>
                       <div className="card-bottom-actions">
-                        <button className="action-icon-btn info" onClick={() => handleViewHistory(p)} title="Dossiê"><ArrowRightLeft size={14} /></button>
-                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(p)} title="Editar"><Edit3 size={14} /></button>
-                        <button className="action-icon-btn delete" onClick={() => handleDelete(p)} title="Excluir/Inativar"><Trash2 size={14} /></button>
+                        <button
+                          className="action-icon-btn info"
+                          onClick={() => handleViewHistory(p)}
+                          title="Dossiê"
+                        >
+                          <ArrowRightLeft size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn edit"
+                          onClick={() => handleOpenEdit(p)}
+                          title="Editar"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn delete"
+                          onClick={() => handleDelete(p)}
+                          title="Excluir/Inativar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                         {isCritical && (
-                          <button 
-                            className={`action-icon-btn ${requestedProducts[p.id] ? 'success' : 'warning'}`} 
-                            onClick={() => !requestedProducts[p.id] && !requestLoading[p.id] && handleAutoPurchaseRequest(p)}
-                            title={requestedProducts[p.id] ? "Compra Solicitada" : "Solicitar Compra"}
+                          <button
+                            className={`action-icon-btn ${requestedProducts[p.id] ? 'success' : 'warning'}`}
+                            onClick={() =>
+                              !requestedProducts[p.id] &&
+                              !requestLoading[p.id] &&
+                              handleAutoPurchaseRequest(p)
+                            }
+                            title={
+                              requestedProducts[p.id] ? 'Compra Solicitada' : 'Solicitar Compra'
+                            }
                             disabled={requestedProducts[p.id] || requestLoading[p.id]}
                             style={{
                               borderColor: requestedProducts[p.id] ? '#10b981' : '#f59e0b',
                               color: requestedProducts[p.id] ? '#10b981' : '#f59e0b',
-                              background: requestedProducts[p.id] ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                              cursor: requestedProducts[p.id] ? 'default' : 'pointer'
+                              background: requestedProducts[p.id]
+                                ? 'rgba(16, 185, 129, 0.1)'
+                                : 'rgba(245, 158, 11, 0.1)',
+                              cursor: requestedProducts[p.id] ? 'default' : 'pointer',
                             }}
                           >
                             {requestLoading[p.id] ? (
-                              <motion.div 
+                              <motion.div
                                 animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, ease: "linear", duration: 1 }}
+                                transition={{ repeat: Infinity, ease: 'linear', duration: 1 }}
                                 style={{
                                   width: '12px',
                                   height: '12px',
                                   border: '2px solid currentColor',
                                   borderTopColor: 'transparent',
-                                  borderRadius: '50%'
+                                  borderRadius: '50%',
                                 }}
                               />
                             ) : requestedProducts[p.id] ? (
@@ -943,12 +1332,24 @@ export const InventoryManagement: React.FC = () => {
                     <div className="card-main-content">
                       <div className="card-header-info">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>{p.nome}</h3>
+                          <h3
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--text-main))',
+                              margin: 0,
+                            }}
+                          >
+                            {p.nome}
+                          </h3>
                           <span className="card-role-badge" style={{ marginTop: '4px' }}>
                             {isService ? 'SERVIÇO' : p.categoria || 'INSUMO'}
                           </span>
                         </div>
-                        <span className={`status-pill mini ${isCritical ? 'stopped' : 'active'}`} style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px' }}>
+                        <span
+                          className={`status-pill mini ${isCritical ? 'stopped' : 'active'}`}
+                          style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px' }}
+                        >
                           {isService ? '✓ Ativo' : isCritical ? '⚠️ Reposição' : '✓ Disponível'}
                         </span>
                       </div>
@@ -956,7 +1357,11 @@ export const InventoryManagement: React.FC = () => {
                       <div className="card-meta-grid" style={{ gap: '6px', marginTop: '8px' }}>
                         {isService ? (
                           <div className="meta-item">
-                            <Zap size={12} className="meta-icon" style={{ color: 'hsl(var(--brand))' }} />
+                            <Zap
+                              size={12}
+                              className="meta-icon"
+                              style={{ color: 'hsl(var(--brand))' }}
+                            />
                             <span style={{ fontWeight: 800, color: '#475569' }}>
                               Serviço Não Estocável
                             </span>
@@ -965,19 +1370,33 @@ export const InventoryManagement: React.FC = () => {
                           <>
                             <div className="meta-item">
                               <Package size={12} className="meta-icon" />
-                              <span style={{ fontWeight: 800, color: isCritical ? '#ef4444' : '#16a34a' }}>
-                                Saldo: {p.estoque_atual || 0} {p.unidade} (Min: {p.estoque_minimo || 0})
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  color: isCritical ? '#ef4444' : '#16a34a',
+                                }}
+                              >
+                                Saldo: {p.estoque_atual || 0} {p.unidade} (Min:{' '}
+                                {p.estoque_minimo || 0})
                               </span>
                             </div>
-                            
+
                             <div style={{ marginTop: '4px', marginBottom: '4px' }}>
-                              <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-                                <div 
-                                  style={{ 
-                                    height: '100%', 
-                                    transition: 'width 0.5s', 
+                              <div
+                                style={{
+                                  height: '6px',
+                                  width: '100%',
+                                  backgroundColor: '#f1f5f9',
+                                  borderRadius: '99px',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    transition: 'width 0.5s',
                                     backgroundColor: isCritical ? '#ef4444' : '#10b981',
-                                    width: `${Math.min(100, ((p.estoque_atual || 0) / (p.estoque_minimo * 2 || 1)) * 100)}%` 
+                                    width: `${Math.min(100, ((p.estoque_atual || 0) / (p.estoque_minimo * 2 || 1)) * 100)}%`,
                                   }}
                                 />
                               </div>
@@ -987,21 +1406,65 @@ export const InventoryManagement: React.FC = () => {
 
                         <div className="meta-item">
                           <DollarSign size={12} className="meta-icon" />
-                          <span>{isService ? 'Valor / Custo' : 'Custo Médio'}: {Number(p.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{isService ? ` por ${p.unidade}` : ''}</span>
+                          <span>
+                            {isService ? 'Valor / Custo' : 'Custo Médio'}:{' '}
+                            {Number(p.custo_medio || 0).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            })}
+                            {isService ? ` por ${p.unidade}` : ''}
+                          </span>
                         </div>
-                        
+
                         {!isService && (
                           <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                            <span style={{ fontSize: '9px', fontWeight: 900, background: '#ecfdf5', color: '#059669', padding: '4px 8px', borderRadius: '6px' }}>
-                              Ativo: {(Number(p.estoque_atual || 0) * Number(p.custo_medio || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 900,
+                                background: '#ecfdf5',
+                                color: '#059669',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                              }}
+                            >
+                              Ativo:{' '}
+                              {(
+                                Number(p.estoque_atual || 0) * Number(p.custo_medio || 0)
+                              ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </span>
                           </div>
                         )}
                       </div>
-                      <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
-                        <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+                      <div
+                        className="card-footer-meta"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '8px',
+                          borderTop: '1px dashed rgba(148, 163, 184, 0.15)',
+                          paddingTop: '6px',
+                          marginTop: '12px',
+                        }}
+                      >
+                        <div
+                          className="meta-item"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: '#64748b',
+                          }}
+                        >
                           <Boxes size={12} style={{ color: 'hsl(var(--brand))' }} />
-                          <span>{isService ? 'Mão de Obra' : `Loc: ${p.localizacao || 'Almoxarifado Geral'}`}</span>
+                          <span>
+                            {isService
+                              ? 'Mão de Obra'
+                              : `Loc: ${p.localizacao || 'Almoxarifado Geral'}`}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1256,22 +1719,22 @@ export const InventoryManagement: React.FC = () => {
         }
       `}</style>
 
-      <ProductForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ProductForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         initialData={selectedProduct}
         hasHistory={selectedProduct?.hasHistory}
       />
 
-      <MovementForm 
+      <MovementForm
         isOpen={isMovementModalOpen}
         onClose={() => setIsMovementModalOpen(false)}
         onSubmit={handleMovementSubmit}
         defaultType="out"
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê de Movimentação"

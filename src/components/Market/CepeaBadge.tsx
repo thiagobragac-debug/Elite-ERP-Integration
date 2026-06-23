@@ -25,9 +25,7 @@ export const CepeaBadge: React.FC = () => {
           </span>
         ) : live ? (
           <>
-            <span className="cepea-badge-value">
-              R$ {live.valor}
-            </span>
+            <span className="cepea-badge-value">R$ {live.valor}</span>
             {live.data && (
               <span className="cepea-badge-date">
                 <Calendar size={9} />

@@ -1,9 +1,20 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -11,18 +22,32 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { 
-  ArrowRightLeft, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  Plus, 
-  ChevronRight, 
+import {
+  ArrowRightLeft,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Plus,
+  ChevronRight,
   MoreVertical,
   Banknote,
   FileText,
@@ -37,7 +62,7 @@ import {
   Activity,
   History,
   Calendar,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -52,7 +77,6 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { DateInput } from '../../components/Form/DateInput';
 
-
 export const BankReconciliation: React.FC = () => {
   const { activeFarm, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,67 +88,90 @@ export const BankReconciliation: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('BankReconciliation_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'BankReconciliation_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [isManualReconOpen, setIsManualReconOpen] = usePersistentState('BankReconciliation_isManualReconOpen', false);
+  const [isManualReconOpen, setIsManualReconOpen] = usePersistentState(
+    'BankReconciliation_isManualReconOpen',
+    false
+  );
   const [selectedBankRecord, setSelectedBankRecord] = useState<any>(null);
   const [selectedInternalIds, setSelectedInternalIds] = useState<string[]>([]);
-  const [isManualBankRecordModalOpen, setIsManualBankRecordModalOpen] = usePersistentState('BankReconciliation_isManualBankRecordModalOpen', false);
+  const [isManualBankRecordModalOpen, setIsManualBankRecordModalOpen] = usePersistentState(
+    'BankReconciliation_isManualBankRecordModalOpen',
+    false
+  );
   const [manualRows, setManualRows] = useState<any[]>([
-    { id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }
+    {
+      id: Date.now(),
+      date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      description: '',
+      amount: '',
+      type: 'outflow',
+    },
   ]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('BankReconciliation_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'BankReconciliation_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minAmount: 0,
     maxAmount: 1000000,
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
   });
 
   useEffect(() => {
-    if (!activeTenantId) { 
-      if (typeof setLoading !== 'undefined') setLoading(false); 
-      return; 
+    if (!activeTenantId) {
+      if (typeof setLoading !== 'undefined') {
+        setLoading(false);
+      }
+      return;
     }
     fetchRecords();
   }, [activeFarm, activeTenantId]);
 
   const calculateMatchScore = (bankRec: any, internalRec: any) => {
     let score = 0;
-    
+
     // 1. Valor Exato (Peso 60)
     if (Math.abs(bankRec.amount) === Math.abs(internalRec.amount)) {
       score += 60;
     }
-    
+
     // 2. Proximidade de Data (Peso 25)
     const bankDate = new Date(bankRec.date).getTime();
     const internalDate = new Date(internalRec.date).getTime();
     const diffDays = Math.abs(bankDate - internalDate) / (1000 * 60 * 60 * 24);
-    
-    if (diffDays === 0) score += 25;
-    else if (diffDays <= 2) score += 15;
-    else if (diffDays <= 5) score += 5;
-    
+
+    if (diffDays === 0) {
+      score += 25;
+    } else if (diffDays <= 2) {
+      score += 15;
+    } else if (diffDays <= 5) {
+      score += 5;
+    }
+
     // 3. Descrição/Histórico (Peso 15)
     const bankDesc = bankRec.description.toLowerCase();
     const internalDesc = internalRec.description.toLowerCase();
     if (bankDesc.includes(internalDesc) || internalDesc.includes(bankDesc)) {
       score += 15;
     }
-    
+
     return score;
   };
 
   const fetchRecords = async () => {
     setLoading(true);
-    
+
     try {
-      let query = supabase
-        .from('conciliacoes')
-        .select('*')
-        .limit(500);
+      let query = supabase.from('conciliacoes').select('*').limit(500);
 
       if (activeFarm?.id) {
         query = query.eq('fazenda_id', activeFarm.id);
@@ -134,56 +181,58 @@ export const BankReconciliation: React.FC = () => {
 
       const { data: dbRecons, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
+      if (error) {
+        throw error;
+      }
+
       setBankRecords([]);
       setInternalRecords([]);
 
-      const totalConciliado = dbRecons?.filter(r => r.status === 'completed').length || 0;
+      const totalConciliado = dbRecons?.filter((r) => r.status === 'completed').length || 0;
       const pendentes = 0;
-      
+
       setStats([
-        { 
-          label: 'Automação Pareamento', 
-          value: '0%', 
-          icon: Zap, 
-          color: '#8b5cf6', 
+        {
+          label: 'Automação Pareamento',
+          value: '0%',
+          icon: Zap,
+          color: '#8b5cf6',
           progress: 0,
           change: 'Eficiência Tauze IA',
           periodLabel: 'Sem dados',
-          sparkline: buildSparkline(dbRecons || [], 'created_at', null)
+          sparkline: buildSparkline(dbRecons || [], 'created_at', null),
         },
-        { 
-          label: 'Volume Auditado', 
-          value: 0, 
-          icon: FileText, 
-          color: '#3b82f6', 
+        {
+          label: 'Volume Auditado',
+          value: 0,
+          icon: FileText,
+          color: '#3b82f6',
           progress: 0,
           change: 'Fluxo em Dia',
           periodLabel: 'Mês Atual',
-          sparkline: buildSparkline(dbRecons || [], 'created_at', null)
+          sparkline: buildSparkline(dbRecons || [], 'created_at', null),
         },
-        { 
-          label: 'Pendências Críticas', 
-          value: pendentes, 
-          icon: HelpCircle, 
-          color: '#f59e0b', 
+        {
+          label: 'Pendências Críticas',
+          value: pendentes,
+          icon: HelpCircle,
+          color: '#f59e0b',
           progress: 0,
           change: 'Aguardando Conciliação',
-          periodLabel: 'Próximas 24h'
+          periodLabel: 'Próximas 24h',
         },
-        { 
-          label: 'Divergência de Saldo', 
-          value: 'R$ 0,00', 
-          icon: AlertCircle, 
-          color: '#ef4444', 
+        {
+          label: 'Divergência de Saldo',
+          value: 'R$ 0,00',
+          icon: AlertCircle,
+          color: '#ef4444',
           progress: 100,
           change: 'Compliance Total',
-          periodLabel: 'Ajustes Finais'
-        }
+          periodLabel: 'Ajustes Finais',
+        },
       ]);
     } catch (err) {
-      console.error("Erro na conciliação:", err);
+      console.error('Erro na conciliação:', err);
     } finally {
       setLoading(false);
     }
@@ -191,22 +240,29 @@ export const BankReconciliation: React.FC = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     setIsUploading(true);
     setUploadProgress(0);
 
     // Simulate AI Processing
     const interval = setInterval(() => {
-      setUploadProgress(prev => {
+      setUploadProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
           setTimeout(() => {
             setIsUploading(false);
             // Simulate adding new records after AI mapping
-            setBankRecords(prev => [
-              { id: 'b4', date: '2024-05-03', description: 'TED RECEBIDA - FRIGORIFICO SUL', amount: 120500.00 },
-              ...prev
+            setBankRecords((prev) => [
+              {
+                id: 'b4',
+                date: '2024-05-03',
+                description: 'TED RECEBIDA - FRIGORIFICO SUL',
+                amount: 120500.0,
+              },
+              ...prev,
             ]);
           }, 800);
           return 100;
@@ -218,22 +274,22 @@ export const BankReconciliation: React.FC = () => {
 
   const handleOpenAudit = (rec: any) => {
     setHistoryItems([
-      { 
-        id: '1', 
-        date: rec.date, 
-        title: 'Conciliação Automática Tauze IA', 
-        subtitle: 'Lançamento bancário pareado com sucesso', 
-        value: rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-        status: 'success' 
+      {
+        id: '1',
+        date: rec.date,
+        title: 'Conciliação Automática Tauze IA',
+        subtitle: 'Lançamento bancário pareado com sucesso',
+        value: rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        status: 'success',
       },
-      { 
-        id: '2', 
-        date: rec.date, 
-        title: 'Lançamento Interno: Venda Gado', 
-        subtitle: 'Origem: Módulo de Vendas', 
-        value: '100% Match', 
-        status: 'info' 
-      }
+      {
+        id: '2',
+        date: rec.date,
+        title: 'Lançamento Interno: Venda Gado',
+        subtitle: 'Origem: Módulo de Vendas',
+        value: '100% Match',
+        status: 'info',
+      },
     ]);
     setIsHistoryModalOpen(true);
   };
@@ -245,49 +301,72 @@ export const BankReconciliation: React.FC = () => {
   };
 
   const toggleInternalRecord = (id: string) => {
-    setSelectedInternalIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setSelectedInternalIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
   const totalSelectedAmount = internalRecords
-    .filter(ir => selectedInternalIds.includes(ir.id))
+    .filter((ir) => selectedInternalIds.includes(ir.id))
     .reduce((sum, ir) => sum + Math.abs(ir.amount), 0);
 
-  const difference = selectedBankRecord ? Math.abs(selectedBankRecord.amount) - totalSelectedAmount : 0;
+  const difference = selectedBankRecord
+    ? Math.abs(selectedBankRecord.amount) - totalSelectedAmount
+    : 0;
 
   const handleAddRow = () => {
-    setManualRows([...manualRows, { id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
+    setManualRows([
+      ...manualRows,
+      {
+        id: Date.now(),
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .split('T')[0],
+        description: '',
+        amount: '',
+        type: 'outflow',
+      },
+    ]);
   };
 
   const handleRemoveRow = (id: number) => {
     if (manualRows.length > 1) {
-      setManualRows(manualRows.filter(row => row.id !== id));
+      setManualRows(manualRows.filter((row) => row.id !== id));
     }
   };
 
   const handleUpdateRow = (id: number, field: string, value: any) => {
-    setManualRows(manualRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    setManualRows(manualRows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
   };
 
   const handleAddManualBankRecord = (e: React.FormEvent) => {
     e.preventDefault();
     const newRecords = manualRows
-      .filter(row => row.description && row.amount)
-      .map(row => {
+      .filter((row) => row.description && row.amount)
+      .map((row) => {
         const baseAmount = Math.abs(parseFloat(row.amount));
         return {
-          id: 'mb' + row.id,
+          id: `mb${row.id}`,
           date: row.date,
           description: row.description,
-          amount: row.type === 'outflow' ? -baseAmount : baseAmount
+          amount: row.type === 'outflow' ? -baseAmount : baseAmount,
         };
       });
-    
+
     if (newRecords.length > 0) {
-      setBankRecords(prev => [...newRecords, ...prev]);
+      setBankRecords((prev) => [...newRecords, ...prev]);
       setIsManualBankRecordModalOpen(false);
-      setManualRows([{ id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
+      setManualRows([
+        {
+          id: Date.now(),
+          date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+            .toISOString()
+            .split('T')[0],
+          description: '',
+          amount: '',
+          type: 'outflow',
+        },
+      ]);
     }
   };
 
@@ -299,26 +378,30 @@ export const BankReconciliation: React.FC = () => {
       setLoading(false);
       setIsManualReconOpen(false);
       // Update state to show as matched
-      setBankRecords(prev => prev.map(r => r.id === selectedBankRecord.id ? { ...r, manual: true } : r));
+      setBankRecords((prev) =>
+        prev.map((r) => (r.id === selectedBankRecord.id ? { ...r, manual: true } : r))
+      );
     }, 1000);
   };
 
   const handleQuickReconcile = async (bankId: string, internalId: string) => {
     // Optimistic match
-    setBankRecords(prev => prev.filter(r => r.id !== bankId));
-    setInternalRecords(prev => prev.filter(ir => ir.id !== internalId));
+    setBankRecords((prev) => prev.filter((r) => r.id !== bankId));
+    setInternalRecords((prev) => prev.filter((ir) => ir.id !== internalId));
 
     try {
-      const { error } = await supabase
-        .from('conciliacoes')
-        .insert([{
+      const { error } = await supabase.from('conciliacoes').insert([
+        {
           tenant_id: activeTenantId,
           lancamento_bancario_id: bankId,
           lancamento_interno_id: internalId,
           status: 'completed',
-          metodo: 'automatic'
-        }]);
-      if (error) throw error;
+          metodo: 'automatic',
+        },
+      ]);
+      if (error) {
+        throw error;
+      }
       fetchRecords();
     } catch (err: any) {
       console.warn('DB Quick Reconcile failed, using local optimistic state:', err.message);
@@ -329,9 +412,16 @@ export const BankReconciliation: React.FC = () => {
     <div className="recon-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Conciliações Bancária' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Financeiro', href: '/financeiro/intelligence' },
+              { label: 'Conciliações Bancária' },
+            ]}
+          />
           <h1 className="page-title">Conciliações Bancária</h1>
-          <p className="page-subtitle">Verifique se os lançamentos do banco coincidem com o seu controle interno em tempo real.</p>
+          <p className="page-subtitle">
+            Verifique se os lançamentos do banco coincidem com o seu controle interno em tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="primary-btn" onClick={fetchRecords}>
@@ -344,12 +434,12 @@ export const BankReconciliation: React.FC = () => {
       {isUploading && (
         <div className="upload-overlay animate-fade-in">
           <div className="upload-modal glass-card">
-            <div className="ai-scanner-line"></div>
+            <div className="ai-scanner-line" />
             <Activity size={48} className="text-brand mb-4 animate-bounce" />
             <h3>Processando Extrato Bancário</h3>
             <p>Mapeando lançamentos com IA Inteligente Tauze...</p>
             <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
+              <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
             </div>
             <span className="progress-txt">{uploadProgress}% Concluído</span>
           </div>
@@ -357,60 +447,80 @@ export const BankReconciliation: React.FC = () => {
       )}
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color=""  periodLabel="Mês Atual" />)
-        ) : (stats || []).map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-            trend="up"
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <TauzeStatCard
+                  key={i}
+                  loading={true}
+                  label=""
+                  value=""
+                  icon={CheckCircle2}
+                  color=""
+                  periodLabel="Mês Atual"
+                />
+              ))
+          : (stats || []).map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                periodLabel={stat.periodLabel}
+                sparkline={stat.sparkline}
+                trend="up"
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar por lote, valor ou histórico..." 
+            placeholder="Buscar por lote, valor ou histórico..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="tauze-filter-group" style={{ display: 'flex', gap: '12px' }}>
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
           </button>
-          <button className="glass-btn secondary" onClick={() => setIsManualBankRecordModalOpen(true)}>
+          <button
+            className="glass-btn secondary"
+            onClick={() => setIsManualBankRecordModalOpen(true)}
+          >
             <Plus size={18} />
             <span>LANÇAMENTO MANUAL</span>
           </button>
           <label className="glass-btn primary cursor-pointer">
             <Upload size={18} />
             <span>IMPORTAR EXTRATO (OFX/CSV)</span>
-            <input type="file" style={{ display: 'none' }} accept=".ofx,.csv" onChange={handleFileUpload} />
+            <input
+              type="file"
+              style={{ display: 'none' }}
+              accept=".ofx,.csv"
+              onChange={handleFileUpload}
+            />
           </label>
         </div>
       </div>
 
-      <ReconFilterModal 
+      <ReconFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
-        setFilters={setFilterValues}
+        setFilters={setFilterValues as unknown as (f: { status: string; minAmount: number; maxAmount: number; dateStart: string; dateEnd: string }) => void}
       />
 
       <div className="recon-workspace">
@@ -425,17 +535,27 @@ export const BankReconciliation: React.FC = () => {
 
           <div className="records-grid-tauze">
             {(() => {
-              const filteredBankRecords = bankRecords.filter(rec => {
-                const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
-                
-                const matchesAmount = filterValues.maxAmount >= 1000000 || (Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount);
-                const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
-                                   (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
-                
-                const internalMatches = internalRecords.filter(ir => calculateMatchScore(rec, ir) >= 60);
-                const matchesStatus = filterValues.status === 'all' || 
-                                     (filterValues.status === 'matched' && internalMatches.length > 0) ||
-                                     (filterValues.status === 'pending' && internalMatches.length === 0);
+              const filteredBankRecords = bankRecords.filter((rec) => {
+                const matchesSearch = rec.description
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase());
+
+                const matchesAmount =
+                  filterValues.maxAmount >= 1000000 ||
+                  (Math.abs(rec.amount) >= filterValues.minAmount &&
+                    Math.abs(rec.amount) <= filterValues.maxAmount);
+                const matchesDate =
+                  (!filterValues.dateStart ||
+                    new Date(rec.date) >= new Date(filterValues.dateStart)) &&
+                  (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
+
+                const internalMatches = internalRecords.filter(
+                  (ir) => calculateMatchScore(rec, ir) >= 60
+                );
+                const matchesStatus =
+                  filterValues.status === 'all' ||
+                  (filterValues.status === 'matched' && internalMatches.length > 0) ||
+                  (filterValues.status === 'pending' && internalMatches.length === 0);
 
                 return matchesSearch && matchesAmount && matchesDate && matchesStatus;
               });
@@ -443,100 +563,108 @@ export const BankReconciliation: React.FC = () => {
               if (filteredBankRecords.length === 0) {
                 return (
                   <EmptyState
-                    title={searchTerm ? "Nenhum registro encontrado" : "Nenhum extrato importado"}
-                    description={searchTerm ? "Sua busca não retornou resultados no extrato." : "Importe um arquivo OFX/CSV para iniciar a conciliação."}
+                    title={searchTerm ? 'Nenhum registro encontrado' : 'Nenhum extrato importado'}
+                    description={
+                      searchTerm
+                        ? 'Sua busca não retornou resultados no extrato.'
+                        : 'Importe um arquivo OFX/CSV para iniciar a conciliação.'
+                    }
                     icon={Banknote}
                   />
                 );
               }
 
               return filteredBankRecords.map((rec) => {
-              const matches = internalRecords
-                .map(ir => ({ ir, score: calculateMatchScore(rec, ir) }))
-                .filter(m => m.score >= 60)
-                .sort((a, b) => b.score - a.score);
-              
-              const isMatched = matches.length > 0;
-              const topMatch = matches[0];
+                const matches = internalRecords
+                  .map((ir) => ({ ir, score: calculateMatchScore(rec, ir) }))
+                  .filter((m) => m.score >= 60)
+                  .sort((a, b) => b.score - a.score);
 
-              return (
-                <motion.div 
-                  key={rec.id} 
-                  className={`tauze-report-card mini ${isMatched ? 'success' : 'warning'}`}
-                  whileHover={{ y: -4 }}
-                >
-                  <div className="rec-row-main">
-                    <div className="rec-info">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="rec-date">{new Date(rec.date).toLocaleDateString()}</span>
-                        {isMatched && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            fontWeight: 900, 
-                            background: topMatch.score >= 90 ? '#10b981' : '#f59e0b',
-                            color: 'white',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                          }}>
-                            {topMatch.score}% MATCH
+                const isMatched = matches.length > 0;
+                const topMatch = matches[0];
+
+                return (
+                  <motion.div
+                    key={rec.id}
+                    className={`tauze-report-card mini ${isMatched ? 'success' : 'warning'}`}
+                    whileHover={{ y: -4 }}
+                  >
+                    <div className="rec-row-main">
+                      <div className="rec-info">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="rec-date">
+                            {new Date(rec.date).toLocaleDateString()}
                           </span>
+                          {isMatched && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 900,
+                                background: topMatch.score >= 90 ? '#10b981' : '#f59e0b',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {topMatch.score}% MATCH
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="rec-desc">{rec.description}</h4>
+                      </div>
+                      <span className={`rec-amount ${rec.amount < 0 ? 'neg' : 'pos'}`}>
+                        {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    </div>
+                    <div className="rec-footer-tauze">
+                      {isMatched ? (
+                        <div className="status-pill active">
+                          <Zap size={12} fill="currentColor" />
+                          PAREAMENTO TAUZE IA
+                        </div>
+                      ) : (
+                        <div className="status-pill warning">
+                          <AlertCircle size={12} />
+                          PENDENTE
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {isMatched && (
+                          <button
+                            className="f-action-btn success mini"
+                            onClick={() => handleQuickReconcile(rec.id, topMatch.ir.id)}
+                            title="Confirmar Pareamento IA"
+                            style={{
+                              background: '#10b981',
+                              color: 'white',
+                              border: '1px solid #10b981',
+                            }}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
                         )}
-                      </div>
-                      <h4 className="rec-desc">{rec.description}</h4>
-                    </div>
-                    <span className={`rec-amount ${rec.amount < 0 ? 'neg' : 'pos'}`}>
-                      {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </div>
-                  <div className="rec-footer-tauze">
-                    {isMatched ? (
-                      <div className="status-pill active">
-                        <Zap size={12} fill="currentColor" />
-                        PAREAMENTO TAUZE IA
-                      </div>
-                    ) : (
-                      <div className="status-pill warning">
-                        <AlertCircle size={12} />
-                        PENDENTE
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {isMatched && (
-                        <button 
-                          className="f-action-btn success mini"
-                          onClick={() => handleQuickReconcile(rec.id, topMatch.ir.id)}
-                          title="Confirmar Pareamento IA"
-                          style={{
-                            background: '#10b981',
-                            color: 'white',
-                            border: '1px solid #10b981'
-                          }}
+                        {!isMatched && Math.abs(rec.amount) < 100 && (
+                          <button
+                            className="f-action-btn secondary mini"
+                            onClick={() => {}}
+                            title="Lançamento Rápido (Taxas)"
+                          >
+                            <Zap size={16} />
+                          </button>
+                        )}
+                        <button
+                          className="f-action-btn primary mini"
+                          onClick={() => handleOpenManualRecon(rec)}
+                          title="Conciliação Manual"
                         >
-                          <CheckCircle2 size={16} />
+                          <ChevronRight size={16} />
                         </button>
-                      )}
-                      {!isMatched && Math.abs(rec.amount) < 100 && (
-                        <button 
-                          className="f-action-btn secondary mini"
-                          onClick={() => {}}
-                          title="Lançamento Rápido (Taxas)"
-                        >
-                          <Zap size={16} />
-                        </button>
-                      )}
-                      <button 
-                        className="f-action-btn primary mini"
-                        onClick={() => handleOpenManualRecon(rec)}
-                        title="Conciliação Manual"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            });
-          })()}
+                  </motion.div>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -555,62 +683,72 @@ export const BankReconciliation: React.FC = () => {
 
           <div className="records-grid-tauze">
             {(() => {
-              const filteredInternalRecords = internalRecords.filter(rec => {
-                const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesAmount = filterValues.maxAmount >= 1000000 || (Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount);
-                const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
-                                   (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
-                
+              const filteredInternalRecords = internalRecords.filter((rec) => {
+                const matchesSearch = rec.description
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase());
+                const matchesAmount =
+                  filterValues.maxAmount >= 1000000 ||
+                  (Math.abs(rec.amount) >= filterValues.minAmount &&
+                    Math.abs(rec.amount) <= filterValues.maxAmount);
+                const matchesDate =
+                  (!filterValues.dateStart ||
+                    new Date(rec.date) >= new Date(filterValues.dateStart)) &&
+                  (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
+
                 return matchesSearch && matchesAmount && matchesDate;
               });
 
               if (filteredInternalRecords.length === 0) {
                 return (
                   <EmptyState
-                    title={searchTerm ? "Nenhum registro encontrado" : "Nenhum lançamento no ERP"}
-                    description={searchTerm ? "Sua busca não retornou resultados no financeiro." : "Não há movimentações financeiras pendentes."}
+                    title={searchTerm ? 'Nenhum registro encontrado' : 'Nenhum lançamento no ERP'}
+                    description={
+                      searchTerm
+                        ? 'Sua busca não retornou resultados no financeiro.'
+                        : 'Não há movimentações financeiras pendentes.'
+                    }
                     icon={FileText}
                   />
                 );
               }
 
               return filteredInternalRecords.map((rec) => (
-              <motion.div 
-                key={rec.id} 
-                className="tauze-report-card mini success"
-                whileHover={{ y: -4 }}
-              >
-                <div className="rec-row-main">
-                  <div className="rec-info">
-                    <span className="rec-date">{new Date(rec.date).toLocaleDateString()}</span>
-                    <h4 className="rec-desc">{rec.description}</h4>
+                <motion.div
+                  key={rec.id}
+                  className="tauze-report-card mini success"
+                  whileHover={{ y: -4 }}
+                >
+                  <div className="rec-row-main">
+                    <div className="rec-info">
+                      <span className="rec-date">{new Date(rec.date).toLocaleDateString()}</span>
+                      <h4 className="rec-desc">{rec.description}</h4>
+                    </div>
+                    <span className={`rec-amount ${rec.amount < 0 ? 'neg' : 'pos'}`}>
+                      {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
                   </div>
-                  <span className={`rec-amount ${rec.amount < 0 ? 'neg' : 'pos'}`}>
-                    {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </span>
-                </div>
-                <div className="rec-footer-tauze">
-                  <div className="status-pill active">
-                    <CheckCircle2 size={12} />
-                    CONCILIADO
+                  <div className="rec-footer-tauze">
+                    <div className="status-pill active">
+                      <CheckCircle2 size={12} />
+                      CONCILIADO
+                    </div>
+                    <button
+                      className="f-action-btn primary mini"
+                      onClick={() => handleOpenAudit(rec)}
+                      title="Ver Auditoria"
+                    >
+                      <History size={16} />
+                    </button>
                   </div>
-                  <button 
-                    className="f-action-btn primary mini"
-                    onClick={() => handleOpenAudit(rec)}
-                    title="Ver Auditoria"
-                  >
-                    <History size={16} />
-                  </button>
-                </div>
-              </motion.div>
-            ));
-          })()}
+                </motion.div>
+              ));
+            })()}
           </div>
         </div>
       </div>
 
-
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê de Conciliação"
@@ -630,76 +768,175 @@ export const BankReconciliation: React.FC = () => {
       >
         <div style={{ gridColumn: 'span 2' }}>
           {selectedBankRecord && (
-            <div style={{ padding: '1.5rem', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '20px', border: '1px solid hsl(var(--border))', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              style={{
+                padding: '1.5rem',
+                background: 'hsl(var(--bg-main)/0.5)',
+                borderRadius: '20px',
+                border: '1px solid hsl(var(--border))',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'white', background: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px' }}>EXTRATO</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>{new Date(selectedBankRecord.date).toLocaleDateString()}</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 900,
+                      color: 'white',
+                      background: 'hsl(var(--brand))',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    EXTRATO
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'hsl(var(--text-muted))',
+                    }}
+                  >
+                    {new Date(selectedBankRecord.date).toLocaleDateString()}
+                  </span>
                 </div>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>{selectedBankRecord.description}</h4>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+                  {selectedBankRecord.description}
+                </h4>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-                  {selectedBankRecord.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {selectedBankRecord.amount.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
                 </span>
               </div>
             </div>
           )}
 
           <div className="form-group full-width">
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span><Search size={14} /> Selecionar Títulos Internos (Smart Filter: Mesmo Dia)</span>
-              <span style={{ fontSize: '11px', color: 'hsl(var(--brand))', fontWeight: 800 }}>{selectedInternalIds.length} selecionados</span>
+            <label
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span>
+                <Search size={14} /> Selecionar Títulos Internos (Smart Filter: Mesmo Dia)
+              </span>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--brand))', fontWeight: 800 }}>
+                {selectedInternalIds.length} selecionados
+              </span>
             </label>
-            
-            <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-card))' }}>
+
+            <div
+              style={{
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                background: 'hsl(var(--bg-card))',
+              }}
+            >
               {internalRecords
-                .filter(ir => selectedBankRecord && ir.date === selectedBankRecord.date)
-                .map(ir => (
-                <div 
-                  key={ir.id}
-                  onClick={() => toggleInternalRecord(ir.id)}
-                  style={{ 
-                    padding: '12px', 
-                    borderRadius: '10px', 
-                    border: '1px solid',
-                    borderColor: selectedInternalIds.includes(ir.id) ? 'hsl(var(--brand))' : 'hsl(var(--border))',
-                    background: selectedInternalIds.includes(ir.id) ? 'hsl(var(--brand)/0.05)' : 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ 
-                    width: '18px', height: '18px', border: '2px solid', borderRadius: '4px',
-                    borderColor: selectedInternalIds.includes(ir.id) ? 'hsl(var(--brand))' : 'hsl(var(--border))',
-                    background: selectedInternalIds.includes(ir.id) ? 'hsl(var(--brand))' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
-                  }}>
-                    {selectedInternalIds.includes(ir.id) && <CheckCircle2 size={12} />}
+                .filter((ir) => selectedBankRecord && ir.date === selectedBankRecord.date)
+                .map((ir) => (
+                  <div
+                    key={ir.id}
+                    onClick={() => toggleInternalRecord(ir.id)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid',
+                      borderColor: selectedInternalIds.includes(ir.id)
+                        ? 'hsl(var(--brand))'
+                        : 'hsl(var(--border))',
+                      background: selectedInternalIds.includes(ir.id)
+                        ? 'hsl(var(--brand)/0.05)'
+                        : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        border: '2px solid',
+                        borderRadius: '4px',
+                        borderColor: selectedInternalIds.includes(ir.id)
+                          ? 'hsl(var(--brand))'
+                          : 'hsl(var(--border))',
+                        background: selectedInternalIds.includes(ir.id)
+                          ? 'hsl(var(--brand))'
+                          : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                      }}
+                    >
+                      {selectedInternalIds.includes(ir.id) && <CheckCircle2 size={12} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800 }}>{ir.description}</div>
+                      <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                        {new Date(ir.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 900 }}>
+                      {ir.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 800 }}>{ir.description}</div>
-                    <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>{new Date(ir.date).toLocaleDateString()}</div>
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 900 }}>
-                    {ir.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
-          <div style={{ marginTop: '1.5rem', padding: '1.25rem', borderRadius: '16px', background: 'hsl(var(--bg-main)/0.4)', border: '1px dashed hsl(var(--border))' }}>
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1.25rem',
+              borderRadius: '16px',
+              background: 'hsl(var(--bg-main)/0.4)',
+              border: '1px dashed hsl(var(--border))',
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600 }}>Total Selecionado:</span>
-              <span style={{ fontSize: '14px', fontWeight: 900 }}>{totalSelectedAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              <span style={{ fontSize: '14px', fontWeight: 900 }}>
+                {totalSelectedAmount.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
+              </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: difference === 0 ? '#10b981' : '#ef4444' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                color: difference === 0 ? '#10b981' : '#ef4444',
+              }}
+            >
               <span style={{ fontSize: '12px', fontWeight: 800 }}>Diferença Restante:</span>
-              <span style={{ fontSize: '14px', fontWeight: 900 }}>{difference.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              <span style={{ fontSize: '14px', fontWeight: 900 }}>
+                {difference.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
             </div>
             {difference !== 0 && (
               <p style={{ margin: '8px 0 0', fontSize: '10px', color: '#ef4444', fontWeight: 700 }}>
@@ -728,20 +965,20 @@ export const BankReconciliation: React.FC = () => {
                 <th style={{ width: '150px' }}>Data</th>
                 <th>Descrição / Histórico</th>
                 <th style={{ width: '140px' }}>Valor (R$)</th>
-                <th style={{ width: '50px' }}></th>
+                <th style={{ width: '50px' }} />
               </tr>
             </thead>
             <tbody>
               {manualRows.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <select 
+                    <select
                       className="tauze-table-select"
                       value={row.type}
                       onChange={(e) => handleUpdateRow(row.id, 'type', e.target.value)}
-                      style={{ 
+                      style={{
                         color: row.type === 'inflow' ? '#10b981' : '#ef4444',
-                        fontWeight: 800
+                        fontWeight: 800,
                       }}
                     >
                       <option value="outflow">Saída (-)</option>
@@ -749,8 +986,8 @@ export const BankReconciliation: React.FC = () => {
                     </select>
                   </td>
                   <td>
-                    <DateInput 
-                      type="date" 
+                    <DateInput
+                      type="date"
                       className="tauze-table-input"
                       value={row.date}
                       onChange={(e) => handleUpdateRow(row.id, 'date', e.target.value)}
@@ -758,8 +995,8 @@ export const BankReconciliation: React.FC = () => {
                     />
                   </td>
                   <td>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="tauze-table-input"
                       placeholder="Ex: TARIFA BANCARIA..."
                       value={row.description}
@@ -768,8 +1005,8 @@ export const BankReconciliation: React.FC = () => {
                     />
                   </td>
                   <td>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
                       className="tauze-table-input"
                       placeholder="0.00"
@@ -779,8 +1016,8 @@ export const BankReconciliation: React.FC = () => {
                     />
                   </td>
                   <td>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="icon-btn-danger mini"
                       onClick={() => handleRemoveRow(row.id)}
                       disabled={manualRows.length === 1}
@@ -792,10 +1029,10 @@ export const BankReconciliation: React.FC = () => {
               ))}
             </tbody>
           </table>
-          
-          <button 
-            type="button" 
-            className="glass-btn secondary full-width" 
+
+          <button
+            type="button"
+            className="glass-btn secondary full-width"
             style={{ marginTop: '12px', borderStyle: 'dashed' }}
             onClick={handleAddRow}
           >

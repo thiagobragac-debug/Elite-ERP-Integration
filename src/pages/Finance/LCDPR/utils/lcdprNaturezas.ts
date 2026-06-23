@@ -17,7 +17,11 @@ export const NATUREZAS_LCDPR: LCDPRNatureza[] = [
   { codigo: '05', tipo: 'R', descricao: 'Indenizações e seguros' },
   { codigo: '09', tipo: 'R', descricao: 'Outras receitas da atividade rural' },
   // DESPESAS
-  { codigo: '11', tipo: 'D', descricao: 'Custeio da lavoura (sementes, fertilizantes, defensivos)' },
+  {
+    codigo: '11',
+    tipo: 'D',
+    descricao: 'Custeio da lavoura (sementes, fertilizantes, defensivos)',
+  },
   { codigo: '12', tipo: 'D', descricao: 'Arrendamento e parceria pagos' },
   { codigo: '13', tipo: 'D', descricao: 'Remuneração de empregados e encargos' },
   { codigo: '14', tipo: 'D', descricao: 'Benfeitorias e instalações' },
@@ -32,8 +36,7 @@ export const NATUREZAS_LCDPR: LCDPRNatureza[] = [
   { codigo: '29', tipo: 'D', descricao: 'Outras despesas da atividade rural' },
 ];
 
-export const getNatureza = (codigo: string) =>
-  NATUREZAS_LCDPR.find(n => n.codigo === codigo);
+export const getNatureza = (codigo: string) => NATUREZAS_LCDPR.find((n) => n.codigo === codigo);
 
-export const NATUREZAS_RECEITA = NATUREZAS_LCDPR.filter(n => n.tipo === 'R');
-export const NATUREZAS_DESPESA = NATUREZAS_LCDPR.filter(n => n.tipo === 'D');
+export const NATUREZAS_RECEITA = NATUREZAS_LCDPR.filter((n) => n.tipo === 'R');
+export const NATUREZAS_DESPESA = NATUREZAS_LCDPR.filter((n) => n.tipo === 'D');

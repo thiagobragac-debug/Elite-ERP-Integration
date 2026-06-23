@@ -14,19 +14,19 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     applyFarmFilter: (q: any) => q,
     canCreate: true,
     activeFarm: { id: 'farm-1', tenantId: 'tenant-1', name: 'Fazenda Boa Esperança' },
-    insertPayload: {}
-  })
+    insertPayload: {},
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('../../hooks/useServerPagination', () => ({
@@ -36,14 +36,14 @@ vi.mock('../../hooks/useServerPagination', () => ({
     totalCount: 2,
     setTotalCount: vi.fn(),
     setPage: vi.fn(),
-    getRange: () => ({ from: 0, to: 19 })
-  })
+    getRange: () => ({ from: 0, to: 19 }),
+  }),
 }));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
-    ...actual as any,
+    ...(actual as any),
     useSearchParams: () => [new URLSearchParams(), vi.fn()],
   };
 });
@@ -51,7 +51,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -59,23 +59,43 @@ vi.mock('@tanstack/react-query', async () => {
       if (key === 'maintenance_orders') {
         return {
           data: [
-            { id: '1', maquina_id: 'maq-1', tipo: 'preventiva', descricao: 'Troca de óleo', data_inicio: '2026-06-01', custo: 500, responsavel: 'Mecânico A', status: 'completed', maquinas: { nome: 'Trator A' } },
-            { id: '2', maquina_id: 'maq-2', tipo: 'corretiva', descricao: 'Reparo do motor', data_inicio: '2026-06-02', custo: 2000, responsavel: 'Mecânico B', status: 'ABERTA', maquinas: { nome: 'Colheitadeira B' } }
+            {
+              id: '1',
+              maquina_id: 'maq-1',
+              tipo: 'preventiva',
+              descricao: 'Troca de óleo',
+              data_inicio: '2026-06-01',
+              custo: 500,
+              responsavel: 'Mecânico A',
+              status: 'completed',
+              maquinas: { nome: 'Trator A' },
+            },
+            {
+              id: '2',
+              maquina_id: 'maq-2',
+              tipo: 'corretiva',
+              descricao: 'Reparo do motor',
+              data_inicio: '2026-06-02',
+              custo: 2000,
+              responsavel: 'Mecânico B',
+              status: 'ABERTA',
+              maquinas: { nome: 'Colheitadeira B' },
+            },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       if (key === 'machines_maint') {
         return {
           data: {
             data: [{ id: 'maq-1', nome: 'Trator A' }],
-            count: 1
+            count: 1,
           },
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: [], isLoading: false };
-    })
+    }),
   };
 });
 

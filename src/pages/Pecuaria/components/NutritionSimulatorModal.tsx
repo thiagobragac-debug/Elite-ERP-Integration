@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  X, 
-  Scale, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  X,
+  Scale,
+  TrendingUp,
+  DollarSign,
   Utensils,
   Target,
   ChevronRight,
@@ -13,7 +13,7 @@ import {
   FileText,
   Calendar,
   AlertTriangle,
-  Award
+  Award,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
@@ -25,24 +25,28 @@ interface NutritionSimulatorModalProps {
   diets: any[];
 }
 
-export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = ({ isOpen, onClose, diets }) => {
+export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = ({
+  isOpen,
+  onClose,
+  diets,
+}) => {
   const [selectedDietId, setSelectedDietId] = useState('');
-  
+
   // Parâmetros do Lote
   const [animalCount, setAnimalCount] = useState('100');
   const [pesoMedio, setPesoMedio] = useState('350');
   const [diasTrato, setDiasTrato] = useState('90');
-  
+
   // Parâmetros Zootécnicos
   const [consumoPV, setConsumoPV] = useState('2.5');
   const [expectedGMD, setExpectedGMD] = useState('1.5');
-  
+
   // Econômico
   const [precoArroba, setPrecoArroba] = useState('240');
 
-  const selectedDiet = diets.find(d => d.id === selectedDietId);
+  const selectedDiet = diets.find((d) => d.id === selectedDietId);
   const costPerKg = selectedDiet ? Number(selectedDiet.custo_por_kg) : 0;
-  
+
   // --- ENGINE DE SIMULAÇÃO ---
   const sim = useMemo(() => {
     const cabecas = Number(animalCount) || 0;
@@ -61,31 +65,43 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
     // Projeções do Período (Dias de Trato)
     const custoTotalCabecaPeriodo = custoDiarioCabeca * dias;
     const custoTotalLotePeriodo = custoTotalCabecaPeriodo * cabecas;
-    
+
     // Zootecnia
     const ganhoPesoTotalCabeca = gmd * dias;
     const arrobasProduzidasCabeca = ganhoPesoTotalCabeca / 30; // 30kg vivo = 1@ produzida
-    const conversaoAlimentar = gmd > 0 ? (consumoDiarioCabeca / gmd) : 0;
-    
+    const conversaoAlimentar = gmd > 0 ? consumoDiarioCabeca / gmd : 0;
+
     // KPIs Financeiros
-    const custoArrobaProduzida = arrobasProduzidasCabeca > 0 ? (custoTotalCabecaPeriodo / arrobasProduzidasCabeca) : 0;
+    const custoArrobaProduzida =
+      arrobasProduzidasCabeca > 0 ? custoTotalCabecaPeriodo / arrobasProduzidasCabeca : 0;
     const receitaBrutaCabecaPeriodo = arrobasProduzidasCabeca * preco;
     const lucroLiquidoCabecaPeriodo = receitaBrutaCabecaPeriodo - custoTotalCabecaPeriodo;
     const lucroLiquidoLotePeriodo = lucroLiquidoCabecaPeriodo * cabecas;
 
     return {
-      consumoDiarioCabeca, custoDiarioCabeca, consumoDiarioLote, custoDiarioLote,
-      custoTotalLotePeriodo, ganhoPesoTotalCabeca, arrobasProduzidasCabeca,
-      conversaoAlimentar, custoArrobaProduzida, lucroLiquidoLotePeriodo
+      consumoDiarioCabeca,
+      custoDiarioCabeca,
+      consumoDiarioLote,
+      custoDiarioLote,
+      custoTotalLotePeriodo,
+      ganhoPesoTotalCabeca,
+      arrobasProduzidasCabeca,
+      conversaoAlimentar,
+      custoArrobaProduzida,
+      lucroLiquidoLotePeriodo,
     };
   }, [animalCount, pesoMedio, diasTrato, expectedGMD, consumoPV, precoArroba, costPerKg]);
 
   return (
     <>
-      <SidePanel size="large"
+      <SidePanel
+        size="large"
         isOpen={isOpen}
         onClose={onClose}
-        onSubmit={(e) => { e.preventDefault(); window.print(); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          window.print();
+        }}
         title="Simulador Nutricional"
         subtitle="Projeção de consumo, custo e ganho de peso"
         icon={Zap}
@@ -102,172 +118,347 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               placeholder="Escolha uma formulação..."
               options={[
                 { value: '', label: 'Escolha uma formulação...' },
-                ...diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => ({
-                  value: diet.id,
-                  label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)} / kg)`
-                }))
+                ...diets
+                  .filter((d) => d.tipo !== 'MATERIA_PRIMA')
+                  .map((diet) => ({
+                    value: diet.id,
+                    label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)} / kg)`,
+                  })),
               ]}
             />
           </div>
 
           {/* SEÇÃO 2: DADOS DO LOTE */}
           <div className="tauze-field-group">
-            <label className="tauze-label"><Beef size={14} /> Cabeças</label>
-            <input type="number" className="tauze-input" value={animalCount} onChange={e => setAnimalCount(e.target.value)} />
+            <label className="tauze-label">
+              <Beef size={14} /> Cabeças
+            </label>
+            <input
+              type="number"
+              className="tauze-input"
+              value={animalCount}
+              onChange={(e) => setAnimalCount(e.target.value)}
+            />
           </div>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Scale size={14} /> Peso Médio Entrada (kg)</label>
-            <input type="number" className="tauze-input" value={pesoMedio} onChange={e => setPesoMedio(e.target.value)} />
+            <label className="tauze-label">
+              <Scale size={14} /> Peso Médio Entrada (kg)
+            </label>
+            <input
+              type="number"
+              className="tauze-input"
+              value={pesoMedio}
+              onChange={(e) => setPesoMedio(e.target.value)}
+            />
           </div>
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Calendar size={14} /> Dias de Trato (Janela de Simulação)</label>
-            <input type="number" className="tauze-input" value={diasTrato} onChange={e => setDiasTrato(e.target.value)} />
+            <label className="tauze-label">
+              <Calendar size={14} /> Dias de Trato (Janela de Simulação)
+            </label>
+            <input
+              type="number"
+              className="tauze-input"
+              value={diasTrato}
+              onChange={(e) => setDiasTrato(e.target.value)}
+            />
           </div>
 
           {/* SEÇÃO 3: METAS ZOOTÉCNICAS E ECONÔMICAS */}
-          <div className="tauze-field-group" style={{ borderTop: '1px solid hsl(var(--border))', paddingTop: '16px', gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+          <div
+            className="tauze-field-group"
+            style={{
+              borderTop: '1px solid hsl(var(--border))',
+              paddingTop: '16px',
+              gridColumn: 'span 2',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '16px',
+            }}
+          >
             <div>
-              <label className="tauze-label"><Utensils size={14} /> Consumo (% PV)</label>
-              <input type="number" step="0.1" className="tauze-input" value={consumoPV} onChange={e => setConsumoPV(e.target.value)} />
+              <label className="tauze-label">
+                <Utensils size={14} /> Consumo (% PV)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                className="tauze-input"
+                value={consumoPV}
+                onChange={(e) => setConsumoPV(e.target.value)}
+              />
             </div>
             <div>
-              <label className="tauze-label"><TrendingUp size={14} /> GMD Alvo (kg/dia)</label>
-              <input type="number" step="0.1" className="tauze-input" value={expectedGMD} onChange={e => setExpectedGMD(e.target.value)} />
+              <label className="tauze-label">
+                <TrendingUp size={14} /> GMD Alvo (kg/dia)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                className="tauze-input"
+                value={expectedGMD}
+                onChange={(e) => setExpectedGMD(e.target.value)}
+              />
             </div>
             <div>
-              <label className="tauze-label"><DollarSign size={14} /> Venda da @ (R$)</label>
-              <input type="number" step="1" className="tauze-input" value={precoArroba} onChange={e => setPrecoArroba(e.target.value)} />
+              <label className="tauze-label">
+                <DollarSign size={14} /> Venda da @ (R$)
+              </label>
+              <input
+                type="number"
+                step="1"
+                className="tauze-input"
+                value={precoArroba}
+                onChange={(e) => setPrecoArroba(e.target.value)}
+              />
             </div>
           </div>
 
           {/* DASHBOARD DE RESULTADOS (O ORÁCULO) */}
           <div className="tauze-field-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
             <label className="tauze-label">Resultados da Simulação Zootécnica & Financeira</label>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Auto-Calculado</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{sim.consumoDiarioCabeca.toFixed(1)} kg / cab / dia</div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                marginBottom: '12px',
+              }}
+            >
+              <div
+                style={{
+                  padding: '16px',
+                  background: 'hsl(var(--bg-main)/0.5)',
+                  borderRadius: '16px',
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Consumo Auto-Calculado
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
+                  {sim.consumoDiarioCabeca.toFixed(1)} kg / cab / dia
+                </div>
               </div>
-              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total (Lote)</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              <div
+                style={{
+                  padding: '16px',
+                  background: 'hsl(var(--bg-main)/0.5)',
+                  borderRadius: '16px',
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Custo Diário Total (Lote)
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
+                  R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ padding: '16px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '16px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(38 92% 40%)', textTransform: 'uppercase', marginBottom: '8px' }}>Custo da @ Produzida</div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(38 92% 40%)' }}>R$ {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                <div style={{ fontSize: '11px', color: 'hsl(38 92% 40%/0.7)', marginTop: '4px' }}>Conversão: {sim.conversaoAlimentar.toFixed(2)} : 1</div>
+              <div
+                style={{
+                  padding: '16px',
+                  background: 'hsl(38 92% 50% / 0.1)',
+                  borderRadius: '16px',
+                  border: '1px solid hsl(38 92% 50% / 0.3)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(38 92% 40%)',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Custo da @ Produzida
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(38 92% 40%)' }}>
+                  R${' '}
+                  {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: '11px', color: 'hsl(38 92% 40%/0.7)', marginTop: '4px' }}>
+                  Conversão: {sim.conversaoAlimentar.toFixed(2)} : 1
+                </div>
               </div>
 
-              <div style={{ padding: '16px', background: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.1)' : 'hsl(0 84% 60% / 0.1)', borderRadius: '16px', border: `1px solid ${sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.3)' : 'hsl(0 84% 60% / 0.3)'}` }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand))' : 'hsl(0 84% 60%)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  {sim.lucroLiquidoLotePeriodo >= 0 ? 'Lucro Líquido Projetado (Lote)' : 'Prejuízo Projetado (Lote)'}
+              <div
+                style={{
+                  padding: '16px',
+                  background:
+                    sim.lucroLiquidoLotePeriodo >= 0
+                      ? 'hsl(var(--brand)/0.1)'
+                      : 'hsl(0 84% 60% / 0.1)',
+                  borderRadius: '16px',
+                  border: `1px solid ${sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.3)' : 'hsl(0 84% 60% / 0.3)'}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color:
+                      sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand))' : 'hsl(0 84% 60%)',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  {sim.lucroLiquidoLotePeriodo >= 0
+                    ? 'Lucro Líquido Projetado (Lote)'
+                    : 'Prejuízo Projetado (Lote)'}
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--text-main))' : 'hsl(0 84% 60%)' }}>
-                  R$ {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <div
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: 900,
+                    color:
+                      sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--text-main))' : 'hsl(0 84% 60%)',
+                  }}
+                >
+                  R${' '}
+                  {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                  })}
                 </div>
-                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>Ao final de {diasTrato} dias.</div>
+                <div
+                  style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}
+                >
+                  Ao final de {diasTrato} dias.
+                </div>
               </div>
             </div>
           </div>
         </div>
       </SidePanel>
 
-          {/* Versão para Impressão Profissional */}
-          <div className="print-report-container">
-            <div className="print-header">
-              <div className="farm-info">
-                <div className="print-logo">TAUZE LIVESTOCK v5.0</div>
-                <h1>Relatório de Simulação Nutricional</h1>
-              </div>
-              <div className="report-date">Emissão: {new Date().toLocaleDateString()}</div>
-            </div>
+      {/* Versão para Impressão Profissional */}
+      <div className="print-report-container">
+        <div className="print-header">
+          <div className="farm-info">
+            <div className="print-logo">TAUZE LIVESTOCK v5.0</div>
+            <h1>Relatório de Simulação Nutricional</h1>
+          </div>
+          <div className="report-date">Emissão: {new Date().toLocaleDateString()}</div>
+        </div>
 
-            <div className="print-summary-banner">
-              <div className="s-item">
-                <span className="s-label">DIETA SELECIONADA</span>
-                <span className="s-value">{selectedDiet?.nome || 'Não informada'}</span>
-              </div>
-              <div className="s-item">
-                <span className="s-label">EFETIVO TOTAL</span>
-                <span className="s-value">{animalCount} Animais</span>
-              </div>
-            </div>
+        <div className="print-summary-banner">
+          <div className="s-item">
+            <span className="s-label">DIETA SELECIONADA</span>
+            <span className="s-value">{selectedDiet?.nome || 'Não informada'}</span>
+          </div>
+          <div className="s-item">
+            <span className="s-label">EFETIVO TOTAL</span>
+            <span className="s-value">{animalCount} Animais</span>
+          </div>
+        </div>
 
-            <div className="print-columns-wrapper">
-              <div className="print-section">
-                <h2>Configuração Técnica</h2>
-                <table className="print-table">
-                  <tbody>
-                    <tr>
-                      <td>Período de Simulação</td>
-                      <td>{diasTrato} Dias</td>
-                    </tr>
-                    <tr>
-                      <td>Consumo Individual Estimado</td>
-                      <td>{sim.consumoDiarioCabeca.toFixed(1)} kg/dia ({consumoPV}% PV)</td>
-                    </tr>
-                    <tr>
-                      <td>GMD Alvo</td>
-                      <td>{expectedGMD} kg/dia</td>
-                    </tr>
-                    <tr>
-                      <td>Custo da Dieta</td>
-                      <td>R$ {costPerKg.toFixed(2)} / kg</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="print-section">
-                <h2>Indicadores de Eficiência</h2>
-                <table className="print-table">
-                  <tbody>
-                    <tr>
-                      <td>Conversão Alimentar</td>
-                      <td>{sim.conversaoAlimentar.toFixed(2)} : 1</td>
-                    </tr>
-                    <tr>
-                      <td>Custo da @ Produzida</td>
-                      <td>R$ {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="print-section">
-              <h2>Projeção de Performance e Custos Financeiros</h2>
-              <div className="print-stats-grid">
-                <div className="p-stat">
-                  <span className="ps-label">Custo Diário Total</span>
-                  <span className="ps-value">R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="p-stat">
-                  <span className="ps-label">Arrobas Produzidas (@) / Cab</span>
-                  <span className="ps-value">{sim.arrobasProduzidasCabeca.toFixed(2)} @</span>
-                </div>
-                <div className="p-stat">
-                  <span className="ps-label">Preço @ Venda</span>
-                  <span className="ps-value">R$ {Number(precoArroba).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="p-stat highlight">
-                  <span className="ps-label">Lucro Líquido Final do Lote (Projetado)</span>
-                  <span className="ps-value">R$ {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="print-footer">
-              <p>Relatório gerado pelo módulo de Nutrição de Precisão do Tauze ERP.</p>
-              <p>Este documento é uma projeção técnica e pode variar conforme as condições de campo.</p>
-            </div>
+        <div className="print-columns-wrapper">
+          <div className="print-section">
+            <h2>Configuração Técnica</h2>
+            <table className="print-table">
+              <tbody>
+                <tr>
+                  <td>Período de Simulação</td>
+                  <td>{diasTrato} Dias</td>
+                </tr>
+                <tr>
+                  <td>Consumo Individual Estimado</td>
+                  <td>
+                    {sim.consumoDiarioCabeca.toFixed(1)} kg/dia ({consumoPV}% PV)
+                  </td>
+                </tr>
+                <tr>
+                  <td>GMD Alvo</td>
+                  <td>{expectedGMD} kg/dia</td>
+                </tr>
+                <tr>
+                  <td>Custo da Dieta</td>
+                  <td>R$ {costPerKg.toFixed(2)} / kg</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <style>{`
+          <div className="print-section">
+            <h2>Indicadores de Eficiência</h2>
+            <table className="print-table">
+              <tbody>
+                <tr>
+                  <td>Conversão Alimentar</td>
+                  <td>{sim.conversaoAlimentar.toFixed(2)} : 1</td>
+                </tr>
+                <tr>
+                  <td>Custo da @ Produzida</td>
+                  <td>
+                    R${' '}
+                    {sim.custoArrobaProduzida.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="print-section">
+          <h2>Projeção de Performance e Custos Financeiros</h2>
+          <div className="print-stats-grid">
+            <div className="p-stat">
+              <span className="ps-label">Custo Diário Total</span>
+              <span className="ps-value">
+                R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="p-stat">
+              <span className="ps-label">Arrobas Produzidas (@) / Cab</span>
+              <span className="ps-value">{sim.arrobasProduzidasCabeca.toFixed(2)} @</span>
+            </div>
+            <div className="p-stat">
+              <span className="ps-label">Preço @ Venda</span>
+              <span className="ps-value">
+                R$ {Number(precoArroba).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="p-stat highlight">
+              <span className="ps-label">Lucro Líquido Final do Lote (Projetado)</span>
+              <span className="ps-value">
+                R${' '}
+                {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-footer">
+          <p>Relatório gerado pelo módulo de Nutrição de Precisão do Tauze ERP.</p>
+          <p>Este documento é uma projeção técnica e pode variar conforme as condições de campo.</p>
+        </div>
+      </div>
+
+      <style>{`
 
             .print-report-container { display: none; }
 

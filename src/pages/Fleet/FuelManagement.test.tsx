@@ -14,25 +14,25 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     applyFarmFilter: (q: any) => q,
     canCreate: true,
     activeFarm: { id: 'farm-1', tenantId: 'tenant-1', name: 'Fazenda Boa Esperança' },
-    insertPayload: {}
-  })
+    insertPayload: {},
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
-    ...actual as any,
+    ...(actual as any),
     useSearchParams: () => [new URLSearchParams(), vi.fn()],
   };
 });
@@ -40,7 +40,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -48,14 +48,30 @@ vi.mock('@tanstack/react-query', async () => {
       if (key === 'fuel_logs') {
         return {
           data: [
-            { id: '1', data: '2026-06-01', litros: 100, valor_total: 500, tipo_combustivel: 'Diesel', maquina_id: 'maq-1', maquinas: { nome: 'Trator A' } },
-            { id: '2', data: '2026-06-02', litros: 50, valor_total: 300, tipo_combustivel: 'Especial', maquina_id: 'maq-2', maquinas: { nome: 'Colheitadeira B' } }
+            {
+              id: '1',
+              data: '2026-06-01',
+              litros: 100,
+              valor_total: 500,
+              tipo_combustivel: 'Diesel',
+              maquina_id: 'maq-1',
+              maquinas: { nome: 'Trator A' },
+            },
+            {
+              id: '2',
+              data: '2026-06-02',
+              litros: 50,
+              valor_total: 300,
+              tipo_combustivel: 'Especial',
+              maquina_id: 'maq-2',
+              maquinas: { nome: 'Colheitadeira B' },
+            },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: [], isLoading: false };
-    })
+    }),
   };
 });
 

@@ -1,17 +1,17 @@
-﻿import React, { useState } from 'react';
-import { 
-  X, 
-  Clock, 
-  Mail, 
-  MessageSquare, 
-  Calendar, 
-  ChevronDown, 
+import React, { useState } from 'react';
+import {
+  X,
+  Clock,
+  Mail,
+  MessageSquare,
+  Calendar,
+  ChevronDown,
   Check,
   Bell,
   Users,
   Shield,
   Zap,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../lib/supabase';
@@ -33,10 +33,12 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleSave = async () => {
-    if (!tenant?.id || !userProfile?.id) return;
-    
+    if (!tenant?.id || !userProfile?.id) {
+      return;
+    }
+
     setIsSaving(true);
-    
+
     try {
       // Como não temos certeza se a tabela existe, vamos salvar nos settings do perfil por enquanto
       // Isso garante persistência sem quebrar se a tabela não existir
@@ -49,23 +51,25 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         recipients: recipients.split(',').map((e: string) => e.trim()),
         channels,
         active: true,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
-      const currentSchedules = userProfile.settings?.reportSchedules || [];
-      
+      const currentSchedules = (userProfile.settings?.reportSchedules || []) as unknown[];
+
       const { error } = await supabase
         .from('profiles')
         .update({
           settings: {
             ...(userProfile.settings || {}),
-            reportSchedules: [...currentSchedules, newSchedule]
-          }
+            reportSchedules: [...currentSchedules, newSchedule],
+          },
         })
         .eq('id', userProfile.id);
 
-      if (error) throw error;
-      
+      if (error) {
+        throw error;
+      }
+
       setSaveSuccess(true);
       setTimeout(() => {
         onClose();
@@ -80,7 +84,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
 
   return (
     <div className="schedule-modal-overlay">
-      <motion.div 
+      <motion.div
         className="schedule-modal-content"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -92,7 +96,9 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
             </div>
             <div>
               <h3>Agendar Automação</h3>
-              <p>Relatório: <strong>{report.title}</strong></p>
+              <p>
+                Relatório: <strong>{report.title}</strong>
+              </p>
             </div>
           </div>
           <button className="close-btn" onClick={onClose}>
@@ -108,12 +114,12 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
             </label>
             <div className="frequency-options">
               {(['daily', 'weekly', 'monthly'] as const).map((f) => (
-                <button 
+                <button
                   key={f}
                   className={`freq-btn ${frequency === f ? 'active' : ''}`}
                   onClick={() => setFrequency(f)}
                 >
-                  <span className="dot"></span>
+                  <span className="dot" />
                   {f === 'daily' ? 'Diário' : f === 'weekly' ? 'Semanal' : 'Mensal'}
                 </button>
               ))}
@@ -126,8 +132,8 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
               DESTINATÁRIOS (E-MAILS)
             </label>
             <div className="input-wrapper">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Ex: diretor@fazenda.com, gerente@fazenda.com"
                 value={recipients}
                 onChange={(e) => setRecipients(e.target.value)}
@@ -142,31 +148,31 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
             </label>
             <div className="format-grid">
               <div className="format-selector">
-                <button 
+                <button
                   className={`fmt-btn ${format === 'pdf' ? 'active' : ''}`}
                   onClick={() => setFormat('pdf')}
                 >
                   PDF Profissional
                 </button>
-                <button 
+                <button
                   className={`fmt-btn ${format === 'xlsx' ? 'active' : ''}`}
                   onClick={() => setFormat('xlsx')}
                 >
                   Planilha Excel
                 </button>
               </div>
-              
+
               <div className="channel-selector">
-                <div 
+                <div
                   className={`channel-toggle ${channels.email ? 'active' : ''}`}
-                  onClick={() => setChannels(c => ({ ...c, email: !c.email }))}
+                  onClick={() => setChannels((c) => ({ ...c, email: !c.email }))}
                 >
                   <Mail size={16} />
                   <span>E-mail</span>
                 </div>
-                <div 
+                <div
                   className={`channel-toggle ${channels.whatsapp ? 'active' : ''}`}
-                  onClick={() => setChannels(c => ({ ...c, whatsapp: !c.whatsapp }))}
+                  onClick={() => setChannels((c) => ({ ...c, whatsapp: !c.whatsapp }))}
                 >
                   <MessageSquare size={16} />
                   <span>WhatsApp</span>
@@ -177,14 +183,19 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
 
           <div className="ai-optimization-tip">
             <Sparkles size={16} className="sparkle" />
-            <p><strong>Dica Tauze IA:</strong> Agendamentos semanais (Segunda-feira 06:00) têm 40% mais taxa de abertura por gestores.</p>
+            <p>
+              <strong>Dica Tauze IA:</strong> Agendamentos semanais (Segunda-feira 06:00) têm 40%
+              mais taxa de abertura por gestores.
+            </p>
           </div>
         </div>
 
         <div className="modal-footer">
-          <button className="cancel-btn" onClick={onClose}>CANCELAR</button>
-          <button 
-            className={`save-btn ${saveSuccess ? 'success' : ''}`} 
+          <button className="cancel-btn" onClick={onClose}>
+            CANCELAR
+          </button>
+          <button
+            className={`save-btn ${saveSuccess ? 'success' : ''}`}
             onClick={handleSave}
             disabled={isSaving || saveSuccess}
           >

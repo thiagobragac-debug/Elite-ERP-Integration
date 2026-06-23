@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { 
-  RefreshCcw, 
+import {
+  RefreshCcw,
   CreditCard,
   Calendar,
   FileText,
@@ -10,14 +10,13 @@ import {
   Search,
   CheckCircle2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
-
 
 interface ReconciliationFormProps {
   isOpen: boolean;
@@ -27,7 +26,13 @@ interface ReconciliationFormProps {
   actionId?: number;
 }
 
-export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
+export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  actionId,
+}) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('ReconciliationForm_formData', {
     account_id: '',
@@ -37,16 +42,19 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
     final_balance: '',
     data_inicio: '',
     data_fim: '',
-    observacoes: ''
+    observacoes: '',
   });
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
+    if (!actionId) {
+      return;
+    } // Ignore on initial mount / refresh
 
-    if (initialData) { setFormData({
+    if (initialData) {
+      setFormData({
         account_id: initialData.conta_id || '',
         period: initialData.periodo || 'Mês Atual',
         file: null,
@@ -54,7 +62,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
         final_balance: initialData.saldo_final?.toString() || '',
         data_inicio: initialData.data_inicio || '',
         data_fim: initialData.data_fim || '',
-        observacoes: initialData.observacoes || ''
+        observacoes: initialData.observacoes || '',
       });
     } else {
       setFormData({
@@ -65,7 +73,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
         final_balance: '',
         data_inicio: '',
         data_fim: '',
-        observacoes: ''
+        observacoes: '',
       });
     }
   }, [initialData, isOpen, actionId]);
@@ -77,8 +85,13 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
   }, [isOpen, activeFarm]);
 
   const fetchAccounts = async () => {
-    const { data } = await supabase.from('contas_bancarias').select('id, banco').eq('tenant_id', activeFarm?.tenantId || '');
-    if (data) setAccounts(data);
+    const { data } = await supabase
+      .from('contas_bancarias')
+      .select('id, banco')
+      .eq('tenant_id', activeFarm?.tenantId || '');
+    if (data) {
+      setAccounts(data);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,15 +105,16 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
   };
 
   return (
-    <SidePanel size="medium"
+    <SidePanel
+      size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Conciliação" : "Nova Conciliação Bancária"}
+      title={initialData ? 'Editar Conciliação' : 'Nova Conciliação Bancária'}
       subtitle="Importe o extrato OFX/CSV e concilie com o seu financeiro."
       icon={RefreshCcw}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Processar Extrato"}
+      submitLabel={initialData ? 'Salvar Alterações' : 'Processar Extrato'}
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
@@ -109,22 +123,26 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><CreditCard size={14} /> Conta Bancária</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <CreditCard size={14} /> Conta Bancária
+            </label>
+            <SearchableSelect
               value={formData.account_id}
-              onChange={(val: any) => setFormData({...formData, account_id: val})}
+              onChange={(val: any) => setFormData({ ...formData, account_id: val })}
               options={[
                 { value: '', label: 'Selecione a conta...' },
-                ...(accounts || []).map(a => ({ value: String(a.id), label: String(a.banco) })),
+                ...(accounts || []).map((a) => ({ value: String(a.id), label: String(a.banco) })),
               ]}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Período do Extrato</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <Calendar size={14} /> Período do Extrato
+            </label>
+            <SearchableSelect
               value={formData.period}
-              onChange={(val: any) => setFormData({...formData, period: val})}
+              onChange={(val: any) => setFormData({ ...formData, period: val })}
               options={[
                 { value: 'Mês Atual', label: 'Mês Atual' },
                 { value: 'Mês Anterior', label: 'Mês Anterior' },
@@ -133,27 +151,31 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
             />
           </div>
         </div>
-        
+
         {formData.period === 'Personalizado' && (
           <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
             <div className="tauze-field-group">
-              <label className="tauze-label"><Calendar size={14} /> Data Início</label>
-              <DateInput 
+              <label className="tauze-label">
+                <Calendar size={14} /> Data Início
+              </label>
+              <DateInput
                 className="tauze-input"
-                type="date" 
+                type="date"
                 value={formData.data_inicio}
-                onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
-                required 
+                onChange={(e) => setFormData({ ...formData, data_inicio: e.target.value })}
+                required
               />
             </div>
             <div className="tauze-field-group">
-              <label className="tauze-label"><Calendar size={14} /> Data Fim</label>
-              <DateInput 
+              <label className="tauze-label">
+                <Calendar size={14} /> Data Fim
+              </label>
+              <DateInput
                 className="tauze-input"
-                type="date" 
+                type="date"
                 value={formData.data_fim}
-                onChange={(e) => setFormData({...formData, data_fim: e.target.value})}
-                required 
+                onChange={(e) => setFormData({ ...formData, data_fim: e.target.value })}
+                required
               />
             </div>
           </div>
@@ -167,39 +189,59 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Importar Arquivo (OFX, CSV ou Excel)</label>
-            <div style={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', padding: '32px', border: '1px dashed hsl(var(--border))', borderRadius: '12px', background: 'hsl(var(--bg-main)/0.5)', cursor: 'pointer' }}>
+            <label className="tauze-label">
+              <FileText size={14} /> Importar Arquivo (OFX, CSV ou Excel)
+            </label>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '32px',
+                border: '1px dashed hsl(var(--border))',
+                borderRadius: '12px',
+                background: 'hsl(var(--bg-main)/0.5)',
+                cursor: 'pointer',
+              }}
+            >
               <p style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600 }}>
                 Clique ou arraste o arquivo aqui para upload.
               </p>
-              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '8px' }}>Formatos aceitos: .ofx, .csv, .xlsx</span>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '8px' }}>
+                Formatos aceitos: .ofx, .csv, .xlsx
+              </span>
             </div>
           </div>
         </div>
         <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Saldo Inicial do Período</label>
-            <input 
+            <label className="tauze-label">
+              <DollarSign size={14} /> Saldo Inicial do Período
+            </label>
+            <input
               className="tauze-input"
-              type="number" 
-              step="0.01" 
+              type="number"
+              step="0.01"
               placeholder="R$ 0,00"
               value={formData.initial_balance}
-              onChange={(e) => setFormData({...formData, initial_balance: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
+              required
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Saldo Final do Período</label>
-            <input 
+            <label className="tauze-label">
+              <DollarSign size={14} /> Saldo Final do Período
+            </label>
+            <input
               className="tauze-input"
-              type="number" 
-              step="0.01" 
+              type="number"
+              step="0.01"
               placeholder="R$ 0,00"
               value={formData.final_balance}
-              onChange={(e) => setFormData({...formData, final_balance: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, final_balance: e.target.value })}
+              required
             />
           </div>
         </div>
@@ -212,22 +254,42 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Observações do Fechamento</label>
-            <textarea 
+            <label className="tauze-label">
+              <FileText size={14} /> Observações do Fechamento
+            </label>
+            <textarea
               className="tauze-input tauze-textarea"
-              placeholder="Notas sobre divergências aceitáveis ou justificativas de ajuste..." 
+              placeholder="Notas sobre divergências aceitáveis ou justificativas de ajuste..."
               value={formData.observacoes}
-              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               style={{ minHeight: '80px' }}
             />
           </div>
         </div>
-        
+
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', borderRadius: '12px', background: 'hsl(var(--brand)/0.05)', border: '1px solid hsl(var(--brand)/0.2)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '16px',
+              borderRadius: '12px',
+              background: 'hsl(var(--brand)/0.05)',
+              border: '1px solid hsl(var(--brand)/0.2)',
+            }}
+          >
             <CheckCircle2 size={24} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5, color: 'hsl(var(--text-main))' }}>
-              <strong style={{ color: 'hsl(var(--brand))' }}>IA Automática:</strong> Nosso motor de IA tentará identificar e sugerir conciliações baseadas no histórico de transações.
+            <p
+              style={{
+                margin: 0,
+                fontSize: '13px',
+                lineHeight: 1.5,
+                color: 'hsl(var(--text-main))',
+              }}
+            >
+              <strong style={{ color: 'hsl(var(--brand))' }}>IA Automática:</strong> Nosso motor de
+              IA tentará identificar e sugerir conciliações baseadas no histórico de transações.
             </p>
           </div>
         </div>

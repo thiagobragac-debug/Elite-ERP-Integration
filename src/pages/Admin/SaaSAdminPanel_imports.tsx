@@ -1,12 +1,12 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { 
-  Globe, 
-  Activity, 
-  DollarSign, 
-  Shield, 
-  Users, 
-  Server, 
-  HardDrive, 
+import {
+  Globe,
+  Activity,
+  DollarSign,
+  Shield,
+  Users,
+  Server,
+  HardDrive,
   AlertCircle,
   Database,
   Search,
@@ -32,7 +32,7 @@ import {
   List as ListIcon,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';

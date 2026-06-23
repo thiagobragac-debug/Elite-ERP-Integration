@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -12,6 +12,7 @@
     
     <!-- PWA -->
     <meta name="theme-color" content="#27a376" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Tauze ERP" />
@@ -27,6 +28,38 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Tauze ERP - Gestão Agropecuária" />
     <meta name="twitter:description" content="Sistema completo para gestão de fazendas" />
+    
+    <!-- Structured Data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Tauze ERP",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "ERP",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      },
+      "description": "Sistema de Gestão Agropecuária completo - ERP multi-tenant para fazendas com gestão de rebanho, financeiro, estoque e muito mais",
+      "screenshot": "/dashboard-v12.webp",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "120"
+      },
+      "featureList": [
+        "Gestão de Rebanho",
+        "Controle Financeiro",
+        "Gestão de Estoque",
+        "Gestão de Frota",
+        "Indicadores de Mercado",
+        "Suporte Offline"
+      ]
+    }
+    </script>
     
     <title>Tauze ERP v5.0 | Gestão Inteligente</title>
   </head>

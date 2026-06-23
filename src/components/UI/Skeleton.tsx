@@ -13,7 +13,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height = '20px',
   borderRadius = '8px',
   className = '',
-  style = {}
+  style = {},
 }) => {
   return (
     <div
@@ -22,7 +22,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         width,
         height,
         borderRadius,
-        ...style
+        ...style,
       }}
     >
       <style>{`
@@ -47,18 +47,25 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   );
 };
 
-export const SkeletonLine: React.FC<SkeletonProps & { lines?: number; gap?: number }> = ({ 
-  lines = 1, 
+export const SkeletonLine: React.FC<SkeletonProps & { lines?: number; gap?: number }> = ({
+  lines = 1,
   gap = 12,
-  ...props 
+  ...props
 }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px`, width: props.width || '100%' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: `${gap}px`,
+        width: props.width || '100%',
+      }}
+    >
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton 
-          key={i} 
-          {...props} 
-          width={i === lines - 1 && lines > 1 ? '70%' : props.width || '100%'} 
+        <Skeleton
+          key={i}
+          {...props}
+          width={i === lines - 1 && lines > 1 ? '70%' : props.width || '100%'}
         />
       ))}
     </div>

@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 /**
  * Fetches market quotes using pagination to bypass the 1000 max-rows limit.
  * Guarantees all data within the range is returned.
- * 
+ *
  * @param indicator Indicator name (e.g., 'boi_gordo_cepea')
  * @param startDate Optional start date (YYYY-MM-DD)
  * @param endDate Optional end date (YYYY-MM-DD)
@@ -29,13 +29,19 @@ export const fetchHistoricalQuotes = async (
       .order('date', { ascending })
       .range(start, start + step - 1);
 
-    if (startDate) query = query.gte('date', startDate);
-    if (endDate) query = query.lte('date', endDate);
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
 
     const { data, error } = await query;
 
-    if (error) throw error;
-    
+    if (error) {
+      throw error;
+    }
+
     if (data && data.length > 0) {
       allData = [...allData, ...data];
       start += step;

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Trees, 
-  Plus, 
-  RefreshCw, 
-  Search, 
-  Filter, 
-  FileText, 
-  Map, 
-  LayoutGrid, 
+import {
+  Trees,
+  Plus,
+  RefreshCw,
+  Search,
+  Filter,
+  FileText,
+  Map,
+  LayoutGrid,
   List as ListIcon,
   Maximize2,
   Edit3,
@@ -16,7 +16,7 @@ import {
   Activity,
   History,
   AlertCircle,
-  Sprout
+  Sprout,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReportData } from '../../hooks/useReportData';
@@ -42,7 +42,8 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 
 const PastureManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
+  const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } =
+    useFarmFilter();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = usePersistentState('PastureManagement_isFormOpen', false);
   const [selectedPasture, setSelectedPasture] = useState<any | null>(null);
@@ -53,9 +54,19 @@ const PastureManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'all' | 'resting' | 'occupied') || 'all';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('PastureManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'PastureManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     capins: [] as string[],
@@ -63,18 +74,35 @@ const PastureManagement: React.FC = () => {
     maxArea: 500,
     minUA: 0,
     maxUA: 100,
-    needsFertilization: false
+    needsFertilization: false,
   });
 
-  const [isManejoOpen, setIsManejoOpen] = usePersistentState('PastureManagement_isManejoOpen', false);
+  const [isManejoOpen, setIsManejoOpen] = usePersistentState(
+    'PastureManagement_isManejoOpen',
+    false
+  );
   const [manejoPastureId, setManejoPastureId] = useState<string | undefined>(undefined);
-  const [isHistoryOpen, setIsHistoryOpen] = usePersistentState('PastureManagement_isHistoryOpen', false);
+  const [isHistoryOpen, setIsHistoryOpen] = usePersistentState(
+    'PastureManagement_isHistoryOpen',
+    false
+  );
   const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null);
   const [selectedPastureName, setSelectedPastureName] = useState('');
-  const [isRelocateOpen, setIsRelocateOpen] = usePersistentState('PastureManagement_isRelocateOpen', false);
-  const [isAssignOpen, setIsAssignOpen] = usePersistentState('PastureManagement_isAssignOpen', false);
-  const [isRenovationOpen, setIsRenovationOpen] = usePersistentState('PastureManagement_isRenovationOpen', false);
-  const [selectedRenovationPastureId, setSelectedRenovationPastureId] = useState<string | null>(null);
+  const [isRelocateOpen, setIsRelocateOpen] = usePersistentState(
+    'PastureManagement_isRelocateOpen',
+    false
+  );
+  const [isAssignOpen, setIsAssignOpen] = usePersistentState(
+    'PastureManagement_isAssignOpen',
+    false
+  );
+  const [isRenovationOpen, setIsRenovationOpen] = usePersistentState(
+    'PastureManagement_isRenovationOpen',
+    false
+  );
+  const [selectedRenovationPastureId, setSelectedRenovationPastureId] = useState<string | null>(
+    null
+  );
   const [selectedRenovationData, setSelectedRenovationData] = useState<any>(null);
 
   const handleOpenManejo = (pasture: any) => {
@@ -85,7 +113,9 @@ const PastureManagement: React.FC = () => {
   const { data: rawHistoryLogs = null, isLoading: historyLoading } = useQuery({
     queryKey: ['pastos', 'history', selectedPastureId],
     queryFn: async () => {
-      if (!selectedPastureId) return null;
+      if (!selectedPastureId) {
+        return null;
+      }
       const { data: pastoLogs, error: err1 } = await supabase
         .from('audit_logs')
         .select('*')
@@ -97,8 +127,12 @@ const PastureManagement: React.FC = () => {
         .select('*')
         .eq('entity', 'lotes');
 
-      if (err1) throw err1;
-      if (err2) throw err2;
+      if (err1) {
+        throw err1;
+      }
+      if (err2) {
+        throw err2;
+      }
 
       return { pastoLogs: pastoLogs || [], loteLogs: loteLogs || [] };
     },
@@ -106,11 +140,14 @@ const PastureManagement: React.FC = () => {
   });
 
   const historyItems = React.useMemo(() => {
-    if (!selectedPastureId || !rawHistoryLogs) return [];
+    if (!selectedPastureId || !rawHistoryLogs) {
+      return [];
+    }
     const { pastoLogs = [], loteLogs = [] } = rawHistoryLogs as any;
-    const filteredLoteLogs = (loteLogs || []).filter((item: any) => 
-      item.new_data?.pasto_id === selectedPastureId || 
-      item.old_data?.pasto_id === selectedPastureId
+    const filteredLoteLogs = (loteLogs || []).filter(
+      (item: any) =>
+        item.new_data?.pasto_id === selectedPastureId ||
+        item.old_data?.pasto_id === selectedPastureId
     );
 
     const allLogs = [...pastoLogs, ...filteredLoteLogs].sort(
@@ -139,8 +176,14 @@ const PastureManagement: React.FC = () => {
         if (oldStatus !== newStatus && newStatus) {
           title = 'Mudança de Status';
           subtitle = `Pasto alterado para status: ${newStatus === 'resting' ? 'Descanso' : newStatus === 'grazing' ? 'Pastejo' : 'Degradado'}`;
-          value = newStatus === 'resting' ? 'DESCANSO' : newStatus === 'grazing' ? 'PASTEJO' : 'DEGRADADO';
-          status = newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
+          value =
+            newStatus === 'resting'
+              ? 'DESCANSO'
+              : newStatus === 'grazing'
+                ? 'PASTEJO'
+                : 'DEGRADADO';
+          status =
+            newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
         } else {
           title = 'Dados Atualizados';
           subtitle = 'Alterações nas configurações ou limites físicos';
@@ -150,7 +193,7 @@ const PastureManagement: React.FC = () => {
       } else if (item.entity === 'lotes') {
         const isEntrance = item.new_data?.pasto_id === selectedPastureId;
         title = isEntrance ? 'Entrada de Lote' : 'Saída de Lote';
-        subtitle = isEntrance 
+        subtitle = isEntrance
           ? `Lote "${item.new_data?.nome}" transferido para este pasto`
           : `Lote "${item.old_data?.nome}" transferido para outro pasto`;
         value = isEntrance ? 'ENTRADA' : 'SAÍDA';
@@ -163,7 +206,7 @@ const PastureManagement: React.FC = () => {
         title,
         subtitle,
         value,
-        status
+        status,
       };
     });
   }, [rawHistoryLogs, selectedPastureId]);
@@ -194,7 +237,7 @@ const PastureManagement: React.FC = () => {
       .order('created_at', { ascending: false, foreignTable: 'reforma_etapas' })
       .limit(1)
       .maybeSingle();
-      
+
     setSelectedRenovationData(data || null);
     setIsRenovationOpen(true);
   };
@@ -202,24 +245,34 @@ const PastureManagement: React.FC = () => {
   const deletePastureMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('pastos').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Pasto excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir pasto: ' + err.message);
+      toast.error(`❌ Erro ao excluir pasto: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este pasto?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
-    
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este pasto?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
+
     // Optimistic delete
-    setLocalPastures(prev => prev.filter(p => p.id !== id));
+    setLocalPastures((prev) => prev.filter((p) => p.id !== id));
 
     deletePastureMutation.mutate(id);
   };
@@ -231,10 +284,14 @@ const PastureManagement: React.FC = () => {
           .from('pastos')
           .update(payload)
           .eq('id', selectedPasture.id);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase.from('pastos').insert([payload]);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -243,9 +300,9 @@ const PastureManagement: React.FC = () => {
       toast.success(selectedPasture ? '✅ Pasto atualizado!' : '✅ Pasto cadastrado!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar pasto: ' + err.message);
+      toast.error(`❌ Erro ao salvar pasto: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleSubmit = async (data: any) => {
@@ -264,16 +321,22 @@ const PastureManagement: React.FC = () => {
       sombreamento: data.sombreamento || 'Natural',
       plantas_daninhas: data.plantas_daninhas || 'Baixa',
       fazenda_id: data.fazenda_id || activeFarmId,
-      tenant_id: activeTenantId
+      tenant_id: activeTenantId,
     };
 
     if (selectedPasture) {
       // Optimistic update
-      setLocalPastures(prev => prev.map(p => p.id === selectedPasture.id ? { 
-        ...p, 
-        ...payload,
-        area: `${payload.area} ha`,
-      } : p));
+      setLocalPastures((prev) =>
+        prev.map((p) =>
+          p.id === selectedPasture.id
+            ? {
+                ...p,
+                ...payload,
+                area: `${payload.area} ha`,
+              }
+            : p
+        )
+      );
     } else {
       const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
       const newPasture = {
@@ -281,10 +344,10 @@ const PastureManagement: React.FC = () => {
         ...payload,
         area: `${payload.area} ha`,
         lotacao: '0.00 UA',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
       // Optimistic insert
-      setLocalPastures(prev => [newPasture, ...prev]);
+      setLocalPastures((prev) => [newPasture, ...prev]);
     }
 
     savePastureMutation.mutate(payload);
@@ -293,53 +356,70 @@ const PastureManagement: React.FC = () => {
   const saveRenovationMutation = useMutation({
     mutationFn: async (payload: any) => {
       let reformaId = payload.reforma.id;
-      
+
       // 1. Insert/Update Reforma
       if (reformaId) {
-        const { error } = await supabase.from('reformas_pasto').update({
-          status: payload.reforma.status,
-          objetivo: payload.reforma.objetivo,
-          analise_v_percent: payload.reforma.analise_v_percent,
-          analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
-          analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
-          foto_antes_url: payload.reforma.foto_antes_url,
-          foto_depois_url: payload.reforma.foto_depois_url,
-          observacoes: payload.reforma.observacoes
-        }).eq('id', reformaId);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('reformas_pasto')
+          .update({
+            status: payload.reforma.status,
+            objetivo: payload.reforma.objetivo,
+            analise_v_percent: payload.reforma.analise_v_percent,
+            analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
+            analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
+            foto_antes_url: payload.reforma.foto_antes_url,
+            foto_depois_url: payload.reforma.foto_depois_url,
+            observacoes: payload.reforma.observacoes,
+          })
+          .eq('id', reformaId);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { data, error } = await supabase.from('reformas_pasto').insert([{
-          pasto_id: payload.reforma.pasto_id,
-          tenant_id: activeTenantId,
-          fazenda_id: activeFarmId,
-          data_inicio: payload.reforma.data_inicio,
-          status: payload.reforma.status,
-          objetivo: payload.reforma.objetivo,
-          analise_v_percent: payload.reforma.analise_v_percent,
-          analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
-          analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
-          foto_antes_url: payload.reforma.foto_antes_url,
-          foto_depois_url: payload.reforma.foto_depois_url,
-          observacoes: payload.reforma.observacoes
-        }]).select().single();
-        if (error) throw error;
+        const { data, error } = await supabase
+          .from('reformas_pasto')
+          .insert([
+            {
+              pasto_id: payload.reforma.pasto_id,
+              tenant_id: activeTenantId,
+              fazenda_id: activeFarmId,
+              data_inicio: payload.reforma.data_inicio,
+              status: payload.reforma.status,
+              objetivo: payload.reforma.objetivo,
+              analise_v_percent: payload.reforma.analise_v_percent,
+              analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
+              analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
+              foto_antes_url: payload.reforma.foto_antes_url,
+              foto_depois_url: payload.reforma.foto_depois_url,
+              observacoes: payload.reforma.observacoes,
+            },
+          ])
+          .select()
+          .single();
+        if (error) {
+          throw error;
+        }
         reformaId = data.id;
       }
 
       // 2. Insert Etapa
-      const { error: errEtapa } = await supabase.from('reforma_etapas').insert([{
-        tenant_id: activeTenantId,
-        reforma_id: reformaId,
-        tipo_etapa: payload.nova_etapa.tipo_etapa,
-        data_registro: payload.nova_etapa.data_registro,
-        maquina_id: payload.nova_etapa.maquina_id || null,
-        horas_trabalhadas: parseFloat(payload.nova_etapa.horas_trabalhadas) || 0,
-        custo_hora: parseFloat(payload.nova_etapa.custo_hora) || 0,
-        itens_consumidos: payload.nova_etapa.itens_consumidos,
-        custo_etapa: payload.nova_etapa.custo_etapa,
-        observacoes: payload.nova_etapa.observacoes
-      }]);
-      if (errEtapa) throw errEtapa;
+      const { error: errEtapa } = await supabase.from('reforma_etapas').insert([
+        {
+          tenant_id: activeTenantId,
+          reforma_id: reformaId,
+          tipo_etapa: payload.nova_etapa.tipo_etapa,
+          data_registro: payload.nova_etapa.data_registro,
+          maquina_id: payload.nova_etapa.maquina_id || null,
+          horas_trabalhadas: parseFloat(payload.nova_etapa.horas_trabalhadas) || 0,
+          custo_hora: parseFloat(payload.nova_etapa.custo_hora) || 0,
+          itens_consumidos: payload.nova_etapa.itens_consumidos,
+          custo_etapa: payload.nova_etapa.custo_etapa,
+          observacoes: payload.nova_etapa.observacoes,
+        },
+      ]);
+      if (errEtapa) {
+        throw errEtapa;
+      }
 
       // 3. Process Stock (ConsumptionCart items)
       for (const item of payload.nova_etapa.itens_consumidos) {
@@ -353,9 +433,11 @@ const PastureManagement: React.FC = () => {
             p_fazenda_id: activeFarmId,
             p_origem: 'REFORMA_PASTO',
             p_origem_id: reformaId,
-            p_usuario_id: null // Ideally use the current user UUID
+            p_usuario_id: null, // Ideally use the current user UUID
           });
-          if (stockErr) console.warn("Stock depletion error (ignoring if RPC not found/mocked):", stockErr);
+          if (stockErr) {
+            console.warn('Stock depletion error (ignoring if RPC not found/mocked):', stockErr);
+          }
         }
       }
 
@@ -364,8 +446,13 @@ const PastureManagement: React.FC = () => {
       if (payload.reforma.status === 'concluida') {
         finalPastoStatus = 'resting'; // returns to resting after renovation
       }
-      const { error: pastoErr } = await supabase.from('pastos').update({ status: finalPastoStatus }).eq('id', payload.reforma.pasto_id);
-      if (pastoErr) throw pastoErr;
+      const { error: pastoErr } = await supabase
+        .from('pastos')
+        .update({ status: finalPastoStatus })
+        .eq('id', payload.reforma.pasto_id);
+      if (pastoErr) {
+        throw pastoErr;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -374,8 +461,8 @@ const PastureManagement: React.FC = () => {
       refresh();
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao registrar etapa: ' + err.message);
-    }
+      toast.error(`❌ Erro ao registrar etapa: ${err.message}`);
+    },
   });
 
   const handleRenovationSubmit = (data: any) => {
@@ -388,42 +475,58 @@ const PastureManagement: React.FC = () => {
         .from('pastos')
         .update({
           status: 'resting',
-          lotacao: '0.00 UA'
+          lotacao: '0.00 UA',
         })
         .eq('id', pastureId);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Vazio sanitário iniciado!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao iniciar vazio sanitário: ' + err.message);
+      toast.error(`❌ Erro ao iniciar vazio sanitário: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleVazioSanitario = async (pasture: any) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
-    
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: `Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`,
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
+
     // Optimistic update
-    setLocalPastures(prev => prev.map(p => p.id === pasture.id ? { 
-      ...p, 
-      status: 'resting',
-      lotacao: '0.00 UA'
-    } : p));
+    setLocalPastures((prev) =>
+      prev.map((p) =>
+        p.id === pasture.id
+          ? {
+              ...p,
+              status: 'resting',
+              lotacao: '0.00 UA',
+            }
+          : p
+      )
+    );
 
     vazioSanitarioMutation.mutate(pasture.id);
   };
 
-  const { 
-    data: fetchedPastures = [], 
-    stats, 
-    loading, 
-    error, 
+  const {
+    data: fetchedPastures = [],
+    stats,
+    loading,
+    error,
     totalCount,
-    refresh 
+    refresh,
   } = useReportData('pastagens', { page, pageSize });
 
   const [localPastures, setLocalPastures] = useState<any[]>([]);
@@ -434,20 +537,20 @@ const PastureManagement: React.FC = () => {
     }
   }, [fetchedPastures]);
 
-  const filteredPastures = localPastures.filter(p => {
+  const filteredPastures = localPastures.filter((p) => {
     const matchesSearch = p.nome?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Parse values safely
     const lotacaoNum = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, ''));
     const lotacaoVal = isNaN(lotacaoNum) ? 0 : lotacaoNum;
-    
+
     const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
     const areaVal = isNaN(areaNum) ? 0 : areaNum;
-    
+
     // Tab Filter
     let matchesTab = true;
     const explicitStatus = (p.status || '').toLowerCase();
-    
+
     if (activeTab === 'resting') {
       matchesTab = explicitStatus === 'resting' || explicitStatus === 'descanso';
     } else if (activeTab === 'occupied') {
@@ -458,22 +561,29 @@ const PastureManagement: React.FC = () => {
     let matchesStatus = true;
     if (filterValues.status !== 'all') {
       if (filterValues.status === 'occupied') {
-        matchesStatus = lotacaoVal > 0 || explicitStatus === 'occupied' || explicitStatus === 'grazing';
+        matchesStatus =
+          lotacaoVal > 0 || explicitStatus === 'occupied' || explicitStatus === 'grazing';
       } else if (filterValues.status === 'resting') {
         matchesStatus = explicitStatus === 'resting' || explicitStatus === 'descanso';
       } else if (filterValues.status === 'free') {
-        matchesStatus = lotacaoVal === 0 && (explicitStatus === 'free' || explicitStatus === 'grazing');
+        matchesStatus =
+          lotacaoVal === 0 && (explicitStatus === 'free' || explicitStatus === 'grazing');
       }
     }
 
     // Forrageiras/Capim Filter
-    const matchesCapim = filterValues.capins.length === 0 || filterValues.capins.includes(p.tipo_capim);
+    const matchesCapim =
+      filterValues.capins.length === 0 || filterValues.capins.includes(p.tipo_capim);
 
     // Area Filter
-    const matchesArea = filterValues.maxArea >= 500 || (areaVal >= filterValues.minArea && areaVal <= filterValues.maxArea);
+    const matchesArea =
+      filterValues.maxArea >= 500 ||
+      (areaVal >= filterValues.minArea && areaVal <= filterValues.maxArea);
 
     // UA Filter
-    const matchesUA = filterValues.maxUA >= 100 || (lotacaoVal >= filterValues.minUA && lotacaoVal <= filterValues.maxUA);
+    const matchesUA =
+      filterValues.maxUA >= 100 ||
+      (lotacaoVal >= filterValues.minUA && lotacaoVal <= filterValues.maxUA);
 
     // Fertilization Filter
     let matchesFertilization = true;
@@ -487,59 +597,84 @@ const PastureManagement: React.FC = () => {
       }
     }
 
-    return matchesSearch && matchesTab && matchesStatus && matchesCapim && matchesArea && matchesUA && matchesFertilization;
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesStatus &&
+      matchesCapim &&
+      matchesArea &&
+      matchesUA &&
+      matchesFertilization
+    );
   });
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = localPastures.map(p => ({
+    const exportData = localPastures.map((p) => ({
       Nome: p.nome,
       Area: p.area,
-      Lotacao: p.lotacao
+      Lotacao: p.lotacao,
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'relatorio_pastagens');
-    else if (format === 'excel') exportToExcel(exportData, 'relatorio_pastagens');
-    else if (format === 'pdf') exportToPDF(exportData, 'relatorio_pastagens', 'Gestão de Pastagens');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'relatorio_pastagens');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'relatorio_pastagens');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'relatorio_pastagens', 'Gestão de Pastagens');
+    }
   };
 
   const tableColumns = [
-    { 
-      header: 'Identificação do Pasto', 
+    {
+      header: 'Identificação do Pasto',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>{item.nome}</span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>
+            {item.nome}
+          </span>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             Área: {item.area || 0} ha
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Forrageira / Capim',
       accessor: (item: any) => {
         let fertDays = -1;
         if (item.data_ultima_fertilizacao) {
-            fertDays = Math.floor((new Date().getTime() - new Date(item.data_ultima_fertilizacao).getTime()) / (1000 * 3600 * 24));
+          fertDays = Math.floor(
+            (new Date().getTime() - new Date(item.data_ultima_fertilizacao).getTime()) /
+              (1000 * 3600 * 24)
+          );
         }
-        const needsFert = item.needs_fertilization || (fertDays > 120);
+        const needsFert = item.needs_fertilization || fertDays > 120;
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-            <span className="main-text" style={{ fontWeight: 600, color: '#334155' }}>{item.tipo_capim || 'Não informado'}</span>
-            <span className="sub-meta" style={{ 
-              fontWeight: 700, 
-              fontSize: '9px', 
-              letterSpacing: '0.05em', 
-              textTransform: 'uppercase', 
-              color: needsFert ? '#f43f5e' : '#64748b' 
-            }}>
+            <span className="main-text" style={{ fontWeight: 600, color: '#334155' }}>
+              {item.tipo_capim || 'Não informado'}
+            </span>
+            <span
+              className="sub-meta"
+              style={{
+                fontWeight: 700,
+                fontSize: '9px',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: needsFert ? '#f43f5e' : '#64748b',
+              }}
+            >
               {fertDays >= 0 ? `${fertDays} dias sem adubo` : 'Sem adubação'}
             </span>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Solo & Relevo',
@@ -548,123 +683,197 @@ const PastureManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
             {item.tipo_solo || 'Solo: N/A'}
           </span>
-          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+          <span
+            className="sub-meta"
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              color: '#94a3b8',
+            }}
+          >
             {item.topografia || 'Relevo: N/A'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Água / Acesso',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span style={{ 
-            padding: '2px 8px', 
-            borderRadius: '6px', 
-            fontSize: '11px', 
-            fontWeight: 800,
-            background: item.agua ? '#eff6ff' : '#f8fafc',
-            color: item.agua ? '#3b82f6' : '#94a3b8',
-            border: `1px solid ${item.agua ? '#bfdbfe' : '#e2e8f0'}`
-          }}>
+          <span
+            style={{
+              padding: '2px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 800,
+              background: item.agua ? '#eff6ff' : '#f8fafc',
+              color: item.agua ? '#3b82f6' : '#94a3b8',
+              border: `1px solid ${item.agua ? '#bfdbfe' : '#e2e8f0'}`,
+            }}
+          >
             {item.agua || 'N/A'}
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
-    { 
-      header: 'Lotação & Pressão', 
+    {
+      header: 'Lotação & Pressão',
       accessor: (item: any) => {
         const uasNum = parseFloat((item.lotacao || '').toString().replace(/[^\d.-]/g, ''));
         const uas = isNaN(uasNum) ? 0 : uasNum;
-        
+
         const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
         const area = isNaN(areaNum) ? 1 : areaNum;
-        
+
         const density = area > 0 ? (uas / area).toFixed(2) : '0';
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#0f172a' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontWeight: 700,
+                color: '#0f172a',
+              }}
+            >
               <Activity size={14} color="#6366f1" />
               <span>{uas} UA</span>
             </div>
-            <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '4px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: '10px',
+                color: '#94a3b8',
+                fontWeight: 700,
+                marginTop: '4px',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+            >
               {density} UA/ha
             </span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status Pastejo',
       accessor: (item: any) => {
         const uasNum = parseFloat((item.lotacao || '').toString().replace(/[^\d.-]/g, ''));
         const uas = isNaN(uasNum) ? 0 : uasNum;
-        
+
         const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
         const area = isNaN(areaNum) ? 1 : areaNum;
-        
+
         const density = parseFloat(area > 0 ? (uas / area).toFixed(2) : '0');
-        
+
         const explicitStatus = (item.status || '').toLowerCase();
-        
+
         let status = 'Ideal';
         let color = 'success';
-        
+
         if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
-            status = 'Descanso';
-            color = 'info';
+          status = 'Descanso';
+          color = 'info';
         } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
-            status = 'Degradado';
-            color = 'warning';
-        } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma' || explicitStatus === 'em_reforma') {
-            status = 'Reforma';
-            color = 'danger';
-        } else {
-            if (uas === 0) {
-                status = 'Livre';
-                color = 'success';
-            } else if (density > 3.0) {
-                status = 'Superlotação';
-                color = 'danger';
-            } else if (density > 2.0) {
-                status = 'Atenção';
-                color = 'warning';
-            }
+          status = 'Degradado';
+          color = 'warning';
+        } else if (
+          explicitStatus === 'renovation' ||
+          explicitStatus === 'reforma' ||
+          explicitStatus === 'em_reforma'
+        ) {
+          status = 'Reforma';
+          color = 'danger';
+        } else if (uas === 0) {
+          status = 'Livre';
+          color = 'success';
+        } else if (density > 3.0) {
+          status = 'Superlotação';
+          color = 'danger';
+        } else if (density > 2.0) {
+          status = 'Atenção';
+          color = 'warning';
         }
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-            <span className={`status-pill ${color === 'danger' ? 'danger' : color === 'warning' ? 'warning' : color === 'info' ? 'info' : 'success'}`}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+            }}
+          >
+            <span
+              className={`status-pill ${color === 'danger' ? 'danger' : color === 'warning' ? 'warning' : color === 'info' ? 'info' : 'success'}`}
+            >
               {status}
             </span>
-            {item.status && <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.status}</span>}
+            {item.status && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {item.status}
+              </span>
+            )}
           </div>
         );
       },
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   if (error) {
-    console.error("[PastureManagement] Error:", error);
+    console.error('[PastureManagement] Error:', error);
   }
 
   return (
     <div className="pasture-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Pastos' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Pastos' }]}
+          />
           <h1 className="page-title">Pastos</h1>
-          <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
+          <p className="page-subtitle">
+            Monitoramento de capacidade de suporte, pressão de pastejo e rotação.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsAssignOpen(true)}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
             </span>
             ASSOCIAR ANIMAIS
           </button>
@@ -680,31 +889,28 @@ const PastureManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats?.map((stat: any, idx: number) => (
-          <TauzeStatCard 
-            key={idx} 
-            {...stat} 
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
             Todos Pastos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'resting' ? 'active' : ''}`}
             onClick={() => setActiveTab('resting')}
           >
             Em Descanso
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'occupied' ? 'active' : ''}`}
             onClick={() => setActiveTab('occupied')}
           >
@@ -714,23 +920,23 @@ const PastureManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar por nome do piquete..." 
+            placeholder="Buscar por nome do piquete..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
           >
@@ -739,7 +945,7 @@ const PastureManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             title="Filtros Avançados"
@@ -747,19 +953,42 @@ const PastureManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
+            <button
               className="icon-btn-secondary"
               onClick={() => {
                 const menu = document.getElementById('export-menu-pasture');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-pasture" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-pasture')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-pasture')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-pasture')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
@@ -767,7 +996,7 @@ const PastureManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             emptyState={
               localPastures.length === 0 ? (
                 <EmptyState
@@ -795,58 +1024,113 @@ const PastureManagement: React.FC = () => {
             itemsPerPage={pageSize}
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" title="Manejo / Rotação" onClick={() => handleOpenManejo(item)}><Maximize2 size={18} /></button>
-                <button className="action-dot warning" title="Reforma Agronômica" onClick={() => handleOpenRenovation(item)}><Sprout size={18} /></button>
-                <button className="action-dot success" title="Histórico" onClick={() => handleOpenHistory(item)}><History size={18} /></button>
-                <button className="action-dot edit" title="Editar" onClick={() => handleOpenEdit(item)}><Edit3 size={18} /></button>
-                <button className="action-dot delete" title="Excluir" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
+                <button
+                  className="action-dot info"
+                  title="Manejo / Rotação"
+                  onClick={() => handleOpenManejo(item)}
+                >
+                  <Maximize2 size={18} />
+                </button>
+                <button
+                  className="action-dot warning"
+                  title="Reforma Agronômica"
+                  onClick={() => handleOpenRenovation(item)}
+                >
+                  <Sprout size={18} />
+                </button>
+                <button
+                  className="action-dot success"
+                  title="Histórico"
+                  onClick={() => handleOpenHistory(item)}
+                >
+                  <History size={18} />
+                </button>
+                <button
+                  className="action-dot edit"
+                  title="Editar"
+                  onClick={() => handleOpenEdit(item)}
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  className="action-dot delete"
+                  title="Excluir"
+                  onClick={() => handleDelete(item.id)}
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             )}
           />
         ) : (
           <div className="pasture-cards-grid animate-fade-in">
             {filteredPastures.length === 0 ? (
-              <div 
-                className="pasture-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="pasture-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   {localPastures.length === 0 ? <Trees size={22} /> : <Search size={22} />}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {localPastures.length === 0 ? 'Nenhum pasto cadastrado' : 'Nenhum registro encontrado'}
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {localPastures.length === 0
+                    ? 'Nenhum pasto cadastrado'
+                    : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {localPastures.length === 0 ? 'Não há áreas de pastagem registradas nesta unidade.' : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {localPastures.length === 0
+                    ? 'Não há áreas de pastagem registradas nesta unidade.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
                 {localPastures.length === 0 && (
-                  <button 
-                    className="primary-btn" 
+                  <button
+                    className="primary-btn"
                     onClick={handleOpenCreate}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO PASTO</span>
@@ -857,20 +1141,20 @@ const PastureManagement: React.FC = () => {
               filteredPastures.map((p) => {
                 const uasNum = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, ''));
                 const uas = isNaN(uasNum) ? 0 : uasNum;
-                
+
                 const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
                 const area = isNaN(areaNum) ? 0 : areaNum;
-                
+
                 const capacityUa = p.capacidade_ua || 2.5;
                 const maxUa = area * capacityUa;
                 const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
-                
+
                 const explicitStatus = (p.status || '').toLowerCase();
 
                 let badgeClass = 'active'; // green
                 let badgeText = 'IDEAL';
                 let borderClass = 'active';
-                
+
                 if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
                   badgeClass = 'info-badge';
                   badgeText = 'DESCANSO';
@@ -879,57 +1163,99 @@ const PastureManagement: React.FC = () => {
                   badgeClass = 'warning-badge';
                   badgeText = 'DEGRADADO';
                   borderClass = 'warning-badge';
-                } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma' || explicitStatus === 'em_reforma') {
+                } else if (
+                  explicitStatus === 'renovation' ||
+                  explicitStatus === 'reforma' ||
+                  explicitStatus === 'em_reforma'
+                ) {
                   badgeClass = 'stopped';
                   badgeText = 'REFORMA';
                   borderClass = 'danger-badge';
-                } else {
-                  if (uas === 0) {
-                    badgeClass = 'active';
-                    badgeText = 'LIVRE';
-                    borderClass = 'active';
-                  } else if (occupancyPercent > 100) {
-                    badgeClass = 'stopped';
-                    badgeText = 'SUPERLOTAÇÃO';
-                    borderClass = 'danger-badge';
-                  } else if (occupancyPercent > 80) {
-                    badgeClass = 'warning-badge';
-                    badgeText = 'ATENÇÃO';
-                    borderClass = 'warning-badge';
-                  }
+                } else if (uas === 0) {
+                  badgeClass = 'active';
+                  badgeText = 'LIVRE';
+                  borderClass = 'active';
+                } else if (occupancyPercent > 100) {
+                  badgeClass = 'stopped';
+                  badgeText = 'SUPERLOTAÇÃO';
+                  borderClass = 'danger-badge';
+                } else if (occupancyPercent > 80) {
+                  badgeClass = 'warning-badge';
+                  badgeText = 'ATENÇÃO';
+                  borderClass = 'warning-badge';
                 }
-   
+
                 return (
-                  <div 
-                    key={p.id} 
-                    className={`pasture-card-premium ${borderClass}`}
-                  >
+                  <div key={p.id} className={`pasture-card-premium ${borderClass}`}>
                     <div className="card-left-section">
                       <div className="card-avatar">
                         <Trees size={28} />
                       </div>
                       <div className="card-bottom-actions">
-                        <button className="action-icon-btn info" title="Manejo / Rotação" onClick={() => handleOpenManejo(p)}><Maximize2 size={14} /></button>
-                        <button className="action-icon-btn warning" title="Reforma Agronômica" onClick={() => handleOpenRenovation(p)}><Sprout size={14} /></button>
-                        <button className="action-icon-btn success" title="Histórico" onClick={() => handleOpenHistory(p)}><History size={14} /></button>
-                        <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
-                        <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
+                        <button
+                          className="action-icon-btn info"
+                          title="Manejo / Rotação"
+                          onClick={() => handleOpenManejo(p)}
+                        >
+                          <Maximize2 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn warning"
+                          title="Reforma Agronômica"
+                          onClick={() => handleOpenRenovation(p)}
+                        >
+                          <Sprout size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn success"
+                          title="Histórico"
+                          onClick={() => handleOpenHistory(p)}
+                        >
+                          <History size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn"
+                          title="Editar"
+                          onClick={() => handleOpenEdit(p)}
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn delete"
+                          title="Excluir"
+                          onClick={() => handleDelete(p.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
-   
+
                     <div className="card-main-content">
-                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div
+                        className="card-header-info"
+                        style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
+                      >
                         <div className="title-row" style={{ width: '100%' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome}</h3>
+                          <h3
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--text-main))',
+                              width: '100%',
+                            }}
+                          >
+                            {p.nome}
+                          </h3>
                         </div>
-                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`status-pill mini ${badgeClass}`}>
-                            {badgeText}
-                          </span>
+                        <div
+                          className="meta-row"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span className={`status-pill mini ${badgeClass}`}>{badgeText}</span>
                           <div className="card-type-meta">{p.tipo_capim || 'Capim Padrão'}</div>
                         </div>
                       </div>
-   
+
                       <div className="card-occupation-section">
                         <div className="occ-header">
                           <span>OCUPAÇÃO ATUAL</span>
@@ -938,7 +1264,7 @@ const PastureManagement: React.FC = () => {
                           </span>
                         </div>
                         <div className="occ-bar-container">
-                          <div 
+                          <div
                             className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
                             style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
                           />
@@ -947,7 +1273,7 @@ const PastureManagement: React.FC = () => {
                           {uas.toFixed(2)} / {maxUa > 0 ? maxUa.toFixed(2) : '∞'} UA
                         </div>
                       </div>
-   
+
                       <div className="card-footer-meta">
                         <div className="meta-item">
                           <Map size={12} />
@@ -955,7 +1281,9 @@ const PastureManagement: React.FC = () => {
                         </div>
                         <div className="meta-item">
                           <Activity size={12} />
-                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                          <span className="card-farm-meta">
+                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -971,14 +1299,14 @@ const PastureManagement: React.FC = () => {
         )}
       </div>
 
-      <PastureFilterModal 
+      <PastureFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
         setFilters={setFilterValues}
       />
 
-      <PastureForm 
+      <PastureForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleSubmit}

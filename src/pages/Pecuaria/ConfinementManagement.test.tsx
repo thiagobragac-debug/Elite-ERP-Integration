@@ -5,14 +5,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { ConfinementManagement } from './ConfinementManagement';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 
 vi.mock('../../hooks/useFarmFilter', () => ({
   useFarmFilter: () => ({
     activeFarmId: 'farm-1',
     activeTenantId: 'tenant-1',
     canCreate: true,
-    insertPayload: { tenant_id: 'tenant-1', fazenda_id: 'farm-1' }
-  })
+    insertPayload: { tenant_id: 'tenant-1', fazenda_id: 'farm-1' },
+  }),
 }));
 
 const mockRefresh = vi.fn();
@@ -20,19 +21,41 @@ vi.mock('../../hooks/useReportData', () => ({
   useReportData: vi.fn((reportType, options) => {
     return {
       data: [
-        { id: '1', nome_curral: 'Curral 01', lotes: { nome: 'Lote Teste' }, capacidade_animais: 100, dof: 45, dof_alvo: 90, progress: 50, status: 'active', projectedWeight: 450, cpd: 12 },
-        { id: '2', nome_curral: 'Curral 02', lotes: null, capacidade_animais: 80, dof: 100, dof_alvo: 90, progress: 111, status: 'archived', projectedWeight: 520, cpd: 15 }
+        {
+          id: '1',
+          nome_curral: 'Curral 01',
+          lotes: { nome: 'Lote Teste' },
+          capacidade_animais: 100,
+          dof: 45,
+          dof_alvo: 90,
+          progress: 50,
+          status: 'active',
+          projectedWeight: 450,
+          cpd: 12,
+        },
+        {
+          id: '2',
+          nome_curral: 'Curral 02',
+          lotes: null,
+          capacidade_animais: 80,
+          dof: 100,
+          dof_alvo: 90,
+          progress: 111,
+          status: 'archived',
+          projectedWeight: 520,
+          cpd: 15,
+        },
       ],
       stats: [
         { label: 'Currais Ativos', value: 5 },
-        { label: 'Taxa de Ocupação', value: '85%' }
+        { label: 'Taxa de Ocupação', value: '85%' },
       ],
       loading: false,
       error: null,
       totalCount: 2,
-      refresh: mockRefresh
+      refresh: mockRefresh,
     };
-  })
+  }),
 }));
 
 vi.mock('../../lib/supabase', () => ({
@@ -40,41 +63,44 @@ vi.mock('../../lib/supabase', () => ({
     from: vi.fn().mockImplementation(() => ({
       insert: vi.fn().mockResolvedValue({ error: null }),
       update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
-      delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
-    }))
-  }
+      delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+    })),
+  },
 }));
 
 // Mock export functions
 vi.mock('../../utils/export', () => ({
   exportToCSV: vi.fn(),
   exportToExcel: vi.fn(),
-  exportToPDF: vi.fn()
+  exportToPDF: vi.fn(),
 }));
 
 // Mock modals
 vi.mock('../../components/Modals/HistoryModal', () => ({
-  HistoryModal: ({ isOpen, onClose }: any) => isOpen ? (
-    <div data-testid="mock-history-modal">
-      <button onClick={onClose}>Fechar Histórico</button>
-    </div>
-  ) : null
+  HistoryModal: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="mock-history-modal">
+        <button onClick={onClose}>Fechar Histórico</button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('./components/CheckOutModal', () => ({
-  CheckOutModal: ({ isOpen, onClose }: any) => isOpen ? (
-    <div data-testid="mock-checkout-modal">
-      <button onClick={onClose}>Fechar CheckOut</button>
-    </div>
-  ) : null
+  CheckOutModal: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="mock-checkout-modal">
+        <button onClick={onClose}>Fechar CheckOut</button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('./components/ConfinementFilterModal', () => ({
-  ConfinementFilterModal: ({ isOpen, onClose }: any) => isOpen ? (
-    <div data-testid="mock-filter-modal">
-      <button onClick={onClose}>Fechar Filtro</button>
-    </div>
-  ) : null
+  ConfinementFilterModal: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="mock-filter-modal">
+        <button onClick={onClose}>Fechar Filtro</button>
+      </div>
+    ) : null,
 }));
 
 // It opens a simple form, but we can just check if we trigger setIsModalOpen which renders a ConfinementForm
@@ -82,11 +108,12 @@ vi.mock('./components/ConfinementFilterModal', () => ({
 // Wait, looking at the code, ConfinementForm is not in the JSX return block in the truncated code, let me assume it's there or I can mock it if it's rendered.
 // Actually, I can mock it just in case:
 vi.mock('../../components/Forms/ConfinementForm', () => ({
-  ConfinementForm: ({ isOpen, onClose }: any) => isOpen ? (
-    <div data-testid="mock-confinement-form">
-      <button onClick={onClose}>Fechar Check-in</button>
-    </div>
-  ) : null
+  ConfinementForm: ({ isOpen, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="mock-confinement-form">
+        <button onClick={onClose}>Fechar Check-in</button>
+      </div>
+    ) : null,
 }));
 
 describe('ConfinementManagement', () => {
@@ -100,7 +127,9 @@ describe('ConfinementManagement', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <ConfinementManagement />
+          <ConfirmProvider>
+            <ConfinementManagement />
+          </ConfirmProvider>
         </MemoryRouter>
       </QueryClientProvider>
     );
@@ -120,7 +149,7 @@ describe('ConfinementManagement', () => {
 
   it('filters data by active tab', async () => {
     renderComponent();
-    
+
     // Grid mode is default. Should show Curral 01
     expect(screen.getByText('Curral 01')).toBeInTheDocument();
     expect(screen.queryByText('Curral 02')).not.toBeInTheDocument(); // Archived
@@ -128,7 +157,7 @@ describe('ConfinementManagement', () => {
     // Click "Histórico" tab
     const historicoTab = screen.getByText('Histórico de Ciclos');
     fireEvent.click(historicoTab);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Curral 02')).toBeInTheDocument();
     });
@@ -138,7 +167,7 @@ describe('ConfinementManagement', () => {
     renderComponent();
     const searchInput = screen.getByPlaceholderText('Buscar por curral ou lote...');
     fireEvent.change(searchInput, { target: { value: 'Curral 01' } });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Curral 01')).toBeInTheDocument();
     });
@@ -146,20 +175,20 @@ describe('ConfinementManagement', () => {
 
   it('switches between grid and list views', async () => {
     renderComponent();
-    
+
     // By default it might be grid (has cards) or list depending on hook
     const listBtn = screen.getByTitle('Visualização em Lista');
     const gridBtn = screen.getByTitle('Visualização em Cards');
-    
+
     fireEvent.click(listBtn);
-    
+
     await waitFor(() => {
       // In list mode, ModernTable renders ID
       expect(screen.getByText(/ID:/i)).toBeInTheDocument();
     });
 
     fireEvent.click(gridBtn);
-    
+
     await waitFor(() => {
       // In grid mode, we see DOF / PROCESSO
       expect(screen.getAllByText('DOF / PROCESSO').length).toBeGreaterThan(0);
@@ -170,7 +199,7 @@ describe('ConfinementManagement', () => {
     renderComponent();
     const filterBtn = screen.getByTitle('Filtros Avançados');
     fireEvent.click(filterBtn);
-    
+
     expect(screen.getByTestId('mock-filter-modal')).toBeInTheDocument();
   });
 
@@ -178,7 +207,7 @@ describe('ConfinementManagement', () => {
     renderComponent();
     const checkoutBtn = screen.getByRole('button', { name: /Check-out Lote/i });
     fireEvent.click(checkoutBtn);
-    
+
     expect(screen.getByTestId('mock-checkout-modal')).toBeInTheDocument();
   });
 });

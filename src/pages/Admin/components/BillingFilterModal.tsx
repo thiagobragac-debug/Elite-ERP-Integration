@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
 
-
 interface BillingFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,43 +15,100 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const handleClear = () => {
     setFilters({
       status: 'all',
       planType: 'all',
       dateStart: '',
-      dateEnd: ''
+      dateEnd: '',
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 10000 }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.4)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 10000,
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
-        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '400px', background: 'hsl(var(--bg-card))', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '400px',
+          background: 'hsl(var(--bg-card))',
+          boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
-        <div className="tauze-sidebar-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '12px', color: '#10b981' }}>
+        <div
+          className="tauze-sidebar-header"
+          style={{
+            padding: '24px',
+            borderBottom: '1px solid #f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#10b981',
+              }}
+            >
               <Filter size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>Filtros Avançados</h3>
-              <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Refine sua busca financeira.</p>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
+                Filtros Avançados
+              </h3>
+              <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
+                Refine sua busca financeira.
+              </p>
             </div>
           </div>
-          <button 
+          <button
             type="button"
-            style={{ color: '#94a3b8', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(0,0,0,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -60,30 +116,41 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-body" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-          
           <div className="tauze-filter-section" style={{ marginBottom: '32px' }}>
-            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '16px' }}>
+            <label
+              className="tauze-filter-label"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '16px',
+              }}
+            >
               Status da Fatura <CreditCard size={14} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              {['all', 'pago', 'pendente', 'atrasado'].map(status => (
-                <button 
+              {['all', 'pago', 'pendente', 'atrasado'].map((status) => (
+                <button
                   type="button"
                   key={status}
-                  style={{ 
-                    padding: '12px 16px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))', 
-                    background: filters.status === status ? '#10b981' : '#f8fafc', 
-                    borderRadius: '12px', 
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))',
+                    background: filters.status === status ? '#10b981' : '#f8fafc',
+                    borderRadius: '12px',
                     border: '1px solid',
                     borderColor: filters.status === status ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
                   }}
                   onClick={() => setFilters({ ...filters, status })}
                 >
@@ -95,39 +162,85 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section" style={{ marginBottom: '32px' }}>
-            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '16px' }}>
+            <label
+              className="tauze-filter-label"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '16px',
+              }}
+            >
               Período de Vencimento <Calendar size={14} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>DE</span>
-                <DateInput 
-                  type="date" 
-                  style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '13px', fontWeight: 600 }} 
+                <DateInput
+                  type="date"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid hsl(var(--border))',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                  }}
                   value={filters.dateStart}
-                  onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                  onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>ATÉ</span>
-                <DateInput 
-                  type="date" 
-                  style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '13px', fontWeight: 600 }} 
+                <DateInput
+                  type="date"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid hsl(var(--border))',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                  }}
                   value={filters.dateEnd}
-                  onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                  onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
                 />
               </div>
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '16px' }}>
+            <label
+              className="tauze-filter-label"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '16px',
+              }}
+            >
               Valor da Fatura <DollarSign size={14} />
             </label>
-            <select 
-              style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '13px', fontWeight: 600, background: 'hsl(var(--bg-main))' }}
+            <select
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '12px',
+                border: '1px solid hsl(var(--border))',
+                fontSize: '13px',
+                fontWeight: 600,
+                background: 'hsl(var(--bg-main))',
+              }}
               value={filters.planType}
-              onChange={e => setFilters({ ...filters, planType: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, planType: e.target.value })}
             >
               <option value="all">Qualquer valor</option>
               <option value="low">Até R$ 500,00</option>
@@ -135,20 +248,42 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
               <option value="high">Acima de R$ 2.000,00</option>
             </select>
           </div>
-
         </div>
 
-        <div className="tauze-sidebar-footer" style={{ padding: '24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-          <button 
+        <div
+          className="tauze-sidebar-footer"
+          style={{ padding: '24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}
+        >
+          <button
             type="button"
-            style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-muted))', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
+            style={{
+              flex: 1,
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid hsl(var(--border))',
+              background: 'hsl(var(--bg-card))',
+              color: 'hsl(var(--text-muted))',
+              fontWeight: 800,
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
             onClick={handleClear}
           >
             LIMPAR
           </button>
-          <button 
+          <button
             type="button"
-            style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
+            style={{
+              flex: 1,
+              padding: '14px',
+              borderRadius: '12px',
+              border: 'none',
+              background: '#10b981',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             APLICAR FILTROS

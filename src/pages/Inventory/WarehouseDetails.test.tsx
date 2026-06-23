@@ -9,8 +9,8 @@ import { supabase } from '../../lib/supabase';
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn()
-  }
+    from: vi.fn(),
+  },
 }));
 
 vi.mock('../../hooks/useServerPagination', () => ({
@@ -20,8 +20,8 @@ vi.mock('../../hooks/useServerPagination', () => ({
     totalCount: 2,
     setTotalCount: vi.fn(),
     setPage: vi.fn(),
-    getRange: () => ({ from: 0, to: 19 })
-  })
+    getRange: () => ({ from: 0, to: 19 }),
+  }),
 }));
 
 describe('WarehouseDetails', () => {
@@ -41,7 +41,7 @@ describe('WarehouseDetails', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock Supabase chained calls
     const mockSelect = vi.fn().mockReturnThis();
     const mockEq = vi.fn().mockReturnThis();
@@ -52,10 +52,10 @@ describe('WarehouseDetails', () => {
         tipo: 'Galpão',
         localizacao_tecnica: 'Sede Principal',
         capacidade_maxima: 1000,
-        status: 'ativo'
-      }
+        status: 'ativo',
+      },
     });
-    
+
     const mockOrder = vi.fn().mockResolvedValue({
       data: [
         {
@@ -70,8 +70,8 @@ describe('WarehouseDetails', () => {
             nome: 'Semente de Milho',
             categoria_id: 'Sementes',
             custo_medio: 10,
-            unidade_medida: 'sc'
-          }
+            unidade_medida: 'sc',
+          },
         },
         {
           id: 'mov2',
@@ -85,10 +85,10 @@ describe('WarehouseDetails', () => {
             nome: 'Semente de Milho',
             categoria_id: 'Sementes',
             custo_medio: 10,
-            unidade_medida: 'sc'
-          }
-        }
-      ]
+            unidade_medida: 'sc',
+          },
+        },
+      ],
     });
 
     (supabase.from as any).mockImplementation((table: string) => {
@@ -112,11 +112,11 @@ describe('WarehouseDetails', () => {
 
     // Check stats (stock IN 50, OUT 20 -> balance 30. Total Value 30 * 10 = 300)
     expect(screen.getAllByText('30').length).toBeGreaterThan(0); // quantity
-    
+
     // Check tabs
     const historyTab = screen.getByText('Histórico de Movimentações');
     fireEvent.click(historyTab);
-    
+
     // Should display the history records
     await waitFor(() => {
       expect(screen.getAllByText('ENTRADA').length).toBeGreaterThan(0);

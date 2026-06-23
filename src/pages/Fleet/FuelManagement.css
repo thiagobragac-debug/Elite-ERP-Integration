@@ -3,8 +3,6 @@
   min-height: calc(100vh - var(--header-height));
 }
 
-
-
 .brand-badge {
   display: flex;
   align-items: center;
@@ -182,7 +180,6 @@
 }
 
 @media (max-width: 768px) {
-
   .tauze-controls-row {
     flex-direction: column;
     align-items: stretch;

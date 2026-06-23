@@ -14,41 +14,41 @@ export const handlers: Record<string, ReportHandler> = {
   // Pecuária
   'performance-ponderal': pecuaria.performancePonderal,
   'sanidade-animal': pecuaria.sanidadeAnimal,
-  'pastagens': pecuaria.pastagens,
-  'confinamento': pecuaria.confinamento,
-  'reproducao': pecuaria.reproducao,
-  'dietas': pecuaria.dietas,
-  'animais': pecuaria.animais,
-  'lotes': pecuaria.lotes,
-  'pesagens': pecuaria.pesagens,
+  pastagens: pecuaria.pastagens,
+  confinamento: pecuaria.confinamento,
+  reproducao: pecuaria.reproducao,
+  dietas: pecuaria.dietas,
+  animais: pecuaria.animais,
+  lotes: pecuaria.lotes,
+  pesagens: pecuaria.pesagens,
   'livestock-overview': pecuaria.dashboardOverview,
-  
+
   // Financeiro - Diamond Precision 5.0
   'fluxo-caixa': financeiro.fluxoCaixa,
   'contas-pagar': financeiro.contasPagar,
   'contas-receber': financeiro.contasReceber,
   'extrato-bancario': financeiro.extratoBancario,
   'finance-overview': financeiro.financeOverview,
-  
+
   // Logística/Suprimentos
   'consumo-frotas': logistica.consumoFrotas,
   'manutencoes-frota': logistica.manutencoesFrota,
   'suprimentos-inventario': logistica.suprimentosInventario,
   'pedidos-compra': logistica.pedidosCompra,
-  
+
   // Governança
   'admin-overview': governanca.adminOverview,
   'audit-logs': governanca.auditLogs,
   'perfis-usuario': governanca.perfisUsuario,
-  
+
   // Comercial
   'pedidos-venda': comercial.pedidosVenda,
-  'clientes': comercial.clientes,
-  
+  clientes: comercial.clientes,
+
   // IA
   'ia-monte-carlo': ia.monteCarlo,
   'ia-suporte-pasto': ia.suportePasto,
-  
+
   // Aliases (IDs numéricos legados)
   '1': pecuaria.performancePonderal,
   '2': pecuaria.pastagens,
@@ -79,4 +79,3 @@ export const handlers: Record<string, ReportHandler> = {
   '27': governanca.auditLogs,
   '28': financeiro.fluxoCaixa,
 };
-

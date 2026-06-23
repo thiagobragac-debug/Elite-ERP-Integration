@@ -28,6 +28,6 @@ export function useServerPagination(initialPageSize = 50): PaginationResult {
     setPage,
     setPageSize,
     setTotalCount,
-    getRange
+    getRange,
   };
 }

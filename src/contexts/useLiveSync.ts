@@ -8,7 +8,9 @@ export const useLiveSync = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     // Listen to ALL tables in the public schema
     const channel = supabase
@@ -23,9 +25,11 @@ export const useLiveSync = () => {
           // Whenever ANY table changes, invalidate queries related to reports and pagination.
           // In a highly optimized system, we would check payload.table and invalidate specific keys.
           // But invalidating 'report' globally ensures ALL screens are instantly up-to-date.
-          
-          console.log('[Live Sync] Database change detected on table:', payload.table);
-          
+
+          if (import.meta.env.DEV) {
+            console.log('[Live Sync] Database change detected on table:', payload.table);
+          }
+
           // Invalidate React Query caches
           queryClient.invalidateQueries({ queryKey: ['report'] });
 
@@ -34,7 +38,7 @@ export const useLiveSync = () => {
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === 'SUBSCRIBED' && import.meta.env.DEV) {
           console.log('[Live Sync] Connected to Supabase Realtime');
         }
       });

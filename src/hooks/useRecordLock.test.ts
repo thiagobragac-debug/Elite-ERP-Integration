@@ -6,16 +6,16 @@ import { supabase } from '../lib/supabase';
 // Mock AuthContext
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 'user-123', email: 'test@example.com' }
-  })
+    user: { id: 'user-123', email: 'test@example.com' },
+  }),
 }));
 
 // Mock Supabase client
 vi.mock('../lib/supabase', () => {
   return {
     supabase: {
-      from: vi.fn()
-    }
+      from: vi.fn(),
+    },
   };
 });
 
@@ -24,7 +24,7 @@ describe('useRecordLock hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Create a chainable builder mock
     mockChain = {
       select: vi.fn().mockImplementation(() => mockChain),
@@ -33,9 +33,11 @@ describe('useRecordLock hook', () => {
       eq: vi.fn().mockImplementation(() => mockChain),
       maybeSingle: vi.fn().mockImplementation(() => Promise.resolve({ data: null, error: null })),
       then: vi.fn().mockImplementation((cb) => {
-        if (cb) cb();
+        if (cb) {
+          cb();
+        }
         return Promise.resolve();
-      })
+      }),
     };
 
     (supabase.from as any).mockReturnValue(mockChain);
@@ -63,9 +65,9 @@ describe('useRecordLock hook', () => {
         record_id: 'lot-abc',
         user_id: 'other-user',
         user_name: 'other@example.com',
-        expires_at: inOneMinute
+        expires_at: inOneMinute,
       },
-      error: null
+      error: null,
     });
 
     const { result } = renderHook(() => useRecordLock('lotes', 'lot-abc'));

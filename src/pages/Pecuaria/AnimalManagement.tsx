@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
-import { 
-  Plus, 
-  Tag, 
-  Scale, 
-  Activity, 
-  Beef, 
-  TrendingUp, 
+import {
+  Plus,
+  Tag,
+  Scale,
+  Activity,
+  Beef,
+  TrendingUp,
   Trash2,
   Search,
   Filter,
@@ -21,7 +21,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   Calendar,
-  Truck
+  Truck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -34,48 +34,87 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import { useTenantCore } from '../../contexts/TenantContext';
 import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
+interface Animal {
+  id: string;
+  brinco: string;
+  raca: string;
+  sexo: string;
+  status: string;
+  lote?: string;
+  categoria?: string;
+  peso_atual?: number;
+  peso_inicial?: number;
+  data_nascimento?: string;
+  data_entrada?: string;
+  gmd_periodo?: number;
+  tenant_id?: string;
+  fazenda_id?: string;
+  sanidade_ok?: boolean;
+  [key: string]: unknown;
+}
 
 export const AnimalManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('AnimalManagement_isModalOpen', false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [formActionId, setFormActionId] = useState<number>(0);
-  const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState('AnimalManagement_isManejoModalOpen', false);
+  const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState(
+    'AnimalManagement_isManejoModalOpen',
+    false
+  );
   const [manejoAnimal, setManejoAnimal] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
-  const [showRomaneio, setShowRomaneio] = usePersistentState('AnimalManagement_showRomaneio', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('AnimalManagement_showAdvancedFilters', false);
+  const [showRomaneio, setShowRomaneio] = usePersistentState(
+    'AnimalManagement_showRomaneio',
+    false
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'AnimalManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     sexo: 'all',
     lote: 'all',
     racas: [] as string[],
     minWeight: 0,
-    sanidadeOk: true
+    sanidadeOk: true,
   });
-  
+
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const [viewMode, setViewMode] = useViewMode('pecuaria-animal-management', 'grid');
 
-  const { 
-    data: animals = [], 
-    stats = [], 
-    loading = false, 
-    error = null, 
+  const {
+    data: _rawAnimals = [],
+    stats: _rawStats = [],
+    loading = false,
+    error = null,
     totalCount = 0,
-    refresh 
+    refresh,
   } = useReportData('animais', { page, pageSize });
+
+  const animals = (_rawAnimals as unknown[]) as Animal[];
+  const stats = _rawStats as unknown[];
 
   const [searchParams] = useSearchParams();
 
@@ -83,7 +122,7 @@ export const AnimalManagement: React.FC = () => {
   useEffect(() => {
     const id = searchParams.get('id');
     if (id && animals?.length > 0) {
-      const animal = animals.find(a => a.id === id);
+      const animal = animals.find((a) => a.id === id);
       if (animal) {
         handleOpenEdit(animal);
         window.history.replaceState({}, '', window.location.pathname);
@@ -91,7 +130,19 @@ export const AnimalManagement: React.FC = () => {
     }
   }, [searchParams, animals]);
 
+  const { tenant } = useTenantCore();
+  const animalsLimit = tenant?.plan_details?.animals_limit || 999999;
+  
+  // Opção A (Hubspot Model): Limite baseado no tamanho absoluto do banco de dados (Ativos + Inativos)
+  const isAnimalLimitReached = totalCount >= animalsLimit;
+
   const handleOpenCreate = () => {
+    if (isAnimalLimitReached) {
+      import('react-hot-toast').then(({ toast }) => {
+        toast.error(`Limite de ${animalsLimit.toLocaleString('pt-BR')} animais atingido no seu Plano. Faça um Upgrade para cadastrar mais.`, { duration: 5000 });
+      });
+      return;
+    }
     setSelectedAnimal(null);
     setFormActionId(Date.now());
     setIsModalOpen(true);
@@ -106,26 +157,51 @@ export const AnimalManagement: React.FC = () => {
   const saveAnimalMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedAnimal) {
-        const { error } = await supabase.from('animais').update(payload).eq('id', selectedAnimal.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('animais')
+          .update(payload)
+          .eq('id', selectedAnimal.id);
+        if (error) {
+          throw error;
+        }
+        return { isUpdate: true, payload };
       } else {
         const { error } = await supabase.from('animais').insert([{ ...insertPayload, ...payload }]);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
+        return { isUpdate: false, payload };
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      toast.success(selectedAnimal ? '✅ Animal atualizado!' : '✅ Animal cadastrado!');
+      
+      const isUpdate = result?.isUpdate;
+      const payload = result?.payload;
+      
+      toast.success(isUpdate ? '✅ Animal atualizado!' : '✅ Animal cadastrado!');
+      
+      // Track animal registration event (only for new animals)
+      if (!isUpdate && payload) {
+        import('../../lib/analytics').then(({ analytics }) => {
+          analytics.animalRegistered({
+            raca: payload.raca,
+            peso: payload.peso_inicial || 0,
+            sexo: payload.sexo,
+          });
+        });
+      }
     },
     onError: (err: any) => {
       console.error('ERRO AO SALVAR ANIMAL:', err);
       let msg = err.message;
       if (msg?.includes('violates row-level security policy')) {
-        msg = 'Permissão negada. O sistema tentou salvar mas o banco de dados rejeitou. (A fazenda selecionada pertence ao seu tenant?)';
+        msg =
+          'Permissão negada. O sistema tentou salvar mas o banco de dados rejeitou. (A fazenda selecionada pertence ao seu tenant?)';
       }
-      toast.error('Erro ao salvar animal: ' + msg);
-    }
+      toast.error(`Erro ao salvar animal: ${msg}`);
+    },
   });
 
   const handleSubmit = async (formData: any) => {
@@ -149,7 +225,7 @@ export const AnimalManagement: React.FC = () => {
       valor_venda: parseFloat(formData.valor_venda) || 0,
       categoria: formData.categoria,
       finalidade: formData.finalidade,
-      brinco_eletronico: formData.brinco_eletronico || null
+      brinco_eletronico: formData.brinco_eletronico || null,
     };
 
     saveAnimalMutation.mutate(payload);
@@ -158,71 +234,106 @@ export const AnimalManagement: React.FC = () => {
   const isSubmitting = saveAnimalMutation.isPending;
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = animals.map(item => ({
+    const exportData = animals.map((item) => ({
       Brinco: item.brinco,
       Raca: item.raca,
       Sexo: item.sexo,
       Peso_Atual: item.peso_atual,
       Status: item.status,
-      Lote: item.lote || 'N/A'
+      Lote: item.lote || 'N/A',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'log_animais');
-    else if (format === 'excel') exportToExcel(exportData, 'log_animais');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_animais', 'Inventário de Animais');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'log_animais');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'log_animais');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'log_animais', 'Inventário de Animais');
+    }
   };
 
   const deleteAnimalMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('animais').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Animal excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir animal: ' + err.message);
-    }
+      toast.error(`❌ Erro ao excluir animal: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir este animal?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Tem certeza que deseja excluir este animal?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteAnimalMutation.mutate(id);
   };
 
-  const filteredAnimals = (animals || []).filter(a => {
-    const matchesSearch = (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         (a.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'TODOS' ? true : (activeTab === 'ATIVO' ? a.status === 'Ativo' : a.status === 'Abatido');
-    
-    const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
-    const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
-    const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
-    const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
+  const filteredAnimals = useMemo(() => {
+    return (animals || []).filter((a) => {
+      const matchesSearch =
+        (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (a.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab =
+        activeTab === 'TODOS'
+          ? true
+          : activeTab === 'ATIVO'
+            ? a.status === 'Ativo'
+            : a.status === 'Abatido';
 
-    return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesRaca && matchesWeight;
-  });
+      const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
+      const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
+      const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
+      const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
 
-  const tableColumns = [
-    { 
-      header: 'Brinco / Identificação', 
+      return (
+        matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesRaca && matchesWeight
+      );
+    });
+  }, [animals, searchTerm, activeTab, filterValues]);
+
+  const tableColumns = useMemo(() => [
+    {
+      header: 'Brinco / Identificação',
       accessor: (item: any) => {
         const currentWeight = item.peso_atual || item.peso_inicial || 0;
         let ageMonths = 0;
         if (item.data_nascimento) {
-          ageMonths = Math.floor((new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+          ageMonths = Math.floor(
+            (new Date().getTime() - new Date(item.data_nascimento).getTime()) /
+              (1000 * 3600 * 24 * 30.44)
+          );
         }
         let category = '';
         if (item.sexo === 'M') {
-          if (currentWeight > 500 || ageMonths > 36) category = 'Boi Gordo';
-          else if (ageMonths <= 12) category = 'Bezerro';
-          else category = 'Garrote';
+          if (currentWeight > 500 || ageMonths > 36) {
+            category = 'Boi Gordo';
+          } else if (ageMonths <= 12) {
+            category = 'Bezerro';
+          } else {
+            category = 'Garrote';
+          }
         } else if (item.sexo === 'F') {
-          if (currentWeight > 450 || ageMonths > 36) category = 'Vaca';
-          else if (ageMonths <= 12) category = 'Bezerra';
-          else category = 'Novilha';
+          if (currentWeight > 450 || ageMonths > 36) {
+            category = 'Vaca';
+          } else if (ageMonths <= 12) {
+            category = 'Bezerra';
+          } else {
+            category = 'Novilha';
+          }
         } else {
           category = 'N/I';
         }
@@ -230,18 +341,26 @@ export const AnimalManagement: React.FC = () => {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>#{item.brinco}</span>
+              <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+                #{item.brinco}
+              </span>
               {item.status === 'Ativo' && currentWeight > 500 && (
-                <span className="status-chip warning"><div className="dot"></div>PRONTO</span>
+                <span className="status-chip warning">
+                  <div className="dot" />
+                  PRONTO
+                </span>
               )}
             </div>
-            <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            <span
+              className="sub-meta"
+              style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+            >
               {item.raca} • {category}
             </span>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Lote / Rastreabilidade',
@@ -250,48 +369,78 @@ export const AnimalManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             Lote: {item.lote || 'N/A'}
           </span>
-          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+          <span
+            className="sub-meta"
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              color: '#94a3b8',
+            }}
+          >
             Origem: {item.origem || 'Interna'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Idade & Ciclo',
       accessor: (item: any) => {
         let ageStr = 'N/I';
         if (item.data_nascimento) {
-          const months = Math.floor((new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+          const months = Math.floor(
+            (new Date().getTime() - new Date(item.data_nascimento).getTime()) /
+              (1000 * 3600 * 24 * 30.44)
+          );
           ageStr = `${months} meses`;
         }
         let days = 0;
         if (item.created_at) {
-          days = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
+          days = Math.floor(
+            (new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24)
+          );
         }
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{ageStr}</span>
-            <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+            <span
+              className="sub-meta"
+              style={{
+                fontSize: '9px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: '#94a3b8',
+              }}
+            >
               {days} dias na fazenda
             </span>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Peso Atual', 
+    {
+      header: 'Peso Atual',
       accessor: (item: any) => {
         const weight = item.peso_atual || item.peso_inicial || 0;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#1e293b', fontWeight: 800 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              color: '#1e293b',
+              fontWeight: 800,
+            }}
+          >
             <Scale size={14} color="#6366f1" />
             <span>{weight} kg</span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Ganho de Peso',
@@ -300,26 +449,29 @@ export const AnimalManagement: React.FC = () => {
         const gain = weight - (item.peso_inicial || 0);
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <span style={{ 
-              padding: '2px 8px', 
-              borderRadius: '6px', 
-              fontSize: '11px', 
-              fontWeight: 800,
-              background: gain >= 0 ? '#ecfdf5' : '#fef2f2',
-              color: gain >= 0 ? '#10b981' : '#ef4444',
-              border: `1px solid ${gain >= 0 ? '#a7f3d0' : '#fecaca'}`
-            }}>
-              {gain >= 0 ? '+' : ''}{gain.toFixed(1)} kg
+            <span
+              style={{
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 800,
+                background: gain >= 0 ? '#ecfdf5' : '#fef2f2',
+                color: gain >= 0 ? '#10b981' : '#ef4444',
+                border: `1px solid ${gain >= 0 ? '#a7f3d0' : '#fecaca'}`,
+              }}
+            >
+              {gain >= 0 ? '+' : ''}
+              {gain.toFixed(1)} kg
             </span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
-    { 
-      header: 'Status Operacional', 
+    {
+      header: 'Status Operacional',
       accessor: (item: any) => {
-         return (
+        return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <span className={`status-pill ${item.status === 'Ativo' ? 'active' : 'neutral'}`}>
               {item.status.toUpperCase()}
@@ -327,17 +479,21 @@ export const AnimalManagement: React.FC = () => {
           </div>
         );
       },
-      align: 'center' as const
-    }
-  ];
+      align: 'center' as const,
+    },
+  ], []);
 
   return (
     <div className="animal-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais' }]}
+          />
           <h1 className="page-title">Animais</h1>
-          <p className="page-subtitle">Inventário individualizado e controle de ativos biológicos em tempo real.</p>
+          <p className="page-subtitle">
+            Inventário individualizado e controle de ativos biológicos em tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => navigate('/pecuaria/lote')}>
@@ -348,7 +504,11 @@ export const AnimalManagement: React.FC = () => {
             <Truck size={18} />
             Romaneio de Embarque
           </button>
-          <button className="primary-btn" onClick={handleOpenCreate}>
+          <button
+            className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
+            onClick={handleOpenCreate}
+            style={isAnimalLimitReached ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
             <Plus size={18} />
             Novo Animal
           </button>
@@ -356,33 +516,39 @@ export const AnimalManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats?.map((stat: any, idx: number) => (
-          <TauzeStatCard 
-            key={idx}
-            {...stat}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'TODOS' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('TODOS'); setPage(1); }}
+            onClick={() => {
+              setActiveTab('TODOS');
+              setPage(1);
+            }}
           >
             Todos Animais
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('ATIVO'); setPage(1); }}
+            onClick={() => {
+              setActiveTab('ATIVO');
+              setPage(1);
+            }}
           >
             Ativos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ABATIDO' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('ABATIDO'); setPage(1); }}
+            onClick={() => {
+              setActiveTab('ABATIDO');
+              setPage(1);
+            }}
           >
             Abatidos
           </button>
@@ -390,24 +556,24 @@ export const AnimalManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Filtrar por brinco, raça ou lote..." 
+            placeholder="Filtrar por brinco, raça ou lote..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -417,7 +583,7 @@ export const AnimalManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -425,26 +591,49 @@ export const AnimalManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-animals');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-animals" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-animals')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-animals')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-animals')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <AnimalFilterModal 
+      <AnimalFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -453,14 +642,16 @@ export const AnimalManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum animal cadastrado"
-              description="Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal."
-              actionLabel="Novo Animal"
-              onAction={handleOpenCreate}
-              icon={Beef}
-            />}
+          <ModernTable
+            emptyState={
+              <EmptyState
+                title="Nenhum animal cadastrado"
+                description="Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal."
+                actionLabel="Novo Animal"
+                onAction={handleOpenCreate}
+                icon={Beef}
+              />
+            }
             data={filteredAnimals}
             columns={tableColumns}
             loading={loading}
@@ -472,16 +663,35 @@ export const AnimalManagement: React.FC = () => {
             searchPlaceholder="Filtrar por brinco, raça ou lote..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => navigate(`/pecuaria/animal/${item.id}`)} title="Dossiê">
+                <button
+                  className="action-dot info"
+                  onClick={() => navigate(`/pecuaria/animal/${item.id}`)}
+                  title="Dossiê"
+                >
                   <Eye size={18} />
                 </button>
-                <button className="action-dot success" title="Manejos" onClick={() => { setManejoAnimal(item); setIsManejoModalOpen(true); }}>
+                <button
+                  className="action-dot success"
+                  title="Manejos"
+                  onClick={() => {
+                    setManejoAnimal(item);
+                    setIsManejoModalOpen(true);
+                  }}
+                >
                   <Activity size={18} />
                 </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
                   <Edit3 size={18} />
                 </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -490,175 +700,353 @@ export const AnimalManagement: React.FC = () => {
         ) : (
           <div className="animal-cards-grid animate-fade-in">
             {filteredAnimals.length === 0 ? (
-              <div 
-                className="animal-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="animal-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   <Beef size={22} style={{ color: 'hsl(var(--brand))' }} />
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
                   Nenhum animal cadastrado
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal.
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  Não há animais registrados para esta unidade. Inicie o controle do rebanho
+                  cadastrando o primeiro animal.
                 </p>
-                <button 
-                  className="primary-btn" 
+                <button
+                  className="primary-btn"
                   onClick={handleOpenCreate}
-                  style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  style={{
+                    fontSize: '10.5px',
+                    padding: '6px 12px',
+                    height: '30px',
+                    marginTop: '4px',
+                    minHeight: 'auto',
+                  }}
                 >
                   <Plus size={12} />
                   <span>NOVO ANIMAL</span>
                 </button>
               </div>
             ) : (
-              filteredAnimals.map(a => {
-              const statusStr = a.status || 'Ativo';
-              let badgeClass = 'active'; // green
-              let badgeText = statusStr.toUpperCase();
-              let borderClass = 'active';
-              
-              if (a.isSanitaryBlocked) {
-                borderClass = 'warning-badge';
-              } else if (statusStr.toLowerCase() !== 'ativo') {
-                badgeClass = 'stopped';
-                badgeText = statusStr.toUpperCase();
-                borderClass = 'danger-badge';
-              }
+              filteredAnimals.map((a) => {
+                const statusStr = a.status || 'Ativo';
+                let badgeClass = 'active'; // green
+                let badgeText = statusStr.toUpperCase();
+                let borderClass = 'active';
 
-              // Calcular idade em meses
-              let ageText = 'Idade N/I';
-              if (a.data_nascimento) {
-                const months = Math.floor((new Date().getTime() - new Date(a.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
-                ageText = `${months}m`;
-              }
+                if (a.isSanitaryBlocked) {
+                  borderClass = 'warning-badge';
+                } else if (statusStr.toLowerCase() !== 'ativo') {
+                  badgeClass = 'stopped';
+                  badgeText = statusStr.toUpperCase();
+                  borderClass = 'danger-badge';
+                }
 
-              // Calcular performance (Ganho de peso)
-              const currentWeight = a.peso_atual || a.peso_inicial || 0;
-              const weightGain = currentWeight - (a.peso_inicial || 0);
-              const performanceText = weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
-              const isPositiveGain = weightGain >= 0;
+                // Calcular idade em meses
+                let ageText = 'Idade N/I';
+                if (a.data_nascimento) {
+                  const months = Math.floor(
+                    (new Date().getTime() - new Date(a.data_nascimento).getTime()) /
+                      (1000 * 3600 * 24 * 30.44)
+                  );
+                  ageText = `${months}m`;
+                }
 
-              // Cor da barra de progresso inteligente com base no peso
-              let progressGradient = 'linear-gradient(90deg, #f59e0b, #ef4444)'; // Bezerro/Leve (<350kg)
-              if (currentWeight >= 350 && currentWeight <= 450) {
-                progressGradient = 'linear-gradient(90deg, #6366f1, #3b82f6)'; // Recria
-              } else if (currentWeight > 450) {
-                progressGradient = 'linear-gradient(90deg, #10b981, #059669)'; // Engorda/Pronto
-              }
+                // Calcular performance (Ganho de peso)
+                const currentWeight = a.peso_atual || a.peso_inicial || 0;
+                const weightGain = currentWeight - (a.peso_inicial || 0);
+                const performanceText =
+                  weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
+                const isPositiveGain = weightGain >= 0;
 
-              return (
-                <div 
-                  key={a.id} 
-                  className={`animal-card-premium ${borderClass}`}
-                >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      <Beef size={28} />
+                // Cor da barra de progresso inteligente com base no peso
+                let progressGradient = 'linear-gradient(90deg, #f59e0b, #ef4444)'; // Bezerro/Leve (<350kg)
+                if (currentWeight >= 350 && currentWeight <= 450) {
+                  progressGradient = 'linear-gradient(90deg, #6366f1, #3b82f6)'; // Recria
+                } else if (currentWeight > 450) {
+                  progressGradient = 'linear-gradient(90deg, #10b981, #059669)'; // Engorda/Pronto
+                }
+
+                return (
+                  <div key={a.id} className={`animal-card-premium ${borderClass}`}>
+                    <div className="card-left-section">
+                      <div className="card-avatar">
+                        <Beef size={28} />
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button
+                          className="action-icon-btn info"
+                          onClick={() => navigate(`/pecuaria/animal/${a.id}`)}
+                          title="Dossiê"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn success"
+                          onClick={() => {
+                            setManejoAnimal(a);
+                            setIsManejoModalOpen(true);
+                          }}
+                          title="Manejos"
+                          style={{ color: '#10b981' }}
+                        >
+                          <Activity size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn edit"
+                          onClick={() => handleOpenEdit(a)}
+                          title="Editar"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn delete"
+                          onClick={() => handleDelete(a.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => navigate(`/pecuaria/animal/${a.id}`)} title="Dossiê"><Eye size={14} /></button>
-                      <button className="action-icon-btn success" onClick={() => { setManejoAnimal(a); setIsManejoModalOpen(true); }} title="Manejos" style={{ color: '#10b981' }}><Activity size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(a)} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(a.id)} title="Excluir"><Trash2 size={14} /></button>
-                    </div>
-                  </div>
 
-                  <div className="card-main-content">
-                    <div className="card-header-info">
-                      <div className="title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                            #{a.brinco}
-                            <span style={{ 
-                              fontSize: '9px', 
-                              padding: '2px 6px', 
-                              borderRadius: '6px', 
-                              background: a.sexo === 'M' ? 'rgba(59, 130, 246, 0.1)' : a.sexo === 'F' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(148, 163, 184, 0.1)', 
-                              color: a.sexo === 'M' ? '#3b82f6' : a.sexo === 'F' ? '#ec4899' : '#64748b', 
-                              fontWeight: 800 
-                            }}>
-                              {a.sexo === 'M' ? 'Macho' : a.sexo === 'F' ? 'Fêmea' : 'N/I'}
+                    <div className="card-main-content">
+                      <div className="card-header-info">
+                        <div
+                          className="title-row"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            width: '100%',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <h3
+                              style={{
+                                fontSize: '16px',
+                                fontWeight: 800,
+                                color: 'hsl(var(--text-main))',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                margin: 0,
+                              }}
+                            >
+                              #{a.brinco}
+                              <span
+                                style={{
+                                  fontSize: '9px',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px',
+                                  background:
+                                    a.sexo === 'M'
+                                      ? 'rgba(59, 130, 246, 0.1)'
+                                      : a.sexo === 'F'
+                                        ? 'rgba(236, 72, 153, 0.1)'
+                                        : 'rgba(148, 163, 184, 0.1)',
+                                  color:
+                                    a.sexo === 'M'
+                                      ? '#3b82f6'
+                                      : a.sexo === 'F'
+                                        ? '#ec4899'
+                                        : '#64748b',
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {a.sexo === 'M' ? 'Macho' : a.sexo === 'F' ? 'Fêmea' : 'N/I'}
+                              </span>
+                            </h3>
+                            <div
+                              className="card-type-meta"
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '4px',
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                color: '#94a3b8',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              {a.raca || 'Nelore'} • {ageText} •{' '}
+                              <span style={{ color: 'hsl(var(--brand))' }}>
+                                {a.categoria || 'Recria'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'flex-end',
+                              gap: '4px',
+                            }}
+                          >
+                            <span
+                              className={`status-pill mini ${badgeClass}`}
+                              style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '5px' }}
+                            >
+                              {badgeText}
                             </span>
-                          </h3>
-                          <div className="card-type-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
-                            {a.raca || 'Nelore'} • {ageText} • <span style={{ color: 'hsl(var(--brand))' }}>{a.categoria || 'Recria'}</span>
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                color: isPositiveGain ? '#10b981' : '#ef4444',
+                                background: isPositiveGain
+                                  ? 'rgba(16, 185, 129, 0.08)'
+                                  : 'rgba(239, 68, 68, 0.08)',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
+                                border: `1px solid ${isPositiveGain ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                              }}
+                            >
+                              {performanceText}
+                            </span>
                           </div>
                         </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <span className={`status-pill mini ${badgeClass}`} style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '5px' }}>
-                            {badgeText}
+                      </div>
+
+                      <div className="card-occupation-section" style={{ margin: '4px 0' }}>
+                        <div
+                          className="occ-header"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            color: '#64748b',
+                            marginBottom: '2px',
+                          }}
+                        >
+                          <span>PESO ATUAL</span>
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: 900 }}>
+                            {currentWeight} kg
                           </span>
-                          <span style={{ 
-                            fontSize: '9px', 
-                            fontWeight: 800, 
-                            color: isPositiveGain ? '#10b981' : '#ef4444', 
-                            background: isPositiveGain ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                            padding: '2px 6px',
-                            borderRadius: '5px',
-                            border: `1px solid ${isPositiveGain ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-                          }}>
-                            {performanceText}
+                        </div>
+                        <div
+                          className="occ-bar-container"
+                          style={{
+                            height: '6px',
+                            background: 'rgba(148, 163, 184, 0.1)',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
+                            marginBottom: '2px',
+                          }}
+                        >
+                          <div
+                            className="occ-bar-fill"
+                            style={{
+                              width: `${Math.min((currentWeight / 700) * 100, 100)}%`,
+                              background: progressGradient,
+                            }}
+                          />
+                        </div>
+                        <div
+                          className="occ-footer"
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            color: a.isSanitaryBlocked ? '#ef4444' : '#10b981',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          {a.isSanitaryBlocked ? '⚠️ Carência Sanitária Ativa' : '✅ Sanitário OK'}
+                        </div>
+                      </div>
+
+                      <div
+                        className="card-footer-meta"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '8px',
+                          borderTop: '1px dashed rgba(148, 163, 184, 0.15)',
+                          paddingTop: '4px',
+                        }}
+                      >
+                        <div
+                          className="meta-item"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: '#64748b',
+                          }}
+                        >
+                          <Activity size={12} />
+                          <span>Lote: {a.lote || 'N/A'}</span>
+                        </div>
+                        <div
+                          className="meta-item"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: '#64748b',
+                          }}
+                        >
+                          <TrendingUp size={12} />
+                          <span
+                            className="card-farm-meta"
+                            style={{ color: '#10b981', fontWeight: 800 }}
+                          >
+                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="card-occupation-section" style={{ margin: '4px 0' }}>
-                      <div className="occ-header" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 800, color: '#64748b', marginBottom: '2px' }}>
-                        <span>PESO ATUAL</span>
-                        <span style={{ color: 'hsl(var(--text-main))', fontWeight: 900 }}>{currentWeight} kg</span>
-                      </div>
-                      <div className="occ-bar-container" style={{ height: '6px', background: 'rgba(148, 163, 184, 0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '2px' }}>
-                        <div 
-                          className="occ-bar-fill"
-                          style={{ width: `${Math.min((currentWeight / 700) * 100, 100)}%`, background: progressGradient }}
-                        />
-                      </div>
-                      <div className="occ-footer" style={{ fontSize: '9px', fontWeight: 800, color: a.isSanitaryBlocked ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {a.isSanitaryBlocked ? '⚠️ Carência Sanitária Ativa' : '✅ Sanitário OK'}
-                      </div>
-                    </div>
-
-                    <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '4px' }}>
-                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                        <Activity size={12} />
-                        <span>Lote: {a.lote || 'N/A'}</span>
-                      </div>
-                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                        <TrendingUp size={12} />
-                        <span className="card-farm-meta" style={{ color: '#10b981', fontWeight: 800 }}>{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
-                      </div>
-                    </div>
                   </div>
-                </div>
-              );
-             })
+                );
+              })
             )}
             <button className="add-animal-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
@@ -668,9 +1056,9 @@ export const AnimalManagement: React.FC = () => {
         )}
       </div>
 
-      <AnimalForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <AnimalForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedAnimal}
@@ -679,12 +1067,17 @@ export const AnimalManagement: React.FC = () => {
 
       <QuickManejoModal
         isOpen={isManejoModalOpen}
-        onClose={() => { setIsManejoModalOpen(false); setManejoAnimal(null); }}
+        onClose={() => {
+          setIsManejoModalOpen(false);
+          setManejoAnimal(null);
+        }}
         animal={manejoAnimal}
         activeTenantId={activeTenantId || ''}
         activeFarmId={activeFarmId || ''}
         insertPayload={insertPayload}
-        onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['report'] }); }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['report'] });
+        }}
       />
 
       <RomaneioEmbarqueModal
@@ -692,7 +1085,9 @@ export const AnimalManagement: React.FC = () => {
         onClose={() => setShowRomaneio(false)}
         onGerarNF={(romaneioData) => {
           setShowRomaneio(false);
-          toast.success(`✅ Romaneio de Embarque criado para ${romaneioData.comprador}! Nota Fiscal de Saída emitida com sucesso.`);
+          toast.success(
+            `✅ Romaneio de Embarque criado para ${romaneioData.comprador}! Nota Fiscal de Saída emitida com sucesso.`
+          );
           queryClient.invalidateQueries({ queryKey: ['report'] });
         }}
       />

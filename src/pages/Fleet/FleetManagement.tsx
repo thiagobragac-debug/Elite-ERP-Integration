@@ -2,11 +2,21 @@ import { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -14,19 +24,33 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
 import { useNavigate } from 'react-router-dom';
-import { 
-  Truck, 
-  Plus, 
-  Search, 
+import {
+  Truck,
+  Plus,
+  Search,
   Filter,
-  AlertCircle, 
-  ChevronRight, 
+  AlertCircle,
+  ChevronRight,
   Wrench,
   Fuel,
   Activity,
@@ -41,7 +65,7 @@ import {
   DollarSign,
   Zap,
   Clock,
-  Wrench as Tool
+  Wrench as Tool,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -66,27 +90,44 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 export const FleetManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('FleetManagement_isModalOpen', false);
   const [formActionId, setFormActionId] = useState<number>(0);
-  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = usePersistentState('FleetManagement_isMaintenanceModalOpen', false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = usePersistentState(
+    'FleetManagement_isMaintenanceModalOpen',
+    false
+  );
   const [selectedMachine, setSelectedMachine] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('FleetManagement_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'FleetManagement_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTitle, setHistoryTitle] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('FleetManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'FleetManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     marcas: [] as string[],
     minUsage: 0,
     maxUsage: 10000,
     minYear: '',
-    maxYear: ''
+    maxYear: '',
   });
   const [viewMode, setViewMode] = useViewMode('fleet-management', 'grid');
 
@@ -96,17 +137,19 @@ export const FleetManagement: React.FC = () => {
       let machQuery = supabase.from('maquinas').select('*');
       machQuery = applyFarmFilter(machQuery);
       const { data, error } = await machQuery;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       const finalData = data || [];
       return finalData.map((m: any) => ({
         ...m,
         modelo: m.modelo || 'N/A',
         categoria: m.tipo || 'Geral',
         ano: m.ano || 'N/A',
-        status: m.status || 'active'
+        status: m.status || 'active',
       }));
     },
-    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId,
   });
 
   const machines = machinesData || [];
@@ -117,10 +160,12 @@ export const FleetManagement: React.FC = () => {
       let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id');
       fuelQuery = applyFarmFilter(fuelQuery);
       const { data, error } = await fuelQuery;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return data || [];
     },
-    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId,
   });
 
   const loading = loadingMachines || loadingFuel;
@@ -128,10 +173,50 @@ export const FleetManagement: React.FC = () => {
   const stats = useMemo(() => {
     if (machines.length === 0) {
       return [
-        { label: 'Frota Operacional', value: '---', icon: Truck, color: 'hsl(var(--brand))', progress: 0, trend: 'none' as const, change: 'Sem máquinas', periodLabel: 'Frota Geral', sparkline: [] },
-        { label: 'Em Manutenção', value: 0, icon: Tool, color: '#ef4444', progress: 0, trend: 'none' as const, change: 'Frota operacional', periodLabel: 'Parada Técnica', sparkline: [] },
-        { label: 'Consumo Total (L)', value: '---', icon: Activity, color: '#f59e0b', progress: 0, trend: 'none' as const, change: 'Sem abastecimentos', periodLabel: 'Total Abastecido', sparkline: [] },
-        { label: 'Disponibilidade', value: '---', icon: AlertCircle, color: '#10b981', progress: 0, trend: 'none' as const, change: 'Sem dados', periodLabel: 'Uptime Real', sparkline: [] },
+        {
+          label: 'Frota Operacional',
+          value: '---',
+          icon: Truck,
+          color: 'hsl(var(--brand))',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Sem máquinas',
+          periodLabel: 'Frota Geral',
+          sparkline: [],
+        },
+        {
+          label: 'Em Manutenção',
+          value: 0,
+          icon: Tool,
+          color: '#ef4444',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Frota operacional',
+          periodLabel: 'Parada Técnica',
+          sparkline: [],
+        },
+        {
+          label: 'Consumo Total (L)',
+          value: '---',
+          icon: Activity,
+          color: '#f59e0b',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Sem abastecimentos',
+          periodLabel: 'Total Abastecido',
+          sparkline: [],
+        },
+        {
+          label: 'Disponibilidade',
+          value: '---',
+          icon: AlertCircle,
+          color: '#10b981',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Sem dados',
+          periodLabel: 'Uptime Real',
+          sparkline: [],
+        },
       ];
     }
     const total = machines.length;
@@ -153,7 +238,7 @@ export const FleetManagement: React.FC = () => {
         trend: 'none' as const,
         change: total > 0 ? `${total} ativos` : 'Sem máquinas',
         periodLabel: 'Frota Geral',
-        sparkline: buildSparkline(machines || [], 'created_at', null)
+        sparkline: buildSparkline(machines || [], 'created_at', null),
       },
       {
         label: 'Em Manutenção',
@@ -164,7 +249,7 @@ export const FleetManagement: React.FC = () => {
         trend: 'none' as const,
         change: emManutencao > 0 ? 'Parada técnica' : 'Frota operacional',
         periodLabel: 'Parada Técnica',
-        sparkline: buildSparkline(machines || [], 'created_at', null)
+        sparkline: buildSparkline(machines || [], 'created_at', null),
       },
       {
         label: 'Consumo Total (L)',
@@ -175,7 +260,7 @@ export const FleetManagement: React.FC = () => {
         trend: totalLitros > 0 ? ('up' as const) : ('none' as const),
         change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem abastecimentos',
         periodLabel: 'Total Abastecido',
-        sparkline: buildSparkline(machines || [], 'created_at', null)
+        sparkline: buildSparkline(machines || [], 'created_at', null),
       },
       {
         label: 'Disponibilidade',
@@ -186,7 +271,7 @@ export const FleetManagement: React.FC = () => {
         trend: disponibilidade >= 80 ? ('up' as const) : ('down' as const),
         change: total > 0 ? 'Uptime calculated' : 'Sem dados',
         periodLabel: 'Uptime Real',
-        sparkline: buildSparkline(machines || [], 'created_at', null)
+        sparkline: buildSparkline(machines || [], 'created_at', null),
       },
     ];
   }, [machines, fuelData]);
@@ -224,33 +309,49 @@ export const FleetManagement: React.FC = () => {
         data_proxima_revisao: formData.data_proxima_revisao || null,
         status: formData.status || 'active',
         observacoes: formData.observacoes,
-        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horômetro' : 'Odômetro',
+        tipo_medidor:
+          formData.categoria === 'Trator' || formData.categoria === 'Implemento'
+            ? 'Horômetro'
+            : 'Odômetro',
         horimetro_atual: parseFloat(formData.horimetro_inicial) || 0,
         quilometragem_atual: parseFloat(formData.quilometragem_inicial) || 0,
-        ...insertPayload
+        ...insertPayload,
       };
 
       if (selectedMachine) {
-        const { error } = await supabase.from('maquinas').update(payload).eq('id', selectedMachine.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('maquinas')
+          .update(payload)
+          .eq('id', selectedMachine.id);
+        if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase.from('maquinas').insert([payload]);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
+      queryClient.invalidateQueries({
+        queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
+      });
       setIsModalOpen(false);
-      toast.success(selectedMachine ? 'Ativo atualizado com sucesso!' : 'Ativo cadastrado com sucesso!');
+      toast.success(
+        selectedMachine ? 'Ativo atualizado com sucesso!' : 'Ativo cadastrado com sucesso!'
+      );
     },
     onError: (err: any) => {
       toast.error(`Erro ao salvar máquina: ${err.message}`);
-    }
+    },
   });
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedMachine) {
-      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
+      toast.error(
+        '⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.'
+      );
       return;
     }
     saveMutation.mutate(formData);
@@ -258,31 +359,39 @@ export const FleetManagement: React.FC = () => {
 
   const maintenanceMutation = useMutation({
     mutationFn: async (data: any) => {
-      const { error } = await supabase.from('manutencao_frota').insert([{
-        maquina_id: data.maquina_id,
-        tipo: data.tipo,
-        descricao: data.descricao,
-        data_inicio: data.data_inicio,
-        custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
-        responsavel: data.responsavel,
-        status: data.status,
-        ...insertPayload
-      }]);
-      if (error) throw error;
+      const { error } = await supabase.from('manutencao_frota').insert([
+        {
+          maquina_id: data.maquina_id,
+          tipo: data.tipo,
+          descricao: data.descricao,
+          data_inicio: data.data_inicio,
+          custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
+          responsavel: data.responsavel,
+          status: data.status,
+          ...insertPayload,
+        },
+      ]);
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
+      queryClient.invalidateQueries({
+        queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
+      });
       setIsMaintenanceModalOpen(false);
       toast.success('Manutenção registrada com sucesso!');
     },
     onError: (err: any) => {
       toast.error(`Erro ao salvar manutenção: ${err.message}`);
-    }
+    },
   });
 
   const handleMaintenanceSubmit = async (data: any) => {
     if (!canCreate) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
+      toast.error(
+        '⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.'
+      );
       return;
     }
     maintenanceMutation.mutate(data);
@@ -291,62 +400,95 @@ export const FleetManagement: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('maquinas').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
+      queryClient.invalidateQueries({
+        queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
+      });
       toast.success('Ativo excluído com sucesso!');
     },
     onError: (err: any) => {
       toast.error(`Erro ao excluir ativo: ${err.message}`);
-    }
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este ativo?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este ativo?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = machines.filter(m => {
-      const matchesSearch = (
-        (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    const filteredData = machines.filter((m) => {
+      const matchesSearch =
+        (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
       const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-      const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
-      
-      const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-      const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-      
-      const machineYear = m.ano || 0;
-      const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-                         (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+      const matchesMarcas =
+        filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
 
-      return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
+      const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+      const matchesUsage =
+        filterValues.maxUsage >= 10000 ||
+        (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
+
+      const machineYear = m.ano || 0;
+      const matchesYear =
+        (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+        (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesStatus &&
+        matchesMarcas &&
+        matchesUsage &&
+        matchesYear
+      );
     });
 
-    const exportData = filteredData.map(item => ({
+    const exportData = filteredData.map((item) => ({
       Nome: item.nome,
       Categoria: item.categoria,
       Marca: item.marca || '-',
       Modelo: item.modelo || '-',
       Ano: item.ano || '-',
       Placa: item.placa || '-',
-      Uso_Atual: item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0',
-      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenção' : 'Parado',
-      Combustivel: item.combustivel || '-'
+      Uso_Atual: item.horimetro_atual
+        ? `${item.horimetro_atual}h`
+        : item.quilometragem_atual
+          ? `${item.quilometragem_atual}km`
+          : '0',
+      Status:
+        item.status === 'active'
+          ? 'Em Campo'
+          : item.status === 'maintenance'
+            ? 'Manutenção'
+            : 'Parado',
+      Combustivel: item.combustivel || '-',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'frota_veiculos');
-    else if (format === 'excel') exportToExcel(exportData, 'frota_veiculos');
-    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'frota_veiculos');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'frota_veiculos');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
+    }
   };
-
-
 
   const handleViewHistory = async (machine: any) => {
     setHistoryTitle(`Histórico: ${machine.nome}`);
@@ -355,8 +497,16 @@ export const FleetManagement: React.FC = () => {
     try {
       // Buscar histórico real de manutenções e abastecimentos do banco
       const [maintResult, fuelResult] = await Promise.all([
-        supabase.from('manutencao_frota').select('*', { count: 'exact' }).eq('maquina_id', machine.id).order('data_inicio', { ascending: false }),
-        supabase.from('abastecimentos').select('*', { count: 'exact' }).eq('maquina_id', machine.id).order('data', { ascending: false })
+        supabase
+          .from('manutencao_frota')
+          .select('*', { count: 'exact' })
+          .eq('maquina_id', machine.id)
+          .order('data_inicio', { ascending: false }),
+        supabase
+          .from('abastecimentos')
+          .select('*', { count: 'exact' })
+          .eq('maquina_id', machine.id)
+          .order('data', { ascending: false }),
       ]);
 
       const maintItems = (maintResult.data || []).map((m: any) => ({
@@ -364,8 +514,11 @@ export const FleetManagement: React.FC = () => {
         date: m.data_inicio,
         title: `Manutenção: ${m.tipo || 'Geral'}`,
         subtitle: m.descricao || 'Sem descrição',
-        value: m.custo > 0 ? Number(m.custo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem custo',
-        status: m.status === 'CONCLUIDO' || m.status === 'completed' ? 'success' : 'warning'
+        value:
+          m.custo > 0
+            ? Number(m.custo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+            : 'Sem custo',
+        status: m.status === 'CONCLUIDO' || m.status === 'completed' ? 'success' : 'warning',
       }));
 
       const fuelItems = (fuelResult.data || []).map((f: any) => ({
@@ -373,22 +526,31 @@ export const FleetManagement: React.FC = () => {
         date: f.data,
         title: `Abastecimento: ${f.litros || 0}L`,
         subtitle: f.tipo_combustivel || 'Diesel',
-        value: f.valor_total > 0 ? Number(f.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---',
-        status: 'info'
+        value:
+          f.valor_total > 0
+            ? Number(f.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+            : '---',
+        status: 'info',
       }));
 
       const combined = [...maintItems, ...fuelItems]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 10);
 
-      setHistoryItems(combined.length > 0 ? combined : [{
-        id: '0',
-        date: new Date().toISOString(),
-        title: 'Sem registros',
-        subtitle: 'Nenhuma manutenção ou abastecimento encontrado para este ativo.',
-        value: '---',
-        status: 'info'
-      }]);
+      setHistoryItems(
+        combined.length > 0
+          ? combined
+          : [
+              {
+                id: '0',
+                date: new Date().toISOString(),
+                title: 'Sem registros',
+                subtitle: 'Nenhuma manutenção ou abastecimento encontrado para este ativo.',
+                value: '---',
+                status: 'info',
+              },
+            ]
+      );
     } catch (err) {
       console.error('[FleetManagement] Erro ao buscar histórico:', err);
       setHistoryItems([]);
@@ -405,45 +567,90 @@ export const FleetManagement: React.FC = () => {
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
             {item.nome}
           </span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             {item.placa || item.modelo || 'SEM PLACA'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Categoria & Combustível',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.categoria}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             {item.combustivel || 'Diesel'}
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Uso Atual',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#0f172a',
+          }}
+        >
           <Gauge size={14} color="#6366f1" />
-          <span>{item.horimetro_atual ? `${item.horimetro_atual} h` : item.quilometragem_atual ? `${item.quilometragem_atual} km` : '0'}</span>
+          <span>
+            {item.horimetro_atual
+              ? `${item.horimetro_atual} h`
+              : item.quilometragem_atual
+                ? `${item.quilometragem_atual} km`
+                : '0'}
+          </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Eficiência Estimada',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#475569',
+          }}
+        >
           <span>{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Próxima Revisão',
@@ -455,37 +662,80 @@ export const FleetManagement: React.FC = () => {
         const isCritical = progressPercent > 90;
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '130px',
+              margin: '0 auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                color: '#64748b',
+              }}
+            >
               <span>Faltam {remaining}h</span>
-              <span style={{ color: isCritical ? '#f43f5e' : progressPercent > 70 ? '#f59e0b' : '#10b981' }}>{progressPercent.toFixed(0)}%</span>
+              <span
+                style={{
+                  color: isCritical ? '#f43f5e' : progressPercent > 70 ? '#f59e0b' : '#10b981',
+                }}
+              >
+                {progressPercent.toFixed(0)}%
+              </span>
             </div>
-            <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  transition: 'width 0.5s', 
-                  backgroundColor: isCritical ? '#f43f5e' : progressPercent > 70 ? '#f59e0b' : '#10b981',
-                  width: `${progressPercent}%` 
+            <div
+              style={{
+                height: '6px',
+                width: '100%',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  transition: 'width 0.5s',
+                  backgroundColor: isCritical
+                    ? '#f43f5e'
+                    : progressPercent > 70
+                      ? '#f59e0b'
+                      : '#10b981',
+                  width: `${progressPercent}%`,
                 }}
               />
             </div>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status Operacional',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : item.status === 'stopped' ? 'stopped' : 'inactive'}`}>
-            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : item.status === 'stopped' ? 'Parado' : 'Baixado (Inativo)'}
+          <span
+            className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : item.status === 'stopped' ? 'stopped' : 'inactive'}`}
+          >
+            {item.status === 'active'
+              ? 'Operacional'
+              : item.status === 'maintenance'
+                ? 'Manutenção'
+                : item.status === 'stopped'
+                  ? 'Parado'
+                  : 'Baixado (Inativo)'}
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   const categories = ['All', 'Trator', 'Caminhão', 'Implemento', 'Picape', 'Máquina'];
@@ -494,9 +744,17 @@ export const FleetManagement: React.FC = () => {
     <div className="fleet-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Máquina & Frota', href: '/frota/dashboard' }, { label: 'Máquinas & Equipamentos' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Máquina & Frota', href: '/frota/dashboard' },
+              { label: 'Máquinas & Equipamentos' },
+            ]}
+          />
           <h1 className="page-title">Máquinas & Equipamentos</h1>
-          <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
+          <p className="page-subtitle">
+            Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em
+            tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="primary-btn" onClick={handleOpenCreate}>
@@ -507,28 +765,30 @@ export const FleetManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-            trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                periodLabel={stat.periodLabel}
+                sparkline={stat.sparkline}
+                trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          {categories.map(cat => (
-            <button 
+          {categories.map((cat) => (
+            <button
               key={cat}
               className={`tauze-tab-item ${activeCategory === cat ? 'active' : ''}`}
               onClick={() => setActiveCategory(cat)}
@@ -540,24 +800,24 @@ export const FleetManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Pesquisar por modelo ou placa..." 
+            placeholder="Pesquisar por modelo ou placa..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -567,7 +827,7 @@ export const FleetManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -575,26 +835,49 @@ export const FleetManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-fleet');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-fleet" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-fleet')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-fleet')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-fleet')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <FleetFilterModal 
+      <FleetFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -603,32 +886,46 @@ export const FleetManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum ativo cadastrado"
-              description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
-              actionLabel="Novo Ativo"
-              onAction={handleOpenCreate}
-              icon={Truck}
-            />}
-            data={machines.filter(m => {
-              const matchesSearch = (
-                (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
-              );
+          <ModernTable
+            emptyState={
+              <EmptyState
+                title="Nenhum ativo cadastrado"
+                description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+                actionLabel="Novo Ativo"
+                onAction={handleOpenCreate}
+                icon={Truck}
+              />
+            }
+            data={machines.filter((m) => {
+              const matchesSearch =
+                (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-              const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-              const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
-              
-              const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-              const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-              
-              const machineYear = m.ano || 0;
-              const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-                                 (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+              const matchesStatus =
+                filterValues.status === 'all' || m.status === filterValues.status;
+              const matchesMarcas =
+                filterValues.marcas.length === 0 ||
+                (m.marca && filterValues.marcas.includes(m.marca));
 
-              return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
+              const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+              const matchesUsage =
+                filterValues.maxUsage >= 10000 ||
+                (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
+
+              const machineYear = m.ano || 0;
+              const matchesYear =
+                (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+                (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+              return (
+                matchesSearch &&
+                matchesCategory &&
+                matchesStatus &&
+                matchesMarcas &&
+                matchesUsage &&
+                matchesYear
+              );
             })}
             columns={columns}
             loading={loading}
@@ -636,13 +933,25 @@ export const FleetManagement: React.FC = () => {
             searchPlaceholder="Filtrar base de ativos..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
+                <button
+                  className="action-dot info"
+                  onClick={() => handleViewHistory(item)}
+                  title="Logs"
+                >
                   <History size={18} />
                 </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
                   <Edit3 size={18} />
                 </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -651,29 +960,41 @@ export const FleetManagement: React.FC = () => {
         ) : (
           <div className="user-cards-grid">
             {(() => {
-              const filteredMachines = machines.filter(m => {
-                const matchesSearch = (
-                  (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
-                );
+              const filteredMachines = machines.filter((m) => {
+                const matchesSearch =
+                  (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-                const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-                const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
-                
-                const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-                const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-                
-                const machineYear = m.ano || 0;
-                const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-                                   (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+                const matchesStatus =
+                  filterValues.status === 'all' || m.status === filterValues.status;
+                const matchesMarcas =
+                  filterValues.marcas.length === 0 ||
+                  (m.marca && filterValues.marcas.includes(m.marca));
 
-                return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
+                const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+                const matchesUsage =
+                  filterValues.maxUsage >= 10000 ||
+                  (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
+
+                const machineYear = m.ano || 0;
+                const matchesYear =
+                  (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+                  (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+                return (
+                  matchesSearch &&
+                  matchesCategory &&
+                  matchesStatus &&
+                  matchesMarcas &&
+                  matchesUsage &&
+                  matchesYear
+                );
               });
 
               if (filteredMachines.length === 0) {
                 return (
-                  <div 
+                  <div
                     className="user-card-premium"
                     style={{
                       display: 'flex',
@@ -688,33 +1009,54 @@ export const FleetManagement: React.FC = () => {
                       gap: '6px',
                       minHeight: '180px',
                       height: '100%',
-                      boxShadow: 'none'
+                      boxShadow: 'none',
                     }}
                   >
-                    <div 
-                      style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        background: 'rgba(16, 185, 129, 0.1)', 
-                        color: '#10b981', 
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        color: '#10b981',
                         borderRadius: '12px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
                       }}
                     >
                       <Truck size={22} />
                     </div>
-                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 800,
+                        color: 'hsl(var(--text-main))',
+                        margin: 0,
+                      }}
+                    >
                       Nenhum ativo encontrado
                     </h3>
-                    <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                    <p
+                      style={{
+                        fontSize: '10.5px',
+                        color: '#64748b',
+                        margin: 0,
+                        lineHeight: '1.3',
+                        maxWidth: '260px',
+                      }}
+                    >
                       Não há maquinários que correspondam aos filtros atuais.
                     </p>
-                    <button 
-                      className="primary-btn" 
+                    <button
+                      className="primary-btn"
                       onClick={handleOpenCreate}
-                      style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                      style={{
+                        fontSize: '10.5px',
+                        padding: '6px 12px',
+                        height: '30px',
+                        marginTop: '4px',
+                        minHeight: 'auto',
+                      }}
                     >
                       <Plus size={12} />
                       <span>NOVO ATIVO</span>
@@ -723,9 +1065,9 @@ export const FleetManagement: React.FC = () => {
                 );
               }
 
-              return filteredMachines.map(m => (
-                <div 
-                  key={m.id} 
+              return filteredMachines.map((m) => (
+                <div
+                  key={m.id}
                   className={`user-card-premium ${m.status === 'active' ? 'active' : m.status === 'maintenance' ? 'warning-badge' : m.status === 'stopped' ? 'danger-badge' : 'inactive-badge'}`}
                 >
                   <div className="card-left-section">
@@ -733,9 +1075,27 @@ export const FleetManagement: React.FC = () => {
                       <Truck size={32} />
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossiê"><History size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(m)} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(m.id)} title="Excluir"><Trash2 size={14} /></button>
+                      <button
+                        className="action-icon-btn info"
+                        onClick={() => handleViewHistory(m)}
+                        title="Dossiê"
+                      >
+                        <History size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn edit"
+                        onClick={() => handleOpenEdit(m)}
+                        title="Editar"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn delete"
+                        onClick={() => handleDelete(m.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
 
@@ -746,19 +1106,37 @@ export const FleetManagement: React.FC = () => {
                     </div>
 
                     <div className="card-meta-grid">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          width: '100%',
+                        }}
+                      >
                         <div className="meta-item">
                           <FileText size={14} className="meta-icon" />
                           <span>{m.placa || m.modelo || 'Sem placa'}</span>
                         </div>
                         <div className="meta-item">
                           <Gauge size={14} className="meta-icon" />
-                          <span>{m.horimetro_atual ? `${m.horimetro_atual}h` : m.quilometragem_atual ? `${m.quilometragem_atual}km` : '0'}</span>
+                          <span>
+                            {m.horimetro_atual
+                              ? `${m.horimetro_atual}h`
+                              : m.quilometragem_atual
+                                ? `${m.quilometragem_atual}km`
+                                : '0'}
+                          </span>
                         </div>
                       </div>
                       <div className="meta-item">
                         <Zap size={14} className="meta-icon" style={{ color: '#8b5cf6' }} />
-                        <span>{m.potencia ? `${m.potencia}cv` : 'Potência N/D'} • {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
+                        <span>
+                          {m.potencia ? `${m.potencia}cv` : 'Potência N/D'} •{' '}
+                          {m.peso_operacional
+                            ? `${(m.peso_operacional / 1000).toFixed(1)}t`
+                            : 'N/D'}
+                        </span>
                       </div>
                       <div className="maintenance-countdown-tauze">
                         <div className="countdown-header">
@@ -773,11 +1151,18 @@ export const FleetManagement: React.FC = () => {
                           return (
                             <div className="countdown-progress-wrapper">
                               <div className="progress-bar-bg">
-                                <motion.div 
-                                  className="progress-bar-fill" 
+                                <motion.div
+                                  className="progress-bar-fill"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${progress}%` }}
-                                  style={{ backgroundColor: progress > 85 ? '#ef4444' : progress > 60 ? '#f59e0b' : '#10b981' }}
+                                  style={{
+                                    backgroundColor:
+                                      progress > 85
+                                        ? '#ef4444'
+                                        : progress > 60
+                                          ? '#f59e0b'
+                                          : '#10b981',
+                                  }}
                                 />
                               </div>
                               <span className="countdown-text">{remaining}h restantes</span>
@@ -991,22 +1376,22 @@ export const FleetManagement: React.FC = () => {
         }
       `}</style>
 
-      <MachineForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <MachineForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedMachine}
       />
 
-      <MaintenanceForm 
+      <MaintenanceForm
         isOpen={isMaintenanceModalOpen}
         onClose={() => setIsMaintenanceModalOpen(false)}
         actionId={formActionId}
         onSubmit={handleMaintenanceSubmit}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title={historyTitle}

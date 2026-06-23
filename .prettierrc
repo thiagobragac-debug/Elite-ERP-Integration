@@ -4,8 +4,9 @@
   "tabWidth": 2,
   "trailingComma": "es5",
   "printWidth": 100,
-  "arrowParens": "avoid",
+  "arrowParens": "always",
   "endOfLine": "lf",
+  "useTabs": false,
   "bracketSpacing": true,
   "jsxSingleQuote": false,
   "quoteProps": "as-needed"

@@ -19,11 +19,11 @@ import { useEffect, useRef } from 'react';
  * @param initialData - dados de edição. Se preenchido, NÃO reseta (modo edição)
  * @param resetFn    - função que executa o reset de todos os estados locais
  */
-export function useFormReset(
+export function useFormReset<T = unknown>(
   isOpen: boolean,
-  initialData: any,
+  initialData: T | null | undefined,
   resetFn: () => void
-) {
+): void {
   const wasOpen = useRef(false);
 
   useEffect(() => {
@@ -32,5 +32,5 @@ export function useFormReset(
       resetFn();
     }
     wasOpen.current = isOpen;
-  }, [isOpen]);
+  }, [isOpen, initialData, resetFn]);
 }

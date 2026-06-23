@@ -9,7 +9,7 @@ export type ReportStat = {
   periodLabel?: string;
   sparkline?: { value: number; label?: string }[];
   icon?: any;
-}
+};
 
 export type ReportData = {
   data: any[];
@@ -19,15 +19,14 @@ export type ReportData = {
   healthScore?: number;
   loading?: boolean;
   error?: string | null;
-}
+};
 
 export type ReportHandler = (
-  tenantId: string, 
-  fazendaId?: string, 
-  page?: number, 
+  tenantId: string,
+  fazendaId?: string,
+  page?: number,
   pageSize?: number,
   filters?: any
 ) => Promise<Partial<ReportData> & { totalCount?: number }>;
 
 export const REPORTS_MODULE_MARKER = true;
-

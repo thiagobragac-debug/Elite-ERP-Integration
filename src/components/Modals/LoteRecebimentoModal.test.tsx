@@ -53,9 +53,7 @@ describe('LoteRecebimentoModal', () => {
 
     // Check title and subtitle
     expect(screen.getByText('Recebimento de Gado')).toBeInTheDocument();
-    expect(
-      screen.getByText('Nota Fiscal de Fornecedor Exemplo · 50 cabeças')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Nota Fiscal de Fornecedor Exemplo · 50 cabeças')).toBeInTheDocument();
 
     // Check cost computation (R$ 100.000 / 50 = R$ 2.000,00)
     expect(screen.getByText('Custo estimado/cabeça:')).toBeInTheDocument();
@@ -85,10 +83,7 @@ describe('LoteRecebimentoModal', () => {
     vi.advanceTimersByTime(1500);
     await Promise.resolve();
 
-    expect(defaultProps.onSuccess).toHaveBeenCalledWith(
-      expect.any(String),
-      'pendente'
-    );
+    expect(defaultProps.onSuccess).toHaveBeenCalledWith(expect.any(String), 'pendente');
     expect(defaultProps.onClose).toHaveBeenCalled();
 
     vi.useRealTimers();
@@ -110,9 +105,7 @@ describe('LoteRecebimentoModal', () => {
     fireEvent.click(lot1Card);
 
     // Divergence warning should show
-    expect(
-      screen.getByText(/Divergência detectada/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Divergência detectada/i)).toBeInTheDocument();
 
     // Click submit
     const linkBtn = screen.getByRole('button', { name: /Vincular e Calcular Custo\/Cabeça/i });

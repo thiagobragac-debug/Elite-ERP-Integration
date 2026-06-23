@@ -1,0 +1,400 @@
+# Lighthouse Audit Workflow
+
+## Visual Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     TASK 26.1 WORKFLOW                      │
+│              Initial Lighthouse Audit Setup                 │
+└─────────────────────────────────────────────────────────────┘
+
+PHASE 1: PREPARATION (Automated ✅)
+┌──────────────────────────────────────┐
+│  Development Server                  │
+│  ✅ Running on localhost:5173       │
+│  ✅ Application accessible           │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Documentation Created               │
+│  ✅ Main guide                       │
+│  ✅ Quick checklist                  │
+│  ✅ Results template                 │
+│  ✅ Directory structure              │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+
+PHASE 2: EXECUTION (Manual Required ⏳)
+┌──────────────────────────────────────┐
+│  Step 1: Open Chrome                 │
+│  → Navigate to localhost:5173        │
+│  → Open DevTools (F12)               │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Step 2: Configure Lighthouse        │
+│  → Select all 4 categories           │
+│  → Choose Desktop device             │
+│  → Set Simulated throttling          │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Step 3: Run Audit                   │
+│  → Click "Analyze page load"         │
+│  → Wait 30-60 seconds                │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Step 4: Review Results              │
+│  → Check overall scores              │
+│  → Review Core Web Vitals            │
+│  → Identify top issues               │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+
+PHASE 3: DOCUMENTATION (Manual Required ⏳)
+┌──────────────────────────────────────┐
+│  Step 5: Export Reports              │
+│  → Save HTML report                  │
+│  → Save JSON data                    │
+│  → Take screenshots                  │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Step 6: Fill Template               │
+│  → Copy baseline-results-template.md │
+│  → Document all scores               │
+│  → List all issues                   │
+│  → Create action plan                │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+
+PHASE 4: ANALYSIS & NEXT STEPS
+┌──────────────────────────────────────┐
+│  Step 7: Analyze & Prioritize        │
+│  → Identify critical issues          │
+│  → Map issues to tasks               │
+│  → Estimate effort                   │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Step 8: Share & Plan                │
+│  → Share with team                   │
+│  → Schedule Task 26.2                │
+│  → Update project tracker            │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  ✅ TASK 26.1 COMPLETE               │
+│  → Proceed to Task 26.2              │
+└──────────────────────────────────────┘
+```
+
+---
+
+## Score Interpretation Flow
+
+```
+┌───────────────────────────────┐
+│  Run Lighthouse Audit         │
+└──────────┬────────────────────┘
+           │
+           ▼
+┌───────────────────────────────┐
+│  Get Score (0-100)            │
+└──────────┬────────────────────┘
+           │
+           ├─────────────────────┐
+           │                     │
+           ▼                     ▼
+   ┌─────────────┐       ┌─────────────┐
+   │  90-100     │       │   50-89     │
+   │  🟢 GREEN   │       │  🟠 ORANGE  │
+   │             │       │             │
+   │  STATUS:    │       │  STATUS:    │
+   │  GOOD       │       │  NEEDS      │
+   │             │       │  IMPROVEMENT│
+   │  ACTION:    │       │             │
+   │  None needed│       │  ACTION:    │
+   │             │       │  Plan fixes │
+   │             │       │  in Task    │
+   │             │       │  26.2/26.3  │
+   └─────────────┘       └─────────────┘
+                                 │
+                                 ▼
+                         ┌─────────────┐
+                         │    0-49     │
+                         │  🔴 RED     │
+                         │             │
+                         │  STATUS:    │
+                         │  POOR       │
+                         │             │
+                         │  ACTION:    │
+                         │  URGENT     │
+                         │  Priority 1 │
+                         │  for Task   │
+                         │  26.2/26.3  │
+                         └─────────────┘
+```
+
+---
+
+## Issue Prioritization Flow
+
+```
+┌──────────────────────────────────┐
+│  Issue Identified                │
+└──────┬───────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────┐
+│  Assess Impact                   │
+│  • High: Blocks 90+ target       │
+│  • Medium: Affects score         │
+│  • Low: Minor improvement        │
+└──────┬───────────────────────────┘
+       │
+       ├───────────┬────────────────┐
+       │           │                │
+       ▼           ▼                ▼
+┌──────────┐ ┌──────────┐  ┌──────────┐
+│ HIGH     │ │ MEDIUM   │  │ LOW      │
+│ IMPACT   │ │ IMPACT   │  │ IMPACT   │
+└────┬─────┘ └────┬─────┘  └────┬─────┘
+     │            │             │
+     ▼            ▼             ▼
+┌──────────┐ ┌──────────┐  ┌──────────┐
+│ Assess   │ │ Assess   │  │ Assess   │
+│ Effort   │ │ Effort   │  │ Effort   │
+└────┬─────┘ └────┬─────┘  └────┬─────┘
+     │            │             │
+     ▼            ▼             ▼
+┌──────────┐ ┌──────────┐  ┌──────────┐
+│ P1       │ │ P2       │  │ P3       │
+│ CRITICAL │ │ IMPORTANT│  │ NICE TO  │
+│          │ │          │  │ HAVE     │
+│ Do First │ │ Do Next  │  │ Do Last  │
+│ Task 26.2│ │ Task 26.2│  │ Task 26.3│
+└──────────┘ └──────────┘  └──────────┘
+```
+
+---
+
+## Category-to-Task Mapping
+
+```
+┌────────────────────────────────────────────────┐
+│         LIGHTHOUSE CATEGORIES                  │
+└────────────────────────────────────────────────┘
+                     │
+        ┌────────────┼─────────────┬──────────────┐
+        │            │             │              │
+        ▼            ▼             ▼              ▼
+┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐
+│ PERFORMANCE  │ │ACCESSIBIL│ │  BEST    │ │   SEO   │
+│              │ │   ITY    │ │PRACTICES │ │         │
+└──────┬───────┘ └────┬─────┘ └────┬─────┘ └────┬────┘
+       │              │            │            │
+       │              │            │            │
+ADDRESSES:      ADDRESSES:    ADDRESSES:   ADDRESSES:
+       │              │            │            │
+       ▼              ▼            ▼            ▼
+┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐
+│ • Bundle size│ │• Alt text│ │• Console │ │• Meta   │
+│ • Code split │ │• Contrast│ │  errors  │ │  tags   │
+│ • Lazy load  │ │• Labels  │ │• Deprec. │ │• Title  │
+│ • Images     │ │• ARIA    │ │  APIs    │ │• hreflng│
+│ • Cache      │ │• Focus   │ │• Security│ │• Struct.│
+│ • LCP/FID/CLS│ │• Headings│ │• HTTPS   │ │  data   │
+└──────┬───────┘ └────┬─────┘ └────┬─────┘ └────┬────┘
+       │              │            │            │
+       │              │            │            │
+       ▼              ▼            ▼            ▼
+┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐
+│  TASK 26.2   │ │TASK 26.3 │ │TASK 26.3 │ │TASK 26.3│
+│              │ │          │ │          │ │         │
+│ Performance  │ │A11y Fixes│ │Best Prac.│ │SEO Fixes│
+│ Optimization │ │          │ │Fixes     │ │         │
+└──────────────┘ └──────────┘ └──────────┘ └─────────┘
+```
+
+---
+
+## Timeline Flow
+
+```
+PHASE 5: MONITORING & OBSERVABILITY
+════════════════════════════════════
+
+Week 8                    Week 9
+│                         │
+├─ DAY 1-2               ├─ DAY 5-6
+│  ┌──────────┐          │  ┌──────────┐
+│  │TASK 26.1 │          │  │TASK 26.3 │
+│  │Baseline  │          │  │A11y/SEO  │
+│  │Audit     │          │  │Fixes     │
+│  └────┬─────┘          │  └────┬─────┘
+│       │                │       │
+├─ DAY 3-4               ├─ DAY 7
+│  ┌────▼─────┐          │  ┌────▼─────┐
+│  │TASK 26.2 │          │  │ VERIFY   │
+│  │Perf.     │          │  │ All 90+  │
+│  │Optimize  │          │  │          │
+│  └──────────┘          │  └──────────┘
+│                        │
+▼                        ▼
+
+CURRENT STATUS: Task 26.1 Setup Complete ✅
+NEXT: User executes Lighthouse audit ⏳
+THEN: Task 26.2 Performance optimizations
+FINALLY: Task 26.3 A11y/SEO fixes
+```
+
+---
+
+## File Organization
+
+```
+c:\Saas\docs\
+│
+├── TASK_26.1_LIGHTHOUSE_AUDIT_GUIDE.md    📘 Main Guide
+├── TASK_26.1_QUICK_CHECKLIST.md           ✅ Quick Ref
+├── TASK_26.1_COMPLETION_SUMMARY.md        📊 Summary
+│
+└── lighthouse-reports\
+    ├── README.md                           📄 Directory Info
+    ├── WORKFLOW.md                         🔄 This File
+    ├── baseline-results-template.md        📝 Template
+    │
+    └── [After Audit - User Creates These]
+        ├── baseline-audit-2024-06-15-1430.html  💾 HTML Report
+        ├── baseline-audit-2024-06-15-1430.json  💾 JSON Data
+        └── baseline-results.md                  📊 Filled Results
+```
+
+---
+
+## Decision Tree
+
+```
+                    START TASK 26.1
+                          │
+                          ▼
+                 ┌────────────────┐
+                 │ Is dev server  │
+            ┌────┤   running?     │────┐
+            │    └────────────────┘    │
+           NO                          YES
+            │                           │
+            ▼                           ▼
+    ┌──────────────┐           ┌──────────────┐
+    │ Run: npm run │           │ Open Chrome  │
+    │     dev      │           │   Browser    │
+    └──────┬───────┘           └──────┬───────┘
+           │                           │
+           └───────────┬───────────────┘
+                       ▼
+                ┌──────────────┐
+                │ Navigate to  │
+                │ localhost:   │
+                │    5173      │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │ Does page    │
+            ┌───┤   load OK?   │───┐
+            │   └──────────────┘   │
+           NO                      YES
+            │                       │
+            ▼                       ▼
+    ┌──────────────┐       ┌──────────────┐
+    │ Check console│       │ Open DevTools│
+    │ for errors   │       │    (F12)     │
+    │ Fix issues   │       └──────┬───────┘
+    └──────────────┘              │
+                                  ▼
+                          ┌──────────────┐
+                          │  Lighthouse  │
+                          │   tab found? │
+                      ┌───┤              │───┐
+                      │   └──────────────┘   │
+                     NO                      YES
+                      │                       │
+                      ▼                       ▼
+              ┌──────────────┐       ┌──────────────┐
+              │ Click >> menu│       │  Configure   │
+              │ Select Light-│       │   Lighthouse │
+              │    house     │       └──────┬───────┘
+              └──────┬───────┘              │
+                     │                      │
+                     └──────────┬───────────┘
+                                ▼
+                        ┌──────────────┐
+                        │ Run Audit    │
+                        └──────┬───────┘
+                               │
+                               ▼
+                        ┌──────────────┐
+                        │  Audit       │
+                    ┌───┤  successful? │───┐
+                    │   └──────────────┘   │
+                   NO                      YES
+                    │                       │
+                    ▼                       ▼
+            ┌──────────────┐       ┌──────────────┐
+            │ Check trouble│       │ Document     │
+            │  shooting    │       │  Results     │
+            │  guide       │       └──────┬───────┘
+            └──────────────┘              │
+                                          ▼
+                                  ┌──────────────┐
+                                  │ Export & Save│
+                                  │   Reports    │
+                                  └──────┬───────┘
+                                         │
+                                         ▼
+                                  ┌──────────────┐
+                                  │   TASK 26.1  │
+                                  │   COMPLETE!  │
+                                  └──────────────┘
+```
+
+---
+
+## Quick Reference
+
+### 🎯 Goal
+Establish baseline performance metrics for Tauze ERP v5.0
+
+### 📍 Current Status
+- ✅ Setup Complete
+- ⏳ Awaiting User Execution
+- 🔜 Task 26.2 (Performance)
+- 🔜 Task 26.3 (A11y/SEO)
+
+### 🔗 Key Files
+1. **Guide:** `../TASK_26.1_LIGHTHOUSE_AUDIT_GUIDE.md`
+2. **Checklist:** `../TASK_26.1_QUICK_CHECKLIST.md`
+3. **Summary:** `../TASK_26.1_COMPLETION_SUMMARY.md`
+4. **Template:** `baseline-results-template.md`
+
+### ⏱️ Time Estimate
+15-30 minutes for complete execution and documentation
+
+### 📊 Success Metrics
+- All 4 category scores documented
+- Core Web Vitals recorded
+- Issues identified and prioritized
+- Reports saved
+- Action plan created

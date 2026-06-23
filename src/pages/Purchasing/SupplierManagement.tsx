@@ -1,12 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -14,19 +25,33 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  ChevronRight, 
+import {
+  Building2,
+  Plus,
+  Search,
+  Phone,
+  Mail,
+  MapPin,
+  ChevronRight,
   MoreVertical,
   Star,
   TrendingUp,
@@ -40,7 +65,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   AlertCircle,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -52,7 +77,13 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { SupplierNetworkMapModal } from '../../components/Modals/SupplierNetworkMapModal';
+import { MapLoading } from '../../components/Map/LazyMap';
+// Lazy load the map modal since it loads heavy Leaflet library
+const SupplierNetworkMapModal = lazy(() =>
+  import('../../components/Modals/SupplierNetworkMapModal').then((m) => ({
+    default: m.SupplierNetworkMapModal,
+  }))
+);
 import { SupplierFilterModal } from './components/SupplierFilterModal';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -63,7 +94,15 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const SupplierManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('SupplierManagement_isModalOpen', false);
@@ -71,13 +110,26 @@ export const SupplierManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'HOMOLOGADO' | 'PENDENTE') || 'HOMOLOGADO';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('SupplierManagement_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'SupplierManagement_isHistoryModalOpen',
+    false
+  );
   const [historySupplierId, setHistorySupplierId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('purchasing-supplier-management', 'grid');
   const [isMapOpen, setIsMapOpen] = usePersistentState('SupplierManagement_isMapOpen', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('SupplierManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'SupplierManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     categories: [] as string[],
@@ -95,131 +147,199 @@ export const SupplierManagement: React.FC = () => {
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
   // React Query Fetch
-  const { data: queryData = { suppliers: [], totalCount: 0, stats: [] }, isLoading: loading } = useQuery({
-    queryKey: ['purchasing_suppliers', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab],
-    queryFn: async () => {
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
+  const { data: queryData = { suppliers: [], totalCount: 0, stats: [] }, isLoading: loading } =
+    useQuery({
+      queryKey: [
+        'purchasing_suppliers',
+        activeFarmId,
+        activeTenantId,
+        isGlobalMode,
+        page,
+        debouncedSearch,
+        filterValues,
+        activeTab,
+      ],
+      queryFn: async () => {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
 
-      let query = supabase
-        .from('parceiros')
-        .select('*', { count: 'exact' })
-        .eq('is_supplier', true)
-        .order('nome', { ascending: true })
-        .range(from, to);
-      
-      query = query.eq('tenant_id', activeTenantId);
+        let query = supabase
+          .from('parceiros')
+          .select('*', { count: 'exact' })
+          .eq('is_supplier', true)
+          .order('nome', { ascending: true })
+          .range(from, to);
 
-      if (debouncedSearch) {
-        query = query.or(`nome.ilike.%${debouncedSearch}%,categoria.ilike.%${debouncedSearch}%`);
-      }
+        query = query.eq('tenant_id', activeTenantId);
 
-      if (activeTab === 'HOMOLOGADO') {
-        query = query.eq('status', 'ATIVO');
-      } else {
-        query = query.neq('status', 'ATIVO');
-      }
+        if (debouncedSearch) {
+          query = query.or(`nome.ilike.%${debouncedSearch}%,categoria.ilike.%${debouncedSearch}%`);
+        }
 
-      if (filterValues.status !== 'all') {
-        query = query.eq('status', filterValues.status);
-      }
+        if (activeTab === 'HOMOLOGADO') {
+          query = query.eq('status', 'ATIVO');
+        } else {
+          query = query.neq('status', 'ATIVO');
+        }
 
-      if (filterValues.categories.length > 0) {
-        query = query.in('categoria', filterValues.categories);
-      }
+        if (filterValues.status !== 'all') {
+          query = query.eq('status', filterValues.status);
+        }
 
-      const { data: supplierData, count, error } = await query;
-      if (error) throw error;
+        if (filterValues.categories.length > 0) {
+          query = query.in('categoria', filterValues.categories);
+        }
 
-      if (!supplierData) return { suppliers: [], totalCount: 0, stats: [] };
+        const { data: supplierData, count, error } = await query;
+        if (error) {
+          throw error;
+        }
 
-      const supplierIds = supplierData.map(s => s.id) || [];
-      let purchaseData: any[] = [];
-      if (supplierIds.length > 0) {
-        const { data: pd } = await supabase
-          .from('notas_entrada')
-          .select('fornecedor_id, valor_total')
-          .in('fornecedor_id', supplierIds);
-        purchaseData = pd || [];
-      }
+        if (!supplierData) {
+          return { suppliers: [], totalCount: 0, stats: [] };
+        }
 
-      const spendMap: Record<string, number> = {};
-      let totalSpend = 0;
-      purchaseData.forEach((n: any) => {
-        const fid = n.fornecedor_id;
-        spendMap[fid] = (spendMap[fid] || 0) + Number(n.valor_total);
-        totalSpend += Number(n.valor_total);
-      });
+        const supplierIds = supplierData.map((s) => s.id) || [];
+        let purchaseData: any[] = [];
+        if (supplierIds.length > 0) {
+          const { data: pd } = await supabase
+            .from('notas_entrada')
+            .select('fornecedor_id, valor_total')
+            .in('fornecedor_id', supplierIds);
+          purchaseData = pd || [];
+        }
 
-      const processedSuppliers = supplierData.map((s: any) => ({
-        ...s,
-        totalSpend: spendMap[s.id] || 0,
-        rating: spendMap[s.id] ? Math.min(5, 3 + (spendMap[s.id] / 100000)) : 0
-      }));
+        const spendMap: Record<string, number> = {};
+        let totalSpend = 0;
+        purchaseData.forEach((n: any) => {
+          const fid = n.fornecedor_id;
+          spendMap[fid] = (spendMap[fid] || 0) + Number(n.valor_total);
+          totalSpend += Number(n.valor_total);
+        });
 
-      const computedStats = [
-        { 
-          label: 'Fornecedores Ativos', value: count || 0, icon: Building2, color: '#10b981', 
-          progress: 100, change: 'Homologados',
-          sparkline: buildSparkline(supplierData || [], 'created_at', null)
-        },
-        { 
-          label: 'Volume Procurement', value: totalSpend > 0 ? `R$ ${(totalSpend / 1000).toFixed(1)}k` : '---', 
-          icon: TrendingUp, color: '#3b82f6', 
-          progress: totalSpend > 0 ? 100 : 0, 
-          trend: 'up' as const, change: 'Total Compras',
-          sparkline: buildSparkline(supplierData || [], 'created_at', null)
-        },
-        { 
-          label: 'Risco Concentração', 
-          value: (() => {
-            if (totalSpend <= 0 || processedSuppliers.length === 0) return '---';
-            const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
-            const pct = (topSpend / totalSpend) * 100;
-            return `${pct.toFixed(1)}%`;
-          })(),
-          icon: AlertCircle, color: '#f59e0b', 
-          progress: (() => {
-            if (totalSpend <= 0 || processedSuppliers.length === 0) return 0;
-            const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
-            return Math.min(100, (topSpend / totalSpend) * 100);
-          })(),
-          change: 'Concentração Lead',
-          sparkline: buildSparkline(supplierData || [], 'created_at', null)
-        },
-        { 
-          label: 'Rating Médio Rede', 
-          value: (() => {
-            const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
-            if (withRating.length === 0) return '---';
-            const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
-            return avg.toFixed(1);
-          })(),
-          icon: Star, color: '#166534', 
-          progress: (() => {
-            const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
-            if (withRating.length === 0) return 0;
-            const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
-            return Math.min(100, avg * 20);
-          })(),
-          change: 'Rating Eficiência',
-          sparkline: buildSparkline(supplierData || [], 'created_at', null)
-        },
-      ];
+        const processedSuppliers = supplierData.map((s: any) => ({
+          ...s,
+          totalSpend: spendMap[s.id] || 0,
+          rating: spendMap[s.id] ? Math.min(5, 3 + spendMap[s.id] / 100000) : 0,
+        }));
 
-      return { suppliers: processedSuppliers, totalCount: count || 0, stats: computedStats };
-    },
-    enabled: isReady
-  });
+        const computedStats = [
+          {
+            label: 'Fornecedores Ativos',
+            value: count || 0,
+            icon: Building2,
+            color: '#10b981',
+            progress: 100,
+            change: 'Homologados',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null),
+          },
+          {
+            label: 'Volume Procurement',
+            value: totalSpend > 0 ? `R$ ${(totalSpend / 1000).toFixed(1)}k` : '---',
+            icon: TrendingUp,
+            color: '#3b82f6',
+            progress: totalSpend > 0 ? 100 : 0,
+            trend: 'up' as const,
+            change: 'Total Compras',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null),
+          },
+          {
+            label: 'Risco Concentração',
+            value: (() => {
+              if (totalSpend <= 0 || processedSuppliers.length === 0) {
+                return '---';
+              }
+              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+              const pct = (topSpend / totalSpend) * 100;
+              return `${pct.toFixed(1)}%`;
+            })(),
+            icon: AlertCircle,
+            color: '#f59e0b',
+            progress: (() => {
+              if (totalSpend <= 0 || processedSuppliers.length === 0) {
+                return 0;
+              }
+              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+              return Math.min(100, (topSpend / totalSpend) * 100);
+            })(),
+            change: 'Concentração Lead',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null),
+          },
+          {
+            label: 'Rating Médio Rede',
+            value: (() => {
+              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+              if (withRating.length === 0) {
+                return '---';
+              }
+              const avg =
+                withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+              return avg.toFixed(1);
+            })(),
+            icon: Star,
+            color: '#166534',
+            progress: (() => {
+              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+              if (withRating.length === 0) {
+                return 0;
+              }
+              const avg =
+                withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+              return Math.min(100, avg * 20);
+            })(),
+            change: 'Rating Eficiência',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null),
+          },
+        ];
 
-  const suppliers = queryData.suppliers;
-  const totalCount = queryData.totalCount;
-  const stats = queryData.stats.length > 0 ? queryData.stats : [
-    { label: 'Fornecedores Ativos', value: 0, icon: Building2, color: '#10b981', progress: 0, change: 'Processando...', sparkline: [] },
-    { label: 'Volume Procurement', value: '---', icon: TrendingUp, color: '#3b82f6', progress: 0, change: 'Processando...', sparkline: [] },
-    { label: 'Risco Concentração', value: '---', icon: AlertCircle, color: '#f59e0b', progress: 0, change: 'Processando...', sparkline: [] },
-    { label: 'Rating Médio Rede', value: '---', icon: Star, color: '#166534', progress: 0, change: 'Processando...', sparkline: [] }
-  ];
+        return { suppliers: processedSuppliers, totalCount: count || 0, stats: computedStats };
+      },
+      enabled: isReady,
+    });
+
+  const { suppliers } = queryData;
+  const { totalCount } = queryData;
+  const stats =
+    queryData.stats.length > 0
+      ? queryData.stats
+      : [
+          {
+            label: 'Fornecedores Ativos',
+            value: 0,
+            icon: Building2,
+            color: '#10b981',
+            progress: 0,
+            change: 'Processando...',
+            sparkline: [],
+          },
+          {
+            label: 'Volume Procurement',
+            value: '---',
+            icon: TrendingUp,
+            color: '#3b82f6',
+            progress: 0,
+            change: 'Processando...',
+            sparkline: [],
+          },
+          {
+            label: 'Risco Concentração',
+            value: '---',
+            icon: AlertCircle,
+            color: '#f59e0b',
+            progress: 0,
+            change: 'Processando...',
+            sparkline: [],
+          },
+          {
+            label: 'Rating Médio Rede',
+            value: '---',
+            icon: Star,
+            color: '#166534',
+            progress: 0,
+            change: 'Processando...',
+            sparkline: [],
+          },
+        ];
 
   const handleOpenCreate = () => {
     setSelectedSupplier(null);
@@ -249,52 +369,66 @@ export const SupplierManagement: React.FC = () => {
         pais: formData.pais,
         status: formData.status,
         latitude: formData.latitude,
-        longitude: formData.longitude
+        longitude: formData.longitude,
       };
 
       if (selectedSupplier) {
-        const { error } = await supabase.from('parceiros').update({
-          ...payload,
-          is_supplier: true,
-          is_global: formData.is_global,
-          fazendas_vinculadas: formData.fazendas_vinculadas
-        }).eq('id', selectedSupplier.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('parceiros')
+          .update({
+            ...payload,
+            is_supplier: true,
+            is_global: formData.is_global,
+            fazendas_vinculadas: formData.fazendas_vinculadas,
+          })
+          .eq('id', selectedSupplier.id);
+        if (error) {
+          throw error;
+        }
       } else {
         // Verificar se já existe um parceiro com esse CNPJ/CPF
-        let cleanCnpj = formData.cnpj?.replace(/\D/g, '');
+        const cleanCnpj = formData.cnpj?.replace(/\D/g, '');
         if (cleanCnpj && cleanCnpj.length > 0) {
-            const { data: existing } = await supabase
-              .from('parceiros')
-              .select('id, is_supplier, is_customer')
-              .eq('cnpj_cpf', formData.cnpj)
-              .maybeSingle();
+          const { data: existing } = await supabase
+            .from('parceiros')
+            .select('id, is_supplier, is_customer')
+            .eq('cnpj_cpf', formData.cnpj)
+            .maybeSingle();
 
-            if (existing) {
-                if (existing.is_supplier) {
-                    throw new Error('Este CPF/CNPJ já está cadastrado como fornecedor!');
-                }
-                
-                const { error } = await supabase.from('parceiros').update({
-                    ...payload,
-                    is_supplier: true,
-                    tenant_id: activeTenantId || activeFarm?.tenantId,
-                    is_global: formData.is_global,
-                    fazendas_vinculadas: formData.fazendas_vinculadas
-                }).eq('id', existing.id);
-                if (error) throw error;
-                return { type: 'unified' };
+          if (existing) {
+            if (existing.is_supplier) {
+              throw new Error('Este CPF/CNPJ já está cadastrado como fornecedor!');
             }
+
+            const { error } = await supabase
+              .from('parceiros')
+              .update({
+                ...payload,
+                is_supplier: true,
+                tenant_id: activeTenantId || activeFarm?.tenantId,
+                is_global: formData.is_global,
+                fazendas_vinculadas: formData.fazendas_vinculadas,
+              })
+              .eq('id', existing.id);
+            if (error) {
+              throw error;
+            }
+            return { type: 'unified' };
+          }
         }
 
-        const { error } = await supabase.from('parceiros').insert([{ 
-          ...payload, 
-          is_supplier: true,
-          tenant_id: activeTenantId || activeFarm?.tenantId,
-          is_global: formData.is_global,
-          fazendas_vinculadas: formData.fazendas_vinculadas
-        }]);
-        if (error) throw error;
+        const { error } = await supabase.from('parceiros').insert([
+          {
+            ...payload,
+            is_supplier: true,
+            tenant_id: activeTenantId || activeFarm?.tenantId,
+            is_global: formData.is_global,
+            fazendas_vinculadas: formData.fazendas_vinculadas,
+          },
+        ]);
+        if (error) {
+          throw error;
+        }
       }
       return { type: 'normal' };
     },
@@ -309,12 +443,14 @@ export const SupplierManagement: React.FC = () => {
     },
     onError: (err: any) => {
       console.error('[SupplierManagement] Erro ao salvar parceiro:', err);
-      toast.error('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
-    }
+      toast.error(`❌ Erro ao salvar parceiro: ${err.message || 'Erro desconhecido'}`);
+    },
   });
 
   const handleSubmit = async (formData: any) => {
-    if (!activeTenantId && !activeFarm && !selectedSupplier) return;
+    if (!activeTenantId && !activeFarm && !selectedSupplier) {
+      return;
+    }
     saveSupplierMutation.mutate(formData);
   };
 
@@ -323,38 +459,64 @@ export const SupplierManagement: React.FC = () => {
   const deleteSupplierMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('parceiros').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing_suppliers'] });
       toast.success('Fornecedor excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir parceiro: ' + err.message);
-    }
+      toast.error(`❌ Erro ao excluir parceiro: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este parceiro?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este parceiro?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteSupplierMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = suppliers.filter(sup => {
-      const matchesSearch = (sup.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (sup.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'HOMOLOGADO' ? sup.status === 'ATIVO' : sup.status !== 'ATIVO';
-      const matchesFarm = isGlobalMode || sup.is_global || (activeFarm && sup.fazendas_vinculadas?.includes(activeFarm.id));
-      
+    const filteredData = suppliers.filter((sup) => {
+      const matchesSearch =
+        (sup.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (sup.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab =
+        activeTab === 'HOMOLOGADO' ? sup.status === 'ATIVO' : sup.status !== 'ATIVO';
+      const matchesFarm =
+        isGlobalMode ||
+        sup.is_global ||
+        (activeFarm && sup.fazendas_vinculadas?.includes(activeFarm.id));
+
       const matchesStatus = filterValues.status === 'all' || sup.status === filterValues.status;
       const matchesRating = (sup.rating || 0) >= filterValues.minRating;
-      const matchesSpend = filterValues.maxSpend >= 1000000 || ((sup.totalSpend || 0) <= filterValues.maxSpend);
-      const matchesCategories = filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
+      const matchesSpend =
+        filterValues.maxSpend >= 1000000 || (sup.totalSpend || 0) <= filterValues.maxSpend;
+      const matchesCategories =
+        filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
 
-      return matchesSearch && matchesTab && matchesFarm && matchesStatus && matchesRating && matchesSpend && matchesCategories;
+      return (
+        matchesSearch &&
+        matchesTab &&
+        matchesFarm &&
+        matchesStatus &&
+        matchesRating &&
+        matchesSpend &&
+        matchesCategories
+      );
     });
 
-    const exportData = filteredData.map(item => ({
+    const exportData = filteredData.map((item) => ({
       Nome: item.nome,
       Documento: item.cnpj_cpf || '-',
       Categoria: item.categoria,
@@ -364,18 +526,24 @@ export const SupplierManagement: React.FC = () => {
       Estado: item.estado || '-',
       Gasto_Total: item.totalSpend || 0,
       Rating: item.rating?.toFixed(1) || '0.0',
-      Status: item.status
+      Status: item.status,
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'fornecedores');
-    else if (format === 'excel') exportToExcel(exportData, 'fornecedores');
-    else if (format === 'pdf') exportToPDF(exportData, 'fornecedores', 'Relatório de Parceiroes Homologados');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'fornecedores');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'fornecedores');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'fornecedores', 'Relatório de Parceiroes Homologados');
+    }
   };
 
   const { data: historyItems = [], isLoading: historyLoading } = useQuery({
     queryKey: ['purchasing_supplier_history', historySupplierId, activeTenantId, activeFarm?.id],
     queryFn: async () => {
-      if (!historySupplierId) return [];
+      if (!historySupplierId) {
+        return [];
+      }
       const { data, error } = await supabase
         .from('notas_entrada')
         .select('*')
@@ -384,23 +552,37 @@ export const SupplierManagement: React.FC = () => {
         .order('data_entrada', { ascending: false })
         .limit(500);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       if (data && data.length > 0) {
-        return data.map(n => ({
+        return data.map((n) => ({
           id: n.id,
           date: n.data_entrada,
-          title: 'Nota Fiscal: ' + n.numero_nota,
+          title: `Nota Fiscal: ${n.numero_nota}`,
           subtitle: n.observacoes || 'Compra de Insumos',
-          value: Number(n.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          status: 'success' as const
+          value: Number(n.valor_total).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+          }),
+          status: 'success' as const,
         }));
       }
 
       const sup = suppliers.find((s: any) => s.id === historySupplierId);
       const createdAt = sup?.created_at || new Date().toISOString();
-      return [{ id: '1', date: createdAt, title: 'Cadastro Inicial', subtitle: 'Parceiro homologado', value: 'OK', status: 'info' as const }];
+      return [
+        {
+          id: '1',
+          date: createdAt,
+          title: 'Cadastro Inicial',
+          subtitle: 'Parceiro homologado',
+          value: 'OK',
+          status: 'info' as const,
+        },
+      ];
     },
-    enabled: !!historySupplierId && isReady
+    enabled: !!historySupplierId && isReady,
   });
 
   const handleViewHistory = (sup: any) => {
@@ -413,13 +595,18 @@ export const SupplierManagement: React.FC = () => {
       header: 'Fornecedor / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.nome}
+          </span>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'CNPJ / CPF',
@@ -428,12 +615,20 @@ export const SupplierManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.cnpj_cpf || 'Sem documento'}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             Documento
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Categoria & Segmento',
@@ -442,27 +637,52 @@ export const SupplierManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.categoria}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             Insumos
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Rating & Performance',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontSize: '12px', fontWeight: 800 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              color: '#f59e0b',
+              fontSize: '12px',
+              fontWeight: 800,
+            }}
+          >
             <Star size={14} fill="currentColor" />
             <span>{item.rating?.toFixed(1) || '0.0'}</span>
           </div>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             Eficiência Rede
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Volume Compras (Gasto)',
@@ -473,41 +693,73 @@ export const SupplierManagement: React.FC = () => {
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Contato & Telefone',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '2px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
             <Phone size={12} color="#94a3b8" />
             {item.telefone || 'N/A'}
           </span>
-          <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+          <span
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              color: '#94a3b8',
+              textTransform: 'uppercase',
+            }}
+          >
             {item.email || 'Sem E-mail'}
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="suppliers-page animate-slide-up">
-      {(!activeFarm && !isGlobalMode) && (
+      {!activeFarm && !isGlobalMode && (
         <div className="no-farm-selected-overlay">
           <div className="glass-card text-center p-12">
             <Building2 size={64} className="mx-auto mb-6 opacity-20" />
             <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
-            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar fornecedores.</p>
+            <p className="text-slate-400">
+              Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar
+              fornecedores.
+            </p>
           </div>
         </div>
       )}
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Fornecedores' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Fornecedores' }]}
+          />
           <h1 className="page-title">Fornecedores</h1>
-          <p className="page-subtitle">Homologação de fornecedores, análise de performance e histórico transacional de compras em tempo real.</p>
+          <p className="page-subtitle">
+            Homologação de fornecedores, análise de performance e histórico transacional de compras
+            em tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsMapOpen(true)}>
@@ -522,25 +774,32 @@ export const SupplierManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Building2} color=""  periodLabel="Mês Atual" />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            {...stat}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <TauzeStatCard
+                  key={i}
+                  loading={true}
+                  label=""
+                  value=""
+                  icon={Building2}
+                  color=""
+                  periodLabel="Mês Atual"
+                />
+              ))
+          : stats.map((stat, idx) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'HOMOLOGADO' ? 'active' : ''}`}
             onClick={() => setActiveTab('HOMOLOGADO')}
           >
             Rede Homologada
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
             onClick={() => setActiveTab('PENDENTE')}
           >
@@ -550,24 +809,24 @@ export const SupplierManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Pesquisar por nome, categoria ou contato..." 
+            placeholder="Pesquisar por nome, categoria ou contato..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -577,7 +836,7 @@ export const SupplierManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -585,26 +844,49 @@ export const SupplierManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-suppliers');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-suppliers" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-suppliers')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-suppliers')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-suppliers')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <SupplierFilterModal 
+      <SupplierFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -613,7 +895,7 @@ export const SupplierManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             data={suppliers}
             columns={columns}
             loading={loading}
@@ -625,8 +907,16 @@ export const SupplierManagement: React.FC = () => {
             emptyState={
               !searchTerm ? (
                 <EmptyState
-                  title={activeTab === 'HOMOLOGADO' ? "Nenhum fornecedor homologado" : "Nenhum fornecedor pendente"}
-                  description={activeTab === 'HOMOLOGADO' ? "Você não possui fornecedores ativos cadastrados nesta unidade." : "Não há fornecedores com pendências de cadastro no momento."}
+                  title={
+                    activeTab === 'HOMOLOGADO'
+                      ? 'Nenhum fornecedor homologado'
+                      : 'Nenhum fornecedor pendente'
+                  }
+                  description={
+                    activeTab === 'HOMOLOGADO'
+                      ? 'Você não possui fornecedores ativos cadastrados nesta unidade.'
+                      : 'Não há fornecedores com pendências de cadastro no momento.'
+                  }
                   actionLabel="Novo Fornecedor"
                   onAction={handleOpenCreate}
                   icon={Building2}
@@ -641,26 +931,34 @@ export const SupplierManagement: React.FC = () => {
             }
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Dossiê">
+                <button
+                  className="action-dot info"
+                  onClick={() => handleViewHistory(item)}
+                  title="Dossiê"
+                >
                   <History size={18} />
                 </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
                   <Edit3 size={18} />
                 </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
                   <Trash2 size={18} />
                 </button>
               </div>
             )}
           />
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="user-cards-grid">
             {suppliers.length === 0 ? (
-              <div 
+              <div
                 className="user-card-premium"
                 style={{
                   display: 'flex',
@@ -675,34 +973,67 @@ export const SupplierManagement: React.FC = () => {
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    background: 'rgba(16, 185, 129, 0.1)', 
-                    color: '#10b981', 
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
-                  {!searchTerm ? <Building2 size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                  {!searchTerm ? (
+                    <Building2 size={22} style={{ color: 'hsl(var(--brand))' }} />
+                  ) : (
+                    <Search size={22} />
+                  )}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {!searchTerm ? (activeTab === 'HOMOLOGADO' ? 'Nenhum fornecedor homologado' : 'Nenhum fornecedor pendente') : 'Nenhum registro encontrado'}
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {!searchTerm
+                    ? activeTab === 'HOMOLOGADO'
+                      ? 'Nenhum fornecedor homologado'
+                      : 'Nenhum fornecedor pendente'
+                    : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {!searchTerm ? (activeTab === 'HOMOLOGADO' ? 'Você não possui fornecedores ativos cadastrados nesta unidade.' : 'Não há fornecedores com pendências de cadastro no momento.') : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {!searchTerm
+                    ? activeTab === 'HOMOLOGADO'
+                      ? 'Você não possui fornecedores ativos cadastrados nesta unidade.'
+                      : 'Não há fornecedores com pendências de cadastro no momento.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
                 {!searchTerm && (
-                  <button 
-                    className="primary-btn" 
+                  <button
+                    className="primary-btn"
                     onClick={handleOpenCreate}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO FORNECEDOR</span>
@@ -710,70 +1041,194 @@ export const SupplierManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              suppliers.map(sup => (
-                <motion.div 
-                  key={sup.id} 
+              suppliers.map((sup) => (
+                <motion.div
+                  key={sup.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium ${sup.status === 'ATIVO' ? 'active' : ''}`}
                 >
                   {/* LEFT — avatar + actions */}
                   <div className="card-left-section">
-                    <div className="card-avatar" style={{
-                      background: 'hsl(142 71% 45% / 0.08)',
-                      color: '#16a34a',
-                      border: '1.5px solid hsl(142 71% 45% / 0.2)',
-                      borderRadius: '16px',
-                      fontSize: '22px'
-                    }}>
+                    <div
+                      className="card-avatar"
+                      style={{
+                        background: 'hsl(142 71% 45% / 0.08)',
+                        color: '#16a34a',
+                        border: '1.5px solid hsl(142 71% 45% / 0.2)',
+                        borderRadius: '16px',
+                        fontSize: '22px',
+                      }}
+                    >
                       {sup.nome?.charAt(0)?.toUpperCase() || 'F'}
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewHistory(sup)} title="Dossiê"><History size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(sup)} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(sup.id)} title="Excluir"><Trash2 size={14} /></button>
+                      <button
+                        className="action-icon-btn info"
+                        onClick={() => handleViewHistory(sup)}
+                        title="Dossiê"
+                      >
+                        <History size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn edit"
+                        onClick={() => handleOpenEdit(sup)}
+                        title="Editar"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn delete"
+                        onClick={() => handleDelete(sup.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
 
                   {/* RIGHT — content */}
                   <div className="card-main-content">
                     {/* Row 1: Name + status badge */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
-                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 900, color: 'hsl(var(--text-main))', lineHeight: 1.3, wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                        marginBottom: '2px',
+                      }}
+                    >
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          fontWeight: 900,
+                          color: 'hsl(var(--text-main))',
+                          lineHeight: 1.3,
+                          wordBreak: 'break-word',
+                          flex: '1 1 auto',
+                          minWidth: 0,
+                        }}
+                      >
                         {sup.nome}
                       </h3>
-                      <span style={{
-                        fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' as const, letterSpacing: '0.05em', flexShrink: 0,
-                        background: sup.status === 'ATIVO' ? 'rgba(22,163,74,0.12)' : 'rgba(234,179,8,0.12)',
-                        color: sup.status === 'ATIVO' ? '#16a34a' : '#ca8a04'
-                      }}>{sup.status || 'ATIVO'}</span>
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: 900,
+                          padding: '3px 8px',
+                          borderRadius: '20px',
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.05em',
+                          flexShrink: 0,
+                          background:
+                            sup.status === 'ATIVO'
+                              ? 'rgba(22,163,74,0.12)'
+                              : 'rgba(234,179,8,0.12)',
+                          color: sup.status === 'ATIVO' ? '#16a34a' : '#ca8a04',
+                        }}
+                      >
+                        {sup.status || 'ATIVO'}
+                      </span>
                     </div>
 
                     {/* Row 2: Category + CNPJ */}
-                    <span style={{ display: 'inline-block', fontSize: '9px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '10px' }}>
-                      {sup.categoria || 'Geral'}{sup.cnpj_cpf ? ` • ${sup.cnpj_cpf}` : ''}
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        color: 'hsl(var(--text-muted))',
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: '0.05em',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      {sup.categoria || 'Geral'}
+                      {sup.cnpj_cpf ? ` • ${sup.cnpj_cpf}` : ''}
                     </span>
 
                     {/* Row 3: Spend metric */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>VOLUME COMPRAS</span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          color: 'hsl(var(--text-muted))',
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        VOLUME COMPRAS
+                      </span>
                       <span style={{ fontSize: '15px', fontWeight: 900, color: '#059669' }}>
                         R$ {Number(sup.totalSpend || 0).toLocaleString('pt-BR')}
                       </span>
                     </div>
 
                     {/* Spend bar */}
-                    <div style={{ height: '3px', borderRadius: '99px', background: 'hsl(var(--border))', marginBottom: '8px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: '99px', width: `${Math.min(100, (sup.totalSpend || 0) / 1000)}%`, background: '#10b981', transition: 'width 0.5s' }} />
+                    <div
+                      style={{
+                        height: '3px',
+                        borderRadius: '99px',
+                        background: 'hsl(var(--border))',
+                        marginBottom: '8px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          borderRadius: '99px',
+                          width: `${Math.min(100, (sup.totalSpend || 0) / 1000)}%`,
+                          background: '#10b981',
+                          transition: 'width 0.5s',
+                        }}
+                      />
                     </div>
 
                     {/* Footer: city + phone */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed hsl(var(--border))', paddingTop: '6px', marginTop: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderTop: '1px dashed hsl(var(--border))',
+                        paddingTop: '6px',
+                        marginTop: '2px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          color: 'hsl(var(--text-muted))',
+                        }}
+                      >
                         <MapPin size={11} style={{ color: 'hsl(var(--brand))' }} />
                         <span>{sup.cidade ? `${sup.cidade}/${sup.estado}` : 'Sem endereço'}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          color: 'hsl(var(--text-muted))',
+                        }}
+                      >
                         <Phone size={11} style={{ color: 'hsl(var(--brand))' }} />
                         <span>{sup.telefone || 'Sem telefone'}</span>
                       </div>
@@ -1021,15 +1476,15 @@ export const SupplierManagement: React.FC = () => {
         }
       `}</style>
 
-      <SupplierForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <SupplierForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         initialData={selectedSupplier}
         loading={isSubmitting}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê do Parceiro"
@@ -1038,11 +1493,13 @@ export const SupplierManagement: React.FC = () => {
         loading={historyLoading}
       />
 
-      <SupplierNetworkMapModal 
-        isOpen={isMapOpen}
-        onClose={() => setIsMapOpen(false)}
-        suppliers={suppliers}
-      />
+      <Suspense fallback={<MapLoading />}>
+        <SupplierNetworkMapModal
+          isOpen={isMapOpen}
+          onClose={() => setIsMapOpen(false)}
+          suppliers={suppliers}
+        />
+      </Suspense>
     </div>
   );
 };

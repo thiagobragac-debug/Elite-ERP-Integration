@@ -91,7 +91,8 @@
   overflow: hidden;
 }
 
-.info-panel, .timeline-panel {
+.info-panel,
+.timeline-panel {
   background: hsl(var(--bg-card));
   padding: 24px;
   border-radius: 24px;
@@ -222,9 +223,15 @@
 }
 
 @keyframes skeleton-pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 0.2; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .skeleton-pulse {

@@ -1,16 +1,17 @@
 import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
-// @ts-ignore
+// @ts-ignore - html2pdf.js doesn't have TypeScript definitions
 import html2pdf from 'html2pdf.js';
-import { Search, 
-  X, 
-  Download, 
-  Printer, 
-  Share2, 
-  TrendingUp, 
+import {
+  Search,
+  X,
+  Download,
+  Printer,
+  Share2,
+  TrendingUp,
   TrendingDown,
   ChevronLeft,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
@@ -18,7 +19,7 @@ import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
 import { useTenant } from '../../../contexts/TenantContext';
 import { supabase } from '../../../lib/supabase';
 import { useReportData } from '../../../hooks/useReportData';
-import { exportToExcel } from '../../../utils/exportUtils';
+import { exportToBrazilianCSV } from '../../../utils/export';
 import { EmptyState } from '../../../components/Feedback/EmptyState';
 
 interface ReportViewerProps {
@@ -36,13 +37,20 @@ const ReportPrintLayout: React.FC<{
 }> = ({ report, data, stats, columns, activeFarm }) => (
   <div className="pdf-print-root">
     <div className="print-watermark">TAUZE ERP</div>
-    
+
     <div className="print-modern-header">
-      <div className="header-top-bar"></div>
+      <div className="header-top-bar" />
       <div className="header-content">
         <div className="print-logo-section">
           <div className="print-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
@@ -55,7 +63,10 @@ const ReportPrintLayout: React.FC<{
         </div>
         <div className="print-report-meta">
           <div className="meta-badge">CONFIDENCIAL</div>
-          <div className="meta-text"><strong>Gerado em:</strong> {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div className="meta-text">
+            <strong>Gerado em:</strong> {new Date().toLocaleDateString('pt-BR')} às{' '}
+            {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
       </div>
     </div>
@@ -76,19 +87,20 @@ const ReportPrintLayout: React.FC<{
     <div className="viewer-content print-viewer-content">
       <div className="next-gen-kpi-grid">
         {(stats || []).map((s, idx) => {
-           const Icon = s.icon || (s.trend === 'down' ? TrendingDown : TrendingUp);
-           return (
-           <div key={idx} className="print-stat-card">
-             <div className="stat-header">
-               <span className="stat-label">{s.label}</span>
-               <Icon size={16} color={s.trend === 'down' ? "#ef4444" : "#10b981"} />
-             </div>
-             <div className="stat-value" style={{ color: '#0f172a' }}>{s.value}</div>
-             <div className={`stat-trend ${s.trend}`}>
-               {s.change}
-             </div>
-           </div>
-        );})}
+          const Icon = s.icon || (s.trend === 'down' ? TrendingDown : TrendingUp);
+          return (
+            <div key={idx} className="print-stat-card">
+              <div className="stat-header">
+                <span className="stat-label">{s.label}</span>
+                <Icon size={16} color={s.trend === 'down' ? '#ef4444' : '#10b981'} />
+              </div>
+              <div className="stat-value" style={{ color: '#0f172a' }}>
+                {s.value}
+              </div>
+              <div className={`stat-trend ${s.trend}`}>{s.change}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="print-data-full export-visible">
@@ -96,20 +108,25 @@ const ReportPrintLayout: React.FC<{
           <table className="full-print-table">
             <thead>
               <tr>
-                {(columns || []).map((col: any, i: number) => <th key={i}>{col.header}</th>)}
+                {(columns || []).map((col: any, i: number) => (
+                  <th key={i}>{col.header}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {(data || []).map((item: any, i: number) => (
                 <tr key={i} className={i % 2 === 0 ? 'even-row' : 'odd-row'}>
                   {(columns || []).map((col: any, j: number) => {
-                    const isNumeric = col.header.toLowerCase().includes('valor') || 
-                                     col.header.toLowerCase().includes('gmd') || 
-                                     col.header.toLowerCase().includes('total') ||
-                                     col.header.toLowerCase().includes('peso');
+                    const isNumeric =
+                      col.header.toLowerCase().includes('valor') ||
+                      col.header.toLowerCase().includes('gmd') ||
+                      col.header.toLowerCase().includes('total') ||
+                      col.header.toLowerCase().includes('peso');
                     return (
                       <td key={j} style={{ textAlign: isNumeric ? 'right' : 'left' }}>
-                        {typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor]}
+                        {typeof col.accessor === 'function'
+                          ? col.accessor(item)
+                          : item[col.accessor]}
                       </td>
                     );
                   })}
@@ -122,12 +139,12 @@ const ReportPrintLayout: React.FC<{
 
       <div className="print-signature-section">
         <div className="signature-box">
-          <div className="sig-line"></div>
+          <div className="sig-line" />
           <span>Responsável Técnico / Emissor</span>
           <span className="sig-date">Assinado em ___/___/20___</span>
         </div>
         <div className="signature-box">
-          <div className="sig-line"></div>
+          <div className="sig-line" />
           <span>Gestor da Unidade</span>
           <span className="sig-date">Assinado em ___/___/20___</span>
         </div>
@@ -138,7 +155,15 @@ const ReportPrintLayout: React.FC<{
           <strong>Tauze Intelligence Engine</strong> • Documento gerado eletronicamente
         </div>
         <div className="footer-right">
-          Protocolo: {(() => { const t = Date.now(); return (t.toString(36).toUpperCase() + '-' + (t % 99991).toString(36).toUpperCase()).slice(0, 12); })()} • Página 1 de 1
+          Protocolo:{' '}
+          {(() => {
+            const t = Date.now();
+            return `${t.toString(36).toUpperCase()}-${(t % 99991).toString(36).toUpperCase()}`.slice(
+              0,
+              12
+            );
+          })()}{' '}
+          • Página 1 de 1
         </div>
       </div>
     </div>
@@ -149,13 +174,13 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
   const { activeFarm, userProfile, refreshProfile } = useTenant();
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 15;
-  
+
   const { data, stats, columns, totalCount, loading, error } = useReportData(
-    report?.id || null, 
-    currentPage, 
+    report?.id || null,
+    currentPage,
     itemsPerPage
   );
-  
+
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   const [fullData, setFullData] = React.useState<any[] | null>(null);
@@ -183,37 +208,47 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
       }
     }
   };
-  
+
   const updateGenerationHistory = async () => {
-    if (!userProfile?.id) return;
-    
+    if (!userProfile?.id) {
+      return;
+    }
+
     try {
       const now = new Date().toISOString();
-      const newHistory = { 
+      const newHistory = {
         ...(userProfile.settings?.generationHistory || {}),
-        [report.id]: now
+        [report.id]: now,
       };
-      
+
       await supabase
         .from('profiles')
-        .update({ 
-          settings: { 
-            ...(userProfile.settings || {}), 
-            generationHistory: newHistory 
-          } 
+        .update({
+          settings: {
+            ...(userProfile.settings || {}),
+            generationHistory: newHistory,
+          },
         })
         .eq('id', userProfile.id);
-        
+
       await refreshProfile();
     } catch (error) {
-      console.error("Erro ao atualizar histórico de geração:", error);
+      console.error('Erro ao atualizar histórico de geração:', error);
     }
   };
 
   const loadFullData = async () => {
-    if (fullData) return fullData;
-    const result = await import('../../../hooks/useReportData').then(m => 
-      m.fetchReportDataById(report.id, userProfile?.tenant_id || '', activeFarm?.id || undefined, 1, 10000)
+    if (fullData) {
+      return fullData;
+    }
+    const result = await import('../../../hooks/useReportData').then((m) =>
+      m.fetchReportDataById(
+        report.id,
+        userProfile?.tenant_id || '',
+        activeFarm?.id || undefined,
+        1,
+        10000
+      )
     );
     setFullData(result.data);
     return result.data;
@@ -226,7 +261,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
       setIsExporting(false);
       return;
     }
-    exportToExcel(exportData, columns, report.title);
+    exportToBrazilianCSV(exportData, columns, report.title);
     updateGenerationHistory();
     setIsExporting(false);
   };
@@ -244,10 +279,10 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
   const handleDownloadPDF = async () => {
     setIsExporting(true);
     await loadFullData();
-    
+
     setTimeout(() => {
       const element = pdfRef.current;
-      
+
       if (!element) {
         console.error('Erro: Container de exportação não encontrado no DOM.');
         setIsExporting(false);
@@ -258,152 +293,173 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         margin: [10, 10, 10, 10] as [number, number, number, number],
         filename: `RELATORIO_${report.title.replace(/\s+/g, '_').toUpperCase()}_${activeFarm?.name?.replace(/\s+/g, '_').toUpperCase() || 'TAUZE'}.pdf`,
         image: { type: 'jpeg' as const, quality: 1.0 },
-        html2canvas: { 
-          scale: 3, 
-          useCORS: true, 
+        html2canvas: {
+          scale: 3,
+          useCORS: true,
           letterRendering: true,
           width: 1120,
           windowWidth: 1120,
           scrollX: 0,
           scrollY: 0,
           backgroundColor: '#ffffff',
-          logging: false
+          logging: false,
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
-        pagebreak: { mode: ['css', 'legacy'], avoid: '.tauze-stat-card' }
+        pagebreak: { mode: ['css', 'legacy'], avoid: '.tauze-stat-card' },
       };
 
-      html2pdf().set(opt).from(element).save().then(() => {
-        setIsExporting(false);
-        updateGenerationHistory();
-      }).catch((err: any) => {
-        console.error('Erro ao gerar PDF:', err);
-        setIsExporting(false);
-      });
+      html2pdf()
+        .set(opt)
+        .from(element)
+        .save()
+        .then(() => {
+          setIsExporting(false);
+          updateGenerationHistory();
+        })
+        .catch((err: any) => {
+          console.error('Erro ao gerar PDF:', err);
+          setIsExporting(false);
+        });
     }, 500);
   };
 
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
       <div className="report-viewer-overlay" onClick={onClose}>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
           className="viewer-container"
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
-        <header className="viewer-header">
-          <div className="left-side">
-            <button className="back-btn" onClick={onClose}>
-              <ChevronLeft size={20} />
-            </button>
-            <div className="report-title">
-              <div className="title-row">
-                <report.icon size={20} style={{ color: report.color }} />
-                <h2>{report.title}</h2>
+          <header className="viewer-header">
+            <div className="left-side">
+              <button className="back-btn" onClick={onClose}>
+                <ChevronLeft size={20} />
+              </button>
+              <div className="report-title">
+                <div className="title-row">
+                  <report.icon size={20} style={{ color: report.color }} />
+                  <h2>{report.title}</h2>
+                </div>
+                <p>{report.desc}</p>
               </div>
-              <p>{report.desc}</p>
             </div>
-          </div>
-          
-          <div className="viewer-actions">
-            <button 
-              className={`icon-btn ${isExporting ? 'loading' : ''}`} 
-              title="Baixar Layout PDF" 
-              onClick={handleDownloadPDF}
-              disabled={isExporting}
-            >
-              {isExporting ? <div className="mini-spinner" /> : <Download size={18} />}
-            </button>
-            <button 
-              className={`icon-btn ${isExporting ? 'loading' : ''}`} 
-              title="Imprimir / PDF" 
-              onClick={handlePrint}
-              disabled={isExporting}
-            >
-              {isExporting ? <div className="mini-spinner" /> : <Printer size={18} />}
-            </button>
-            <button className="icon-btn" title={isSharing ? "Copiado!" : "Compartilhar"} onClick={handleShare}>
-              {isSharing ? <CheckCircle2 size={18} color="#10b981" /> : <Share2 size={18} />}
-            </button>
-            <div className="v-sep"></div>
-            <button className="close-btn-premium" onClick={onClose}>
-              <X size={20} />
-            </button>
-          </div>
-        </header>
 
-        <div className="viewer-content">
-          <div className="next-gen-kpi-grid">
-            {stats && stats.length > 0 ? stats.map((s, idx) => (
-               <TauzeStatCard 
-               key={idx}
-               label={s.label}
-               value={s.value}
-               icon={s.trend === 'down' ? TrendingDown : TrendingUp}
-               color={s.trend === 'down' ? "#ef4444" : "#10b981"}
-               progress={100}
-               change={s.change}
-               trend={s.trend === 'down' ? 'down' : 'up'}
-               sparkline={s.sparkline}
-               periodLabel="Periodo Atual"
-             />
-            )) : null}
-          </div>
+            <div className="viewer-actions">
+              <button
+                className={`icon-btn ${isExporting ? 'loading' : ''}`}
+                title="Baixar Layout PDF"
+                onClick={handleDownloadPDF}
+                disabled={isExporting}
+              >
+                {isExporting ? <div className="mini-spinner" /> : <Download size={18} />}
+              </button>
+              <button
+                className={`icon-btn ${isExporting ? 'loading' : ''}`}
+                title="Imprimir / PDF"
+                onClick={handlePrint}
+                disabled={isExporting}
+              >
+                {isExporting ? <div className="mini-spinner" /> : <Printer size={18} />}
+              </button>
+              <button
+                className="icon-btn"
+                title={isSharing ? 'Copiado!' : 'Compartilhar'}
+                onClick={handleShare}
+              >
+                {isSharing ? <CheckCircle2 size={18} color="#10b981" /> : <Share2 size={18} />}
+              </button>
+              <div className="v-sep" />
+              <button className="close-btn-premium" onClick={onClose}>
+                <X size={20} />
+              </button>
+            </div>
+          </header>
 
-          <div className="viewer-main-analytics">
-            <div className="analytics-card">
-              <div className="card-header">
-                <h3>Detalhamento de Registros</h3>
-                <span className="subtitle">Dados paginados em tempo real • Escala Comercial</span>
-              </div>
-            {error ? (
-              <div className="report-error">
-                <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
-                <button onClick={() => window.location.reload()}>Tentar Novamente</button>
-              </div>
-            ) : (
-              <ModernTable 
-                emptyState={
-                  <EmptyState
-                    title="Nenhum registro encontrado"
-                    description="Sua busca não retornou resultados."
-                    icon={Search}
+          <div className="viewer-content">
+            <div className="next-gen-kpi-grid">
+              {stats && stats.length > 0
+                ? stats.map((s, idx) => (
+                    <TauzeStatCard
+                      key={idx}
+                      label={s.label as string}
+                      value={s.value as string | number}
+                      icon={s.trend === 'down' ? TrendingDown : TrendingUp}
+                      color={s.trend === 'down' ? '#ef4444' : '#10b981'}
+                      progress={100}
+                      change={s.change as string | undefined}
+                      trend={s.trend === 'down' ? 'down' : 'up'}
+                      sparkline={s.sparkline as { value: number; label?: string }[] | undefined}
+                      periodLabel="Periodo Atual"
+                    />
+                  ))
+                : null}
+            </div>
+
+            <div className="viewer-main-analytics">
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Detalhamento de Registros</h3>
+                  <span className="subtitle">Dados paginados em tempo real • Escala Comercial</span>
+                </div>
+                {error ? (
+                  <div className="report-error">
+                    <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
+                    <button onClick={() => window.location.reload()}>Tentar Novamente</button>
+                  </div>
+                ) : (
+                  <ModernTable
+                    emptyState={
+                      <EmptyState
+                        title="Nenhum registro encontrado"
+                        description="Sua busca não retornou resultados."
+                        icon={Search}
+                      />
+                    }
+                    data={(data || []) as unknown as { id: string | number }[]}
+                    columns={(columns || []) as any}
+                    hideHeader={false}
+                    onExport={handleExportExcel}
+                    loading={loading}
+                    totalCount={totalCount}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
                   />
-                } 
-                data={data || []}
-                columns={columns || []}
-                hideHeader={false}
-                onExport={handleExportExcel}
-                loading={loading}
-                totalCount={totalCount}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-                itemsPerPage={itemsPerPage}
-              />
-            )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </motion.div>
 
         {/* CONTAINER OCULTO PARA GERAÇÃO DE PDF */}
-        <div 
-          className="pdf-export-engine-container" 
-          style={{ position: 'absolute', top: 0, left: 0, width: '1120px', zIndex: -100, opacity: 0, pointerEvents: 'none' }}
+        <div
+          className="pdf-export-engine-container"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '1120px',
+            zIndex: -100,
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
         >
           {isExporting && (
             <div ref={pdfRef} className="is-exporting-pdf">
-              <ReportPrintLayout 
-                report={report} 
-                data={fullData || data} 
-                stats={stats} 
-                columns={columns} 
-                activeFarm={activeFarm} 
+              <ReportPrintLayout
+                report={report}
+                data={fullData || data}
+                stats={stats}
+                columns={columns}
+                activeFarm={activeFarm}
               />
             </div>
           )}
@@ -411,13 +467,13 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
         {/* Versão para Impressão do Navegador (Oculta na Tela) */}
         <div className="browser-print-only-container">
-           <ReportPrintLayout 
-              report={report} 
-              data={fullData || data} 
-              stats={stats} 
-              columns={columns} 
-              activeFarm={activeFarm} 
-            />
+          <ReportPrintLayout
+            report={report}
+            data={fullData || data}
+            stats={stats}
+            columns={columns}
+            activeFarm={activeFarm}
+          />
         </div>
 
         <style>{`

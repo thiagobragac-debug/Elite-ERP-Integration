@@ -11,18 +11,18 @@ interface FormSectionProps {
   rightElement?: React.ReactNode;
 }
 
-export const FormSection: React.FC<FormSectionProps> = ({ 
-  title, 
-  icon: Icon, 
+export const FormSection: React.FC<FormSectionProps> = ({
+  title,
+  icon: Icon,
   badge,
   marginTop = '24px',
   className = '',
   onClick,
-  rightElement
+  rightElement,
 }) => {
   return (
-    <div 
-      className={`form-section-title full-width ${className}`} 
+    <div
+      className={`form-section-title full-width ${className}`}
       style={{ marginTop, cursor: onClick ? 'pointer' : 'default' }}
       onClick={onClick}
     >
@@ -31,12 +31,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
         {Icon && <Icon size={16} />}
         <span>{title}</span>
       </div>
-      {rightElement && (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {rightElement}
-        </div>
-      )}
+      {rightElement && <div style={{ display: 'flex', alignItems: 'center' }}>{rightElement}</div>}
     </div>
   );
 };
-

@@ -87,7 +87,7 @@ export const AccountsReceivable: React.FC = () => {
     }
   });
 
-  const invoices = rawInvoices || [];
+  const invoices: any[] = (rawInvoices as any[]) || [];
 
   if (error) {
     console.error("[AccountsReceivable] Error:", error);
@@ -332,7 +332,7 @@ export const AccountsReceivable: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : (stats || []).map((stat, idx) => (
+        ) : ((stats as any[]) || []).map((stat: any, idx: number) => (
           <TauzeStatCard 
             key={idx}
             label={stat.label}

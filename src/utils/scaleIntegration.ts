@@ -21,7 +21,7 @@ class ScaleDriver {
    */
   async connectSerial(callback: ScaleCallback): Promise<void> {
     try {
-      // @ts-ignore
+      // @ts-expect-error - Web Serial API may not be available in all TypeScript environments
       this.port = await navigator.serial.requestPort();
       await this.port.open({ baudRate: 9600 });
 
@@ -33,16 +33,18 @@ class ScaleDriver {
         try {
           while (true) {
             const { value, done } = await this.reader.read();
-            if (done) break;
-            
+            if (done) {
+              break;
+            }
+
             const rawData = decoder.decode(value);
             const weight = this.parseWeight(rawData);
-            
+
             if (weight !== null) {
               callback({
                 weight,
                 stable: rawData.includes('S'), // Simple heuristic for stability
-                unit: 'kg'
+                unit: 'kg',
               });
             }
           }
@@ -61,9 +63,9 @@ class ScaleDriver {
    */
   async connectBluetooth(callback: ScaleCallback): Promise<void> {
     try {
-      // @ts-ignore
+      // @ts-expect-error - Web Bluetooth API may not be available in all TypeScript environments
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['weight_scale'] }]
+        filters: [{ services: ['weight_scale'] }],
       });
       const server = await device.gatt.connect();
       const service = await server.getPrimaryService('weight_scale');
@@ -71,9 +73,9 @@ class ScaleDriver {
 
       characteristic.startNotifications();
       characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
-        const value = event.target.value;
+        const { value } = event.target;
         // Standard Bluetooth Weight Scale profile parsing
-        const weight = value.getUint16(1, true) / 10; 
+        const weight = value.getUint16(1, true) / 10;
         callback({ weight, stable: true, unit: 'kg' });
       });
     } catch (error) {
@@ -92,7 +94,9 @@ class ScaleDriver {
 
   disconnect() {
     this.keepReading = false;
-    if (this.reader) this.reader.cancel();
+    if (this.reader) {
+      this.reader.cancel();
+    }
   }
 }
 

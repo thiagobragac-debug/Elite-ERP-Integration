@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  Smartphone, 
-  CheckCircle2, 
-  Copy, 
+import {
+  ShieldCheck,
+  Smartphone,
+  CheckCircle2,
+  Copy,
   ArrowRight,
   ShieldAlert,
   Loader2,
-  Lock
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -29,32 +29,34 @@ export const MFAEnroll: React.FC = () => {
     // Check if already enrolled
     const checkEnrollment = async () => {
       try {
-        console.log("MFAEnroll: Checking existing factors...");
+        console.log('MFAEnroll: Checking existing factors...');
         const { data, error } = await supabase.auth.mfa.listFactors();
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         if (data?.totp && data.totp.length > 0) {
-          const verified = data.totp.find(f => f.status === 'verified');
+          const verified = data.totp.find((f) => f.status === 'verified');
           if (verified) {
-            console.log("MFAEnroll: Verified factor found, checking AAL...");
+            console.log('MFAEnroll: Verified factor found, checking AAL...');
             const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
             if (aalData?.currentLevel === 'aal2') {
-              console.log("MFAEnroll: Already AAL2, redirecting to home.");
+              console.log('MFAEnroll: Already AAL2, redirecting to home.');
               navigate('/');
             } else {
-              console.log("MFAEnroll: Verified but AAL1, going to verify step.");
+              console.log('MFAEnroll: Verified but AAL1, going to verify step.');
               setStep('verify');
               setFactorId(verified.id);
             }
           } else {
             // Unverified factor exists. Let's offer to use it or just start fresh if we can.
-            console.log("MFAEnroll: Unverified factor found.");
+            console.log('MFAEnroll: Unverified factor found.');
             // For simplicity, we'll let the user click 'Configurar Agora' which will create a new one
             // Or we could auto-resume if we had the secret.
           }
         }
       } catch (err: any) {
-        console.error("MFAEnroll: Error checking enrollment:", err);
+        console.error('MFAEnroll: Error checking enrollment:', err);
         setError(`Erro ao verificar status: ${err.message || 'Falha na conexão com Supabase'}`);
       }
     };
@@ -64,24 +66,29 @@ export const MFAEnroll: React.FC = () => {
   const startEnrollment = async () => {
     setLoading(true);
     setError(null);
-    console.log("MFAEnroll: Starting enrollment process...");
-    
+    console.log('MFAEnroll: Starting enrollment process...');
+
     // Safety timeout
     const timeoutId = setTimeout(() => {
       if (loading) {
         setLoading(false);
-        setError("A conexão está demorando mais que o esperado. Tente novamente.");
+        setError('A conexão está demorando mais que o esperado. Tente novamente.');
       }
     }, 15000);
 
     try {
       // Cleanup: Check if there are ANY unverified factors and remove them all to avoid friendlyName conflicts
       const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
-      if (listError) console.warn("MFAEnroll: Error listing factors:", listError);
-      
-      const unverifiedFactors = factors?.totp?.filter(f => (f.status as string) === 'unverified') || [];
+      if (listError) {
+        console.warn('MFAEnroll: Error listing factors:', listError);
+      }
+
+      const unverifiedFactors =
+        factors?.totp?.filter((f) => (f.status as string) === 'unverified') || [];
       if (unverifiedFactors.length > 0) {
-        console.log(`MFAEnroll: Found ${unverifiedFactors.length} unverified factors, removing all...`);
+        console.log(
+          `MFAEnroll: Found ${unverifiedFactors.length} unverified factors, removing all...`
+        );
         for (const factor of unverifiedFactors) {
           try {
             await supabase.auth.mfa.unenroll({ factorId: factor.id });
@@ -96,21 +103,23 @@ export const MFAEnroll: React.FC = () => {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         issuer: 'Tauze ERP',
-        friendlyName: `${user?.email || 'User Account'} (${new Date().toLocaleDateString('pt-BR')})`
+        friendlyName: `${user?.email || 'User Account'} (${new Date().toLocaleDateString('pt-BR')})`,
       });
 
       clearTimeout(timeoutId);
 
       if (error) {
-        console.error("MFAEnroll: Enrollment error:", error);
+        console.error('MFAEnroll: Enrollment error:', error);
         // If it still fails due to duplicate name, try one last time with a timestamp
         if (error.message?.includes('already exists')) {
           const retry = await supabase.auth.mfa.enroll({
             factorType: 'totp',
             issuer: 'Tauze ERP',
-            friendlyName: `${user?.email || 'User'} [${Math.floor(Date.now() / 1000)}]`
+            friendlyName: `${user?.email || 'User'} [${Math.floor(Date.now() / 1000)}]`,
           });
-          if (retry.error) throw retry.error;
+          if (retry.error) {
+            throw retry.error;
+          }
           setFactorId(retry.data.id);
           setQrCode(retry.data.totp.qr_code);
           setSecret(retry.data.totp.secret);
@@ -120,13 +129,13 @@ export const MFAEnroll: React.FC = () => {
         throw error;
       }
 
-      console.log("MFAEnroll: Enrollment initiated:", data.id);
+      console.log('MFAEnroll: Enrollment initiated:', data.id);
       setFactorId(data.id);
       setQrCode(data.totp.qr_code);
       setSecret(data.totp.secret);
       setStep('qr');
     } catch (err: any) {
-      setError(err.message || "Erro inesperado ao iniciar configuração.");
+      setError(err.message || 'Erro inesperado ao iniciar configuração.');
     } finally {
       setLoading(false);
       clearTimeout(timeoutId);
@@ -134,7 +143,9 @@ export const MFAEnroll: React.FC = () => {
   };
 
   const handleVerify = async () => {
-    if (verifyCode.length !== 6) return;
+    if (verifyCode.length !== 6) {
+      return;
+    }
     if (!factorId) {
       setError('Sessão de configuração não encontrada. Por favor, reinicie o processo.');
       return;
@@ -143,33 +154,39 @@ export const MFAEnroll: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log("MFAEnroll: Challenging factor", factorId);
+      console.log('MFAEnroll: Challenging factor', factorId);
       const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId
+        factorId,
       });
 
-      if (challengeError) throw challengeError;
+      if (challengeError) {
+        throw challengeError;
+      }
 
-      console.log("MFAEnroll: Verifying challenge", challengeData.id);
+      console.log('MFAEnroll: Verifying challenge', challengeData.id);
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: challengeData.id,
-        code: verifyCode
+        code: verifyCode,
       });
 
       if (verifyError) {
-        console.error("MFAEnroll: Verification error:", verifyError);
+        console.error('MFAEnroll: Verification error:', verifyError);
         throw verifyError;
       }
 
       setStep('success');
-      if (setAal) setAal('aal2');
+      if (setAal) {
+        setAal('aal2');
+      }
       setTimeout(() => navigate('/'), 2000);
     } catch (err: any) {
-      console.error("MFAEnroll: Verify exception:", err);
-      setError(err.message === 'Invalid OTP' || err.message?.includes('invalid') 
-        ? 'Código incorreto ou expirado. Verifique se o horário do seu celular está correto e use o código mais recente.' 
-        : `Erro na validação: ${err.message || 'Tente novamente'}`);
+      console.error('MFAEnroll: Verify exception:', err);
+      setError(
+        err.message === 'Invalid OTP' || err.message?.includes('invalid')
+          ? 'Código incorreto ou expirado. Verifique se o horário do seu celular está correto e use o código mais recente.'
+          : `Erro na validação: ${err.message || 'Tente novamente'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -189,7 +206,7 @@ export const MFAEnroll: React.FC = () => {
       <div className="mfa-container">
         <AnimatePresence mode="wait">
           {step === 'intro' && (
-            <motion.div 
+            <motion.div
               key="intro"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -200,8 +217,11 @@ export const MFAEnroll: React.FC = () => {
                 <ShieldCheck size={32} />
               </div>
               <h1>Segurança Administrativa</h1>
-              <p>O Tauze ERP exige autenticação multifatorial para todas as contas com privilégios de administrador. Proteja o acesso à infraestrutura agora.</p>
-              
+              <p>
+                O Tauze ERP exige autenticação multifatorial para todas as contas com privilégios de
+                administrador. Proteja o acesso à infraestrutura agora.
+              </p>
+
               <div className="feature-list">
                 <div className="feature-item">
                   <Smartphone size={20} />
@@ -216,13 +236,19 @@ export const MFAEnroll: React.FC = () => {
               {error && <div className="mfa-error">{error}</div>}
 
               <button className="mfa-btn-primary" onClick={startEnrollment} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <>Configurar Agora <ArrowRight size={18} /></>}
+                {loading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <>
+                    Configurar Agora <ArrowRight size={18} />
+                  </>
+                )}
               </button>
             </motion.div>
           )}
 
           {step === 'qr' && (
-            <motion.div 
+            <motion.div
               key="qr"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -230,8 +256,10 @@ export const MFAEnroll: React.FC = () => {
               className="mfa-card"
             >
               <h2>Escaneie o QR Code</h2>
-              <p>Abra seu app de autenticação e escaneie o código abaixo para vincular sua conta.</p>
-              
+              <p>
+                Abra seu app de autenticação e escaneie o código abaixo para vincular sua conta.
+              </p>
+
               <div className="qr-wrapper">
                 <img src={qrCode} alt="QR Code" />
               </div>
@@ -253,7 +281,7 @@ export const MFAEnroll: React.FC = () => {
           )}
 
           {step === 'verify' && (
-            <motion.div 
+            <motion.div
               key="verify"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -264,11 +292,14 @@ export const MFAEnroll: React.FC = () => {
                 <ShieldAlert size={32} />
               </div>
               <h2>Verificar Código</h2>
-              <p>Insira o código de 6 dígitos gerado pelo seu aplicativo para confirmar a configuração.</p>
+              <p>
+                Insira o código de 6 dígitos gerado pelo seu aplicativo para confirmar a
+                configuração.
+              </p>
 
               <div className="verify-input-group">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   maxLength={6}
                   placeholder="000000"
                   value={verifyCode}
@@ -281,20 +312,31 @@ export const MFAEnroll: React.FC = () => {
               {error && <div className="mfa-error">{error}</div>}
 
               <div className="verify-actions">
-                <button className="mfa-btn-primary" onClick={handleVerify} disabled={loading || verifyCode.length !== 6}>
+                <button
+                  className="mfa-btn-primary"
+                  onClick={handleVerify}
+                  disabled={loading || verifyCode.length !== 6}
+                >
                   {loading ? <Loader2 className="animate-spin" /> : 'Verificar e Ativar'}
                 </button>
-                <button className="mfa-btn-ghost" onClick={() => setStep('intro')} disabled={loading}>
+                <button
+                  className="mfa-btn-ghost"
+                  onClick={() => setStep('intro')}
+                  disabled={loading}
+                >
                   Reiniciar Configuração
                 </button>
               </div>
-              
-              <p className="mfa-hint">Dica: Se o código for rejeitado, remova contas antigas do "Tauze ERP" no seu app e escaneie o QR Code novamente.</p>
+
+              <p className="mfa-hint">
+                Dica: Se o código for rejeitado, remova contas antigas do "Tauze ERP" no seu app e
+                escaneie o QR Code novamente.
+              </p>
             </motion.div>
           )}
 
           {step === 'success' && (
-            <motion.div 
+            <motion.div
               key="success"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -304,7 +346,9 @@ export const MFAEnroll: React.FC = () => {
                 <CheckCircle2 size={48} />
               </div>
               <h2>Segurança Ativada</h2>
-              <p>Sua conta agora está protegida com autenticação em duas etapas. Redirecionando...</p>
+              <p>
+                Sua conta agora está protegida com autenticação em duas etapas. Redirecionando...
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

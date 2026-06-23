@@ -1,9 +1,18 @@
 import React from 'react';
-import { X, Filter, Check, ShoppingCart, Truck, Clock, DollarSign, Calendar, Building2 } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Check,
+  ShoppingCart,
+  Truck,
+  Clock,
+  DollarSign,
+  Calendar,
+  Building2,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface PurchasingFilterModalProps {
   isOpen: boolean;
@@ -16,18 +25,27 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'ordered', label: 'Emitidos', icon: Clock },
     { id: 'shipped', label: 'Em Trânsito', icon: Truck },
-    { id: 'received', label: 'Recebidos', icon: Check }
+    { id: 'received', label: 'Recebidos', icon: Check },
   ];
 
-  const suppliers = ['AgroLine', 'NutriPura', 'Fazenda Grande', 'Mecânica Sul', 'BioCeres', 'Cooperativa Central'];
+  const suppliers = [
+    'AgroLine',
+    'NutriPura',
+    'Fazenda Grande',
+    'Mecânica Sul',
+    'BioCeres',
+    'Cooperativa Central',
+  ];
 
   const toggleSupplier = (sup: string) => {
     const newSups = filters.suppliers?.includes(sup)
@@ -44,23 +62,41 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
       maxAmount: 100000,
       dateStart: '',
       dateEnd: '',
-      onlyDelayed: false
+      onlyDelayed: false,
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#3b82f6',
+              }}
+            >
               <ShoppingCart size={20} />
             </div>
             <div>
@@ -68,8 +104,15 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
               <p>Gerencie ordens e fornecedores.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -78,24 +121,26 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status da Ordem <Clock size={14} /></label>
+            <label className="tauze-filter-label">
+              Status da Ordem <Clock size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {statusOptions.map(s => (
-                <button 
+              {statusOptions.map((s) => (
+                <button
                   key={s.id}
-                  style={{ 
-                    padding: '12px 8px', 
-                    fontSize: '10px', 
-                    fontWeight: 800, 
-                    color: filters.status === s.id ? '#3b82f6' : 'hsl(var(--text-muted))', 
-                    background: filters.status === s.id ? '#f1f5f9' : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px 8px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: filters.status === s.id ? '#3b82f6' : 'hsl(var(--text-muted))',
+                    background: filters.status === s.id ? '#f1f5f9' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.status === s.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
                   }}
                   onClick={() => setFilters({ ...filters, status: s.id })}
                 >
@@ -107,17 +152,23 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Parceiroes Homologados <Building2 size={14} /></label>
+            <label className="tauze-filter-label">
+              Parceiroes Homologados <Building2 size={14} />
+            </label>
             <div className="tauze-tag-cloud">
-              {suppliers.map(sup => (
-                <button 
+              {suppliers.map((sup) => (
+                <button
                   key={sup}
                   className={`tauze-tag-chip ${filters.suppliers?.includes(sup) ? 'active' : ''}`}
                   onClick={() => toggleSupplier(sup)}
-                  style={{ 
-                    borderColor: filters.suppliers?.includes(sup) ? '#3b82f6' : 'hsl(var(--border))', 
-                    background: filters.suppliers?.includes(sup) ? '#3b82f6' : 'hsl(var(--bg-card))',
-                    color: filters.suppliers?.includes(sup) ? 'white' : 'hsl(var(--text-muted))'
+                  style={{
+                    borderColor: filters.suppliers?.includes(sup)
+                      ? '#3b82f6'
+                      : 'hsl(var(--border))',
+                    background: filters.suppliers?.includes(sup)
+                      ? '#3b82f6'
+                      : 'hsl(var(--bg-card))',
+                    color: filters.suppliers?.includes(sup) ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {sup}
@@ -127,56 +178,81 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Valor da Ordem (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Orçamentário</span>
+            <label className="tauze-filter-label">
+              Valor da Ordem (R$) <DollarSign size={14} />
+            </label>
+            <div
+              className="integrity-slider-container"
+              style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>
+                  {filters.maxAmount.toLocaleString('pt-BR')}
+                </span>
+                <span
+                  style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}
+                >
+                  Teto Orçamentário
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="100000" 
+              <input
+                type="range"
+                min="0"
+                max="100000"
                 step="5000"
                 value={filters.maxAmount}
-                onChange={e => setFilters({ ...filters, maxAmount: parseInt(e.target.value) })}
+                onChange={(e) => setFilters({ ...filters, maxAmount: parseInt(e.target.value) })}
                 style={{ width: '100%', accentColor: '#3b82f6', height: '6px', cursor: 'pointer' }}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Prazo de Entrega <Calendar size={14} /></label>
+            <label className="tauze-filter-label">
+              Prazo de Entrega <Calendar size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateStart}
-                onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateEnd}
-                onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
             </div>
           </div>
 
-          <div className="tauze-filter-section" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px' }}>
+          <div
+            className="tauze-filter-section"
+            style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ color: '#ef4444' }}>
                   <AlertTriangle size={18} />
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Apenas Atrasados</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                  Apenas Atrasados
+                </span>
               </div>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={filters.onlyDelayed}
-                onChange={e => setFilters({ ...filters, onlyDelayed: e.target.checked })}
+                onChange={(e) => setFilters({ ...filters, onlyDelayed: e.target.checked })}
                 style={{ width: '20px', height: '20px', accentColor: '#ef4444' }}
               />
             </div>
@@ -184,8 +260,16 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#3b82f6' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,
@@ -194,18 +278,20 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
 };
 
 const AlertTriangle = ({ size, className }: { size?: number; className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
-    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+    <path d="M12 9v4" />
+    <path d="M12 17h.01" />
   </svg>
 );

@@ -1,22 +1,19 @@
-﻿import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  User, 
-  Mail, 
-  Shield, 
-  LogOut, 
-  Settings, 
-  Monitor, 
-  Bell,
+import {
+  X,
+  User,
+  LogOut,
+  Settings,
   Lock,
   Edit2,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTenant } from '../../contexts/TenantContext';
+import { useTenantProfile } from '../../contexts/TenantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { hasOptedOut, optOutAnalytics, optInAnalytics } from '../../lib/analytics';
 
 interface ProfileSidebarProps {
   isOpen: boolean;
@@ -24,14 +21,32 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose }) => {
-  const { user, logout } = useAuth();
-  const { userProfile } = useTenant();
+  const { logout } = useAuth();
+  const { userProfile } = useTenantProfile();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const [analyticsOptOut, setAnalyticsOptOut] = useState(false);
+
+  // Load initial opt-out state
+  useEffect(() => {
+    setAnalyticsOptOut(hasOptedOut());
+  }, [isOpen]);
 
   const handleNavigate = (path: string) => {
     navigate(path);
     onClose();
+  };
+
+  const handleToggleAnalytics = () => {
+    if (analyticsOptOut) {
+      // User wants to opt in
+      optInAnalytics();
+      setAnalyticsOptOut(false);
+    } else {
+      // User wants to opt out
+      optOutAnalytics();
+      setAnalyticsOptOut(true);
+    }
   };
 
   return (
@@ -70,7 +85,9 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               <div className="quick-hero">
                 <div className="avatar-large">
                   {userProfile?.full_name?.charAt(0) || 'U'}
-                  <button className="edit-badge"><Edit2 size={12} /></button>
+                  <button className="edit-badge">
+                    <Edit2 size={12} />
+                  </button>
                 </div>
                 <div className="hero-meta">
                   <h3>{userProfile?.full_name || 'Usuário Tauze'}</h3>
@@ -88,17 +105,34 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
                       <span className="q-t">Modo Escuro</span>
                       <span className="q-d">Alterar tema da interface</span>
                     </div>
-                    <button className={`q-toggle ${theme === 'dark' ? 'active' : ''}`} onClick={toggleTheme}>
+                    <button
+                      className={`q-toggle ${theme === 'dark' ? 'active' : ''}`}
+                      onClick={toggleTheme}
+                    >
                       <div className="q-dot" />
                     </button>
                   </div>
-                  
+
                   <div className="q-switch">
                     <div className="q-info">
                       <span className="q-t">Notificações</span>
                       <span className="q-d">Alertas em tempo real</span>
                     </div>
                     <button className="q-toggle active">
+                      <div className="q-dot" />
+                    </button>
+                  </div>
+
+                  <div className="q-switch">
+                    <div className="q-info">
+                      <span className="q-t">Analytics & Telemetria</span>
+                      <span className="q-d">Compartilhar dados de uso anônimos</span>
+                    </div>
+                    <button
+                      className={`q-toggle ${!analyticsOptOut ? 'active' : ''}`}
+                      onClick={handleToggleAnalytics}
+                      title={analyticsOptOut ? 'Analytics desativado' : 'Analytics ativado'}
+                    >
                       <div className="q-dot" />
                     </button>
                   </div>
@@ -109,15 +143,27 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               <div className="slide-section">
                 <h4 className="section-title">Navegação</h4>
                 <div className="slide-links">
-                  <div onClick={() => handleNavigate('/admin/perfil')} className="slide-link" style={{ cursor: 'pointer' }}>
+                  <div
+                    onClick={() => handleNavigate('/admin/perfil')}
+                    className="slide-link"
+                    style={{ cursor: 'pointer' }}
+                  >
                     <Settings size={18} />
                     <span>Configurações Avançadas</span>
                   </div>
-                  <div onClick={() => handleNavigate('/admin/usuarios?tab=seguranca')} className="slide-link" style={{ cursor: 'pointer' }}>
+                  <div
+                    onClick={() => handleNavigate('/admin/usuarios?tab=seguranca')}
+                    className="slide-link"
+                    style={{ cursor: 'pointer' }}
+                  >
                     <Lock size={18} />
                     <span>Segurança & Acessos</span>
                   </div>
-                  <div onClick={() => handleNavigate('/admin/auditoria')} className="slide-link" style={{ cursor: 'pointer' }}>
+                  <div
+                    onClick={() => handleNavigate('/admin/auditoria')}
+                    className="slide-link"
+                    style={{ cursor: 'pointer' }}
+                  >
                     <FileText size={18} />
                     <span>Meu Histórico de Ações</span>
                   </div>

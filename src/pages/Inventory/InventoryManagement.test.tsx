@@ -14,12 +14,12 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     applyFarmFilter: (q: any) => q,
     applyTenantFilter: (q: any) => q,
     canCreate: true,
-    insertPayload: {}
-  })
+    insertPayload: {},
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 // Mock simple usePersistentState
@@ -27,21 +27,21 @@ vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('../../hooks/useViewMode', () => ({
   useViewMode: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 // Mock the React Query hook used
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -50,16 +50,34 @@ vi.mock('@tanstack/react-query', async () => {
         return {
           data: {
             products: [
-              { id: '1', nome: 'Semente Milho', estoque_atual: 10, estoque_minimo: 50, custo_medio: 100, unidade: 'kg', categoria: 'Insumo', created_at: '2026-06-01' },
-              { id: '2', nome: 'Adubo', estoque_atual: 500, estoque_minimo: 100, custo_medio: 50, unidade: 'kg', categoria: 'Insumo', created_at: '2026-06-02' }
+              {
+                id: '1',
+                nome: 'Semente Milho',
+                estoque_atual: 10,
+                estoque_minimo: 50,
+                custo_medio: 100,
+                unidade: 'kg',
+                categoria: 'Insumo',
+                created_at: '2026-06-01',
+              },
+              {
+                id: '2',
+                nome: 'Adubo',
+                estoque_atual: 500,
+                estoque_minimo: 100,
+                custo_medio: 50,
+                unidade: 'kg',
+                categoria: 'Insumo',
+                created_at: '2026-06-02',
+              },
             ],
-            totalCount: 2
+            totalCount: 2,
           },
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: { products: [], totalCount: 0 }, isLoading: false };
-    })
+    }),
   };
 });
 
@@ -83,7 +101,7 @@ describe('InventoryManagement', () => {
   it('renders page headers and stats', async () => {
     renderComponent();
     expect(screen.getAllByText('Gestão de Insumos').length).toBeGreaterThan(0);
-    
+
     // Stats
     expect(screen.getByText('R$ 26.000')).toBeInTheDocument(); // Patrimônio
     expect(screen.getByText('1')).toBeInTheDocument(); // Ruptura (Semente Milho)
@@ -106,11 +124,11 @@ describe('InventoryManagement', () => {
 
   it('toggles view mode', async () => {
     renderComponent();
-    
+
     // Switch to list view
     const viewListBtn = screen.getByTitle('Visualização em Lista');
     fireEvent.click(viewListBtn);
-    
+
     // List view uses ModernTable which uses 'Mostrando' text
     await waitFor(() => {
       expect(screen.getByText(/Mostrando/i)).toBeInTheDocument();

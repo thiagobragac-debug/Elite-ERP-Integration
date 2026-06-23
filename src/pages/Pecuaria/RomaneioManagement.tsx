@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { 
-  Plus, 
+import {
+  Plus,
   Search,
   Filter,
   Eye,
@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   MoreVertical,
-  Download
+  Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
@@ -36,11 +36,16 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Concluído': return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
-    case 'Em Trânsito': return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };
-    case 'Pendente': return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };
-    case 'Cancelado': return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };
-    default: return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
+    case 'Concluído':
+      return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
+    case 'Em Trânsito':
+      return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };
+    case 'Pendente':
+      return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };
+    case 'Cancelado':
+      return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };
+    default:
+      return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
   }
 };
 
@@ -49,12 +54,17 @@ export default function RomaneioManagement() {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [searchTerm, setSearchTerm] = usePersistentState('RomaneioManagement_searchTerm', '');
   const [isModalOpen, setIsModalOpen] = usePersistentState('RomaneioManagement_isModalOpen', false);
-  const [activeTab, setActiveTab] = usePersistentState<'TODOS' | 'Concluído' | 'Em Trânsito' | 'Pendente'>('RomaneioManagement_activeTab', 'TODOS');
-  
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('RomaneioManagement_showAdvancedFilters', false);
+  const [activeTab, setActiveTab] = usePersistentState<
+    'TODOS' | 'Concluído' | 'Em Trânsito' | 'Pendente'
+  >('RomaneioManagement_activeTab', 'TODOS');
+
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'RomaneioManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = usePersistentState('RomaneioManagement_filterValues', {
     status: 'all',
     dateStart: '',
@@ -62,28 +72,35 @@ export default function RomaneioManagement() {
     minAnimais: '',
     maxAnimais: '',
     minValor: '',
-    maxValor: ''
+    maxValor: '',
   });
 
-  const [selectedRomaneio, setSelectedRomaneio] = usePersistentState<any>('RomaneioManagement_selectedRomaneio', null);
-  const [showDetailsModal, setShowDetailsModal] = usePersistentState('RomaneioManagement_showDetailsModal', false);
+  const [selectedRomaneio, setSelectedRomaneio] = usePersistentState<any>(
+    'RomaneioManagement_selectedRomaneio',
+    null
+  );
+  const [showDetailsModal, setShowDetailsModal] = usePersistentState(
+    'RomaneioManagement_showDetailsModal',
+    false
+  );
 
   // Fetch romaneios from database
   const { data: romaneiosList = [], isLoading: loading } = useQuery({
     queryKey: ['romaneios_list', activeFarmId, activeTenantId],
     queryFn: async () => {
-      if (!activeFarmId || !activeTenantId) return [];
-      let query = supabase
-        .from('romaneios')
-        .select('*')
-        .order('data', { ascending: false });
-      
+      if (!activeFarmId || !activeTenantId) {
+        return [];
+      }
+      let query = supabase.from('romaneios').select('*').order('data', { ascending: false });
+
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return data || [];
     },
-    enabled: !!activeFarmId && !!activeTenantId
+    enabled: !!activeFarmId && !!activeTenantId,
   });
 
   // Calculate dynamic stats for KPIs
@@ -91,13 +108,13 @@ export default function RomaneioManagement() {
     const totalCount = romaneiosList.length;
     const totalAnimals = romaneiosList.reduce((sum, r) => sum + Number(r.animais_qtd || 0), 0);
     const totalValue = romaneiosList.reduce((sum, r) => sum + Number(r.valor_estimado || 0), 0);
-    const pendentesCount = romaneiosList.filter(r => r.status === 'Pendente').length;
+    const pendentesCount = romaneiosList.filter((r) => r.status === 'Pendente').length;
 
     return {
       totalCount,
       totalAnimals,
       totalValue,
-      pendentesCount
+      pendentesCount,
     };
   }, [romaneiosList]);
 
@@ -107,13 +124,15 @@ export default function RomaneioManagement() {
   };
 
   const handleDownloadPDF = (row: any) => {
-    toast.loading(`Gerando documento oficial do Romaneio ${row.codigo || row.id}...`, { id: 'pdf-gen' });
+    toast.loading(`Gerando documento oficial do Romaneio ${row.codigo || row.id}...`, {
+      id: 'pdf-gen',
+    });
     setTimeout(() => {
       try {
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: 'a4'
+          format: 'a4',
         });
 
         // ─── CABEÇALHO DO DOCUMENTO ─────────────────────────────────────────
@@ -135,7 +154,7 @@ export default function RomaneioManagement() {
         doc.setDrawColor(226, 232, 240);
         doc.setFillColor(248, 250, 252);
         doc.roundedRect(120, 15, 76, 20, 3, 3, 'FD');
-        
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(15, 23, 42);
@@ -214,11 +233,27 @@ export default function RomaneioManagement() {
         doc.setFontSize(10);
         doc.setTextColor(16, 185, 129);
         doc.text('3. COMPOSIÇÃO E DADOS DA CARGA', 14, 106);
-        
+
         autoTable(doc, {
-          head: [['Lote/Categoria', 'Raça', 'Qtd de Animais', 'Peso Médio Est.', 'Valor Est. Unitário', 'Valor Total Lote']],
+          head: [
+            [
+              'Lote/Categoria',
+              'Raça',
+              'Qtd de Animais',
+              'Peso Médio Est.',
+              'Valor Est. Unitário',
+              'Valor Total Lote',
+            ],
+          ],
           body: [
-            ['Lote Confinamento A - Boi Gordo', 'Nelore', `${row.animais_qtd} cbç`, '520 kg', `R$ ${(row.valor_estimado / (row.animais_qtd || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, `R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]
+            [
+              'Lote Confinamento A - Boi Gordo',
+              'Nelore',
+              `${row.animais_qtd} cbç`,
+              '520 kg',
+              `R$ ${(row.valor_estimado / (row.animais_qtd || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              `R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            ],
           ],
           startY: 110,
           theme: 'striped',
@@ -227,22 +262,22 @@ export default function RomaneioManagement() {
             textColor: [255, 255, 255],
             fontSize: 9,
             fontStyle: 'bold',
-            halign: 'left'
+            halign: 'left',
           },
           styles: {
             fontSize: 8.5,
-            cellPadding: 4
+            cellPadding: 4,
           },
           columnStyles: {
             2: { halign: 'center' },
             3: { halign: 'center' },
             4: { halign: 'right' },
-            5: { halign: 'right' }
-          }
+            5: { halign: 'right' },
+          },
         });
 
         // Totais Gerais
-        let finalY = (doc as any).lastAutoTable.finalY + 8;
+        const finalY = (doc as any).lastAutoTable.finalY + 8;
         doc.setFillColor(248, 250, 252);
         doc.rect(14, finalY, 182, 12, 'F');
         doc.setFont('helvetica', 'bold');
@@ -250,10 +285,14 @@ export default function RomaneioManagement() {
         doc.setTextColor(15, 23, 42);
         doc.text('RESUMO GERAL:', 18, finalY + 8);
         doc.text(`TOTAL ANIMAIS: ${row.animais_qtd} cbç`, 70, finalY + 8);
-        doc.text(`VALOR TOTAL ESTIMADO: R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 120, finalY + 8);
+        doc.text(
+          `VALOR TOTAL ESTIMADO: R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          120,
+          finalY + 8
+        );
 
         // ─── ASSINATURAS E RESPONSABILIDADES ─────────────────────────────────
-        let signatureY = finalY + 35;
+        const signatureY = finalY + 35;
         doc.line(14, signatureY, 64, signatureY);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
@@ -281,10 +320,12 @@ export default function RomaneioManagement() {
         }
 
         doc.save(`romaneio_${row.codigo || row.id}_oficial.pdf`);
-        toast.success(`PDF Oficial do Romaneio ${row.codigo || row.id} baixado com sucesso!`, { id: 'pdf-gen' });
+        toast.success(`PDF Oficial do Romaneio ${row.codigo || row.id} baixado com sucesso!`, {
+          id: 'pdf-gen',
+        });
       } catch (err: any) {
         console.error(err);
-        toast.error('Erro ao gerar documento PDF: ' + err.message, { id: 'pdf-gen' });
+        toast.error(`Erro ao gerar documento PDF: ${err.message}`, { id: 'pdf-gen' });
       }
     }, 800);
   };
@@ -295,22 +336,26 @@ export default function RomaneioManagement() {
         .from('romaneios')
         .update({ status: 'Cancelado' })
         .eq('id', id);
-      if (error) throw error;
-      
+      if (error) {
+        throw error;
+      }
+
       // Update linked animals to reset their status to active and romaneio_id to null
       const { error: animalError } = await supabase
         .from('animais')
         .update({ status: 'ATIVO', romaneio_id: null })
         .eq('romaneio_id', id);
-      if (animalError) throw animalError;
+      if (animalError) {
+        throw animalError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
       toast.success('Romaneio cancelado com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao cancelar romaneio: ' + err.message);
-    }
+      toast.error(`Erro ao cancelar romaneio: ${err.message}`);
+    },
   });
 
   const handleCancelRomaneio = async (row: any) => {
@@ -318,24 +363,94 @@ export default function RomaneioManagement() {
       toast.error('Este romaneio já está cancelado.');
       return;
     }
-    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja realmente cancelar o Romaneio ${row.codigo || row.id}?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: `Deseja realmente cancelar o Romaneio ${row.codigo || row.id}?`,
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
     if (isConfirmed) {
       cancelMutation.mutate(row.id);
     }
   };
 
   const columns = [
-    { header: 'ID Romaneio', accessor: (row: any) => <strong style={{ color: 'hsl(var(--text-main))' }}>{row.codigo || row.id}</strong> },
+    {
+      header: 'ID Romaneio',
+      accessor: (row: any) => (
+        <strong style={{ color: 'hsl(var(--text-main))' }}>{row.codigo || row.id}</strong>
+      ),
+    },
     { header: 'Data', accessor: 'data' },
-    { header: 'Comprador', accessor: (row: any) => <span style={{ fontWeight: 600 }}>{row.comprador}</span> },
-    { header: 'Destino', accessor: (row: any) => <span style={{ color: 'hsl(var(--text-muted))' }}>{row.destino}</span> },
-    { header: 'Transporte', accessor: (row: any) => <div style={{ display: 'flex', flexDirection: 'column' }}><span>{row.placa || '-'}</span><span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>{row.motorista || '-'}</span></div> },
-    { header: 'Animais', accessor: (row: any) => <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ padding: '2px 8px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', borderRadius: '12px', fontSize: '12px', fontWeight: 800 }}>{row.animais_qtd} cbç</div></div> },
-    { header: 'Valor Est.', accessor: (row: any) => <span style={{ fontWeight: 700, color: 'hsl(142 71% 45%)' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.valor_estimado)}</span> },
-    { header: 'Status', accessor: (row: any) => {
+    {
+      header: 'Comprador',
+      accessor: (row: any) => <span style={{ fontWeight: 600 }}>{row.comprador}</span>,
+    },
+    {
+      header: 'Destino',
+      accessor: (row: any) => (
+        <span style={{ color: 'hsl(var(--text-muted))' }}>{row.destino}</span>
+      ),
+    },
+    {
+      header: 'Transporte',
+      accessor: (row: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span>{row.placa || '-'}</span>
+          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+            {row.motorista || '-'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Animais',
+      accessor: (row: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div
+            style={{
+              padding: '2px 8px',
+              background: 'hsl(var(--brand)/0.1)',
+              color: 'hsl(var(--brand))',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 800,
+            }}
+          >
+            {row.animais_qtd} cbç
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Valor Est.',
+      accessor: (row: any) => (
+        <span style={{ fontWeight: 700, color: 'hsl(142 71% 45%)' }}>
+          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+            row.valor_estimado
+          )}
+        </span>
+      ),
+    },
+    {
+      header: 'Status',
+      accessor: (row: any) => {
         const colors = getStatusColor(row.status);
         return (
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: '12px', background: colors.bg, color: colors.text, fontSize: '12px', fontWeight: 800, gap: '4px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              background: colors.bg,
+              color: colors.text,
+              fontSize: '12px',
+              fontWeight: 800,
+              gap: '4px',
+            }}
+          >
             {row.status === 'Concluído' && <CheckCircle2 size={12} />}
             {row.status === 'Em Trânsito' && <Truck size={12} />}
             {row.status === 'Pendente' && <Activity size={12} />}
@@ -343,35 +458,74 @@ export default function RomaneioManagement() {
             {row.status}
           </div>
         );
-    } },
-    { header: 'NF-e', accessor: (row: any) => <span style={{ fontFamily: 'monospace', color: 'hsl(var(--text-muted))' }}>{row.nfe}</span> },
-    { 
-      header: 'Ações', 
+      },
+    },
+    {
+      header: 'NF-e',
+      accessor: (row: any) => (
+        <span style={{ fontFamily: 'monospace', color: 'hsl(var(--text-muted))' }}>{row.nfe}</span>
+      ),
+    },
+    {
+      header: 'Ações',
       accessor: (row: any) => (
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => handleShowDetails(row)} className="action-icon-btn info" title="Visualizar Detalhes"><Eye size={14} /></button>
-          <button onClick={() => handleDownloadPDF(row)} className="action-icon-btn" title="Baixar PDF"><FileText size={14} /></button>
-          <button onClick={() => handleCancelRomaneio(row)} className="action-icon-btn danger" title="Cancelar"><XCircle size={14} /></button>
+          <button
+            onClick={() => handleShowDetails(row)}
+            className="action-icon-btn info"
+            title="Visualizar Detalhes"
+          >
+            <Eye size={14} />
+          </button>
+          <button
+            onClick={() => handleDownloadPDF(row)}
+            className="action-icon-btn"
+            title="Baixar PDF"
+          >
+            <FileText size={14} />
+          </button>
+          <button
+            onClick={() => handleCancelRomaneio(row)}
+            className="action-icon-btn danger"
+            title="Cancelar"
+          >
+            <XCircle size={14} />
+          </button>
         </div>
-      ) 
-    }
+      ),
+    },
   ];
 
-  const filteredData = romaneiosList.filter(r => {
-    const matchesSearch = (r.codigo || r.id).toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          r.comprador.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredData = romaneiosList.filter((r) => {
+    const matchesSearch =
+      (r.codigo || r.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.comprador.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === 'TODOS' || r.status === activeTab;
-    
+
     // Advanced Filters
     const matchesStatus = filterValues.status === 'all' || r.status === filterValues.status;
-    const matchesDate = (!filterValues.dateStart || r.data >= filterValues.dateStart) &&
-                        (!filterValues.dateEnd || r.data <= filterValues.dateEnd);
-    const matchesMinAnimais = !filterValues.minAnimais || r.animais_qtd >= parseInt(filterValues.minAnimais);
-    const matchesMaxAnimais = !filterValues.maxAnimais || r.animais_qtd <= parseInt(filterValues.maxAnimais);
-    const matchesMinValor = !filterValues.minValor || r.valor_estimado >= parseFloat(filterValues.minValor);
-    const matchesMaxValor = !filterValues.maxValor || r.valor_estimado <= parseFloat(filterValues.maxValor);
-    
-    return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesMinAnimais && matchesMaxAnimais && matchesMinValor && matchesMaxValor;
+    const matchesDate =
+      (!filterValues.dateStart || r.data >= filterValues.dateStart) &&
+      (!filterValues.dateEnd || r.data <= filterValues.dateEnd);
+    const matchesMinAnimais =
+      !filterValues.minAnimais || r.animais_qtd >= parseInt(filterValues.minAnimais);
+    const matchesMaxAnimais =
+      !filterValues.maxAnimais || r.animais_qtd <= parseInt(filterValues.maxAnimais);
+    const matchesMinValor =
+      !filterValues.minValor || r.valor_estimado >= parseFloat(filterValues.minValor);
+    const matchesMaxValor =
+      !filterValues.maxValor || r.valor_estimado <= parseFloat(filterValues.maxValor);
+
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesStatus &&
+      matchesDate &&
+      matchesMinAnimais &&
+      matchesMaxAnimais &&
+      matchesMinValor &&
+      matchesMaxValor
+    );
   });
 
   return (
@@ -379,13 +533,19 @@ export default function RomaneioManagement() {
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Embarques & Romaneios' }]} />
-          <h1 className="page-title">
-            Embarques & Romaneios
-          </h1>
-          <p className="page-subtitle">Monitore, crie e emita documentos logísticos para o transporte de animais da {activeFarm?.name || 'sua fazenda'}.</p>
+          <Breadcrumb
+            paths={[
+              { label: 'Pecuária', href: '/pecuaria/dashboard' },
+              { label: 'Embarques & Romaneios' },
+            ]}
+          />
+          <h1 className="page-title">Embarques & Romaneios</h1>
+          <p className="page-subtitle">
+            Monitore, crie e emita documentos logísticos para o transporte de animais da{' '}
+            {activeFarm?.name || 'sua fazenda'}.
+          </p>
         </div>
-        
+
         <div className="page-actions">
           <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
             <Truck size={16} />
@@ -412,7 +572,15 @@ export default function RomaneioManagement() {
         />
         <TauzeStatCard
           label="Custo Estimado (Frete)"
-          value={loading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalValue)}
+          value={
+            loading
+              ? '...'
+              : new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  maximumFractionDigits: 0,
+                }).format(stats.totalValue)
+          }
           subtitle="Faturamento estimado de vendas"
           icon={TrendingUp}
           color="#10b981"
@@ -429,25 +597,25 @@ export default function RomaneioManagement() {
       {/* ─── Main Content ────────────────────────────────────────────────────── */}
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'TODOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('TODOS')}
           >
             Todos Romaneios
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'Concluído' ? 'active' : ''}`}
             onClick={() => setActiveTab('Concluído')}
           >
             Concluídos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'Em Trânsito' ? 'active' : ''}`}
             onClick={() => setActiveTab('Em Trânsito')}
           >
             Em Trânsito
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'Pendente' ? 'active' : ''}`}
             onClick={() => setActiveTab('Pendente')}
           >
@@ -457,65 +625,75 @@ export default function RomaneioManagement() {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar romaneio por ID ou Comprador..." 
+            placeholder="Buscar romaneio por ID ou Comprador..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(true)}
           >
             <Filter size={20} />
           </button>
-          
+
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-romaneios');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-romaneios" className="export-menu">
               <button onClick={() => exportToCSV(filteredData, 'romaneios')}>Excel (.CSV)</button>
-              <button onClick={() => exportToExcel(filteredData, 'romaneios')}>Excel (.xlsx)</button>
-              <button onClick={() => exportToPDF(
-                filteredData.map(r => ({ 
-                  'ID Romaneio': r.codigo || r.id, 
-                  'Data': r.data, 
-                  'Comprador': r.comprador, 
-                  'Destino': r.destino, 
-                  'Animais': `${r.animais_qtd} cbç`, 
-                  'Valor Est.': `R$ ${Number(r.valor_estimado).toLocaleString('pt-BR')}`, 
-                  'Status': r.status 
-                })), 
-                'romaneios', 
-                'Relatório de Embarques & Romaneios'
-              )}>PDF</button>
+              <button onClick={() => exportToExcel(filteredData, 'romaneios')}>
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() =>
+                  exportToPDF(
+                    filteredData.map((r) => ({
+                      'ID Romaneio': r.codigo || r.id,
+                      Data: r.data,
+                      Comprador: r.comprador,
+                      Destino: r.destino,
+                      Animais: `${r.animais_qtd} cbç`,
+                      'Valor Est.': `R$ ${Number(r.valor_estimado).toLocaleString('pt-BR')}`,
+                      Status: r.status,
+                    })),
+                    'romaneios',
+                    'Relatório de Embarques & Romaneios'
+                  )
+                }
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <div className="management-content">
-        <ModernTable 
-          columns={columns} 
-          data={filteredData} 
+        <ModernTable
+          columns={columns}
+          data={filteredData}
           emptyState={
-            <EmptyState 
-              icon={Truck} 
-              title="Nenhum romaneio encontrado" 
-              description="Não encontramos resultados para a sua busca ou não há embarques registrados." 
+            <EmptyState
+              icon={Truck}
+              title="Nenhum romaneio encontrado"
+              description="Não encontramos resultados para a sua busca ou não há embarques registrados."
               actionLabel="Criar Novo Embarque"
               onAction={() => setIsModalOpen(true)}
             />
@@ -524,17 +702,19 @@ export default function RomaneioManagement() {
       </div>
 
       {/* ─── Modals ────────────────────────────────────────────────────────── */}
-      <RomaneioEmbarqueModal 
+      <RomaneioEmbarqueModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onGerarNF={(romaneioData) => {
           setIsModalOpen(false);
-          toast.success(`✅ Romaneio de Embarque criado para ${romaneioData.comprador || 'Comprador'}! Nota Fiscal de Saída emitida com sucesso.`);
+          toast.success(
+            `✅ Romaneio de Embarque criado para ${romaneioData.comprador || 'Comprador'}! Nota Fiscal de Saída emitida com sucesso.`
+          );
           queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
         }}
       />
 
-      <RomaneioFilterModal 
+      <RomaneioFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -543,7 +723,7 @@ export default function RomaneioManagement() {
 
       <AnimatePresence>
         {showDetailsModal && (
-          <RomaneioDetailsModal 
+          <RomaneioDetailsModal
             isOpen={showDetailsModal}
             onClose={() => setShowDetailsModal(false)}
             romaneio={selectedRomaneio}
@@ -551,7 +731,6 @@ export default function RomaneioManagement() {
           />
         )}
       </AnimatePresence>
-
     </div>
   );
 }

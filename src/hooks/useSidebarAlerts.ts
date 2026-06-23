@@ -4,17 +4,25 @@ import { useFarmFilter } from './useFarmFilter';
 
 export interface SidebarAlertsData {
   lotes: number;
-  financeiro: number;
+  financeiro: number;       // total (pagar + receber) — usado no badge do módulo
+  financeiroPagar: number;  // apenas contas a pagar vencidas
+  financeiroReceber: number; // apenas contas a receber vencidas
   sanidade: number;
   configuracoes: number;
 }
 
-export const useSidebarAlerts = () => {
+interface UseSidebarAlertsReturn {
+  alerts: SidebarAlertsData;
+  loading: boolean;
+  refresh: () => void;
+}
+
+export const useSidebarAlerts = (): UseSidebarAlertsReturn => {
   const { activeTenantId, activeFarmId, applyFarmFilter } = useFarmFilter();
 
   const fetchAlerts = async (): Promise<SidebarAlertsData> => {
     if (!activeTenantId) {
-      return { lotes: 0, financeiro: 0, sanidade: 0, configuracoes: 0 };
+      return { lotes: 0, financeiro: 0, financeiroPagar: 0, financeiroReceber: 0, sanidade: 0, configuracoes: 0 };
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -51,25 +59,19 @@ export const useSidebarAlerts = () => {
     sanidadeQuery = applyFarmFilter(sanidadeQuery);
 
     // 5. Query saas_invoices (status != 'pago') for configurations
-    let invoicesQuery = supabase
+    const invoicesQuery = supabase
       .from('saas_invoices')
       .select('id', { count: 'exact', head: true })
       .neq('status', 'pago')
       .eq('tenant_id', activeTenantId);
 
     // Parallel execution of queries
-    const [
-      lotesRes,
-      pagarRes,
-      receberRes,
-      sanidadeRes,
-      invoicesRes
-    ] = await Promise.all([
+    const [lotesRes, pagarRes, receberRes, sanidadeRes, invoicesRes] = await Promise.all([
       lotesQuery,
       pagarQuery,
       receberQuery,
       sanidadeQuery,
-      invoicesQuery
+      invoicesQuery,
     ]);
 
     // Calculate sanidade count based on carencia (data_manejo + carencia_dias > today)
@@ -77,24 +79,28 @@ export const useSidebarAlerts = () => {
     const todayDate = new Date();
     if (sanidadeRes.data && !sanidadeRes.error) {
       sanidadeCount = (sanidadeRes.data as any[]).filter((s: any) => {
-        if (!s.data_manejo || !s.carencia_dias) return false;
+        if (!s.data_manejo || !s.carencia_dias) {
+          return false;
+        }
         const release = new Date(s.data_manejo);
         release.setDate(release.getDate() + Number(s.carencia_dias));
         return release > todayDate;
       }).length;
     }
 
-    const lotesCount = lotesRes.error ? 0 : (lotesRes.count || 0);
-    const pagarCount = pagarRes.error ? 0 : (pagarRes.count || 0);
-    const receberCount = receberRes.error ? 0 : (receberRes.count || 0);
+    const lotesCount = lotesRes.error ? 0 : lotesRes.count || 0;
+    const pagarCount = pagarRes.error ? 0 : pagarRes.count || 0;
+    const receberCount = receberRes.error ? 0 : receberRes.count || 0;
     const financeiroCount = pagarCount + receberCount;
-    const configCount = invoicesRes.error ? 0 : (invoicesRes.count || 0);
+    const configCount = invoicesRes.error ? 0 : invoicesRes.count || 0;
 
     return {
       lotes: lotesCount,
       financeiro: financeiroCount,
+      financeiroPagar: pagarCount,
+      financeiroReceber: receberCount,
       sanidade: sanidadeCount,
-      configuracoes: configCount
+      configuracoes: configCount,
     };
   };
 
@@ -102,14 +108,13 @@ export const useSidebarAlerts = () => {
     queryKey: ['sidebar-alerts', activeTenantId, activeFarmId],
     queryFn: fetchAlerts,
     enabled: !!activeTenantId,
-    staleTime: 30000, // 30s cache freshness
-    refetchInterval: 60000, // Background updates every 1m
+    staleTime: 5 * 60 * 1000,  // 5min — alinhado com padrão global do QueryProvider (evita 10x mais queries em sessões longas)
+    refetchInterval: 5 * 60 * 1000, // Atualização em background a cada 5min
   });
 
   return {
-    alerts: data || { lotes: 0, financeiro: 0, sanidade: 0, configuracoes: 0 },
+    alerts: data || { lotes: 0, financeiro: 0, financeiroPagar: 0, financeiroReceber: 0, sanidade: 0, configuracoes: 0 },
     loading: isLoading,
-    refresh: refetch
+    refresh: refetch,
   };
 };
-

@@ -19,7 +19,9 @@ const RETRY_DELAY_MS   = 4000;    // espera entre tentativas (4s)
 const FETCH_TIMEOUT_MS = 15000;   // timeout por requisição CEPEA
 
 // ─── Utilitários ─────────────────────────────────────────────────────────────
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => {
+  setTimeout(resolve, ms);
+});
 
 function todayISO(): string {
   return new Date().toISOString().split('T')[0]; // YYYY-MM-DD UTC
@@ -50,7 +52,7 @@ async function fetchIndicator(
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {throw new Error(`HTTP ${response.status}`);}
 
       const scriptText = await response.text();
       const tdRegex = /<td[^>]*>(.*?)<\/td>/g;
@@ -70,19 +72,19 @@ async function fetchIndicator(
 
       const dateStr  = tds[dateIndex];
       const valueStr = tds[dateIndex + 2].replace(/R\$\s*/i, '').trim();
-      if (!valueStr || !/\d/.test(valueStr)) return null;
+      if (!valueStr || !/\d/.test(valueStr)) {return null;}
 
       const [day, month, year] = dateStr.split('/');
       const isoDate      = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
       const numericValue = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
-      if (isNaN(numericValue) || numericValue <= 0) return null;
+      if (isNaN(numericValue) || numericValue <= 0) {return null;}
 
       return { indicator: indicatorName, date: isoDate, value: numericValue };
 
     } catch (err: any) {
       const isLast = attempt === retries;
-      if (!isLast) await sleep(RETRY_DELAY_MS);
-      else return null;
+      if (!isLast) {await sleep(RETRY_DELAY_MS);}
+      else {return null;}
     }
   }
   return null;

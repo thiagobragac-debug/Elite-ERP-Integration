@@ -5,7 +5,7 @@ import { LotForm } from './LotForm';
 import { vi } from 'vitest';
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ activeTenantId: 'tenant-1' })
+  useTenant: () => ({ activeTenantId: 'tenant-1' }),
 }));
 
 // Mock supabase client
@@ -18,46 +18,54 @@ vi.mock('../../lib/supabase', () => ({
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockResolvedValue({
             data: [{ id: 'fazenda-1', nome: 'Fazenda Mock' }],
-            error: null
-          })
+            error: null,
+          }),
         };
       }
       return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null })
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
       };
-    })
-  }
+    }),
+  },
 }));
 
 // Mock SidePanel
 vi.mock('../Layout/SidePanel', () => ({
-  SidePanel: ({ isOpen, children, onSubmit, title }: any) => isOpen ? (
-    <div data-testid="side-panel">
-      <h2>{title}</h2>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(e); }}>
-        {children}
-        <button type="submit">Criar Lote</button>
-      </form>
-    </div>
-  ) : null
+  SidePanel: ({ isOpen, children, onSubmit, title }: any) =>
+    isOpen ? (
+      <div data-testid="side-panel">
+        <h2>{title}</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(e);
+          }}
+        >
+          {children}
+          <button type="submit">Criar Lote</button>
+        </form>
+      </div>
+    ) : null,
 }));
 
 // Mock SearchableSelect
 vi.mock('./SearchableSelect', () => ({
   SearchableSelect: ({ value, onChange, options, disabled }: any) => (
-    <select 
+    <select
       data-testid="mock-searchable-select"
-      value={value || ''} 
+      value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
     >
       {options?.map((opt: any, idx: number) => (
-        <option key={idx} value={opt.value}>{opt.label}</option>
+        <option key={idx} value={opt.value}>
+          {opt.label}
+        </option>
       ))}
     </select>
-  )
+  ),
 }));
 
 describe('LotForm', () => {
@@ -71,7 +79,7 @@ describe('LotForm', () => {
   it('renders form when open', async () => {
     render(<LotForm isOpen={true} onClose={mockOnClose} onSubmit={mockOnSubmit} />);
     expect(screen.getByText('Novo Lote')).toBeInTheDocument();
-    
+
     await waitFor(() => {
       expect(screen.getAllByTestId('mock-searchable-select').length).toBeGreaterThan(0);
     });
@@ -79,7 +87,7 @@ describe('LotForm', () => {
 
   it('calculates target weight (peso_alvo) based on cycle days and GMD', async () => {
     render(<LotForm isOpen={true} onClose={mockOnClose} onSubmit={mockOnSubmit} />);
-    
+
     // Inputs
     const pesoEntrada = screen.getByPlaceholderText('Ex: 300');
     const gmd = screen.getByPlaceholderText('Ex: 1.200');
@@ -102,17 +110,17 @@ describe('LotForm', () => {
 
   it('submits correctly', async () => {
     render(<LotForm isOpen={true} onClose={mockOnClose} onSubmit={mockOnSubmit} />);
-    
+
     const nomeInput = screen.getByPlaceholderText('Ex: LOTE-ENGORDA-01');
     fireEvent.change(nomeInput, { target: { value: 'LOTE-TESTE' } });
-    
+
     const submitBtn = screen.getByRole('button', { name: 'Criar Lote' });
     fireEvent.click(submitBtn);
-    
+
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalled();
     });
-    
+
     const submittedData = mockOnSubmit.mock.calls[0][0];
     expect(submittedData.nome).toBe('LOTE-TESTE');
   });
@@ -120,10 +128,17 @@ describe('LotForm', () => {
   it('populates with initial data for editing', () => {
     const initialData = {
       nome: 'LOTE-EXISTENTE',
-      status: 'FINALIZADO'
+      status: 'FINALIZADO',
     };
-    render(<LotForm isOpen={true} onClose={mockOnClose} onSubmit={mockOnSubmit} initialData={initialData} />);
-    
+    render(
+      <LotForm
+        isOpen={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        initialData={initialData}
+      />
+    );
+
     const nomeInput = screen.getByPlaceholderText('Ex: LOTE-ENGORDA-01') as HTMLInputElement;
     expect(nomeInput.value).toBe('LOTE-EXISTENTE');
   });

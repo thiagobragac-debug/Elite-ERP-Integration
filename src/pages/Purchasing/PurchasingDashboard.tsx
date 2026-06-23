@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -11,15 +22,29 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { 
-  ShoppingCart, 
-  TrendingDown, 
-  Clock, 
+import {
+  ShoppingCart,
+  TrendingDown,
+  Clock,
   DollarSign,
   Building2,
   FileText,
@@ -29,7 +54,7 @@ import {
   Target,
   Activity,
   Plus,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -38,28 +63,44 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  Cell
+  Cell,
 } from 'recharts';
 
 export const PurchasingDashboard: React.FC = () => {
-  const { activeFarm, activeTenantId, isGlobalMode, activeFarmId, applyFarmFilter } = useFarmFilter();
+  const { activeFarm, activeTenantId, isGlobalMode, activeFarmId, applyFarmFilter } =
+    useFarmFilter();
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
   // React Query Fetch
-  const { data: dashboardData = { funnelData: [], recentRequests: [], topSuppliers: [], stats: [] }, isLoading: loading } = useQuery({
+  const {
+    data: dashboardData = { funnelData: [], recentRequests: [], topSuppliers: [], stats: [] },
+    isLoading: loading,
+  } = useQuery({
     queryKey: ['purchasing_dashboard_data', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let requestsQuery = supabase.from('solicitacoes_compra').select('id, titulo, departamento, valor_estimado, status, prioridade').order('created_at', { ascending: false }).limit(500);
-      let quotationsQuery = supabase.from('mapas_cotacao').select('dados_fornecedores').order('created_at', { ascending: false }).limit(500);
-      let ordersQuery = supabase.from('pedidos_compra').select('valor_total, status, fornecedor_id').order('created_at', { ascending: false }).limit(500);
+      let requestsQuery = supabase
+        .from('solicitacoes_compra')
+        .select('id, titulo, departamento, valor_estimado, status, prioridade')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      let quotationsQuery = supabase
+        .from('mapas_cotacao')
+        .select('dados_fornecedores')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      let ordersQuery = supabase
+        .from('pedidos_compra')
+        .select('valor_total, status, fornecedor_id, parceiros(nome)')
+        .order('created_at', { ascending: false })
+        .limit(500);
       let invoicesQuery = supabase.from('notas_entrada').select('id').limit(500);
 
       requestsQuery = applyFarmFilter(requestsQuery);
@@ -71,13 +112,21 @@ export const PurchasingDashboard: React.FC = () => {
         requestsQuery,
         quotationsQuery,
         ordersQuery,
-        invoicesQuery
+        invoicesQuery,
       ]);
 
-      if (requestsRes.error) throw requestsRes.error;
-      if (quotationsRes.error) throw quotationsRes.error;
-      if (ordersRes.error) throw ordersRes.error;
-      if (invoicesRes.error) throw invoicesRes.error;
+      if (requestsRes.error) {
+        throw requestsRes.error;
+      }
+      if (quotationsRes.error) {
+        throw quotationsRes.error;
+      }
+      if (ordersRes.error) {
+        throw ordersRes.error;
+      }
+      if (invoicesRes.error) {
+        throw invoicesRes.error;
+      }
 
       const requests = requestsRes.data || [];
       const quotations = quotationsRes.data || [];
@@ -89,7 +138,7 @@ export const PurchasingDashboard: React.FC = () => {
         { name: 'Requisições', value: requests.length, color: '#6366f1' },
         { name: 'Cotações', value: quotations.length, color: '#3b82f6' },
         { name: 'Pedidos (OC)', value: orders.length, color: '#10b981' },
-        { name: 'Recebidos', value: invoices.length, color: '#166534' }
+        { name: 'Recebidos', value: invoices.length, color: '#166534' },
       ];
 
       // Saving
@@ -97,33 +146,81 @@ export const PurchasingDashboard: React.FC = () => {
       quotations.forEach((q: any) => {
         const bids = q.dados_fornecedores || q.suppliers || [];
         if (bids.length > 1) {
-          const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
-          totalSaving += (Math.max(...prices) - Math.min(...prices));
+          const prices = bids
+            .map((b: any) => Number(b.price || b.preco || 0))
+            .filter((p: number) => p > 0);
+          totalSaving += Math.max(...prices) - Math.min(...prices);
         }
       });
 
-      const totalSpend = orders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-      const pendingValue = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      const totalSpend = orders.reduce(
+        (acc: number, curr: any) => acc + Number(curr.valor_total || 0),
+        0
+      );
+      const pendingValue = orders
+        .filter((o: any) => o.status !== 'received')
+        .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
 
       const computedStats = [
-        { label: 'Saving Acumulado', value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', icon: TrendingDown, color: '#10b981', progress: totalSaving > 0 ? 100 : 0, change: 'Economia Real', trend: 'down' as const,
-          sparkline: totalSaving > 0 ? [
-            { value: Math.round(totalSaving * 0.45) }, { value: Math.round(totalSaving * 0.55) },
-            { value: Math.round(totalSaving * 0.65) }, { value: Math.round(totalSaving * 0.75) },
-            { value: Math.round(totalSaving * 0.85) }, { value: Math.round(totalSaving * 0.92) },
-            { value: Math.round(totalSaving), label: 'Hoje' }
-          ] : []
+        {
+          label: 'Saving Acumulado',
+          value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---',
+          icon: TrendingDown,
+          color: '#10b981',
+          progress: totalSaving > 0 ? 100 : 0,
+          change: 'Economia Real',
+          trend: 'down' as const,
+          sparkline:
+            totalSaving > 0
+              ? [
+                  { value: Math.round(totalSaving * 0.45) },
+                  { value: Math.round(totalSaving * 0.55) },
+                  { value: Math.round(totalSaving * 0.65) },
+                  { value: Math.round(totalSaving * 0.75) },
+                  { value: Math.round(totalSaving * 0.85) },
+                  { value: Math.round(totalSaving * 0.92) },
+                  { value: Math.round(totalSaving), label: 'Hoje' },
+                ]
+              : [],
         },
-        { label: 'Exposição de Caixa', value: pendingValue > 0 ? `R$ ${(pendingValue / 1000).toFixed(1)}k` : '---', icon: DollarSign, color: '#3b82f6', progress: totalSpend > 0 ? (pendingValue / totalSpend) * 100 : 0, change: 'Pedidos Abertos',
-          sparkline: pendingValue > 0 ? [
-            { value: Math.round(pendingValue * 0.50) }, { value: Math.round(pendingValue * 0.60) },
-            { value: Math.round(pendingValue * 0.70) }, { value: Math.round(pendingValue * 0.78) },
-            { value: Math.round(pendingValue * 0.86) }, { value: Math.round(pendingValue * 0.93) },
-            { value: Math.round(pendingValue), label: 'Hoje' }
-          ] : []
+        {
+          label: 'Exposição de Caixa',
+          value: pendingValue > 0 ? `R$ ${(pendingValue / 1000).toFixed(1)}k` : '---',
+          icon: DollarSign,
+          color: '#3b82f6',
+          progress: totalSpend > 0 ? (pendingValue / totalSpend) * 100 : 0,
+          change: 'Pedidos Abertos',
+          sparkline:
+            pendingValue > 0
+              ? [
+                  { value: Math.round(pendingValue * 0.5) },
+                  { value: Math.round(pendingValue * 0.6) },
+                  { value: Math.round(pendingValue * 0.7) },
+                  { value: Math.round(pendingValue * 0.78) },
+                  { value: Math.round(pendingValue * 0.86) },
+                  { value: Math.round(pendingValue * 0.93) },
+                  { value: Math.round(pendingValue), label: 'Hoje' },
+                ]
+              : [],
         },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação', sparkline: [] },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado', sparkline: [] }
+        {
+          label: 'Agilidade de Fluxo',
+          value: '---',
+          icon: Clock,
+          color: '#f59e0b',
+          progress: 0,
+          change: 'SLA Aprovação',
+          sparkline: [],
+        },
+        {
+          label: 'Acuracidade Orç.',
+          value: '---',
+          icon: Target,
+          color: '#166534',
+          progress: 0,
+          change: 'Real vs Planejado',
+          sparkline: [],
+        },
       ];
 
       // Recent Requests
@@ -133,19 +230,13 @@ export const PurchasingDashboard: React.FC = () => {
         dept: r.departamento,
         value: Number(r.valor_estimado || 0),
         status: r.status,
-        priority: r.prioridade
+        priority: r.prioridade,
       }));
 
-      // Top Suppliers
+      // Top Suppliers - using data from JOIN
       const supMap: Record<string, number> = {};
-      const fornecedorIds = [...new Set(orders.map((o: any) => o.fornecedor_id).filter(Boolean))];
-      let parceirosMap: Record<string, string> = {};
-      if (fornecedorIds.length > 0) {
-        const { data: parceirosData } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
-        if (parceirosData) parceirosData.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
-      }
       orders.forEach((o: any) => {
-        const name = parceirosMap[o.fornecedor_id] || 'N/A';
+        const name = o.parceiros?.nome || 'N/A';
         supMap[name] = (supMap[name] || 0) + Number(o.valor_total || 0);
       });
       const top = Object.entries(supMap)
@@ -157,29 +248,72 @@ export const PurchasingDashboard: React.FC = () => {
         funnelData: funnel,
         recentRequests: recent,
         topSuppliers: top,
-        stats: computedStats
+        stats: computedStats,
       };
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
-  const funnelData = dashboardData.funnelData;
-  const recentRequests = dashboardData.recentRequests;
-  const topSuppliers = dashboardData.topSuppliers;
-  const stats = dashboardData.stats.length > 0 ? dashboardData.stats : [
-    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: [] },
-    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: [] },
-    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: [] },
-    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: [] }
-  ];
+  const { funnelData } = dashboardData;
+  const { recentRequests } = dashboardData;
+  const { topSuppliers } = dashboardData;
+  const stats =
+    dashboardData.stats.length > 0
+      ? dashboardData.stats
+      : [
+          {
+            label: 'Saving Acumulado',
+            value: '---',
+            icon: TrendingDown,
+            color: '#10b981',
+            progress: 0,
+            change: 'Processando...',
+            trend: 'down' as const,
+            sparkline: [],
+          },
+          {
+            label: 'Exposição de Caixa',
+            value: '---',
+            icon: DollarSign,
+            color: '#3b82f6',
+            progress: 0,
+            change: 'Analisando...',
+            sparkline: [],
+          },
+          {
+            label: 'Agilidade de Fluxo',
+            value: '---',
+            icon: Clock,
+            color: '#f59e0b',
+            progress: 0,
+            change: 'SLA...',
+            sparkline: [],
+          },
+          {
+            label: 'Acuracidade Orç.',
+            value: '---',
+            icon: Target,
+            color: '#166534',
+            progress: 0,
+            change: 'Auditando...',
+            sparkline: [],
+          },
+        ];
 
   return (
     <div className="purchasing-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Intelligence Hub' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Compras', href: '/compras/dashboard' },
+              { label: 'Intelligence Hub' },
+            ]}
+          />
           <h1 className="page-title">Intelligence Hub</h1>
-          <p className="page-subtitle">Centro de comando estratégico para gestão de suprimentos e eficiência logística.</p>
+          <p className="page-subtitle">
+            Centro de comando estratégico para gestão de suprimentos e eficiência logística.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary">
@@ -205,11 +339,21 @@ export const PurchasingDashboard: React.FC = () => {
       `}</style>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <div key={i} className="skeleton-card" style={{ height: '140px', background: 'hsl(var(--bg-card))', borderRadius: '24px' }} />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard key={idx} {...stat} />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <div
+                  key={i}
+                  className="skeleton-card"
+                  style={{
+                    height: '140px',
+                    background: 'hsl(var(--bg-card))',
+                    borderRadius: '24px',
+                  }}
+                />
+              ))
+          : stats.map((stat, idx) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="purchasing-hub-grid">
@@ -220,23 +364,33 @@ export const PurchasingDashboard: React.FC = () => {
                 <BarChart2 size={20} className="section-icon" style={{ color: '#6366f1' }} />
                 <h3>Funil de Suprimentos</h3>
               </div>
-              <span className="header-meta" style={{ color: '#10b981', background: '#10b98115' }}>SAÚDE: ÓTIMA</span>
+              <span className="header-meta" style={{ color: '#10b981', background: '#10b98115' }}>
+                SAÚDE: ÓTIMA
+              </span>
             </div>
 
-            <div className="chart-container" style={{ height: '300px', width: '100%', marginTop: '20px' }}>
+            <div
+              className="chart-container"
+              style={{ height: '300px', width: '100%', marginTop: '20px' }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} 
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }}
                   />
                   <YAxis hide />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 800 }}
+                    contentStyle={{
+                      borderRadius: '16px',
+                      border: 'none',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                      fontWeight: 800,
+                    }}
                   />
                   <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={60}>
                     {funnelData.map((entry, index) => (
@@ -263,7 +417,9 @@ export const PurchasingDashboard: React.FC = () => {
                 <Activity size={20} className="section-icon" style={{ color: '#6366f1' }} />
                 <h3>Requisições Recentes</h3>
               </div>
-              <button className="text-link">VER TODAS <ArrowRight size={14} /></button>
+              <button className="text-link">
+                VER TODAS <ArrowRight size={14} />
+              </button>
             </div>
 
             <div className="recent-grid-wrapper">
@@ -296,12 +452,16 @@ export const PurchasingDashboard: React.FC = () => {
                         <span className="item-price">R$ {req.value.toLocaleString()}</span>
                       </td>
                       <td>
-                        <span className={`status-tag ${req.status === 'pending' ? 'warning' : 'success'}`}>
+                        <span
+                          className={`status-tag ${req.status === 'pending' ? 'warning' : 'success'}`}
+                        >
                           {req.status === 'pending' ? 'Triagem' : 'Aprovado'}
                         </span>
                       </td>
                       <td className="text-right">
-                        <span className={`priority-tag ${req.priority === 'high' || req.priority === 'Urgente' ? 'critical' : 'normal'}`}>
+                        <span
+                          className={`priority-tag ${req.priority === 'high' || req.priority === 'Urgente' ? 'critical' : 'normal'}`}
+                        >
                           {req.priority || 'Normal'}
                         </span>
                       </td>
@@ -321,10 +481,12 @@ export const PurchasingDashboard: React.FC = () => {
                 <h3>Volume por Parceiro</h3>
               </div>
             </div>
-            
+
             <div className="supplier-bars">
               {topSuppliers.length === 0 && (
-                <div className="text-center py-4 text-xs font-bold text-slate-400">Nenhum parceiro encontrado</div>
+                <div className="text-center py-4 text-xs font-bold text-slate-400">
+                  Nenhum parceiro encontrado
+                </div>
               )}
               {topSuppliers.map((sup, idx) => (
                 <div key={idx} className="bar-item">
@@ -333,7 +495,7 @@ export const PurchasingDashboard: React.FC = () => {
                     <span className="val">R$ {(sup.value / 1000).toFixed(1)}k</span>
                   </div>
                   <div className="bar-track">
-                    <motion.div 
+                    <motion.div
                       className="bar-fill"
                       initial={{ width: 0 }}
                       animate={{ width: `${(sup.value / (topSuppliers[0]?.value || 1)) * 100}%` }}

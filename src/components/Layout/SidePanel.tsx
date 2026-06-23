@@ -65,7 +65,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const widthMap: Record<string, string> = {
     small: '400px',
@@ -73,24 +75,32 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     large: '800px',
     xlarge: '1000px',
     xxlarge: '1200px',
-    full: '95vw'
+    full: '95vw',
   };
 
   const actualWidth = widthMap[size] || size;
 
   return createPortal(
-    <div className="tauze-sidepanel-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(5, 8, 15, 0.6)',
-      backdropFilter: 'blur(5px)',
-      zIndex: 9999,
-      display: 'flex',
-      justifyContent: 'flex-end'
-    }}>
+    <div
+      className="tauze-sidepanel-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(5, 8, 15, 0.6)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'flex-end',
+      }}
+    >
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100%); }
@@ -108,6 +118,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           flex-direction: column;
           box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
           border-left: 1px solid hsl(var(--border));
+          border-top-left-radius: 24px;
+          border-bottom-left-radius: 24px;
+          overflow: hidden;
         }
         .tauze-sidepanel-header {
           padding: 20px 24px;
@@ -170,40 +183,60 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         }
       `}</style>
 
-      <div 
+      <div
         ref={panelRef}
         className="tauze-sidepanel-container"
         style={{ width: actualWidth, maxWidth: '100vw' }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidepanel-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper" style={{ 
-              background: 'rgba(255,255,255,0.1)', 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              color: '#38bdf8'
-            }}>
+            <div
+              className="icon-wrapper"
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38bdf8',
+              }}
+            >
               <Icon size={22} />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>{title}</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>{subtitle}</p>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
+                {subtitle}
+              </p>
             </div>
           </div>
-          <button className="icon-btn-secondary" onClick={onClose} style={{ background: 'transparent', color: '#94a3b8', border: 'none', cursor: 'pointer' }}>
+          <button
+            className="icon-btn-secondary"
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              color: '#94a3b8',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <form
+          onSubmit={onSubmit}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+        >
           <div className="tauze-sidepanel-content">
-            <fieldset disabled={isReadOnly} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
-                {children}
+            <fieldset
+              disabled={isReadOnly}
+              style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}
+            >
+              {children}
             </fieldset>
           </div>
 
@@ -216,16 +249,19 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {isReadOnly ? 'Fechar' : cancelLabel}
                 </button>
                 {!hideSubmit && !isReadOnly && (
-                  <button 
-                    type="submit" 
-                    className="primary-btn" 
-                    disabled={loading || submitDisabled} 
-                    style={{ 
+                  <button
+                    type="submit"
+                    formNoValidate
+                    className="primary-btn"
+                    disabled={loading || submitDisabled}
+                    style={{
                       boxShadow: submitDisabled ? 'none' : '0 8px 20px hsl(var(--brand) / 0.2)',
                       opacity: submitDisabled ? 0.5 : 1,
                       cursor: submitDisabled ? 'not-allowed' : 'pointer',
                     }}
-                    title={submitDisabled ? 'Resolva os itens sem vínculo antes de salvar' : undefined}
+                    title={
+                      submitDisabled ? 'Resolva os itens sem vínculo antes de salvar' : undefined
+                    }
                   >
                     <IconSubmit size={18} />
                     {loading ? 'Processando...' : submitLabel}

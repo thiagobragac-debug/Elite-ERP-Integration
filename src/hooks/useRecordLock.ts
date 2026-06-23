@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
-export function useRecordLock(tableName: string, recordId: string | null | undefined) {
+interface UseRecordLockReturn {
+  isLocked: boolean;
+  lockedBy: string | null;
+}
+
+export function useRecordLock(
+  tableName: string,
+  recordId: string | null | undefined
+): UseRecordLockReturn {
   const { user } = useAuth();
   const [lockedBy, setLockedBy] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
-    if (!recordId || !tableName || !user) return;
+    if (!recordId || !tableName || !user) {
+      return;
+    }
 
-    let heartbeatInterval: any;
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
     const acquireLock = async () => {
       // 1. Check if it's locked by someone else
@@ -22,7 +32,7 @@ export function useRecordLock(tableName: string, recordId: string | null | undef
         .maybeSingle();
 
       const now = new Date();
-      
+
       if (lockData && new Date(lockData.expires_at) > now && lockData.user_id !== user.id) {
         setIsLocked(true);
         setLockedBy(lockData.user_name);
@@ -36,9 +46,9 @@ export function useRecordLock(tableName: string, recordId: string | null | undef
         record_id: recordId,
         user_id: user.id,
         user_name: user.email,
-        expires_at: expiresAt
+        expires_at: expiresAt,
       });
-      
+
       setIsLocked(false);
       setLockedBy(null);
 
@@ -50,7 +60,7 @@ export function useRecordLock(tableName: string, recordId: string | null | undef
           record_id: recordId,
           user_id: user.id,
           user_name: user.email,
-          expires_at: newExpiresAt
+          expires_at: newExpiresAt,
         });
       }, 60000);
     };
@@ -58,7 +68,9 @@ export function useRecordLock(tableName: string, recordId: string | null | undef
     acquireLock();
 
     return () => {
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
       // Release lock when component unmounts
       supabase
         .from('record_locks')

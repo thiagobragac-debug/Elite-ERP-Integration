@@ -8,19 +8,25 @@ export function normalizeSparkline(
   input?: { value: number; label?: string }[],
   interpolate = false
 ): { value: number; label: string }[] {
-  if (!input || input.length === 0) return [];
+  if (!input || input.length === 0) {
+    return [];
+  }
 
-  const withLabels = input.map(s => ({
+  const withLabels = input.map((s) => ({
     value: typeof s.value === 'number' && isFinite(s.value) ? s.value : 0,
-    label: s.label ?? ''
+    label: s.label ?? '',
   }));
 
-  if (!interpolate || withLabels.length >= 5) return withLabels;
+  if (!interpolate || withLabels.length >= 5) {
+    return withLabels;
+  }
 
   const targetCount = 15;
 
   if (withLabels.length === 1) {
-    return Array(targetCount).fill(null).map(() => ({ ...withLabels[0] }));
+    return Array(targetCount)
+      .fill(null)
+      .map(() => ({ ...withLabels[0] }));
   }
 
   const result: { value: number; label: string }[] = [];
@@ -30,10 +36,11 @@ export function normalizeSparkline(
     const lo = Math.floor(srcIdx);
     const hi = Math.min(lo + 1, withLabels.length - 1);
     const frac = srcIdx - lo;
-    const interpolatedValue = withLabels[lo].value + (withLabels[hi].value - withLabels[lo].value) * frac;
+    const interpolatedValue =
+      withLabels[lo].value + (withLabels[hi].value - withLabels[lo].value) * frac;
     result.push({
       value: interpolatedValue,
-      label: withLabels[hi].label || withLabels[lo].label || ''
+      label: withLabels[hi].label || withLabels[lo].label || '',
     });
   }
   return result;

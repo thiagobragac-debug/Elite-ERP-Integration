@@ -5,21 +5,24 @@ interface SkeletonProps {
   height?: string | number;
   circle?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ 
-  width = '100%', 
-  height = '1rem', 
+export const Skeleton: React.FC<SkeletonProps> = ({
+  width = '100%',
+  height = '1rem',
   circle = false,
-  className = ''
+  className = '',
+  style,
 }) => {
   return (
-    <div 
+    <div
       className={`skeleton-base ${className}`}
-      style={{ 
+      style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height,
-        borderRadius: circle ? '50%' : 'var(--radius-md)'
+        borderRadius: circle ? '50%' : 'var(--radius-md)',
+        ...style,
       }}
     />
   );
@@ -49,7 +52,14 @@ export const KPISkeleton: React.FC = () => (
       </div>
     </div>
     <div className="kpi-divider" />
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '40px' }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        height: '40px',
+      }}
+    >
       <Skeleton width="60%" height="24px" />
       <Skeleton width="40px" height="12px" />
     </div>

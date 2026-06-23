@@ -18,24 +18,31 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     activeFarmId: 'farm-1',
     activeTenantId: 'tenant-1',
     isGlobalMode: false,
-    applyFarmFilter: vi.fn((q) => q)
-  })
+    applyFarmFilter: vi.fn((q) => q),
+  }),
 }));
 
 const mockRefresh = vi.fn();
 vi.mock('../../hooks/useReportData', () => ({
   useReportData: vi.fn(() => ({
     data: [
-      { id: '1', title: 'Vacinação Gado', target: 'Lote 01', date: 'Hoje', type: 'VACINA', priority: 'high' }
+      {
+        id: '1',
+        title: 'Vacinação Gado',
+        target: 'Lote 01',
+        date: 'Hoje',
+        type: 'VACINA',
+        priority: 'high',
+      },
     ],
     stats: [
       { label: 'Estoque Biológico', value: 1000 },
-      { label: 'GMD Médio (30d)', value: '0.8 kg/dia' }
+      { label: 'GMD Médio (30d)', value: '0.8 kg/dia' },
     ],
     loading: false,
     error: null,
-    refresh: mockRefresh
-  }))
+    refresh: mockRefresh,
+  })),
 }));
 
 vi.mock('../../lib/supabase', () => ({
@@ -46,8 +53,8 @@ vi.mock('../../lib/supabase', () => ({
         return {
           select: vi.fn().mockResolvedValue({
             data: [{ nome: 'Ração Bezerro', estoque_atual: 1000, categoria: 'Nutrição' }],
-            error: null
-          })
+            error: null,
+          }),
         };
       }
       if (table === 'animais') {
@@ -56,9 +63,9 @@ vi.mock('../../lib/supabase', () => ({
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
               data: [], // empty pesagens for chart, returning empty array
-              error: null
-            })
-          })
+              error: null,
+            }),
+          }),
         };
       }
       if (table === 'pesagens') {
@@ -67,19 +74,19 @@ vi.mock('../../lib/supabase', () => ({
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
               data: [{ data_pesagem: new Date().toISOString(), peso: 300 }],
-              error: null
-            })
-          })
+              error: null,
+            }),
+          }),
         };
       }
       return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
-    })
-  }
+    }),
+  },
 }));
 
 // Mock the chart to avoid deep rendering issues in test environment
 vi.mock('../../components/Charts/TauzeMainChart', () => ({
-  TauzeMainChart: () => <div data-testid="tauze-main-chart" />
+  TauzeMainChart: () => <div data-testid="tauze-main-chart" />,
 }));
 
 describe('LivestockDashboard', () => {
@@ -106,7 +113,9 @@ describe('LivestockDashboard', () => {
   it('renders dashboard title and breadcrumb', () => {
     renderComponent();
     expect(screen.getAllByText('Intelligence Hub').length).toBeGreaterThan(0);
-    expect(screen.getByText('Visão 360º da performance biológica, sanitária e nutricional do rebanho.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Visão 360º da performance biológica, sanitária e nutricional do rebanho.')
+    ).toBeInTheDocument();
   });
 
   it('renders stats cards correctly', () => {
@@ -136,32 +145,32 @@ describe('LivestockDashboard', () => {
     // produtos: 1000 estoque
     // animais: wait, the `from('animais').select('*', { count: 'exact' })` mock!
     // Our mock for animais didn't return count.
-    
+
     // Let's re-mock supabase specific for this test if needed, or let it fail gracefully.
     renderComponent();
-    
+
     // We expect "Autonomia Silo"
     expect(screen.getByText('Autonomia Silo')).toBeInTheDocument();
   });
 
   it('can trigger synchronization', () => {
     renderComponent();
-    
+
     const syncBtn = screen.getByRole('button', { name: /SINCRONIZAR/i });
     fireEvent.click(syncBtn);
-    
-    // Invalidate queries will be called on queryClient, no UI effect immediately 
+
+    // Invalidate queries will be called on queryClient, no UI effect immediately
     // unless loading state is toggled.
     expect(syncBtn).toBeInTheDocument();
   });
-  
+
   it('navigates to animal management when clicking GERENCIAR REBANHO', () => {
     renderComponent();
-    
+
     const manageBtn = screen.getByRole('button', { name: /GERENCIAR REBANHO/i });
     fireEvent.click(manageBtn);
-    
-    // Using MemoryRouter, we can't easily assert navigation without mocking useNavigate, 
+
+    // Using MemoryRouter, we can't easily assert navigation without mocking useNavigate,
     // but the button click itself shouldn't crash.
     expect(manageBtn).toBeInTheDocument();
   });

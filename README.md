@@ -1,325 +1,565 @@
-# 🌾 Tauze ERP v5.0 - Sistema de Gestão Agropecuária
+# Tauze ERP v5.0
 
-ERP multi-tenant completo para gestão de fazendas com módulos de pecuária, financeiro, estoque, compras, vendas e frota.
+> Modern multi-tenant SaaS platform for agricultural management
+
+A comprehensive Enterprise Resource Planning system designed for agricultural operations, featuring livestock management, financial control, inventory tracking, fleet management, and more.
+
+## 🌟 Features
+
+- **🐮 Livestock Management**: Track animals, breeding, health records, and performance metrics
+- **💰 Financial Control**: Accounts payable/receivable, cash flow, and bank reconciliation
+- **📦 Inventory Management**: Track feed, medicines, supplies with automatic reorder alerts
+- **🚜 Fleet Management**: Monitor vehicles, equipment, maintenance, and fuel consumption
+- **🛒 Purchase & Sales**: Complete purchase and sales order management
+- **📊 Market Indicators**: Real-time market prices integration (Cepea)
+- **👥 Multi-tenant Architecture**: Isolated data per organization with role-based access
+- **📱 PWA Support**: Works offline with automatic sync when reconnected
+- **🔐 Enterprise Security**: JWT authentication, MFA support, Row Level Security (RLS)
+- **📈 Analytics & Monitoring**: Error tracking, performance monitoring, business analytics
+
+## 🏗️ Tech Stack
+
+### Frontend
+- **React 19** - UI framework
+- **TypeScript 6.0** - Type safety
+- **Vite 8** - Build tool and dev server
+- **React Router 7** - Client-side routing
+- **React Query** - Server state management
+- **Lucide React** - Icon library
+- **Recharts** - Data visualization
+- **Leaflet** - Maps integration
+
+### Backend
+- **Supabase** - Backend as a Service
+  - PostgreSQL 14 - Database
+  - Supabase Auth - Authentication
+  - Supabase Storage - File storage
+  - Row Level Security - Multi-tenant isolation
+
+### Testing
+- **Vitest 4.1** - Unit testing
+- **Playwright 1.61** - E2E testing
+- **Testing Library** - Component testing
+- **MSW 2.14** - API mocking
+
+### Developer Experience
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+- **Husky** - Git hooks
+- **TypeScript Strict Mode** - Enhanced type checking
+
+### Monitoring & Analytics
+- **Sentry** - Error tracking and performance monitoring
+- **PostHog** - Product analytics
+- **Web Vitals** - Performance metrics
 
 ## 🚀 Quick Start
 
-### Pré-requisitos
-- Node.js 18+
-- npm 9+
-- Conta Supabase (gratuita para desenvolvimento)
+### Prerequisites
 
-### Instalação (< 5 minutos)
+- Node.js v20.x or higher
+- npm v10.x or higher
+- Git
+- Supabase account ([sign up free](https://supabase.com))
 
-1. **Clone o repositório:**
-```bash
-git clone <repo-url>
-cd Saas
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Saas
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` and add your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
+
+   Get credentials from [Supabase Dashboard](https://app.supabase.com/) → Settings → API
+
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:5173](http://localhost:5173) in your browser
+
+**Setup time: ~5 minutes** ⚡
+
+For detailed setup instructions, see [Onboarding Guide](docs/ONBOARDING_GUIDE.md)
+
+## 📁 Project Structure
+
 ```
-
-2. **Instale as dependências:**
-```bash
-npm install
-```
-
-3. **Configure variáveis de ambiente:**
-```bash
-cp .env.example .env
-```
-
-Edite `.env` e preencha as variáveis obrigatórias:
-- `VITE_SUPABASE_URL` - URL do seu projeto Supabase
-- `VITE_SUPABASE_ANON_KEY` - Chave pública do Supabase
-
-4. **Inicie o servidor:**
-```bash
-npm run dev
-```
-
-Acesse: http://localhost:5173
-
----
-
-## 📚 Estrutura do Projeto
-
-```
-src/
-├── components/     # Componentes reutilizáveis
-│   ├── Cards/      # TauzeStatCard, métricas
-│   ├── DataTable/  # ModernTable (listagens)
-│   ├── Feedback/   # EmptyState, ErrorBoundary, LoadingSkeleton
-│   ├── Forms/      # FormModal, SearchableSelect
-│   ├── Guards/     # PermissionGuard, MFAGuard
-│   ├── Layout/     # Layout principal, SidePanel
-│   └── Navigation/ # Breadcrumb, CommandPalette
+Saas/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── Cards/          # Stat cards, metric displays
+│   │   ├── DataTable/      # Table components
+│   │   ├── Feedback/       # Loading, errors, empty states
+│   │   ├── Forms/          # Form components and modals
+│   │   ├── Guards/         # Permission guards
+│   │   ├── Layout/         # Layout structure
+│   │   └── Navigation/     # Navigation components
+│   │
+│   ├── contexts/            # React Context providers
+│   │   ├── AuthContext     # Authentication state
+│   │   ├── TenantContext   # Multi-tenancy
+│   │   ├── ThemeContext    # Dark/light mode
+│   │   └── OfflineSyncContext # Offline support
+│   │
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useAuth.ts
+│   │   ├── useFarmFilter.ts
+│   │   └── useViewMode.ts
+│   │
+│   ├── pages/               # Page components (routes)
+│   │   ├── Dashboard/      # Executive dashboard
+│   │   ├── Admin/          # User & role management
+│   │   ├── Pecuaria/       # Livestock management
+│   │   ├── Finance/        # Financial control
+│   │   ├── Inventory/      # Inventory tracking
+│   │   ├── Fleet/          # Fleet management
+│   │   ├── Purchasing/     # Purchase orders
+│   │   ├── Sales/          # Sales orders
+│   │   ├── Market/         # Market indicators
+│   │   └── Reports/        # Reports & analytics
+│   │
+│   ├── lib/                 # External libraries setup
+│   │   └── supabase.ts     # Supabase client
+│   │
+│   ├── types/               # TypeScript definitions
+│   │   └── database.types.ts # Supabase types
+│   │
+│   ├── utils/               # Utility functions
+│   │   ├── format.ts       # Formatting helpers
+│   │   ├── validation.ts   # Form validation
+│   │   └── export.ts       # Excel/PDF export
+│   │
+│   ├── __tests__/          # Test files
+│   │   ├── unit/           # Unit tests
+│   │   ├── integration/    # Integration tests
+│   │   └── setup.ts        # Test configuration
+│   │
+│   ├── App.tsx              # Root component & routes
+│   ├── main.tsx             # Entry point
+│   └── index.css            # Global styles
 │
-├── contexts/       # React Context (Auth, Tenant, Theme, OfflineSync)
-├── hooks/          # Custom hooks
-├── pages/          # Páginas/rotas do app
-│   ├── Admin/      # Gestão de usuários, configurações
-│   ├── Dashboard/  # Dashboard executivo
-│   ├── Finance/    # Contas a pagar/receber, fluxo de caixa
-│   ├── Fleet/      # Frota, manutenções, abastecimentos
-│   ├── Inventory/  # Estoque, armazéns, movimentações
-│   ├── Market/     # Indicadores de mercado (Cepea)
-│   ├── Pecuaria/   # Animais, lotes, sanidade, reprodução
-│   ├── Purchasing/ # Compras, cotações, fornecedores
-│   └── Sales/      # Vendas, clientes, contratos
+├── docs/                    # Documentation
+│   ├── adr/                # Architecture Decision Records
+│   ├── ONBOARDING_GUIDE.md
+│   ├── ARQUITETURA_ATUAL.md
+│   ├── PRODUCTION_DEPLOYMENT_GUIDE.md
+│   └── ...
 │
-├── types/          # TypeScript types
-├── utils/          # Funções auxiliares
-└── lib/            # Bibliotecas (Supabase client)
+├── tests/                   # E2E tests
+│   └── e2e/                # Playwright tests
+│
+├── .github/
+│   └── workflows/          # CI/CD pipelines
+│       └── ci.yml
+│
+├── .husky/                  # Git hooks
+├── package.json             # Dependencies & scripts
+├── vite.config.ts          # Vite configuration
+├── tsconfig.json           # TypeScript configuration
+├── eslint.config.js        # ESLint configuration
+└── .prettierrc             # Prettier configuration
 ```
 
----
+## 🎯 Architecture Overview
 
-## 🛠️ Scripts Disponíveis
+### Frontend Architecture
+- **Component-Based**: Modular, reusable components
+- **Context + React Query**: Global state + server state management
+- **Code Splitting**: Lazy-loaded routes for optimal performance
+- **Offline-First**: PWA with IndexedDB queue for offline operations
 
-### Desenvolvimento
+### Backend Architecture
+- **Multi-Tenant**: Complete data isolation using Row Level Security
+- **RESTful API**: Supabase auto-generated REST API
+- **Real-time**: Supabase Realtime for live updates
+- **Storage**: Supabase Storage for file uploads (photos, documents)
+
+### Security
+- **JWT Authentication**: Token-based auth with Supabase
+- **Row Level Security (RLS)**: Database-level tenant isolation
+- **MFA Support**: Two-factor authentication
+- **Role-Based Access Control**: Granular permissions system
+
+For detailed architecture documentation, see [Architecture Guide](docs/ARQUITETURA_ATUAL.md)
+
+## 📜 Available Scripts
+
+### Development
 ```bash
-npm run dev              # Servidor de desenvolvimento
-npm run dev:host         # Acessível na rede local (testar mobile)
-npm run dev:https        # Com HTTPS (testar PWA)
+npm run dev              # Start development server
+npm run dev:host         # Expose to network (mobile testing)
+npm run dev:https        # Run with HTTPS
 ```
 
-### Build e Deploy
+### Build
 ```bash
-npm run build            # Build para produção
-npm run build:staging    # Build para staging
-npm run preview          # Preview do build
+npm run build            # Production build
+npm run build:analyze    # Build with bundle analysis
+npm run build:staging    # Build for staging environment
+npm run preview          # Preview production build
 ```
 
-### Qualidade de Código
+### Code Quality
 ```bash
-npm run lint             # Validar código (ESLint)
-npm run lint:fix         # Corrigir erros automaticamente
-npm run format           # Formatar código (Prettier)
-npm run format:check     # Verificar formatação
-npm run type-check       # Validar TypeScript
+npm run lint             # Check for linting errors
+npm run lint:fix         # Auto-fix linting errors
+npm run format           # Format code with Prettier
+npm run format:check     # Check formatting
+npm run type-check       # TypeScript type checking
 ```
 
-### Testes
+### Testing
 ```bash
-npm test                 # Executar testes (modo watch)
-npm run test:run         # Executar testes uma vez
-npm run test:coverage    # Cobertura de testes
-npm run test:ui          # UI interativa (Vitest UI)
+npm run test             # Run tests in watch mode
+npm run test:run         # Run all tests once
+npm run test:coverage    # Generate coverage report
+npm run test:ui          # Open Vitest UI
+npm run test:e2e         # Run E2E tests
+npm run test:e2e:ui      # Run E2E tests with UI
+npm run test:e2e:debug   # Debug E2E tests
 ```
 
-### Utilitários
+### Utilities
 ```bash
-npm run clean            # Limpar arquivos gerados
+npm run clean            # Clean build artifacts
+npm run audit:rls        # Audit RLS policies
+npm run optimize:images  # Optimize images
+npm run lighthouse       # Run Lighthouse audit
+npm run healthcheck      # System health check
 ```
 
----
+## 🧪 Testing
 
-## 🧪 Testes
+### Test Coverage
 
-### Executar Testes
+Current: **32 tests** (12.5% coverage)  
+Target: **60%+ coverage**
+
+### Testing Strategy
+- **Unit Tests (60%)**: Utils, hooks, business logic
+- **Integration Tests (30%)**: Component interactions, flows
+- **E2E Tests (10%)**: Critical user paths
+
+### Running Tests
 ```bash
-# Modo watch (desenvolvimento)
-npm test
+# Unit tests
+npm run test
 
-# Executar uma vez (CI/CD)
-npm run test:run
-
-# Com relatório de cobertura
+# With coverage report
 npm run test:coverage
 
-# Interface visual
-npm run test:ui
+# E2E tests
+npm run test:e2e
 ```
 
-### Estrutura de Testes
-- **Unit Tests:** `src/**/*.test.ts(x)` - Testes de funções e hooks
-- **Integration Tests:** `src/**/*.test.tsx` - Testes de componentes
-- **Coverage:** Meta de 60%+ (atual: 12.5%)
+See [Testing Guide](src/__tests__/README.md) for detailed testing documentation.
 
----
+## 🚀 Deployment
 
-## 🏗️ Stack Tecnológica
+### Staging
+Automatically deployed to staging when code is merged to `develop` branch via GitHub Actions.
 
-### Frontend
-- **Framework:** React 19 com TypeScript
-- **Build Tool:** Vite 8
-- **Roteamento:** React Router v7
-- **Estado:** React Query + Context API
-- **UI:** CSS Modules, Lucide Icons
-- **Gráficos:** Recharts
-- **Mapas:** Leaflet
+### Production
+Automatically deployed to production when code is merged to `main` branch via GitHub Actions.
 
-### Backend
-- **BaaS:** Supabase (PostgreSQL + Auth + Storage)
-- **ORM:** Supabase Client (REST API)
-- **Autenticação:** JWT + MFA (2FA)
-- **Autorização:** Row Level Security (RLS)
-
-### DevOps
-- **CI/CD:** GitHub Actions (recomendado)
-- **Testes:** Vitest + Testing Library
-- **Lint:** ESLint + Prettier
-- **PWA:** Vite PWA Plugin + Workbox
-
----
-
-## 🔐 Segurança
-
-### Multi-Tenancy
-- Isolamento de dados por `tenant_id`
-- Row Level Security (RLS) no PostgreSQL
-- Validação em todas as queries
-
-### Autenticação
-- JWT tokens (Supabase Auth)
-- MFA/2FA obrigatório (configurável)
-- Roles e permissões granulares
-
-### Audit Log
-- Registro de todas as ações críticas
-- Histórico de alterações (before/after)
-- Compliance LGPD
-
----
-
-## 🌐 Módulos
-
-### ✅ Implementados
-
-- **🐮 Pecuária:** Gestão de rebanho, lotes, sanidade, reprodução, pesagens
-- **💰 Financeiro:** Contas a pagar/receber, fluxo de caixa, conciliação bancária
-- **📦 Estoque:** Inventário, movimentações, auditorias, armazéns
-- **🚜 Frota:** Máquinas, manutenções preventivas/corretivas, abastecimentos
-- **🛒 Compras:** Solicitações, cotações, pedidos, fornecedores
-- **💼 Vendas:** Clientes, pedidos, contratos, notas fiscais
-- **📊 Mercado:** Indicadores Cepea, análise de preços, B3
-- **👤 Admin:** Usuários, permissões, configurações, billing
-
----
-
-## 📖 Documentação
-
-### Guias Principais
-- [📐 Arquitetura Atual](./docs/ARQUITETURA_ATUAL.md) - Diagramas e fluxos
-- [🎨 UI/UX Guidelines](./docs/UI_UX_GUIDELINES.md) - Design System
-- [💡 Sugestões de Melhorias](./docs/SUGESTOES_MELHORIAS.md) - Roadmap técnico
-- [⚡ Quick Wins](./docs/QUICK_WINS.md) - Melhorias rápidas
-- [📋 Plano de Ação](./docs/PLANO_ACAO_EXECUTIVO.md) - Cronograma 8 semanas
-
-### Conceitos Importantes
-
-#### Side Panel vs Modal
-- **Side Panel:** Edições de 6-15 campos (mantém contexto da lista)
-- **Modal:** Ações rápidas <5 campos (confirmações, alertas)
-- **Página Dedicada:** Formulários complexos >15 campos
-
-#### Command Palette (Cmd+K)
-Atalhos rápidos para ações comuns:
-- Registrar novo animal
-- Lançar pagamento
-- Alternar fazenda
-- Buscar em qualquer módulo
-
----
-
-## 🔄 Workflow de Desenvolvimento
-
-### Branch Strategy
-```
-main (produção)
-  └── develop (staging)
-       └── feature/nome-da-feature
-```
-
-### Commit Conventions
+### Manual Deployment
 ```bash
-feat: nova funcionalidade
-fix: correção de bug
-docs: documentação
-style: formatação
-refactor: refatoração
-test: testes
-chore: manutenção
+# Build production bundle
+npm run build
+
+# Deploy to hosting platform (Vercel, Netlify, etc.)
+# Upload contents of dist/ folder
 ```
 
-### Code Review Checklist
-- [ ] Código segue os padrões do projeto
-- [ ] Testes escritos e passando
-- [ ] Sem console.logs ou debuggers
-- [ ] TypeScript sem erros
-- [ ] Documentação atualizada
+For detailed deployment instructions, see [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT_GUIDE.md)
 
----
+## 🔧 Configuration
 
-## 🤝 Contribuindo
+### Environment Variables
 
-1. **Fork** o repositório
-2. **Crie** uma branch: `git checkout -b feature/nova-funcionalidade`
-3. **Commit** suas mudanças: `git commit -m 'feat: adiciona nova funcionalidade'`
-4. **Push** para a branch: `git push origin feature/nova-funcionalidade`
-5. **Abra** um Pull Request
+Required variables:
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase anon key
 
-### Antes de Commitar
+Optional variables:
+- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe payment integration
+- `VITE_SENTRY_DSN` - Sentry error tracking
+- `VITE_POSTHOG_KEY` - PostHog analytics
+
+See [.env.example](.env.example) for complete list with descriptions.
+
+### TypeScript Configuration
+- Strict mode enabled
+- Path aliases: `@/*` → `src/*`
+- React 19 JSX transform
+
+### Vite Configuration
+- Code splitting by route
+- Bundle size optimization
+- PWA support
+- Source maps for development
+
+## 📊 Performance
+
+### Bundle Size
+- Target: **<500KB gzipped**
+- Initial load: **<200KB**
+- Lazy-loaded routes: **~60-90KB each**
+
+### Web Vitals Targets
+- **LCP**: <2.5s (Largest Contentful Paint)
+- **FID**: <100ms (First Input Delay)
+- **CLS**: <0.1 (Cumulative Layout Shift)
+
+### Optimization Techniques
+- Code splitting by route
+- Lazy loading heavy libraries (Recharts, Leaflet)
+- Tree-shaking (especially lucide-react icons)
+- Image optimization
+- React Query caching
+
+Run bundle analysis:
 ```bash
-npm run lint:fix      # Corrige problemas de lint
-npm run format        # Formata código
-npm run type-check    # Valida TypeScript
-npm test              # Roda testes
+npm run build:analyze
 ```
 
+See [Lighthouse Optimization Guide](docs/LIGHTHOUSE_OPTIMIZATION_GUIDE.md) for performance tuning.
+
+## 📱 PWA & Offline Support
+
+### Offline Capabilities
+- Queue operations when offline (create, update, delete)
+- Automatic sync when connection restored
+- Background sync for photo uploads
+- Offline indicator banner
+
+### Service Worker Strategy
+- **Network First**: API calls (with cache fallback)
+- **Cache First**: Static assets (JS, CSS, fonts)
+- **Offline Queue**: IndexedDB for pending operations
+
+See [Offline Sync Implementation](docs/OFFLINE_SYNC_IMPLEMENTATION.md) for details.
+
+## 🔐 Security
+
+### Credential Management
+- Never commit `.env` files (gitignored)
+- Use `.env.example` as template
+- Store production secrets in hosting platform
+- Rotate keys if accidentally exposed
+
+See [Credential Rotation Checklist](CREDENTIAL_ROTATION_CHECKLIST.md) for key rotation procedures.
+
+### Database Security
+- Row Level Security (RLS) enabled on all tables
+- Tenant isolation enforced at database level
+- JWT-based authentication
+- Audit logs for all critical operations
+
+Audit RLS policies:
+```bash
+npm run audit:rls
+```
+
+## 🐛 Error Tracking & Monitoring
+
+### Sentry Integration
+- Error tracking with stack traces
+- Performance monitoring (10% sample rate)
+- Session replay (100% of errors)
+- User context (tenant_id, user_id, role)
+
+### Analytics Integration
+- PostHog for product analytics
+- Custom business events tracking
+- Core Web Vitals monitoring
+- User behavior analysis
+
+See [Sentry Error Tracking Guide](docs/SENTRY_ERROR_TRACKING_GUIDE.md) and [Analytics Event Tracking Guide](docs/ANALYTICS_EVENT_TRACKING_GUIDE.md)
+
+## 🛠️ Development Workflow
+
+### 1. Create Feature Branch
+```bash
+git checkout -b feature/your-feature-name
+```
+
+### 2. Develop
+```bash
+npm run dev
+# Make changes, test locally
+```
+
+### 3. Run Quality Checks
+```bash
+npm run lint:fix
+npm run format
+npm run type-check
+npm run test:run
+```
+
+### 4. Commit (Pre-commit hooks run automatically)
+```bash
+git add .
+git commit -m "feat: add new feature"
+```
+
+### 5. Push & Create PR
+```bash
+git push origin feature/your-feature-name
+# Create pull request on GitHub
+```
+
+### 6. CI/CD Pipeline Runs
+- Linting
+- Type checking
+- Tests
+- Build
+- Deploy to staging (if merged to develop)
+
+## 🤝 Contributing
+
+### Code Style
+- Follow existing patterns and conventions
+- Use TypeScript strict mode
+- Write tests for new features
+- Update documentation
+
+### Commit Messages
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `style:` - Code style changes (formatting)
+- `refactor:` - Code refactoring
+- `test:` - Test changes
+- `chore:` - Build/tooling changes
+
+### Pull Request Process
+1. Create feature branch from `develop`
+2. Make changes with tests
+3. Ensure all checks pass
+4. Request review from team
+5. Address feedback
+6. Merge after approval
+
+## 📚 Documentation
+
+### Key Documents
+- [Onboarding Guide](docs/ONBOARDING_GUIDE.md) - Get started in <10 minutes
+- [Architecture Guide](docs/ARQUITETURA_ATUAL.md) - System architecture overview
+- [Production Deployment](docs/PRODUCTION_DEPLOYMENT_GUIDE.md) - Deploy to production
+- [Testing Guide](src/__tests__/README.md) - Testing strategy and examples
+- [ADRs](docs/adr/README.md) - Architecture Decision Records
+
+### API Integration Guides
+- [API Integrations](docs/API_INTEGRATIONS.md) - External API integration guide
+- [Offline Sync](docs/OFFLINE_SYNC_IMPLEMENTATION.md) - PWA offline implementation
+- [Sentry Setup](docs/SENTRY_ERROR_TRACKING_GUIDE.md) - Error tracking setup
+- [Analytics Setup](docs/ANALYTICS_EVENT_TRACKING_GUIDE.md) - Analytics integration
+
+### Operational Guides
+- [Dependency Management](docs/DEPENDENCY_MANAGEMENT.md) - Managing dependencies
+- [Bundle Analyzer](docs/BUNDLE_ANALYZER_GUIDE.md) - Analyzing bundle size
+- [Lighthouse Guide](docs/LIGHTHOUSE_OPTIMIZATION_GUIDE.md) - Performance optimization
+- [Database Performance](src/database/PERFORMANCE_INDEXES_README.md) - Database optimization
+
+## 🗺️ Roadmap
+
+### Phase 1: Foundation (Completed)
+- ✅ Multi-tenant architecture
+- ✅ Core modules (Livestock, Finance, Inventory)
+- ✅ Authentication & authorization
+- ✅ Basic reporting
+
+### Phase 2: Enhancement (In Progress)
+- 🔄 Increase test coverage to 60%
+- 🔄 Bundle size optimization (<500KB)
+- 🔄 Component refactoring
+- 🔄 TypeScript strict mode
+- 🔄 CI/CD pipeline
+
+### Phase 3: Advanced Features (Planned)
+- 📋 Advanced analytics dashboard
+- 📋 Mobile app (React Native)
+- 📋 NF-e integration
+- 📋 AI-powered insights
+- 📋 Advanced offline support
+
+### Phase 4: Enterprise (Future)
+- 📋 Multi-language support
+- 📋 Advanced audit trails
+- 📋 API marketplace
+- 📋 White-label solutions
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Issue: "Missing required environment variables"**
+- Solution: Verify `.env` file exists and has `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+
+**Issue: "Failed to connect to Supabase"**
+- Solution: Check credentials in `.env`, verify Supabase project is active
+
+**Issue: "Port 5173 is already in use"**
+- Solution: `npx kill-port 5173` or use different port: `npm run dev -- --port 3000`
+
+**Issue: "Tests are failing"**
+- Solution: Run `npm install` and `npm run test:run -- --clearCache`
+
+For more troubleshooting, see [Onboarding Guide](docs/ONBOARDING_GUIDE.md#common-issues)
+
+## 📊 Project Stats
+
+- **Lines of Code**: ~50,000+
+- **Components**: 100+
+- **Tests**: 32 (growing to 60%+ coverage)
+- **Dependencies**: 20 production, 40+ dev
+- **Bundle Size**: ~850KB (~280KB gzipped)
+- **Modules**: 8 main business modules
+
+## 🔗 Links
+
+- [Supabase Documentation](https://supabase.com/docs)
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Vite Guide](https://vite.dev/guide/)
+- [React Query Docs](https://tanstack.com/query/)
+
+## 📄 License
+
+Proprietary - All rights reserved
+
+## 🙏 Acknowledgments
+
+Built with:
+- React team for React 19
+- Supabase for amazing BaaS platform
+- TanStack team for React Query
+- Vite team for blazing fast build tool
+- Open source community
+
 ---
 
-## 🐛 Troubleshooting
+**Made with ❤️ for the agricultural community**
 
-### Erro: "Missing required environment variables"
-**Solução:** Copie `.env.example` para `.env` e preencha as variáveis
-
-### Erro: "Cannot connect to Supabase"
-**Solução:** Verifique se as credenciais no `.env` estão corretas
-
-### Build muito lento
-**Solução:** Execute `npm run clean` e tente novamente
-
-### Testes falhando
-**Solução:** Limpe cache com `npm run clean` e rode `npm install`
-
----
-
-## 📊 Métricas de Qualidade
-
-| Métrica | Atual | Meta |
-|---------|-------|------|
-| Cobertura de Testes | 12.5% | 60% |
-| Lighthouse Score | - | 90+ |
-| Bundle Size | ~850KB | <500KB |
-| First Load Time | - | <2s |
-
----
-
-## 📄 Licença
-
-Proprietário - **Tauze Intelligence** © 2026
-
----
-
-## 🙏 Agradecimentos
-
-Desenvolvido com ❤️ para o agronegócio brasileiro.
-
-**Tecnologias:**
-- React Team
-- Supabase
-- Vite
-- E toda a comunidade open-source
-
----
-
-## 📞 Suporte
-
-- **Email:** suporte@tauze.com.br
-- **Documentação:** [docs/](./docs/)
-- **Issues:** [GitHub Issues](link-to-issues)
-
----
-
-**Versão:** 5.0  
-**Última Atualização:** Junho 2026
+For questions or support, refer to the documentation in the `docs/` directory or contact the development team.

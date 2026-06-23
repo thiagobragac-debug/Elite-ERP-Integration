@@ -4,7 +4,6 @@
   gap: 24px;
 }
 
-
 .header-brand-group .brand-badge {
   display: inline-flex;
   align-items: center;
@@ -235,8 +234,16 @@
   letter-spacing: 0.05em;
 }
 
-.status-pill.active { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
-.status-pill.warning { background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
+.status-pill.active {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #d1fae5;
+}
+.status-pill.warning {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #ffedd5;
+}
 
 .modern-actions {
   display: flex;
@@ -264,8 +271,12 @@
   transform: translateY(-2px);
 }
 
-.action-dot.info:hover { background: #3b82f6; }
-.action-dot.edit:hover { background: #10b981; }
+.action-dot.info:hover {
+  background: #3b82f6;
+}
+.action-dot.edit:hover {
+  background: #10b981;
+}
 
 .no-farm-selected-overlay {
   position: absolute;

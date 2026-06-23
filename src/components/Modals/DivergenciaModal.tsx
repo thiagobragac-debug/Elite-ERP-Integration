@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import {
-  AlertTriangle,
-  XCircle,
-  CheckCircle2,
-  Clock,
-  FileText,
-  Baby,
-} from 'lucide-react';
+import { AlertTriangle, XCircle, CheckCircle2, Clock, FileText, Baby } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 /* ─────────────────────────────────────────────
@@ -69,8 +62,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     padding: '20px 24px 16px',
     borderBottom: '1px solid hsl(var(--border))',
-    background:
-      'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(45 100% 12% / 0.3) 100%)',
+    background: 'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(45 100% 12% / 0.3) 100%)',
   },
   headerLeft: {
     display: 'flex',
@@ -364,7 +356,9 @@ export function DivergenciaModal({
   const [opcaoSelecionada, setOpcaoSelecionada] = useState<string | null>(null);
   const [observacao, setObservacao] = useState('');
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const diferenca = quantidadeLote - quantidadeNota;
   const faltam = diferenca < 0; // lote < nota → animais faltando
@@ -422,13 +416,15 @@ export function DivergenciaModal({
   });
 
   const handleConfirm = () => {
-    if (!opcaoSelecionada) return;
+    if (!opcaoSelecionada) {
+      return;
+    }
     const opcao = opcoes.find((o) => o.id === opcaoSelecionada);
-    if (!opcao) return;
+    if (!opcao) {
+      return;
+    }
 
-    const motivo = observacao.trim()
-      ? `${opcao.motivo} — ${observacao.trim()}`
-      : opcao.motivo;
+    const motivo = observacao.trim() ? `${opcao.motivo} — ${observacao.trim()}` : opcao.motivo;
 
     onResolved(motivo, opcao.acao);
     toast.success('Divergência registrada com sucesso!');
@@ -444,19 +440,14 @@ export function DivergenciaModal({
     onClose();
   };
 
-  const diferencaLabel =
-    diferenca === 0
-      ? '0'
-      : diferenca > 0
-      ? `+${diferenca}`
-      : `${diferenca}`;
+  const diferencaLabel = diferenca === 0 ? '0' : diferenca > 0 ? `+${diferenca}` : `${diferenca}`;
 
   const diferencaColor =
     diferenca < 0
       ? 'hsl(0 75% 60%)'
       : diferenca > 0
-      ? 'hsl(142 65% 52%)'
-      : 'hsl(var(--text-primary))';
+        ? 'hsl(142 65% 52%)'
+        : 'hsl(var(--text-primary))';
 
   const modalContent = (
     <>
@@ -494,11 +485,7 @@ export function DivergenciaModal({
       {/* Backdrop */}
       <div style={styles.backdrop} onClick={handleClose} role="dialog" aria-modal="true">
         {/* Modal panel */}
-        <div
-          style={styles.modal}
-          onClick={(e) => e.stopPropagation()}
-          role="document"
-        >
+        <div style={styles.modal} onClick={(e) => e.stopPropagation()} role="document">
           {/* ── Header ── */}
           <div style={styles.header}>
             <div style={styles.headerLeft}>
@@ -551,9 +538,7 @@ export function DivergenciaModal({
 
             {/* Options */}
             <div>
-              <p style={{ ...styles.sectionTitle, marginBottom: '10px' }}>
-                Como deseja resolver?
-              </p>
+              <p style={{ ...styles.sectionTitle, marginBottom: '10px' }}>Como deseja resolver?</p>
               <div style={styles.optionsList}>
                 {opcoes.map((opcao) => (
                   <OptionCard

@@ -23,17 +23,23 @@ export const DatabaseSeeder: React.FC = () => {
       try {
         // 1. Financeiro - Conta Bancária
         try {
-          const { data: contas } = await supabase.from('contas_bancarias').select('id').match(payloadBase).limit(1);
+          const { data: contas } = await supabase
+            .from('contas_bancarias')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!contas || contas.length === 0) {
-            await supabase.from('contas_bancarias').insert([{
-              ...payloadBase,
-              banco: 'Banco Safra',
-              agencia: '0001',
-              conta: '12345-6',
-              saldo_atual: 150000.00,
-              tipo: 'Corrente',
-              status: 'ATIVA'
-            }]);
+            await supabase.from('contas_bancarias').insert([
+              {
+                ...payloadBase,
+                banco: 'Banco Safra',
+                agencia: '0001',
+                conta: '12345-6',
+                saldo_atual: 150000.0,
+                tipo: 'Corrente',
+                status: 'ATIVA',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed contas_bancarias:', e);
@@ -41,16 +47,22 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 2. Financeiro - Contas a Pagar
         try {
-          const { data: pagar } = await supabase.from('contas_pagar').select('id').match(payloadBase).limit(1);
+          const { data: pagar } = await supabase
+            .from('contas_pagar')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!pagar || pagar.length === 0) {
-            await supabase.from('contas_pagar').insert([{
-              ...payloadBase,
-              descricao: 'SEED: Aquisição de Sementes',
-              valor_total: 45000,
-              data_vencimento: new Date().toISOString(),
-              status: 'PENDENTE',
-              categoria: 'Insumos'
-            }]);
+            await supabase.from('contas_pagar').insert([
+              {
+                ...payloadBase,
+                descricao: 'SEED: Aquisição de Sementes',
+                valor_total: 45000,
+                data_vencimento: new Date().toISOString(),
+                status: 'PENDENTE',
+                categoria: 'Insumos',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed contas_pagar:', e);
@@ -58,16 +70,22 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 3. Financeiro - Contas a Receber
         try {
-          const { data: receber } = await supabase.from('contas_receber').select('id').match(payloadBase).limit(1);
+          const { data: receber } = await supabase
+            .from('contas_receber')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!receber || receber.length === 0) {
-            await supabase.from('contas_receber').insert([{
-              ...payloadBase,
-              descricao: 'SEED: Venda de Bezerros',
-              valor_total: 120000,
-              data_vencimento: new Date(Date.now() + 86400000 * 5).toISOString(),
-              status: 'PENDENTE',
-              categoria: 'Receita Pecuária'
-            }]);
+            await supabase.from('contas_receber').insert([
+              {
+                ...payloadBase,
+                descricao: 'SEED: Venda de Bezerros',
+                valor_total: 120000,
+                data_vencimento: new Date(Date.now() + 86400000 * 5).toISOString(),
+                status: 'PENDENTE',
+                categoria: 'Receita Pecuária',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed contas_receber:', e);
@@ -75,20 +93,26 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 4. Compras - Mapa de Cotação
         try {
-          const { data: mapas } = await supabase.from('mapas_cotacao').select('id').match(payloadBase).limit(1);
+          const { data: mapas } = await supabase
+            .from('mapas_cotacao')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!mapas || mapas.length === 0) {
-            await supabase.from('mapas_cotacao').insert([{
-              ...payloadBase,
-              produto_id: 'SEED: Adubo NPK 10-20-10',
-              quantidade: 50,
-              unidade: 'Ton',
-              status: 'analyzing',
-              dados_fornecedores: [
-                { name: 'AgroSul', price: 2100 },
-                { name: 'Fertilizantes BR', price: 1950 }
-              ],
-              titulo: 'Cotação de Adubo Base'
-            }]);
+            await supabase.from('mapas_cotacao').insert([
+              {
+                ...payloadBase,
+                produto_id: 'SEED: Adubo NPK 10-20-10',
+                quantidade: 50,
+                unidade: 'Ton',
+                status: 'analyzing',
+                dados_fornecedores: [
+                  { name: 'AgroSul', price: 2100 },
+                  { name: 'Fertilizantes BR', price: 1950 },
+                ],
+                titulo: 'Cotação de Adubo Base',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed mapas_cotacao:', e);
@@ -96,16 +120,22 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 5. Pecuária - Animais (Simples)
         try {
-          const { data: animais } = await supabase.from('animais').select('id').match(payloadBase).limit(1);
+          const { data: animais } = await supabase
+            .from('animais')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!animais || animais.length === 0) {
-            await supabase.from('animais').insert([{
-              ...payloadBase,
-              identificacao: 'SEED-001',
-              brinco_eletronico: '900000000000001',
-              tipo_identificacao: 'visual',
-              sexo: 'M',
-              status: 'ativo'
-            }]);
+            await supabase.from('animais').insert([
+              {
+                ...payloadBase,
+                identificacao: 'SEED-001',
+                brinco_eletronico: '900000000000001',
+                tipo_identificacao: 'visual',
+                sexo: 'M',
+                status: 'ativo',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed animais:', e);
@@ -113,17 +143,23 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 6. Frota - Máquinas
         try {
-          const { data: maq } = await supabase.from('maquinas').select('id').match(payloadBase).limit(1);
+          const { data: maq } = await supabase
+            .from('maquinas')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!maq || maq.length === 0) {
-            await supabase.from('maquinas').insert([{
-              ...payloadBase,
-              nome: 'SEED: Trator JD 7J',
-              tipo: 'Trator',
-              marca: 'John Deere',
-              modelo: '7J',
-              ano: 2023,
-              status: 'operacional'
-            }]);
+            await supabase.from('maquinas').insert([
+              {
+                ...payloadBase,
+                nome: 'SEED: Trator JD 7J',
+                tipo: 'Trator',
+                marca: 'John Deere',
+                modelo: '7J',
+                ano: 2023,
+                status: 'operacional',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed maquinas:', e);
@@ -131,18 +167,24 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 7. Estoque - Produtos
         try {
-          const { data: prod } = await supabase.from('produtos').select('id').match(payloadBase).limit(1);
+          const { data: prod } = await supabase
+            .from('produtos')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!prod || prod.length === 0) {
-            await supabase.from('produtos').insert([{
-              ...payloadBase,
-              nome: 'SEED: Sal Mineral 80',
-              categoria: 'Nutrição',
-              unidade: 'kg',
-              estoque_atual: 100,
-              estoque_minimo: 20,
-              custo_medio: 5.50,
-              is_active: true
-            }]);
+            await supabase.from('produtos').insert([
+              {
+                ...payloadBase,
+                nome: 'SEED: Sal Mineral 80',
+                categoria: 'Nutrição',
+                unidade: 'kg',
+                estoque_atual: 100,
+                estoque_minimo: 20,
+                custo_medio: 5.5,
+                is_active: true,
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed produtos:', e);
@@ -150,17 +192,23 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 8. Parceiros (Fornecedor e Cliente)
         try {
-          const { data: parc } = await supabase.from('parceiros').select('id').match(payloadBase).limit(1);
+          const { data: parc } = await supabase
+            .from('parceiros')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!parc || parc.length === 0) {
-            await supabase.from('parceiros').insert([{
-              ...payloadBase,
-              nome: 'SEED: Agro Parceiro S/A',
-              cnpj_cpf: '00000000000000',
-              categoria: 'Misto',
-              is_supplier: true,
-              is_customer: true,
-              status: 'ATIVO'
-            }]);
+            await supabase.from('parceiros').insert([
+              {
+                ...payloadBase,
+                nome: 'SEED: Agro Parceiro S/A',
+                cnpj_cpf: '00000000000000',
+                categoria: 'Misto',
+                is_supplier: true,
+                is_customer: true,
+                status: 'ATIVO',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed parceiros:', e);
@@ -168,14 +216,20 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 9. Vendas - Pedidos
         try {
-          const { data: ped } = await supabase.from('pedidos_venda').select('id').match(payloadBase).limit(1);
+          const { data: ped } = await supabase
+            .from('pedidos_venda')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!ped || ped.length === 0) {
-            await supabase.from('pedidos_venda').insert([{
-              ...payloadBase,
-              numero_pedido: 'PED-SEED-001',
-              valor_total: 150000,
-              status: 'pending'
-            }]);
+            await supabase.from('pedidos_venda').insert([
+              {
+                ...payloadBase,
+                numero_pedido: 'PED-SEED-001',
+                valor_total: 150000,
+                status: 'pending',
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed pedidos_venda:', e);
@@ -183,15 +237,21 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 10. Frota - Manutenção
         try {
-          const { data: man } = await supabase.from('manutencao_frota').select('id').match(payloadBase).limit(1);
+          const { data: man } = await supabase
+            .from('manutencao_frota')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!man || man.length === 0) {
-            await supabase.from('manutencao_frota').insert([{
-              ...payloadBase,
-              descricao: 'SEED: Revisão 1000h Trator',
-              tipo: 'preventiva',
-              status: 'open',
-              custo: 5000
-            }]);
+            await supabase.from('manutencao_frota').insert([
+              {
+                ...payloadBase,
+                descricao: 'SEED: Revisão 1000h Trator',
+                tipo: 'preventiva',
+                status: 'open',
+                custo: 5000,
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed manutencao_frota:', e);
@@ -199,14 +259,20 @@ export const DatabaseSeeder: React.FC = () => {
 
         // 11. Estoque - Auditoria
         try {
-          const { data: aud } = await supabase.from('auditorias_estoque').select('id').match(payloadBase).limit(1);
+          const { data: aud } = await supabase
+            .from('auditorias_estoque')
+            .select('id')
+            .match(payloadBase)
+            .limit(1);
           if (!aud || aud.length === 0) {
-            await supabase.from('auditorias_estoque').insert([{
-              ...payloadBase,
-              titulo: 'SEED: Auditoria Anual',
-              status: 'completed',
-              accuracy: 98.5
-            }]);
+            await supabase.from('auditorias_estoque').insert([
+              {
+                ...payloadBase,
+                titulo: 'SEED: Auditoria Anual',
+                status: 'completed',
+                accuracy: 98.5,
+              },
+            ]);
           }
         } catch (e) {
           console.warn('Failed to seed auditorias_estoque:', e);
@@ -225,19 +291,40 @@ export const DatabaseSeeder: React.FC = () => {
     runSeed();
   }, [activeTenantId, activeFarmId]);
 
-  if (!seeding && !done) return null;
+  if (!seeding && !done) {
+    return null;
+  }
 
   return (
-    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, background: 'var(--bg-card)', padding: '12px 24px', borderRadius: 12, boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid var(--border)' }}>
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        zIndex: 9999,
+        background: 'var(--bg-card)',
+        padding: '12px 24px',
+        borderRadius: 12,
+        boxShadow: 'var(--shadow-lg)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        border: '1px solid var(--border)',
+      }}
+    >
       {seeding ? (
         <>
           <Target className="animate-spin text-brand" size={20} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>Injetando registros reais no banco...</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+            Injetando registros reais no banco...
+          </span>
         </>
       ) : (
         <>
           <CheckCircle2 className="text-green-500" size={20} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>Injeção concluída!</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+            Injeção concluída!
+          </span>
         </>
       )}
     </div>

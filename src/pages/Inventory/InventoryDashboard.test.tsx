@@ -10,49 +10,81 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     activeFarmId: 'farm-1',
     activeTenantId: 'tenant-1',
     isGlobalMode: false,
-    applyFarmFilter: (q: any) => q
-  })
+    applyFarmFilter: (q: any) => q,
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 // Mock useQuery to bypass Supabase queries
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQuery: vi.fn((options: any) => {
       const key = options.queryKey[0];
       if (key === 'inventory_products') {
         return {
           data: [
-            { id: '1', nome: 'Semente Milho', estoque_atual: 10, estoque_minimo: 50, custo_medio: 100, unidade: 'kg', categoria: 'Insumo', created_at: '2026-06-01' },
-            { id: '2', nome: 'Adubo', estoque_atual: 500, estoque_minimo: 100, custo_medio: 50, unidade: 'kg', categoria: 'Insumo', created_at: '2026-06-02' }
+            {
+              id: '1',
+              nome: 'Semente Milho',
+              estoque_atual: 10,
+              estoque_minimo: 50,
+              custo_medio: 100,
+              unidade: 'kg',
+              categoria: 'Insumo',
+              created_at: '2026-06-01',
+            },
+            {
+              id: '2',
+              nome: 'Adubo',
+              estoque_atual: 500,
+              estoque_minimo: 100,
+              custo_medio: 50,
+              unidade: 'kg',
+              categoria: 'Insumo',
+              created_at: '2026-06-02',
+            },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       if (key === 'inventory_recent_movements') {
         return {
           data: [
-            { id: '1', tipo: 'in', data_movimentacao: '2026-06-08', quantidade: 50, responsavel: 'João', produtos: { nome: 'Adubo', unidade: 'kg' } },
-            { id: '2', tipo: 'out', data_movimentacao: '2026-06-07', quantidade: 10, responsavel: 'Maria', produtos: { nome: 'Semente Milho', unidade: 'kg' } }
+            {
+              id: '1',
+              tipo: 'in',
+              data_movimentacao: '2026-06-08',
+              quantidade: 50,
+              responsavel: 'João',
+              produtos: { nome: 'Adubo', unidade: 'kg' },
+            },
+            {
+              id: '2',
+              tipo: 'out',
+              data_movimentacao: '2026-06-07',
+              quantidade: 10,
+              responsavel: 'Maria',
+              produtos: { nome: 'Semente Milho', unidade: 'kg' },
+            },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       if (key === 'inventory_outgoing_movements') {
         return {
           data: [
-            { quantidade: 10, valor_unitario: 100, tipo: 'out', data_movimentacao: '2026-06-07' }
+            { quantidade: 10, valor_unitario: 100, tipo: 'out', data_movimentacao: '2026-06-07' },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: [], isLoading: false };
-    })
+    }),
   };
 });
 
@@ -79,7 +111,7 @@ describe('InventoryDashboard', () => {
     renderComponent();
     // Patrimônio Total: (10*100) + (500*50) = 1000 + 25000 = 26000
     expect(screen.getByText('R$ 26.000')).toBeInTheDocument();
-    
+
     // Ruptura de Estoque (1 item: Semente Milho is 10 < 50)
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('Ruptura de Estoque')).toBeInTheDocument();
@@ -96,12 +128,12 @@ describe('InventoryDashboard', () => {
   it('renders recent movements', () => {
     renderComponent();
     expect(screen.getByText('Fluxo de Movimentação')).toBeInTheDocument();
-    
+
     // recent movements list titles
     // Note: Both 'Adubo' and 'Semente Milho' appear in recent movements
     const aduboElements = screen.getAllByText('Adubo');
     expect(aduboElements.length).toBeGreaterThan(0);
-    
+
     expect(screen.getByText('Entrada')).toBeInTheDocument();
     expect(screen.getByText('Saída')).toBeInTheDocument();
   });

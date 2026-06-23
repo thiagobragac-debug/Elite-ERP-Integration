@@ -26,14 +26,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   icon,
   creatable = false,
   disabled = false,
-  height
+  height,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = options.find((opt) => opt.value === value);
   const displayPlaceholder = selectedOption ? selectedOption.label : placeholder;
 
   // Sync inputValue with the actual selected option label
@@ -58,7 +58,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         setIsOpen(false);
       }
     }
-    
+
     function handleScroll(event: Event) {
       // Don't close if they are scrolling the dropdown itself
       const dropdown = document.getElementById('searchable-select-portal');
@@ -70,7 +70,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('scroll', handleScroll, true);
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', handleScroll, true);
@@ -92,7 +92,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           left: rect.left,
           width: rect.width,
           minWidth: Math.max(rect.width, 220),
-          zIndex: 99999
+          zIndex: 99999,
         });
       } else {
         // Open downwards
@@ -102,48 +102,60 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           left: rect.left,
           width: rect.width,
           minWidth: Math.max(rect.width, 220),
-          zIndex: 99999
+          zIndex: 99999,
         });
       }
     }
   }, [isOpen, inputValue]); // Update if typed value changes layout
 
-  const filteredOptions = options.filter(opt => {
+  const filteredOptions = options.filter((opt) => {
     const safeLabel = (opt.label || '').toString().toLowerCase();
     const safeInput = (inputValue || '').toString().toLowerCase();
     return safeLabel.includes(safeInput);
   });
 
-  const exactMatch = options.some(opt => 
-    (opt.label || '').toString().toLowerCase() === (inputValue || '').toString().toLowerCase()
+  const exactMatch = options.some(
+    (opt) =>
+      (opt.label || '').toString().toLowerCase() === (inputValue || '').toString().toLowerCase()
   );
 
   const showCreatable = creatable && inputValue.trim().length > 0 && !exactMatch;
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
-      <div 
+      <div
         className={`tauze-input ${isOpen ? 'focused' : ''} ${disabled ? 'disabled' : ''}`}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 14px',
           background: disabled ? 'hsl(var(--bg-main) / 0.5)' : 'var(--bg-main)',
-          minHeight: height || '42px',
+          minHeight: height || '48px',
           height: height || 'auto',
           cursor: disabled ? 'not-allowed' : 'text',
           opacity: disabled ? 0.6 : 1,
           border: isOpen ? '1px solid hsl(var(--brand))' : undefined,
-          boxShadow: isOpen ? '0 0 0 4px hsl(var(--brand) / 0.1)' : undefined
+          boxShadow: isOpen ? '0 0 0 4px hsl(var(--brand) / 0.1)' : undefined,
         }}
         onClick={() => {
-          if (disabled) return;
+          if (disabled) {
+            return;
+          }
           setIsOpen(true);
           inputRef.current?.focus();
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1, height: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflow: 'hidden',
+            flex: 1,
+            height: '100%',
+          }}
+        >
           {icon && <span style={{ color: '#94a3b8', display: 'flex' }}>{icon}</span>}
           <input
             ref={inputRef}
@@ -170,67 +182,48 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               fontSize: '13px',
               color: 'inherit',
               cursor: disabled ? 'not-allowed' : 'inherit',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
             }}
           />
         </div>
-        <div style={{ cursor: 'pointer', padding: '4px' }} onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}>
-          <ChevronDown size={16} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        <div
+          style={{ cursor: 'pointer', padding: '4px' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(!isOpen);
+          }}
+        >
+          <ChevronDown
+            size={16}
+            color="#94a3b8"
+            style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+          />
         </div>
       </div>
 
-      {isOpen && createPortal(
-        <div id="searchable-select-portal" style={{
-          ...dropdownStyle,
-          background: 'hsl(var(--bg-card))',
-          border: '1px solid hsl(var(--border))',
-          borderRadius: '12px',
-          boxShadow: '0 10px 30px -10px rgb(0 0 0 / 0.5)',
-          maxHeight: '250px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
-          <div style={{ overflowY: 'auto', padding: '4px' }}>
-            {showCreatable && (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange(inputValue); // Using the exact typed value
-                  setIsOpen(false);
-                  inputRef.current?.blur();
-                }}
-                style={{
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: 'hsl(var(--brand) / 0.1)',
-                  color: 'hsl(var(--brand))',
-                  fontWeight: 600,
-                  marginBottom: '4px'
-                }}
-              >
-                + Criar "{inputValue}"
-              </div>
-            )}
-            
-            {filteredOptions.length === 0 && !showCreatable ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
-                Nenhum resultado encontrado. <br/> <span style={{ fontSize: '10px', marginTop: '4px', display: 'block' }}>[Total base: {options.length}]</span>
-              </div>
-            ) : (
-              filteredOptions.map(opt => (
+      {isOpen &&
+        createPortal(
+          <div
+            id="searchable-select-portal"
+            style={{
+              ...dropdownStyle,
+              background: 'hsl(var(--bg-card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '12px',
+              boxShadow: '0 10px 30px -10px rgb(0 0 0 / 0.5)',
+              maxHeight: '250px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            <div style={{ overflowY: 'auto', padding: '4px' }}>
+              {showCreatable && (
                 <div
-                  key={opt.value}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onChange(opt.value);
+                    onChange(inputValue); // Using the exact typed value
                     setIsOpen(false);
                     inputRef.current?.blur();
                   }}
@@ -240,28 +233,73 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent',
-                    transition: 'all 0.2s',
+                    background: 'hsl(var(--brand) / 0.1)',
+                    color: 'hsl(var(--brand))',
+                    fontWeight: 600,
+                    marginBottom: '4px',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'hsl(var(--bg-main))'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent'}
                 >
-                  <span style={{ 
-                    fontSize: '13px', 
-                    fontWeight: value === opt.value ? 700 : 500,
-                    color: value === opt.value ? 'hsl(var(--brand))' : 'hsl(var(--text-main))'
-                  }}>
-                    {opt.label}
-                  </span>
-                  {value === opt.value && <Check size={16} color="hsl(var(--brand))" />}
+                  + Criar "{inputValue}"
                 </div>
-              ))
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              )}
+
+              {filteredOptions.length === 0 && !showCreatable ? (
+                <div
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    color: 'hsl(var(--text-muted))',
+                    fontSize: '13px',
+                  }}
+                >
+                  Nenhum resultado encontrado. <br />{' '}
+                  <span style={{ fontSize: '10px', marginTop: '4px', display: 'block' }}>
+                    [Total base: {options.length}]
+                  </span>
+                </div>
+              ) : (
+                filteredOptions.map((opt) => (
+                  <div
+                    key={opt.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      inputRef.current?.blur();
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'hsl(var(--bg-main))')}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background =
+                        value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent')
+                    }
+                  >
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: value === opt.value ? 700 : 500,
+                        color: value === opt.value ? 'hsl(var(--brand))' : 'hsl(var(--text-main))',
+                      }}
+                    >
+                      {opt.label}
+                    </span>
+                    {value === opt.value && <Check size={16} color="hsl(var(--brand))" />}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

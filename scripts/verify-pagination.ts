@@ -8,7 +8,7 @@ const project = new Project({
 
 const sourceFiles = project.addSourceFilesAtPaths('src/pages/**/*.tsx');
 
-let totalModernTables = 0;
+const totalModernTables = 0;
 let filesWithModernTable = 0;
 
 const analysis: any = {
@@ -22,7 +22,7 @@ for (const sourceFile of sourceFiles) {
   const filePath = sourceFile.getFilePath();
   const text = sourceFile.getText();
   
-  if (!text.includes('ModernTable')) continue;
+  if (!text.includes('ModernTable')) {continue;}
   filesWithModernTable++;
 
   const usesReportData = text.includes('useReportData');

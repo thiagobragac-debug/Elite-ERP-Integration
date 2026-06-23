@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Users, 
-  Activity, 
-  Lock, 
-  Database, 
-  Server, 
+import {
+  Shield,
+  Users,
+  Activity,
+  Lock,
+  Database,
+  Server,
   AlertCircle,
   Clock,
   History,
@@ -13,7 +13,7 @@ import {
   Cpu,
   Monitor,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -26,81 +26,140 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AdminIntelligenceHub: React.FC = () => {
   const { tenant } = useTenant();
-  const { stats: reportStats, data: auditLogs, loading, error, refresh } = useReportData('admin-overview');
+  const {
+    stats: reportStats,
+    data: auditLogs,
+    loading,
+    error,
+    refresh,
+  } = useReportData('admin-overview');
 
   if (error) {
-    console.error("[AdminHub] Load Error:", error);
+    console.error('[AdminHub] Load Error:', error);
   }
 
   const getStatIcon = (id: string) => {
     switch (id) {
-      case 'governanca': return Shield;
-      case 'licencas': return Users;
-      case 'alertas': return Lock;
-      case 'saude': return Cpu;
-      default: return Activity;
+      case 'governanca':
+        return Shield;
+      case 'licencas':
+        return Users;
+      case 'alertas':
+        return Lock;
+      case 'saude':
+        return Cpu;
+      default:
+        return Activity;
     }
   };
 
   const activityData = [
-    { label: '00:00', value: 0 }, { label: '04:00', value: 0 }, 
-    { label: '08:00', value: 0 }, { label: '12:00', value: 0 }, 
-    { label: '16:00', value: 0 }, { label: '20:00', value: 0 }
+    { label: '00:00', value: 0 },
+    { label: '04:00', value: 0 },
+    { label: '08:00', value: 0 },
+    { label: '12:00', value: 0 },
+    { label: '16:00', value: 0 },
+    { label: '20:00', value: 0 },
   ];
 
   if (auditLogs && auditLogs.length > 0) {
     auditLogs.forEach((log: any) => {
       const h = new Date(log.created_at).getHours();
       let bucket = 0;
-      if (h >= 0 && h < 4) bucket = 0;
-      else if (h >= 4 && h < 8) bucket = 1;
-      else if (h >= 8 && h < 12) bucket = 2;
-      else if (h >= 12 && h < 16) bucket = 3;
-      else if (h >= 16 && h < 20) bucket = 4;
-      else bucket = 5;
+      if (h >= 0 && h < 4) {
+        bucket = 0;
+      } else if (h >= 4 && h < 8) {
+        bucket = 1;
+      } else if (h >= 8 && h < 12) {
+        bucket = 2;
+      } else if (h >= 12 && h < 16) {
+        bucket = 3;
+      } else if (h >= 16 && h < 20) {
+        bucket = 4;
+      } else {
+        bucket = 5;
+      }
       activityData[bucket].value += 1;
     });
 
-    const maxActivity = Math.max(...activityData.map(d => d.value));
+    const maxActivity = Math.max(...activityData.map((d) => d.value));
     if (maxActivity > 0) {
-      activityData.forEach(d => {
+      activityData.forEach((d) => {
         d.value = Math.round((d.value / maxActivity) * 100);
       });
     }
   }
 
-  const secSettings = tenant?.settings?.security || {};
+  const secSettings = (tenant?.settings?.security || {}) as {
+    mfaEnabled?: boolean;
+    strongPasswords?: boolean;
+    bruteForceProtection?: boolean;
+    auditLogsEnabled?: boolean;
+    blockMultipleSessions?: boolean;
+  };
   const checklist = [
-    { label: 'Autenticação de Dois Fatores (MFA)', status: secSettings.mfaEnabled ? 'active' : 'warning', desc: secSettings.mfaEnabled ? 'Habilitado' : 'Recomendado' },
-    { label: 'Política de Senhas Fortes', status: secSettings.strongPasswords ? 'active' : 'warning', desc: secSettings.strongPasswords ? '8+ chars, Especial' : 'Padrão básico' },
-    { label: 'Bloqueio de Brute Force', status: secSettings.bruteForceProtection ? 'active' : 'warning', desc: secSettings.bruteForceProtection ? 'Ativo após 5 tentativas' : 'Não configurado' },
-    { label: 'Logs de Auditoria Full', status: secSettings.auditLogsEnabled !== false ? 'active' : 'warning', desc: secSettings.auditLogsEnabled !== false ? 'Retenção ativada' : 'Desabilitada' },
-    { label: 'Sessões Simultâneas', status: secSettings.blockMultipleSessions ? 'active' : 'warning', desc: secSettings.blockMultipleSessions ? 'Bloqueio ativo' : 'Múltiplos logins permitidos' }
+    {
+      label: 'Autenticação de Dois Fatores (MFA)',
+      status: secSettings.mfaEnabled ? 'active' : 'warning',
+      desc: secSettings.mfaEnabled ? 'Habilitado' : 'Recomendado',
+    },
+    {
+      label: 'Política de Senhas Fortes',
+      status: secSettings.strongPasswords ? 'active' : 'warning',
+      desc: secSettings.strongPasswords ? '8+ chars, Especial' : 'Padrão básico',
+    },
+    {
+      label: 'Bloqueio de Brute Force',
+      status: secSettings.bruteForceProtection ? 'active' : 'warning',
+      desc: secSettings.bruteForceProtection ? 'Ativo após 5 tentativas' : 'Não configurado',
+    },
+    {
+      label: 'Logs de Auditoria Full',
+      status: secSettings.auditLogsEnabled !== false ? 'active' : 'warning',
+      desc: secSettings.auditLogsEnabled !== false ? 'Retenção ativada' : 'Desabilitada',
+    },
+    {
+      label: 'Sessões Simultâneas',
+      status: secSettings.blockMultipleSessions ? 'active' : 'warning',
+      desc: secSettings.blockMultipleSessions ? 'Bloqueio ativo' : 'Múltiplos logins permitidos',
+    },
   ];
 
-  const criticalEventsList = auditLogs && auditLogs.length > 0 
-    ? auditLogs.slice(0, 4).map((l: any) => {
-        const isDelete = l.action === 'DELETE';
-        const isSecurity = l.action === 'SECURITY_ALERT';
-        const level = isSecurity ? 'high' : (isDelete ? 'medium' : 'low');
-        const time = new Date(l.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        
-        return {
-          event: l.description || `${l.action} em ${l.entity}`,
-          user: 'Sistema',
-          time,
-          level
-        };
-      })
-    : [];
+  const criticalEventsList =
+    auditLogs && auditLogs.length > 0
+      ? auditLogs.slice(0, 4).map((l: any) => {
+          const isDelete = l.action === 'DELETE';
+          const isSecurity = l.action === 'SECURITY_ALERT';
+          const level = isSecurity ? 'high' : isDelete ? 'medium' : 'low';
+          const time = new Date(l.created_at).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          return {
+            event: l.description || `${l.action} em ${l.entity}`,
+            user: 'Sistema',
+            time,
+            level,
+          };
+        })
+      : [];
 
   return (
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Intelligence Hub' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Administração', href: '/admin/intelligence' },
+              { label: 'Intelligence Hub' },
+            ]}
+          />
           <h1 className="page-title">Intelligence Hub</h1>
-          <p className="page-subtitle">Visão estratégica de governança, conformidade de segurança e saúde operacional do tenant.</p>
+          <p className="page-subtitle">
+            Visão estratégica de governança, conformidade de segurança e saúde operacional do
+            tenant.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => refresh()}>
@@ -111,13 +170,13 @@ export const AdminIntelligenceHub: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : (
-          reportStats?.map((s: any, i: number) => (
-            <TauzeStatCard key={i} {...s} icon={getStatIcon(s.id)} />
-          ))
-        )}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : reportStats?.map((s: any, i: number) => (
+              <TauzeStatCard key={i} {...s} icon={getStatIcon(s.id)} />
+            ))}
       </div>
 
       <div className="admin-intelligence-grid">
@@ -138,7 +197,7 @@ export const AdminIntelligenceHub: React.FC = () => {
             {activityData.map((d, i) => (
               <div key={i} className="chart-column">
                 <div className="bar-wrapper">
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: `${d.value}%` }}
                     className="bar-fill"
@@ -192,13 +251,18 @@ export const AdminIntelligenceHub: React.FC = () => {
                   <div className={`level-indicator ${e.level}`} />
                   <div className="event-info">
                     <span className="event-name">{e.event}</span>
-                    <span className="event-meta">{e.user} • {e.time}</span>
+                    <span className="event-meta">
+                      {e.user} • {e.time}
+                    </span>
                   </div>
                   <ArrowRight size={14} className="event-arrow" />
                 </div>
               ))
             ) : (
-              <div className="empty-state-small" style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>
+              <div
+                className="empty-state-small"
+                style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}
+              >
                 <Shield size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
                 <span style={{ fontSize: '12px', display: 'block' }}>Nenhum evento registrado</span>
                 <span style={{ fontSize: '10px' }}>---</span>

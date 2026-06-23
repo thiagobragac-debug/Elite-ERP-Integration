@@ -7,7 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 
 interface QuoteData {
@@ -29,13 +29,18 @@ export const MarketHistoryChart: React.FC = () => {
           .order('date', { ascending: true })
           .limit(30); // Últimos 30 dias
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         // Formata data para exibir no eixo X
-        const formatted = quotes.map(q => ({
+        const formatted = quotes.map((q) => ({
           ...q,
-          displayDate: new Date(q.date.split('T')[0] + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-          value: Number(q.value)
+          displayDate: new Date(`${q.date.split('T')[0]}T12:00:00Z`).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+          }),
+          value: Number(q.value),
         }));
 
         setData(formatted);
@@ -71,47 +76,47 @@ export const MarketHistoryChart: React.FC = () => {
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(var(--brand))" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="hsl(var(--brand))" stopOpacity={0}/>
+              <stop offset="5%" stopColor="hsl(var(--brand))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(var(--brand))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-          <XAxis 
-            dataKey="displayDate" 
-            axisLine={false} 
-            tickLine={false} 
+          <XAxis
+            dataKey="displayDate"
+            axisLine={false}
+            tickLine={false}
             tick={{ fontSize: 10, fill: 'hsl(var(--text-muted))' }}
             dy={5}
             minTickGap={20}
           />
-          <YAxis 
-            domain={['dataMin - 5', 'dataMax + 5']} 
-            axisLine={false} 
-            tickLine={false} 
+          <YAxis
+            domain={['dataMin - 5', 'dataMax + 5']}
+            axisLine={false}
+            tickLine={false}
             tick={{ fontSize: 10, fill: 'hsl(var(--text-muted))' }}
             tickFormatter={(value) => `R$${value}`}
             width={45}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'hsl(var(--bg-card))', 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(var(--bg-card))',
               border: '1px solid hsl(var(--border))',
               borderRadius: '8px',
               fontSize: '12px',
               fontWeight: 600,
-              color: 'hsl(var(--text-main))'
+              color: 'hsl(var(--text-main))',
             }}
             itemStyle={{ color: 'hsl(var(--brand))' }}
             formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Cotação']}
             labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '4px' }}
           />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke="hsl(var(--brand))" 
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="hsl(var(--brand))"
             strokeWidth={2}
-            fillOpacity={1} 
-            fill="url(#colorValue)" 
+            fillOpacity={1}
+            fill="url(#colorValue)"
           />
         </AreaChart>
       </ResponsiveContainer>

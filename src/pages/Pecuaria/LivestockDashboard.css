@@ -60,7 +60,7 @@
 .chart-actions button.active {
   background: hsl(var(--bg-card));
   color: var(--brand);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .chart-container {
@@ -141,7 +141,7 @@
   align-items: center;
   justify-content: center;
   color: var(--brand);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .q-info {
@@ -209,8 +209,12 @@
   gap: 0.25rem;
 }
 
-.mini-card.success { border-bottom: 3px solid #10b981; }
-.mini-card.warning { border-bottom: 3px solid #f59e0b; }
+.mini-card.success {
+  border-bottom: 3px solid #10b981;
+}
+.mini-card.warning {
+  border-bottom: 3px solid #f59e0b;
+}
 
 .m-label {
   font-size: 0.6875rem;

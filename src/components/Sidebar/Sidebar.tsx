@@ -1,29 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  Settings, 
-  Users, 
-  Activity, 
-  Truck, 
-  ShoppingCart, 
-  TrendingUp, 
-  Package, 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  LayoutDashboard,
+  Settings,
+  Activity,
+  Truck,
+  ShoppingCart,
+  TrendingUp,
+  Package,
   Wallet,
   ChevronDown,
   ChevronRight,
-  PieChart,
-  Server,
   FileText,
   Globe,
   Building2,
-  ChevronLeft
+  ChevronLeft,
+  BarChart3,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { useTenant } from '../../contexts/TenantContext';
+import { useTenantFarm, useTenantProfile, useTenantCore } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import { useSidebarAlerts } from '../../hooks/useSidebarAlerts';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 import './Sidebar.css';
+
+/** Preferências de alerta da sidebar — tipagem explícita */
+interface AlertPrefs {
+  enabled: boolean;
+  lotes: boolean;
+  financeiro: boolean;
+  sanidade: boolean;
+  configuracoes: boolean;
+}
+
+const DEFAULT_ALERT_PREFS: AlertPrefs = {
+  enabled: true,
+  lotes: true,
+  financeiro: true,
+  sanidade: true,
+  configuracoes: true,
+};
 
 interface NavItem {
   title: string;
@@ -35,8 +52,8 @@ interface NavItem {
 
 const menuItems: NavItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/painel' },
-  { 
-    title: 'Administração', 
+  {
+    title: 'Administração',
     icon: Settings,
     permission: 'admin',
     subItems: [
@@ -47,21 +64,21 @@ const menuItems: NavItem[] = [
       { title: 'Configurações', href: '/admin/configuracoes' },
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Logs de Auditoria', href: '/admin/auditoria' },
-    ]
+    ],
   },
-  { 
-    title: 'Mercado', 
+  {
+    title: 'Mercado',
     icon: Globe,
     permission: 'mercado',
     subItems: [
       { title: 'Intelligence Hub', href: '/mercado/indicadores' },
       { title: 'Análise Avançada', href: '/mercado/analise' },
       { title: 'Sazonalidade', href: '/mercado/sazonalidade' },
-      { title: 'Calculadora B3', href: '/mercado/b3' }
-    ]
+      { title: 'Calculadora B3', href: '/mercado/b3' },
+    ],
   },
-  { 
-    title: 'Pecuária', 
+  {
+    title: 'Pecuária',
     icon: Activity,
     permission: 'pecuaria',
     subItems: [
@@ -74,11 +91,15 @@ const menuItems: NavItem[] = [
       { title: 'Sanidade', href: '/pecuaria/sanidade', permission: 'pecuaria_saude' },
       { title: 'Reprodução', href: '/pecuaria/reproducao', permission: 'pecuaria_saude' },
       { title: 'Confinamento', href: '/pecuaria/confinamento', permission: 'pecuaria_animais' },
-      { title: 'Embarques & Romaneios', href: '/pecuaria/romaneios', permission: 'pecuaria_animais' },
-    ]
+      {
+        title: 'Embarques & Romaneios',
+        href: '/pecuaria/romaneios',
+        permission: 'pecuaria_animais',
+      },
+    ],
   },
-  { 
-    title: 'Máquina & Frota', 
+  {
+    title: 'Máquina & Frota',
     icon: Truck,
     permission: 'frota',
     subItems: [
@@ -86,23 +107,27 @@ const menuItems: NavItem[] = [
       { title: 'Máquinas & Equipamentos', href: '/frota/maquina' },
       { title: 'Abastecimentos', href: '/frota/abastecimento', permission: 'frota_abastecimento' },
       { title: 'Manutenções', href: '/frota/manutencao', permission: 'frota_manutencao' },
-    ]
+    ],
   },
-  { 
-    title: 'Compra & Cotação', 
+  {
+    title: 'Compra & Cotação',
     icon: ShoppingCart,
     permission: 'compras',
     subItems: [
       { title: 'Intelligence Hub', href: '/compras/dashboard' },
       { title: 'Fornecedores', href: '/compras/fornecedores', permission: 'compras_fornecedores' },
-      { title: 'Solicitações de Compra', href: '/compras/solicitacao', permission: 'compras_pedidos' },
+      {
+        title: 'Solicitações de Compra',
+        href: '/compras/solicitacao',
+        permission: 'compras_pedidos',
+      },
       { title: 'Mapas de Cotação', href: '/compras/cotacao', permission: 'compras_pedidos' },
       { title: 'Pedidos de Compra', href: '/compras/pedido', permission: 'compras_pedidos' },
       { title: 'Notas Fiscais de Entrada', href: '/compras/nota' },
-    ]
+    ],
   },
-  { 
-    title: 'Venda & CRM', 
+  {
+    title: 'Venda & CRM',
     icon: TrendingUp,
     permission: 'comercial',
     subItems: [
@@ -111,11 +136,11 @@ const menuItems: NavItem[] = [
       { title: 'Pedidos de Venda', href: '/vendas/pedido', permission: 'comercial_pedidos' },
       { title: 'Contratos & Hedge', href: '/vendas/contrato', permission: 'comercial_pedidos' },
       { title: 'Notas Fiscais de Saída', href: '/vendas/notas' },
-    ]
+    ],
   },
-  { 
-    title: 'Estoque', 
-    icon: Package, 
+  {
+    title: 'Estoque',
+    icon: Package,
     permission: 'logistica',
     subItems: [
       { title: 'Intelligence Hub', href: '/estoque/dashboard' },
@@ -123,46 +148,86 @@ const menuItems: NavItem[] = [
       { title: 'Depósitos', href: '/estoque/deposito', permission: 'logistica_armazens' },
       { title: 'Movimentações', href: '/estoque/movimentacao' },
       { title: 'Inventário', href: '/estoque/inventario' },
-    ]
+    ],
   },
-  { 
-    title: 'Financeiro & Banco', 
+  {
+    title: 'Financeiro & Banco',
     icon: Wallet,
     permission: 'financeiro',
     subItems: [
-      { title: 'Intelligence Hub', href: '/financeiro/intelligence', permission: 'financeiro_dashboard' },
+      {
+        title: 'Intelligence Hub',
+        href: '/financeiro/intelligence',
+        permission: 'financeiro_dashboard',
+      },
       { title: 'Fluxo de Caixa', href: '/financeiro/fluxo' },
       { title: 'Contas Bancária', href: '/financeiro/contas', permission: 'financeiro_bancos' },
       { title: 'Contas a Pagar', href: '/financeiro/pagar', permission: 'financeiro_operacoes' },
-      { title: 'Contas a Receber', href: '/financeiro/receber', permission: 'financeiro_operacoes' },
-      { title: 'Conciliações Bancária', href: '/financeiro/conciliacao', permission: 'financeiro_bancos' },
+      {
+        title: 'Contas a Receber',
+        href: '/financeiro/receber',
+        permission: 'financeiro_operacoes',
+      },
+      {
+        title: 'Conciliações Bancária',
+        href: '/financeiro/conciliacao',
+        permission: 'financeiro_bancos',
+      },
       { title: 'LCDPR', href: '/financeiro/lcdpr' },
-    ]
+    ],
   },
   { title: 'Relatórios', icon: FileText, href: '/relatorios' },
 ];
 
 /** Maps URL prefix → sidebar module title */
 const routeToModule: Record<string, string> = {
-  '/admin':      'Administração',
-  '/pecuaria':   'Pecuária',
-  '/frota':      'Máquina & Frota',
-  '/compras':    'Compra & Cotação',
-  '/vendas':     'Venda & CRM',
-  '/estoque':    'Estoque',
+  '/admin': 'Administração',
+  '/pecuaria': 'Pecuária',
+  '/frota': 'Máquina & Frota',
+  '/compras': 'Compra & Cotação',
+  '/vendas': 'Venda & CRM',
+  '/estoque': 'Estoque',
   '/financeiro': 'Financeiro & Banco',
 };
 
 /** Returns the module title that matches the current pathname, or empty string */
 const getModuleFromPath = (pathname: string): string => {
-  const match = Object.entries(routeToModule).find(([prefix]) =>
-    pathname.startsWith(prefix)
-  );
+  const match = Object.entries(routeToModule).find(([prefix]) => pathname.startsWith(prefix));
   return match ? match[1] : '';
 };
 
-export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () => void }> = ({ isCollapsed, onToggleCollapse }) => {
+// ─── AlertBadge ─────────────────────────────────────────────────────────────
+// Componente memoizado para badges de alerta na sidebar
+interface AlertBadgeProps {
+  count: number;
+  color?: string;
+  textColor?: string;
+}
+const AlertBadge = React.memo<AlertBadgeProps>(({ count, color = '#ef4444', textColor = 'white' }) => (
+  <span
+    style={{
+      background: color,
+      color: textColor,
+      padding: '1px 5px',
+      borderRadius: '4px',
+      fontSize: '9px',
+      fontWeight: 900,
+      minWidth: '16px',
+      textAlign: 'center',
+    }}
+  >
+    {count}
+  </span>
+));
+AlertBadge.displayName = 'AlertBadge';
+
+export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () => void }> = React.memo(({
+  isCollapsed,
+  onToggleCollapse,
+}) => {
   const location = useLocation();
+  const { settings } = useSystemSettings();
+  const baseSystemName = settings.system_name || 'Tauze';
 
   // On first render, open only the module that matches the current URL.
   // This makes F5 / direct navigation behave correctly.
@@ -172,101 +237,159 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
   });
 
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
-  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile, tenant, activeTenantId } = useTenant();
+  const {
+    activeFarm,
+    farms,
+    setActiveFarm,
+    isGlobalMode,
+    setGlobalMode,
+    activeTenantId,
+  } = useTenantFarm();
+  const { tenant } = useTenantCore();
+  const { userProfile } = useTenantProfile();
+  // tenant.settings é necessário para alertPrefs — lemos via useTenantFarm não expõe tenant,
+  // mas userProfile.settings contém sidebar_alerts quando definido pelo admin
+  const tenantSidebarAlerts = (userProfile?.settings as Record<string, unknown> | null)
+    ?.sidebar_alerts as Record<string, unknown> | undefined;
   const [pendingApprovals, setPendingApprovals] = useState(0);
 
   const { alerts } = useSidebarAlerts();
-  const alertPrefs = userProfile?.settings?.sidebar_alerts || tenant?.settings?.sidebar_alerts || {
-    enabled: true,
-    lotes: true,
-    financeiro: true,
-    sanidade: true,
-    configuracoes: true
-  };
+  const alertPrefs = useMemo<AlertPrefs>(() => {
+    const raw =
+      (userProfile?.settings?.sidebar_alerts as Partial<AlertPrefs> | undefined) ??
+      (tenantSidebarAlerts as Partial<AlertPrefs> | undefined);
+    if (!raw) return DEFAULT_ALERT_PREFS;
+    return { ...DEFAULT_ALERT_PREFS, ...raw };
+  }, [userProfile?.settings, tenantSidebarAlerts]);
 
   useEffect(() => {
-    if (!activeTenantId) return;
+    if (!activeTenantId) {
+      return;
+    }
     const fetchPending = async () => {
       const { count } = await supabase
         .from('approval_queue')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', activeTenantId)
         .eq('status', 'pending');
-      
+
       setPendingApprovals(count || 0);
     };
     fetchPending();
 
     const subscription = supabase
       .channel('approval-queue-sidebar')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'approval_queue', 
-        filter: `tenant_id=eq.${activeTenantId}` 
-      }, fetchPending)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'approval_queue',
+          filter: `tenant_id=eq.${activeTenantId}`,
+        },
+        fetchPending
+      )
       .subscribe();
 
-    return () => { subscription.unsubscribe(); };
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [activeTenantId]);
 
-  const auditEnabled = tenant?.settings?.security?.auditLogsEnabled ?? true;
+  const auditEnabled = useMemo(
+    () => (userProfile?.settings as Record<string, unknown> | null)
+      ? ((userProfile?.settings as Record<string, Record<string, unknown>>)?.security?.auditLogsEnabled ?? true)
+      : true,
+    [userProfile?.settings]
+  );
 
-  // Helper function to check if the user has a specific permission (or is ADMIN/Administrador)
-  const checkPermission = (permission?: string): boolean => {
-    if (!permission) return true;
-    const role = userProfile?.role?.toUpperCase();
-    if (role === 'ADMIN' || role === 'ADMINISTRADOR') return true;
-    const perms = userProfile?.permissoes || userProfile?.permissions || [];
-    return perms.includes('all') || perms.includes(permission);
-  };
+  // Helper para checar permissão (agora utiliza a Matriz de CRUD)
+  const { can } = usePermissions();
+  const checkPermission = useCallback((modulePermission?: string): boolean => {
+    if (!modulePermission) return true;
+    return can(modulePermission, 'read'); // Para o menu lateral, apenas 'read' é exigido
+  }, [can]);
 
   // Dynamically compute the menu items the user has access to
-  const filteredMenuItems = menuItems
-    .filter(item => checkPermission(item.permission))
-    .map(item => {
-      if (!item.subItems) return item;
-      return {
-        ...item,
-        subItems: item.subItems.filter(sub => {
-          if (!checkPermission(sub.permission)) return false;
-          if (sub.title === 'Logs de Auditoria' && !auditEnabled) return false;
-          return true;
-        })
-      };
-    })
-    .filter(item => !item.subItems || item.subItems.length > 0 || item.href);
+  const filteredMenuItems = useMemo(() => {
+    const planModules = tenant?.plan_details?.modules;
+    // BETA_FREE gets all features. If planModules is null, it means unrestricted/legacy plan.
+    const hasPlanRestriction = tenant && tenant.plano !== 'BETA_FREE' && Array.isArray(planModules);
+
+    const checkPlanModule = (moduleName: string, subModuleName?: string) => {
+      if (!hasPlanRestriction) return true;
+      if (subModuleName) {
+        return planModules.includes(`${moduleName}:${subModuleName}`);
+      }
+      return planModules.includes(moduleName);
+    };
+
+    return menuItems
+      .filter((item) => checkPermission(item.permission) && checkPlanModule(item.title))
+      .map((item) => {
+        if (!item.subItems) return item;
+        return {
+          ...item,
+          subItems: item.subItems.filter((sub) => {
+            if (!checkPermission(sub.permission)) return false;
+            if (!checkPlanModule(item.title, sub.title)) return false;
+            if (sub.title === 'Logs de Auditoria' && !auditEnabled) return false;
+            return true;
+          }),
+        };
+      })
+      .filter((item) => !item.subItems || item.subItems.length > 0 || item.href);
+  }, [checkPermission, auditEnabled, tenant]);
 
   // When the user navigates to a new module section, automatically open it
   // (but don't close others — let the user manage that with clicks).
   useEffect(() => {
     const active = getModuleFromPath(location.pathname);
     if (active) {
-      setOpenMenus(prev =>
-        prev.includes(active) ? prev : [...prev, active]
-      );
+      setOpenMenus((prev) => (prev.includes(active) ? prev : [...prev, active]));
     }
   }, [location.pathname]);
 
-  const isFleetRoute = location.pathname.startsWith('/frota');
-  const isPurchasingRoute = location.pathname.startsWith('/compras');
+  // Derive module name and icon from current route
+  const { moduleName, ModuleIcon, moduleBg } = React.useMemo(() => {
+    const path = location.pathname;
+    if (path.startsWith('/frota'))      return { moduleName: 'Frota',      ModuleIcon: Truck,       moduleBg: '#0f172a' };
+    if (path.startsWith('/compras'))   return { moduleName: 'Compras',    ModuleIcon: ShoppingCart, moduleBg: '#4f46e5' };
+    if (path.startsWith('/vendas'))    return { moduleName: 'Vendas',     ModuleIcon: TrendingUp,  moduleBg: '#0891b2' };
+    if (path.startsWith('/financeiro'))return { moduleName: 'Financeiro', ModuleIcon: Wallet,       moduleBg: '#059669' };
+    if (path.startsWith('/estoque'))   return { moduleName: 'Estoque',    ModuleIcon: Package,      moduleBg: '#7c3aed' };
+    if (path.startsWith('/mercado'))   return { moduleName: 'Mercado',    ModuleIcon: BarChart3,    moduleBg: '#b45309' };
+    if (path.startsWith('/admin'))     return { moduleName: 'Admin',      ModuleIcon: Settings,     moduleBg: '#475569' };
+    if (path.startsWith('/relatorios'))return { moduleName: 'Relatórios', ModuleIcon: FileText,     moduleBg: '#374151' };
+    return { moduleName: 'Pecuária', ModuleIcon: Activity, moduleBg: 'hsl(var(--brand))' };
+  }, [location.pathname]);
 
-  const toggleMenu = (title: string) => {
-    setOpenMenus(prev =>
-      prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]
+  const toggleMenu = useCallback((title: string) => {
+    setOpenMenus((prev) =>
+      prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
     );
-  };
+  }, []);
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-container">
-          <div className="logo-icon" style={{ 
-            background: isFleetRoute ? '#0f172a' : isPurchasingRoute ? '#4f46e5' : 'hsl(var(--brand))' 
-          }}>
-            {isFleetRoute ? <Truck size={24} color="white" /> : isPurchasingRoute ? <ShoppingCart size={24} color="white" /> : <Activity size={24} color="white" />}
-          </div>
-          <span className="logo-text">{isFleetRoute ? 'Tauze Frota' : isPurchasingRoute ? 'Tauze Compras' : 'Tauze Pecuária'}</span>
+          {settings.logo_base64 ? (
+            <div
+              className="logo-icon"
+              style={{ background: 'transparent', padding: 0 }}
+            >
+              <img src={settings.logo_base64} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <div
+              className="logo-icon"
+              style={{ background: moduleBg }}
+            >
+              <ModuleIcon size={24} color="white" />
+            </div>
+          )}
+          <span className="system-name">{baseSystemName}</span>
         </div>
         {onToggleCollapse && (
           <button className="sidebar-collapse-btn" onClick={onToggleCollapse}>
@@ -280,7 +403,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
           <div key={item.title} className="menu-group">
             {item.subItems ? (
               <>
-                <button 
+                <button
                   className={`menu-button ${openMenus.includes(item.title) ? 'open' : ''}`}
                   onClick={() => toggleMenu(item.title)}
                 >
@@ -288,32 +411,39 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                     <item.icon size={20} className="menu-icon" />
                     <span>{item.title}</span>
                   </div>
-                  {openMenus.includes(item.title) ? <ChevronDown size={16} /> : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {item.title === 'Financeiro & Banco' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
-                        <span style={{ background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
-                          {alerts.financeiro}
-                        </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {item.title === 'Financeiro & Banco' &&
+                      alertPrefs.enabled &&
+                      alertPrefs.financeiro &&
+                      alerts.financeiro > 0 && (
+                        <AlertBadge count={alerts.financeiro} />
                       )}
-                      {item.title === 'Pecuária' && alertPrefs.enabled && (
-                        ((alertPrefs.lotes && alerts.lotes > 0) || (alertPrefs.sanidade && alerts.sanidade > 0)) && (
-                          <span style={{ background: 'hsl(var(--warning))', color: '#000', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
-                            {(alertPrefs.lotes ? alerts.lotes : 0) + (alertPrefs.sanidade ? alerts.sanidade : 0)}
-                          </span>
-                        )
+                    {item.title === 'Pecuária' &&
+                      alertPrefs.enabled &&
+                      ((alertPrefs.lotes && alerts.lotes > 0) ||
+                        (alertPrefs.sanidade && alerts.sanidade > 0)) && (
+                        <AlertBadge
+                          count={(alertPrefs.lotes ? alerts.lotes : 0) + (alertPrefs.sanidade ? alerts.sanidade : 0)}
+                          color="hsl(var(--warning))"
+                          textColor="#000"
+                        />
                       )}
-                      {item.title === 'Administração' && alertPrefs.enabled && alertPrefs.configuracoes && alerts.configuracoes > 0 && (
-                        <span style={{ background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
-                          {alerts.configuracoes}
-                        </span>
+                    {item.title === 'Administração' &&
+                      alertPrefs.enabled &&
+                      alertPrefs.configuracoes &&
+                      alerts.configuracoes > 0 && (
+                        <AlertBadge count={alerts.configuracoes} />
                       )}
+                    {openMenus.includes(item.title) ? (
+                      <ChevronDown size={16} />
+                    ) : (
                       <ChevronRight size={16} />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </button>
                 <AnimatePresence>
                   {openMenus.includes(item.title) && (
-                    <motion.div 
+                    <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -321,97 +451,50 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                       className="submenu"
                     >
                       {item.subItems.map((sub) => (
-                        <Link 
-                          key={sub.title} 
+                        <Link
+                          key={sub.title}
                           to={sub.href}
                           className={`submenu-item ${location.pathname === sub.href ? 'active' : ''}`}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
                         >
                           <span>{sub.title}</span>
                           {sub.title === 'Aprovações' && pendingApprovals > 0 && (
-                            <span style={{ 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              padding: '2px 6px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 800,
-                              minWidth: '18px',
-                              textAlign: 'center'
-                            }}>
-                              {pendingApprovals}
-                            </span>
+                            <AlertBadge count={pendingApprovals} />
                           )}
-                          {sub.title === 'Lotes' && alertPrefs.enabled && alertPrefs.lotes && alerts.lotes > 0 && (
-                            <span style={{ 
-                              background: 'hsl(var(--warning))', 
-                              color: '#000', 
-                              padding: '1px 5px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 900,
-                              minWidth: '16px',
-                              textAlign: 'center'
-                            }}>
-                              {alerts.lotes}
-                            </span>
-                          )}
-                          {sub.title === 'Sanidade' && alertPrefs.enabled && alertPrefs.sanidade && alerts.sanidade > 0 && (
-                            <span style={{ 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              padding: '1px 5px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 900,
-                              minWidth: '16px',
-                              textAlign: 'center'
-                            }}>
-                              {alerts.sanidade}
-                            </span>
-                          )}
-                          {sub.title === 'Contas a Pagar' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
-                            <span style={{ 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              padding: '1px 5px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 900,
-                              minWidth: '16px',
-                              textAlign: 'center'
-                            }}>
-                              {alerts.financeiro}
-                            </span>
-                          )}
-                          {sub.title === 'Contas a Receber' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
-                            <span style={{ 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              padding: '1px 5px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 900,
-                              minWidth: '16px',
-                              textAlign: 'center'
-                            }}>
-                              {alerts.financeiro}
-                            </span>
-                          )}
-                          {sub.title === 'Assinatura & Planos' && alertPrefs.enabled && alertPrefs.configuracoes && alerts.configuracoes > 0 && (
-                            <span style={{ 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              padding: '1px 5px', 
-                              borderRadius: '4px', 
-                              fontSize: '9px', 
-                              fontWeight: 900,
-                              minWidth: '16px',
-                              textAlign: 'center'
-                            }}>
-                              {alerts.configuracoes}
-                            </span>
-                          )}
+                          {sub.title === 'Lotes' &&
+                            alertPrefs.enabled &&
+                            alertPrefs.lotes &&
+                            alerts.lotes > 0 && (
+                              <AlertBadge count={alerts.lotes} color="hsl(var(--warning))" textColor="#000" />
+                            )}
+                          {sub.title === 'Sanidade' &&
+                            alertPrefs.enabled &&
+                            alertPrefs.sanidade &&
+                            alerts.sanidade > 0 && (
+                              <AlertBadge count={alerts.sanidade} />
+                            )}
+                          {sub.title === 'Contas a Pagar' &&
+                            alertPrefs.enabled &&
+                            alertPrefs.financeiro &&
+                            alerts.financeiroPagar > 0 && (
+                              <AlertBadge count={alerts.financeiroPagar} />
+                            )}
+                          {sub.title === 'Contas a Receber' &&
+                            alertPrefs.enabled &&
+                            alertPrefs.financeiro &&
+                            alerts.financeiroReceber > 0 && (
+                              <AlertBadge count={alerts.financeiroReceber} color="#f59e0b" textColor="#000" />
+                            )}
+                          {sub.title === 'Assinatura & Planos' &&
+                            alertPrefs.enabled &&
+                            alertPrefs.configuracoes &&
+                            alerts.configuracoes > 0 && (
+                              <AlertBadge count={alerts.configuracoes} />
+                            )}
                         </Link>
                       ))}
                     </motion.div>
@@ -419,8 +502,8 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                 </AnimatePresence>
               </>
             ) : (
-              <Link 
-                to={item.href || '#'} 
+              <Link
+                to={item.href || '#'}
                 className={`menu-button standalone ${location.pathname === item.href ? 'active' : ''}`}
               >
                 <div className="menu-button-content">
@@ -432,26 +515,35 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
           </div>
         ))}
       </nav>
-      
+
       <div className="sidebar-footer">
         <div className="farm-selector-wrapper">
-          <button 
+          <button
             className={`tenant-badge ${isFarmSelectorOpen ? 'active' : ''} ${isGlobalMode ? 'global' : ''}`}
             onClick={() => setIsFarmSelectorOpen(!isFarmSelectorOpen)}
           >
-            {isGlobalMode 
-              ? <Globe size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
-              : <div className="tenant-dot"></div>
-            }
-            <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {isGlobalMode ? 'Visão Global' : (activeFarm?.name || 'Selecionar Fazenda')}
+            {isGlobalMode ? (
+              <Globe size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            ) : (
+              <div className="tenant-dot" />
+            )}
+            <span
+              style={{
+                flex: 1,
+                textAlign: 'left',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isGlobalMode ? 'Visão Global' : activeFarm?.name || 'Selecionar Fazenda'}
             </span>
             <ChevronDown size={14} className={`selector-arrow ${isFarmSelectorOpen ? 'up' : ''}`} />
           </button>
 
           <AnimatePresence>
             {isFarmSelectorOpen && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -469,18 +561,41 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                   >
                     <Globe size={14} style={{ flexShrink: 0 }} />
                     <span style={{ flex: 1 }}>Visão Global</span>
-                    <span style={{ fontSize: '9px', fontWeight: 800, opacity: 0.7, letterSpacing: '0.05em' }}>TODAS</span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        opacity: 0.7,
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      TODAS
+                    </span>
                   </button>
 
                   {/* ── Divider ── */}
-                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
-                  <div style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div
+                    style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }}
+                  />
+                  <div
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 800,
+                      color: 'rgba(255,255,255,0.4)',
+                      padding: '4px 12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
                     <Building2 size={10} /> Unidades
                   </div>
 
                   {/* ── Individual Farms ── */}
-                  {farms.map(farm => (
-                    <button 
+                  {farms.map((farm) => (
+                    <button
                       key={farm.id}
                       className={`farm-option ${!isGlobalMode && activeFarm?.id === farm.id ? 'active' : ''}`}
                       onClick={() => {
@@ -488,7 +603,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                         setIsFarmSelectorOpen(false);
                       }}
                     >
-                      <div className="option-dot"></div>
+                      <div className="option-dot" />
                       <span>{farm.name}</span>
                     </button>
                   ))}
@@ -500,4 +615,6 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
       </div>
     </aside>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';

@@ -1,5 +1,25 @@
-import { useTenant } from '../contexts/TenantContext';
+import { useTenantFarm, useTenantProfile } from '../contexts/TenantContext';
+import { isAdminRole } from '../types/tenant';
+import type { Farm } from '../types/tenant';
 import { isValidUUID } from '../utils/validation';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseQuery = any;
+
+interface FarmFilterReturn {
+  applyFarmFilter: (query: SupabaseQuery) => SupabaseQuery;
+  applyTenantFilter: (query: SupabaseQuery) => SupabaseQuery;
+  isGlobalMode: boolean;
+  activeFarmId: string | null;
+  activeTenantId: string | null;
+  activeFarm: Farm | null;
+  farms: Array<{ id: string }>;
+  canCreate: boolean;
+  insertPayload: {
+    fazenda_id: string | null;
+    tenant_id: string | null;
+  };
+}
 
 /**
  * useFarmFilter — Tauze ERP v5.0 query helper
@@ -11,13 +31,16 @@ import { isValidUUID } from '../utils/validation';
  *   const { applyFarmFilter, applyTenantFilter, isGlobalMode, activeFarmId, activeTenantId } = useFarmFilter();
  *   const query = applyFarmFilter(supabase.from('animais').select('*'));
  */
-export const useFarmFilter = () => {
-  const { isGlobalMode, activeFarmId, activeTenantId, activeFarm, farms, userProfile } = useTenant();
+export const useFarmFilter = (): FarmFilterReturn => {
+  const { isGlobalMode, activeFarmId, activeTenantId, activeFarm, farms } = useTenantFarm();
+  const { userProfile } = useTenantProfile();
 
-  const hasGlobalPermission = () => {
-    if (!userProfile) return false;
-    const perms = userProfile.permissoes || userProfile.permissions || [];
-    return userProfile.role === 'ADMIN' || userProfile.role === 'Administrador' || perms.includes('all') || perms.includes('global_view');
+  const hasGlobalPermission = (): boolean => {
+    if (!userProfile) {
+      return false;
+    }
+    const permissions = (userProfile as any).permissoes || userProfile.perfis_usuario?.permissoes || [];
+    return isAdminRole(userProfile.role) || permissions.includes('global_view');
   };
 
   /**
@@ -25,34 +48,42 @@ export const useFarmFilter = () => {
    *   Global → filter by tenant_id
    *   Specific → filter by fazenda_id
    */
-  const applyFarmFilter = (query: any) => {
+  const applyFarmFilter = (query: SupabaseQuery): SupabaseQuery => {
     // Debug logging for troubleshooting UUID issues
     if (import.meta.env.DEV) {
       if (activeFarmId && !isValidUUID(activeFarmId)) {
-        console.warn(`[useFarmFilter] Invalid activeFarmId detected: "${activeFarmId}". Query might fail.`, {
-          isGlobalMode,
-          activeFarm
-        });
+        console.warn(
+          `[useFarmFilter] Invalid activeFarmId detected: "${activeFarmId}". Query might fail.`,
+          {
+            isGlobalMode,
+            activeFarm,
+          }
+        );
       }
     }
 
     if (isGlobalMode) {
-      if (!activeTenantId) return query.is('tenant_id', null); // Silent during load
+      if (!activeTenantId) {
+        return query.is('tenant_id', null);
+      } // Silent during load
       if (!isValidUUID(activeTenantId)) {
         console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
         return query.is('tenant_id', null);
       }
-      
+
       if (hasGlobalPermission()) {
         return query.eq('tenant_id', activeTenantId);
-      } else {
-        const farmIds = farms.map(f => f.id);
-        if (farmIds.length === 0) return query.is('fazenda_id', null);
-        return query.in('fazenda_id', farmIds);
       }
+      const farmIds = farms.map((f) => f.id);
+      if (farmIds.length === 0) {
+        return query.is('fazenda_id', null);
+      }
+      return query.in('fazenda_id', farmIds);
     }
 
-    if (!activeFarmId) return query.is('fazenda_id', null); // Silent during load
+    if (!activeFarmId) {
+      return query.is('fazenda_id', null);
+    } // Silent during load
     if (!isValidUUID(activeFarmId)) {
       console.error('[useFarmFilter] Invalid activeFarmId format', { activeFarmId });
       if (isValidUUID(activeTenantId)) {
@@ -68,8 +99,10 @@ export const useFarmFilter = () => {
    * For tables that only have tenant_id (parceiros, fornecedores, etc.)
    * These are already "global" by nature — always filter by tenant.
    */
-  const applyTenantFilter = (query: any) => {
-    if (!activeTenantId) return query.is('tenant_id', null); // Silent during load
+  const applyTenantFilter = (query: SupabaseQuery): SupabaseQuery => {
+    if (!activeTenantId) {
+      return query.is('tenant_id', null);
+    } // Silent during load
     if (!isValidUUID(activeTenantId)) {
       console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
       return query.is('tenant_id', null);
@@ -105,4 +138,3 @@ export const useFarmFilter = () => {
     insertPayload,
   };
 };
-

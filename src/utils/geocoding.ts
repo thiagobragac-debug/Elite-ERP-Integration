@@ -1,4 +1,6 @@
-export const geocodeAddress = async (addressStr: string): Promise<{ latitude: number | null, longitude: number | null }> => {
+export const geocodeAddress = async (
+  addressStr: string
+): Promise<{ latitude: number | null; longitude: number | null }> => {
   if (!addressStr || addressStr.trim() === '') {
     return { latitude: null, longitude: null };
   }
@@ -6,13 +8,13 @@ export const geocodeAddress = async (addressStr: string): Promise<{ latitude: nu
   try {
     const query = encodeURIComponent(addressStr);
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Accept-Language': 'pt-BR,pt;q=0.9',
         // O Nominatim exige um User-Agent descritivo
-        'User-Agent': 'Elite-ERP-Integration/1.0 (admin@eliteerp.com)'
-      }
+        'User-Agent': 'Elite-ERP-Integration/1.0 (admin@eliteerp.com)',
+      },
     });
 
     if (!response.ok) {
@@ -21,14 +23,14 @@ export const geocodeAddress = async (addressStr: string): Promise<{ latitude: nu
     }
 
     const data = await response.json();
-    
+
     if (data && data.length > 0) {
       return {
         latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon)
+        longitude: parseFloat(data[0].lon),
       };
     }
-    
+
     return { latitude: null, longitude: null };
   } catch (err) {
     console.error('[Geocoding] Erro ao buscar geolocalização:', err);

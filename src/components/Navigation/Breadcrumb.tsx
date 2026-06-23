@@ -16,9 +16,9 @@ interface BreadcrumbProps {
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({ paths }) => {
   return (
     <nav className="tauze-breadcrumb" aria-label="Breadcrumb">
-      <Link 
+      <Link
         to="/painel"
-        className="tauze-breadcrumb-item tauze-breadcrumb-link" 
+        className="tauze-breadcrumb-item tauze-breadcrumb-link"
         title="Dashboard Inicial"
       >
         <Home size={14} />
@@ -33,27 +33,25 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ paths }) => {
             <div className="tauze-breadcrumb-separator">
               <ChevronRight size={14} />
             </div>
-            
+
             {isLast ? (
               <div className="tauze-breadcrumb-item tauze-breadcrumb-current" aria-current="page">
                 {Icon && <Icon size={14} />}
                 <span>{path.label}</span>
               </div>
+            ) : path.href ? (
+              <Link to={path.href} className="tauze-breadcrumb-item tauze-breadcrumb-link">
+                {Icon && <Icon size={14} />}
+                <span>{path.label}</span>
+              </Link>
             ) : (
-              path.href ? (
-                <Link 
-                  to={path.href}
-                  className="tauze-breadcrumb-item tauze-breadcrumb-link"
-                >
-                  {Icon && <Icon size={14} />}
-                  <span>{path.label}</span>
-                </Link>
-              ) : (
-                <div className="tauze-breadcrumb-item tauze-breadcrumb-link" style={{ cursor: 'default' }}>
-                  {Icon && <Icon size={14} />}
-                  <span>{path.label}</span>
-                </div>
-              )
+              <div
+                className="tauze-breadcrumb-item tauze-breadcrumb-link"
+                style={{ cursor: 'default' }}
+              >
+                {Icon && <Icon size={14} />}
+                <span>{path.label}</span>
+              </div>
             )}
           </React.Fragment>
         );

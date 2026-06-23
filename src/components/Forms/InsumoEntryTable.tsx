@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Package, 
-  Plus, 
-  Trash2, 
-  Search, 
-  Layers, 
+import {
+  Package,
+  Plus,
+  Trash2,
+  Search,
+  Layers,
   DollarSign,
   ShoppingCart,
   Warehouse,
@@ -14,16 +14,16 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
-  Link2
+  Link2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
-import { 
-  findBestMatches, 
-  getMatchStatus, 
+import {
+  findBestMatches,
+  getMatchStatus,
   MATCH_STATUS_CONFIG,
-  type MatchStatus 
+  type MatchStatus,
 } from '../../utils/fuzzyMatch';
 
 export interface InsumoItem {
@@ -61,9 +61,14 @@ interface InsumoEntryTableProps {
   operationType?: 'entry' | 'output';
 }
 
-export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ 
-  items, onChange, isReadOnly = false, companyId, supplierId,
-  onPendingMatchesChange, operationType = 'entry'
+export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
+  items,
+  onChange,
+  isReadOnly = false,
+  companyId,
+  supplierId,
+  onPendingMatchesChange,
+  operationType = 'entry',
 }) => {
   const { activeTenantId } = useTenant();
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
@@ -87,27 +92,32 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   // Quando items chegam do XML OU produtos ficam disponíveis, dispara o matching
   // Usa processedIds ref para garantir que cada item é processado apenas UMA vez
   useEffect(() => {
-    if (availableProducts.length === 0) return;
+    if (availableProducts.length === 0) {
+      return;
+    }
 
     const unprocessed = items.filter(
-      item =>
+      (item) =>
         item.xml_product_name &&
         item.match_status === 'unmatched' &&
         !processedIds.current.has(item.id)
     );
 
-    if (unprocessed.length === 0) return;
+    if (unprocessed.length === 0) {
+      return;
+    }
 
     // Marca imediatamente para evitar re-entradas antes do async completar
-    unprocessed.forEach(item => processedIds.current.add(item.id));
+    unprocessed.forEach((item) => processedIds.current.add(item.id));
     runAutoMatch(unprocessed, items);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, availableProducts]);
 
   // Notifica o pai sobre itens pendentes
   useEffect(() => {
     const pendingCount = items.filter(
-      item => item.xml_product_name && (item.match_status === 'unmatched' || item.match_status === 'weak')
+      (item) =>
+        item.xml_product_name && (item.match_status === 'unmatched' || item.match_status === 'weak')
     ).length;
     onPendingMatchesChange?.(pendingCount);
   }, [items]);
@@ -128,14 +138,16 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
     const { data } = await query.order('nome');
     if (data) {
       setAvailableProducts(data);
-      
-      const pIds = data.map(d => d.id);
+
+      const pIds = data.map((d) => d.id);
       if (pIds.length > 0) {
         const { data: embData } = await supabase
           .from('produto_embalagens')
           .select('id, produto_id, descricao, fator')
           .in('produto_id', pIds);
-        if (embData) setAvailableEmbalagens(embData);
+        if (embData) {
+          setAvailableEmbalagens(embData);
+        }
       }
     }
   };
@@ -146,13 +158,15 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
       .select(companyId ? 'id, nome, fazendas!inner(unidade_id)' : 'id, nome')
       .eq('tenant_id', activeTenantId)
       .eq('status', 'ativo');
-      
+
     if (companyId) {
       query = query.eq('fazendas.unidade_id', companyId);
     }
-    
+
     const { data } = await query.order('nome');
-    if (data) setDepositos(data);
+    if (data) {
+      setDepositos(data);
+    }
   };
 
   /**
@@ -160,54 +174,33 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
    * 1. Primeiro verifica tabela De-Para no banco
    * 2. Se não encontrar, roda fuzzy match local
    */
-  const runAutoMatch = useCallback(async (xmlItems: InsumoItem[], currentItems: InsumoItem[]) => {
-    if (!activeTenantId || availableProducts.length === 0) return;
-
-    setMatchingItemIds(prev => new Set([...prev, ...xmlItems.map(i => i.id)]));
-
-    const updatedItems = [...currentItems];
-
-    for (const xmlItem of xmlItems) {
-      const itemIndex = updatedItems.findIndex(i => i.id === xmlItem.id);
-      if (itemIndex === -1) continue;
-
-      let matched = false;
-
-      // 0. Busca por NCM (100% de exatidão fiscal)
-      if (xmlItem.xml_ncm) {
-        // Encontra produto no catálogo interno que tenha o mesmo NCM
-        // OBS: Tira pontuação do NCM para comparar limpo
-        const cleanXmlNcm = xmlItem.xml_ncm.replace(/\D/g, '');
-        const internalProduct = availableProducts.find(p => p.ncm && p.ncm.replace(/\D/g, '') === cleanXmlNcm);
-        
-        if (internalProduct) {
-          updatedItems[itemIndex] = {
-            ...updatedItems[itemIndex],
-            produto_id: internalProduct.id,
-            nome: internalProduct.nome,
-            unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
-            tipo: internalProduct.tipo,
-            is_storable: internalProduct.is_storable,
-            match_status: 'confirmed',
-            match_score: 100,
-            match_source: 'ncm' as any, // Cast temporário
-          };
-          matched = true;
-        }
+  const runAutoMatch = useCallback(
+    async (xmlItems: InsumoItem[], currentItems: InsumoItem[]) => {
+      if (!activeTenantId || availableProducts.length === 0) {
+        return;
       }
 
-      // 1. Busca De-Para no banco (código do produto do fornecedor)
-      if (!matched && xmlItem.xml_product_code && supplierId) {
-        const { data: deParaData } = await supabase
-          .from('produto_fornecedor_de_para')
-          .select('internal_product_id')
-          .eq('tenant_id', activeTenantId)
-          .eq('supplier_id', supplierId)
-          .eq('supplier_product_code', xmlItem.xml_product_code)
-          .maybeSingle();
+      setMatchingItemIds((prev) => new Set([...prev, ...xmlItems.map((i) => i.id)]));
 
-        if (deParaData?.internal_product_id) {
-          const internalProduct = availableProducts.find(p => p.id === deParaData.internal_product_id);
+      const updatedItems = [...currentItems];
+
+      for (const xmlItem of xmlItems) {
+        const itemIndex = updatedItems.findIndex((i) => i.id === xmlItem.id);
+        if (itemIndex === -1) {
+          continue;
+        }
+
+        let matched = false;
+
+        // 0. Busca por NCM (100% de exatidão fiscal)
+        if (xmlItem.xml_ncm) {
+          // Encontra produto no catálogo interno que tenha o mesmo NCM
+          // OBS: Tira pontuação do NCM para comparar limpo
+          const cleanXmlNcm = xmlItem.xml_ncm.replace(/\D/g, '');
+          const internalProduct = availableProducts.find(
+            (p) => p.ncm && p.ncm.replace(/\D/g, '') === cleanXmlNcm
+          );
+
           if (internalProduct) {
             updatedItems[itemIndex] = {
               ...updatedItems[itemIndex],
@@ -218,48 +211,85 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
               is_storable: internalProduct.is_storable,
               match_status: 'confirmed',
               match_score: 100,
-              match_source: 'de_para',
+              match_source: 'ncm' as any, // Cast temporário
             };
             matched = true;
           }
         }
-      }
 
-      // 2. Fuzzy match se não encontrou De-Para
-      if (!matched && xmlItem.xml_product_name) {
-        const results = findBestMatches(xmlItem.xml_product_name, availableProducts, 30);
-        if (results.length > 0) {
-          const best = results[0];
-          const status = getMatchStatus(best.score, false);
-          updatedItems[itemIndex] = {
-            ...updatedItems[itemIndex],
-            produto_id: status !== 'unmatched' ? best.product.id : '',
-            nome: status !== 'unmatched' ? best.product.nome : updatedItems[itemIndex].nome,
-            unidade: status !== 'unmatched' ? (best.product.unidade_medida || updatedItems[itemIndex].unidade) : updatedItems[itemIndex].unidade,
-            is_storable: status !== 'unmatched' ? best.product.is_storable : undefined,
-            match_status: status,
-            match_score: best.score,
-            match_source: 'fuzzy',
-          };
-        } else {
-          updatedItems[itemIndex] = {
-            ...updatedItems[itemIndex],
-            match_status: 'unmatched',
-            match_score: undefined,
-          };
+        // 1. Busca De-Para no banco (código do produto do fornecedor)
+        if (!matched && xmlItem.xml_product_code && supplierId) {
+          const { data: deParaData } = await supabase
+            .from('produto_fornecedor_de_para')
+            .select('internal_product_id')
+            .eq('tenant_id', activeTenantId)
+            .eq('supplier_id', supplierId)
+            .eq('supplier_product_code', xmlItem.xml_product_code)
+            .maybeSingle();
+
+          if (deParaData?.internal_product_id) {
+            const internalProduct = availableProducts.find(
+              (p) => p.id === deParaData.internal_product_id
+            );
+            if (internalProduct) {
+              updatedItems[itemIndex] = {
+                ...updatedItems[itemIndex],
+                produto_id: internalProduct.id,
+                nome: internalProduct.nome,
+                unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
+                tipo: internalProduct.tipo,
+                is_storable: internalProduct.is_storable,
+                match_status: 'confirmed',
+                match_score: 100,
+                match_source: 'de_para',
+              };
+              matched = true;
+            }
+          }
+        }
+
+        // 2. Fuzzy match se não encontrou De-Para
+        if (!matched && xmlItem.xml_product_name) {
+          const results = findBestMatches(xmlItem.xml_product_name, availableProducts, 30);
+          if (results.length > 0) {
+            const best = results[0];
+            const status = getMatchStatus(best.score, false);
+            updatedItems[itemIndex] = {
+              ...updatedItems[itemIndex],
+              produto_id: status !== 'unmatched' ? best.product.id : '',
+              nome: status !== 'unmatched' ? best.product.nome : updatedItems[itemIndex].nome,
+              unidade:
+                status !== 'unmatched'
+                  ? best.product.unidade_medida || updatedItems[itemIndex].unidade
+                  : updatedItems[itemIndex].unidade,
+              is_storable: status !== 'unmatched' ? (best.product as any).is_storable : undefined,
+              match_status: status,
+              match_score: best.score,
+              match_source: 'fuzzy',
+            };
+          } else {
+            updatedItems[itemIndex] = {
+              ...updatedItems[itemIndex],
+              match_status: 'unmatched',
+              match_score: undefined,
+            };
+          }
         }
       }
-    }
 
-    onChange(updatedItems);
-    setMatchingItemIds(new Set());
-  }, [activeTenantId, availableProducts, supplierId, onChange]);
+      onChange(updatedItems);
+      setMatchingItemIds(new Set());
+    },
+    [activeTenantId, availableProducts, supplierId, onChange]
+  );
 
   /**
    * Confirma o vínculo manual ou sugerido, salvando no De-Para
    */
   const handleConfirmMatch = async (item: InsumoItem) => {
-    if (!item.produto_id || !activeTenantId) return;
+    if (!item.produto_id || !activeTenantId) {
+      return;
+    }
 
     // Salva no De-Para para aprendizado futuro
     if (item.xml_product_name) {
@@ -282,19 +312,23 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
       if (existing) {
         await supabase
           .from('produto_fornecedor_de_para')
-          .update({ match_count: (existing.match_count || 1) + 1, updated_at: new Date().toISOString() })
+          .update({
+            match_count: (existing.match_count || 1) + 1,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', existing.id);
       } else {
-        await supabase
-          .from('produto_fornecedor_de_para')
-          .insert(deParaRecord);
+        await supabase.from('produto_fornecedor_de_para').insert(deParaRecord);
       }
     }
 
-    onChange(items.map(i => i.id === item.id 
-      ? { ...i, match_status: 'confirmed', match_source: i.match_source ?? 'fuzzy' }
-      : i
-    ));
+    onChange(
+      items.map((i) =>
+        i.id === item.id
+          ? { ...i, match_status: 'confirmed', match_source: i.match_source ?? 'fuzzy' }
+          : i
+      )
+    );
   };
 
   const handleAddItem = () => {
@@ -315,18 +349,18 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   };
 
   const handleRemoveItem = (id: string) => {
-    onChange(items.filter(item => item.id !== id));
+    onChange(items.filter((item) => item.id !== id));
   };
 
   const handleUpdateItem = (id: string, updates: Partial<InsumoItem>) => {
-    const newItems = items.map(item => {
+    const newItems = items.map((item) => {
       if (item.id === id) {
         const updatedItem = { ...item, ...updates };
         const qty = updatedItem.quantidade || 0;
         const price = updatedItem.preco_unitario || 0;
         const extra = updatedItem.despesa_adicional || 0;
         const disc = updatedItem.desconto || 0;
-        updatedItem.total = Math.max(0, (qty * price) + extra - disc);
+        updatedItem.total = Math.max(0, qty * price + extra - disc);
         return updatedItem;
       }
       return item;
@@ -335,7 +369,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   };
 
   const handleSelectProduct = (itemId: string, product: any) => {
-    const item = items.find(i => i.id === itemId);
+    const item = items.find((i) => i.id === itemId);
     handleUpdateItem(itemId, {
       produto_id: product.id,
       nome: product.nome,
@@ -351,16 +385,16 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
     setIsSearching(null);
   };
 
-  const filteredProducts = availableProducts.filter(p => 
+  const filteredProducts = availableProducts.filter((p) =>
     p.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Estatísticas para o header
-  const xmlItemCount = items.filter(i => i.xml_product_name).length;
-  const confirmedCount = items.filter(i => i.match_status === 'confirmed').length;
-  const suggestedCount = items.filter(i => i.match_status === 'suggested').length;
-  const weakCount = items.filter(i => i.match_status === 'weak').length;
-  const unmatchedCount = items.filter(i => i.match_status === 'unmatched').length;
+  const xmlItemCount = items.filter((i) => i.xml_product_name).length;
+  const confirmedCount = items.filter((i) => i.match_status === 'confirmed').length;
+  const suggestedCount = items.filter((i) => i.match_status === 'suggested').length;
+  const weakCount = items.filter((i) => i.match_status === 'weak').length;
+  const unmatchedCount = items.filter((i) => i.match_status === 'unmatched').length;
   const pendingCount = suggestedCount + weakCount + unmatchedCount;
 
   return (
@@ -370,7 +404,14 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
           <ShoppingCart size={16} />
           <span>Itens e Insumos</span>
           {xmlItemCount > 0 && (
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: 'hsl(var(--text-muted))',
+                marginLeft: '4px',
+              }}
+            >
               ({xmlItemCount} do XML)
             </span>
           )}
@@ -381,17 +422,54 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
           {xmlItemCount > 0 && (
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {confirmedCount > 0 && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 800, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '3px 8px', borderRadius: '20px' }}>
-                  <CheckCircle size={10} /> {confirmedCount} vinculado{confirmedCount > 1 ? 's' : ''}
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#059669',
+                    background: 'rgba(5,150,105,0.1)',
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                  }}
+                >
+                  <CheckCircle size={10} /> {confirmedCount} vinculado
+                  {confirmedCount > 1 ? 's' : ''}
                 </span>
               )}
               {pendingCount > 0 && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 800, color: '#d97706', background: 'rgba(217,119,6,0.1)', padding: '3px 8px', borderRadius: '20px' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#d97706',
+                    background: 'rgba(217,119,6,0.1)',
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                  }}
+                >
                   <AlertTriangle size={10} /> {pendingCount} aguardando validação
                 </span>
               )}
               {unmatchedCount > 0 && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 800, color: '#dc2626', background: 'rgba(220,38,38,0.1)', padding: '3px 8px', borderRadius: '20px' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#dc2626',
+                    background: 'rgba(220,38,38,0.1)',
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                  }}
+                >
                   <XCircle size={10} /> {unmatchedCount} sem vínculo
                 </span>
               )}
@@ -421,22 +499,24 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
               <th style={{ width: '120px' }}>Desp. Adic.</th>
               <th style={{ width: '120px' }}>Desconto</th>
               <th style={{ width: '120px' }}>Total</th>
-              {!isReadOnly && <th style={{ width: '40px' }}></th>}
+              {!isReadOnly && <th style={{ width: '40px' }} />}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => {
               const isXmlItem = !!item.xml_product_name;
               const isLoading = matchingItemIds.has(item.id);
-              const statusCfg = MATCH_STATUS_CONFIG[item.match_status] || MATCH_STATUS_CONFIG.manual;
-              const needsConfirmation = item.match_status === 'suggested' || item.match_status === 'weak';
+              const statusCfg =
+                MATCH_STATUS_CONFIG[item.match_status] || MATCH_STATUS_CONFIG.manual;
+              const needsConfirmation =
+                item.match_status === 'suggested' || item.match_status === 'weak';
               const isUnmatched = item.match_status === 'unmatched';
 
               return (
-                <tr 
-                  key={item.id} 
-                  style={{ 
-                    zIndex: isSearching === item.id ? 101 : 1, 
+                <tr
+                  key={item.id}
+                  style={{
+                    zIndex: isSearching === item.id ? 101 : 1,
                     position: 'relative',
                     background: isXmlItem ? statusCfg.bg : 'transparent',
                     transition: 'background 0.3s',
@@ -445,7 +525,15 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   {/* COLUNA PRODUTO */}
                   <td style={{ position: 'relative' }}>
                     {isLoading ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', color: 'hsl(var(--text-muted))' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 10px',
+                          color: 'hsl(var(--text-muted))',
+                        }}
+                      >
                         <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                         <span style={{ fontSize: '12px', fontWeight: 600 }}>Analisando...</span>
                       </div>
@@ -456,7 +544,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {/* Badge de status para itens XML */}
                           {isXmlItem && (
-                            <span 
+                            <span
                               title={`${statusCfg.label}${item.match_score ? ` — Score: ${item.match_score}%` : ''}`}
                               style={{
                                 display: 'inline-flex',
@@ -477,18 +565,22 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                               {statusCfg.icon}
                             </span>
                           )}
-                          
+
                           <div className="insumo-search-input-wrapper" style={{ flex: 1 }}>
-                            <input 
+                            <input
                               type="text"
                               className="tauze-table-input"
-                              placeholder={isUnmatched ? '⚠ Buscar produto manualmente...' : 'Buscar produto...'}
+                              placeholder={
+                                isUnmatched
+                                  ? '⚠ Buscar produto manualmente...'
+                                  : 'Buscar produto...'
+                              }
                               value={isSearching === item.id ? searchTerm : item.nome}
                               style={{
-                                borderColor: isUnmatched 
-                                  ? '#dc2626' 
-                                  : needsConfirmation 
-                                    ? '#d97706' 
+                                borderColor: isUnmatched
+                                  ? '#dc2626'
+                                  : needsConfirmation
+                                    ? '#d97706'
                                     : undefined,
                                 paddingRight: '30px',
                               }}
@@ -500,7 +592,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                                   setDropdownStyle({
                                     top: rect.bottom + 4,
                                     left: rect.left,
-                                    width: rect.width
+                                    width: rect.width,
                                   });
                                 }
                               }}
@@ -512,7 +604,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                                   setDropdownStyle({
                                     top: rect.bottom + 4,
                                     left: rect.left,
-                                    width: rect.width
+                                    width: rect.width,
                                   });
                                 }
                               }}
@@ -522,28 +614,32 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                             />
                             <Search size={14} className="s-icon-mini" />
 
-                            {isSearching === item.id && createPortal(
-                              <div className="insumo-dropdown-portal" style={dropdownStyle}>
-                                {filteredProducts.length > 0 ? (
-                                  filteredProducts.slice(0, 8).map(p => (
-                                    <div 
-                                      key={p.id} 
-                                      className="insumo-option"
-                                      onClick={() => handleSelectProduct(item.id, p)}
-                                    >
-                                      <Package size={14} />
-                                      <div className="opt-info">
-                                        <span className="opt-name">{p.nome}</span>
-                                        <span className="opt-meta">{p.unidade_medida} • {p.ncm ? `NCM ${p.ncm}` : `Ref: ${p.id.slice(0,6)}`}</span>
+                            {isSearching === item.id &&
+                              createPortal(
+                                <div className="insumo-dropdown-portal" style={dropdownStyle}>
+                                  {filteredProducts.length > 0 ? (
+                                    filteredProducts.slice(0, 8).map((p) => (
+                                      <div
+                                        key={p.id}
+                                        className="insumo-option"
+                                        onClick={() => handleSelectProduct(item.id, p)}
+                                      >
+                                        <Package size={14} />
+                                        <div className="opt-info">
+                                          <span className="opt-name">{p.nome}</span>
+                                          <span className="opt-meta">
+                                            {p.unidade_medida} •{' '}
+                                            {p.ncm ? `NCM ${p.ncm}` : `Ref: ${p.id.slice(0, 6)}`}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="no-results">Nenhum produto encontrado</div>
-                                )}
-                              </div>,
-                              document.body
-                            )}
+                                    ))
+                                  ) : (
+                                    <div className="no-results">Nenhum produto encontrado</div>
+                                  )}
+                                </div>,
+                                document.body
+                              )}
                           </div>
 
                           {/* Botão Confirmar para sugestões */}
@@ -574,22 +670,39 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                         </div>
 
                         {/* Score chip para itens fuzzy */}
-                        {isXmlItem && item.match_score !== undefined && item.match_status !== 'confirmed' && (
-                          <div style={{ 
-                            marginTop: '4px', 
-                            fontSize: '9px', 
-                            fontWeight: 700, 
-                            color: statusCfg.color,
-                            paddingLeft: item.xml_product_name ? '26px' : '0',
-                          }}>
-                            {item.match_source === 'de_para' ? '🗄 De-Para' : `🔍 Fuzzy ${item.match_score}%`}
-                            {item.match_status === 'suggested' && ' · Clique "Confirmar" para salvar'}
-                            {item.match_status === 'weak' && ' · Sugestão fraca — verifique'}
-                          </div>
-                        )}
+                        {isXmlItem &&
+                          item.match_score !== undefined &&
+                          item.match_status !== 'confirmed' && (
+                            <div
+                              style={{
+                                marginTop: '4px',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                color: statusCfg.color,
+                                paddingLeft: item.xml_product_name ? '26px' : '0',
+                              }}
+                            >
+                              {item.match_source === 'de_para'
+                                ? '🗄 De-Para'
+                                : `🔍 Fuzzy ${item.match_score}%`}
+                              {item.match_status === 'suggested' &&
+                                ' · Clique "Confirmar" para salvar'}
+                              {item.match_status === 'weak' && ' · Sugestão fraca — verifique'}
+                            </div>
+                          )}
                         {isXmlItem && item.match_status === 'confirmed' && item.match_source && (
-                          <div style={{ marginTop: '4px', fontSize: '9px', fontWeight: 700, color: '#059669', paddingLeft: '26px' }}>
-                            {item.match_source === 'de_para' ? '🗄 Vínculo salvo (De-Para)' : `✓ Vínculo confirmado`}
+                          <div
+                            style={{
+                              marginTop: '4px',
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              color: '#059669',
+                              paddingLeft: '26px',
+                            }}
+                          >
+                            {item.match_source === 'de_para'
+                              ? '🗄 Vínculo salvo (De-Para)'
+                              : `✓ Vínculo confirmado`}
                           </div>
                         )}
                       </>
@@ -600,37 +713,67 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   {xmlItemCount > 0 && (
                     <td>
                       {item.xml_product_name ? (
-                        <div style={{ 
-                          fontSize: '11px', 
-                          color: 'hsl(var(--text-muted))', 
-                          fontStyle: 'italic',
-                          lineHeight: 1.3,
-                          maxWidth: '180px',
-                        }}>
-                          <div style={{ fontSize: '9px', fontWeight: 800, color: 'hsl(var(--text-muted))', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px', fontStyle: 'normal' }}>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: 'hsl(var(--text-muted))',
+                            fontStyle: 'italic',
+                            lineHeight: 1.3,
+                            maxWidth: '180px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--text-muted))',
+                              marginBottom: '2px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px',
+                              fontStyle: 'normal',
+                            }}
+                          >
                             XML
                           </div>
                           {item.xml_product_name}
                           {item.xml_product_code && (
-                            <div style={{ fontSize: '9px', fontStyle: 'normal', marginTop: '2px', opacity: 0.7 }}>
+                            <div
+                              style={{
+                                fontSize: '9px',
+                                fontStyle: 'normal',
+                                marginTop: '2px',
+                                opacity: 0.7,
+                              }}
+                            >
                               cProd: {item.xml_product_code}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontStyle: 'italic' }}>—</span>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: 'hsl(var(--text-muted))',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          —
+                        </span>
                       )}
                     </td>
                   )}
 
                   {/* DEPÓSITO */}
                   <td>
-                    <SearchableSelect 
+                    <SearchableSelect
                       value={item.deposito_id}
                       onChange={(val: any) => handleUpdateItem(item.id, { deposito_id: val })}
                       options={[
                         { value: '', label: 'Sem Depósito' },
-                        ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
+                        ...(depositos || []).map((d) => ({
+                          value: String(d.id),
+                          label: String(d.nome),
+                        })),
                       ]}
                       height="38px"
                       placeholder="Buscar depósito..."
@@ -640,11 +783,13 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
 
                   {/* QUANTIDADE */}
                   <td>
-                    <input 
+                    <input
                       type="number"
                       className="tauze-table-input centered"
                       value={item.quantidade || ''}
-                      onChange={(e) => handleUpdateItem(item.id, { quantidade: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        handleUpdateItem(item.id, { quantidade: parseFloat(e.target.value) || 0 })
+                      }
                       disabled={isReadOnly}
                       placeholder="0"
                     />
@@ -652,33 +797,50 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
 
                   {/* EMBALAGEM */}
                   <td>
-                    <select 
+                    <select
                       className="tauze-table-input"
                       value={item.embalagem_id || ''}
                       onChange={(e) => {
                         const embId = e.target.value;
                         if (!embId) {
-                          handleUpdateItem(item.id, { embalagem_id: undefined, embalagem_fator: 1, embalagem_nome: '' });
+                          handleUpdateItem(item.id, {
+                            embalagem_id: undefined,
+                            embalagem_fator: 1,
+                            embalagem_nome: '',
+                          });
                         } else {
-                          const emb = availableEmbalagens.find(eb => eb.id === embId);
+                          const emb = availableEmbalagens.find((eb) => eb.id === embId);
                           if (emb) {
-                            handleUpdateItem(item.id, { embalagem_id: emb.id, embalagem_fator: emb.fator, embalagem_nome: emb.descricao });
+                            handleUpdateItem(item.id, {
+                              embalagem_id: emb.id,
+                              embalagem_fator: emb.fator,
+                              embalagem_nome: emb.descricao,
+                            });
                           }
                         }
                       }}
-                      disabled={isReadOnly || !item.produto_id || availableEmbalagens.filter(e => e.produto_id === item.produto_id).length === 0}
+                      disabled={
+                        isReadOnly ||
+                        !item.produto_id ||
+                        availableEmbalagens.filter((e) => e.produto_id === item.produto_id)
+                          .length === 0
+                      }
                       style={{ padding: '0 8px' }}
                     >
                       <option value="">Unid. Base ({item.unidade})</option>
-                      {availableEmbalagens.filter(e => e.produto_id === item.produto_id).map(e => (
-                        <option key={e.id} value={e.id}>{e.descricao} (x{e.fator})</option>
-                      ))}
+                      {availableEmbalagens
+                        .filter((e) => e.produto_id === item.produto_id)
+                        .map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.descricao} (x{e.fator})
+                          </option>
+                        ))}
                     </select>
                   </td>
 
                   {/* UNIDADE */}
                   <td>
-                    <input 
+                    <input
                       type="text"
                       className="tauze-table-input centered uppercase"
                       value={item.unidade}
@@ -692,12 +854,16 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   <td>
                     <div className="price-input-wrapper">
                       <span className="currency-prefix">R$</span>
-                      <input 
+                      <input
                         type="number"
                         step="0.01"
                         className="tauze-table-input"
                         value={item.preco_unitario || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { preco_unitario: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, {
+                            preco_unitario: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         disabled={isReadOnly}
                         placeholder="0.00"
                       />
@@ -707,14 +873,20 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   {/* DESP ADICIONAL */}
                   <td>
                     <div className="price-input-wrapper">
-                      <span className="currency-prefix" style={{ color: 'hsl(var(--brand))' }}>+R$</span>
-                      <input 
+                      <span className="currency-prefix" style={{ color: 'hsl(var(--brand))' }}>
+                        +R$
+                      </span>
+                      <input
                         type="number"
                         step="0.01"
                         className="tauze-table-input"
                         style={{ color: 'hsl(var(--brand))' }}
                         value={item.despesa_adicional || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { despesa_adicional: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, {
+                            despesa_adicional: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         disabled={isReadOnly}
                         placeholder="0.00"
                       />
@@ -724,14 +896,18 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   {/* DESCONTO */}
                   <td>
                     <div className="price-input-wrapper">
-                      <span className="currency-prefix" style={{ color: '#ef4444' }}>-R$</span>
-                      <input 
+                      <span className="currency-prefix" style={{ color: '#ef4444' }}>
+                        -R$
+                      </span>
+                      <input
                         type="number"
                         step="0.01"
                         className="tauze-table-input"
                         style={{ color: '#ef4444' }}
                         value={item.desconto || ''}
-                        onChange={(e) => handleUpdateItem(item.id, { desconto: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { desconto: parseFloat(e.target.value) || 0 })
+                        }
                         disabled={isReadOnly}
                         placeholder="0.00"
                       />
@@ -746,8 +922,8 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                   {/* REMOVER */}
                   {!isReadOnly && (
                     <td>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="remove-row-btn"
                         onClick={() => handleRemoveItem(item.id)}
                       >
@@ -767,7 +943,9 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
           <Layers size={24} />
           <p>Nenhum item adicionado ao documento.</p>
           {!isReadOnly && (
-            <button type="button" onClick={handleAddItem}>Clique para começar</button>
+            <button type="button" onClick={handleAddItem}>
+              Clique para começar
+            </button>
           )}
         </div>
       )}

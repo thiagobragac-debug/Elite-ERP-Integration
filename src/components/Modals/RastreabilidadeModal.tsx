@@ -45,13 +45,20 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const getEventDisplayConfig = (category: string) => {
   switch (category) {
-    case 'entrada': return { icon: 'FileText', color: '#6366f1' };
-    case 'weight': return { icon: 'Scale', color: '#f59e0b' };
-    case 'sanidade': return { icon: 'Heart', color: '#ec4899' };
-    case 'nutricao': return { icon: 'Tag', color: '#10b981' };
-    case 'reproducao': return { icon: 'Tag', color: '#8b5cf6' };
-    case 'lote': return { icon: 'ArrowRightLeft', color: '#3b82f6' };
-    default: return { icon: 'Tag', color: '#94a3b8' };
+    case 'entrada':
+      return { icon: 'FileText', color: '#6366f1' };
+    case 'weight':
+      return { icon: 'Scale', color: '#f59e0b' };
+    case 'sanidade':
+      return { icon: 'Heart', color: '#ec4899' };
+    case 'nutricao':
+      return { icon: 'Tag', color: '#10b981' };
+    case 'reproducao':
+      return { icon: 'Tag', color: '#8b5cf6' };
+    case 'lote':
+      return { icon: 'ArrowRightLeft', color: '#3b82f6' };
+    default:
+      return { icon: 'Tag', color: '#94a3b8' };
   }
 };
 
@@ -62,15 +69,15 @@ function generateQRPattern(seed: string, size: number): boolean[][] {
     grid[r] = [];
     for (let c = 0; c < size; c++) {
       // Finder pattern corners (top-left, top-right, bottom-left)
-      const inCorner =
-        (r < 7 && c < 7) ||
-        (r < 7 && c >= size - 7) ||
-        (r >= size - 7 && c < 7);
+      const inCorner = (r < 7 && c < 7) || (r < 7 && c >= size - 7) || (r >= size - 7 && c < 7);
       if (inCorner) {
         const lr = r < 7 ? r : size - 1 - r;
         const lc = c < 7 ? c : size - 1 - c;
         grid[r][c] =
-          lr === 0 || lr === 6 || lc === 0 || lc === 6 ||
+          lr === 0 ||
+          lr === 6 ||
+          lc === 0 ||
+          lc === 6 ||
           (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4);
       } else {
         // Timing pattern
@@ -79,7 +86,7 @@ function generateQRPattern(seed: string, size: number): boolean[][] {
         } else {
           // Data pattern driven by seed
           const charCode = seed.charCodeAt((r * size + c) % seed.length) || 0;
-          grid[r][c] = ((charCode + r * 3 + c * 7) % 3) !== 0;
+          grid[r][c] = (charCode + r * 3 + c * 7) % 3 !== 0;
         }
       }
     }
@@ -113,18 +120,24 @@ const QRCodeBlock: React.FC<{ link: string }> = ({ link }) => {
 };
 
 const formatDate = (dateStr: string) => {
-  if (!dateStr) return 'â€”';
+  if (!dateStr) {
+    return 'â€”';
+  }
   const [year, month, day] = dateStr.split('-');
   return `${day}/${month}/${year}`;
 };
 
 const formatCurrency = (value?: number) => {
-  if (value === undefined || value === null) return 'â€”';
+  if (value === undefined || value === null) {
+    return 'â€”';
+  }
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 const formatWeight = (value?: number) => {
-  if (value === undefined || value === null) return 'â€”';
+  if (value === undefined || value === null) {
+    return 'â€”';
+  }
   return `${value} kg`;
 };
 
@@ -136,7 +149,9 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  if (!isOpen || !animal) return null;
+  if (!isOpen || !animal) {
+    return null;
+  }
 
   const isSold = animal.status === 'Vendido' || animal.status === 'Abatido';
 
@@ -162,7 +177,9 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
           {
             icon: 'Truck',
             color: '#ef4444',
-            date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+            date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+              .toISOString()
+              .split('T')[0],
             title: 'Saída via Romaneio de Embarque',
             desc: `Animal registrado como ${animal.status} | Brinco #${animal.brinco}`,
           },
@@ -173,9 +190,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
   const pesoInicial = animal.peso_inicial;
   const pesoAtual = animal.peso_atual;
   const ganho =
-    pesoInicial !== undefined && pesoAtual !== undefined
-      ? pesoAtual - pesoInicial
-      : undefined;
+    pesoInicial !== undefined && pesoAtual !== undefined ? pesoAtual - pesoInicial : undefined;
 
   const kpiCards = [
     {
@@ -237,7 +252,11 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
         background: 'rgba(0,0,0,0.45)',
         animation: 'rast-fade-in 0.2s ease',
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div
         style={{
@@ -263,7 +282,8 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
             justifyContent: 'space-between',
             gap: 16,
             flexShrink: 0,
-            background: 'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-main)/0.4) 100%)',
+            background:
+              'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-main)/0.4) 100%)',
             borderRadius: '20px 20px 0 0',
             position: 'sticky',
             top: 0,
@@ -332,8 +352,14 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--brand))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-main))'; }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--brand))';
+                (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border))';
+                (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-main))';
+              }}
             >
               <Printer size={14} />
               Imprimir
@@ -354,8 +380,16 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                 transition: 'all 0.2s',
                 flexShrink: 0,
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#fee2e2'; (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#fca5a5'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'hsl(var(--bg-main))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-muted))'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border))'; }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = '#fee2e2';
+                (e.currentTarget as HTMLButtonElement).style.color = '#ef4444';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'hsl(var(--bg-main))';
+                (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-muted))';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border))';
+              }}
             >
               <X size={16} />
             </button>
@@ -364,7 +398,6 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
 
         {/* â”€â”€ Body â”€â”€ */}
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-
           {/* â”€â”€ KPI Cards â”€â”€ */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {kpiCards.map((kpi) => (
@@ -380,8 +413,12 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                   gap: 4,
                   transition: 'transform 0.2s',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+                }}
               >
                 <span
                   style={{
@@ -518,7 +555,15 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                           el.style.transform = 'translateX(0)';
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: 12,
+                            marginBottom: 4,
+                          }}
+                        >
                           <span
                             style={{
                               fontSize: 13,
@@ -594,9 +639,26 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
               <QRCodeBlock link={publicLink} />
 
-              <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ fontSize: 12, fontWeight: 500, color: 'hsl(var(--text-muted))', margin: 0, lineHeight: 1.5 }}>
-                  Escaneie para acessar o histórico público deste animal e verificar sua procedência com segurança.
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 160,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'hsl(var(--text-muted))',
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Escaneie para acessar o histórico público deste animal e verificar sua procedência
+                  com segurança.
                 </p>
                 <div
                   style={{
@@ -634,8 +696,14 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                    }}
                   >
                     <QrCode size={13} />
                     Baixar QR Code
@@ -660,8 +728,21 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                     }}
-                    onMouseEnter={(e) => { if (!copied) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--brand))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))'; } }}
-                    onMouseLeave={(e) => { if (!copied) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-main))'; } }}
+                    onMouseEnter={(e) => {
+                      if (!copied) {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor =
+                          'hsl(var(--brand))';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!copied) {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor =
+                          'hsl(var(--border))';
+                        (e.currentTarget as HTMLButtonElement).style.color =
+                          'hsl(var(--text-main))';
+                      }
+                    }}
                   >
                     {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
                     {copied ? 'Copiado!' : 'Copiar Link'}
@@ -700,8 +781,15 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
               letterSpacing: '0.05em',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--brand))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--border-strong))'; (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-main))'; }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--brand))';
+              (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--brand))';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                'hsl(var(--border-strong))';
+              (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--text-main))';
+            }}
           >
             Fechar
           </button>
@@ -724,8 +812,14 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
               boxShadow: '0 4px 15px -4px hsl(var(--brand) / 0.5)',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+            }}
           >
             <Printer size={14} />
             Imprimir Relatório

@@ -1,97 +1,33 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 import { Beef, Scale, Skull, TrendingUp, Activity, Map as MapIcon, Calendar } from 'lucide-react';
+import {
+  todayBR,
+  monthYearBR,
+  fmtDateBR,
+  latestDate,
+  earliestPending,
+  latestPaid,
+  withTimeout,
+  buildSparkline,
+  applyScope,
+} from '../../utils/report-utils';
 
-const todayBR = () => new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-const monthYearBR = () => new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-
-const fmtDateBR = (dateStr?: string | null): string => {
-  if (!dateStr) return todayBR();
-  try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
-  catch { return todayBR(); }
-};
-const latestDate = (records: any[], dateField: string): string | null => {
-  if (!records || records.length === 0) return null;
-  const sorted = [...records].filter(r => r[dateField])
-    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
-};
-const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
-  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
-  if (pending.length === 0) return null;
-  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
-const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
-  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
-  if (paid.length === 0) return null;
-  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
-
-const TIMEOUT_MS = 30000;
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs))
-  ]);
-};
-
-const applyScope = (query: any, tenantId: string, fazendaId?: string) => {
-  if (fazendaId) return query.eq('fazenda_id', fazendaId);
-  return query.eq('tenant_id', tenantId);
-};
-
-// Gera sparkline a partir de registros reais agrupados por data
-function buildSparkline(
-  records: any[],
-  dateField: string,
-  valueField: string | null,
-  buckets: number = 7
-): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records]
-    .filter(r => r[dateField])
-    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
-  const first = new Date(sorted[0][dateField]).getTime();
-  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
-  const totalMs = Math.max(last - first, 1);
-  const bucketMs = totalMs / buckets;
-  return Array.from({ length: buckets }, (_, i) => {
-    const bStart = first + i * bucketMs;
-    const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => {
-      const t = new Date(r[dateField]).getTime();
-      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
-    });
-    const v = inBucket.length === 0
-      ? 0
-      : valueField
-        ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
-        : inBucket.length;
-    const d = i === buckets - 1 && inBucket.length > 0
-      ? new Date(inBucket[inBucket.length - 1][dateField])
-      : i === 0 && inBucket.length > 0
-        ? new Date(inBucket[0][dateField])
-        : new Date(bStart + bucketMs / 2);
-    return {
-      value: Number(v.toFixed(2)),
-      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-    };
-  });
-}
 
 // ─────────────────────────────────────────────────────────────
 // Pecuária: Performance Ponderal (GMD)
 // ─────────────────────────────────────────────────────────────
-export const performancePonderal: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
+export const performancePonderal: ReportHandler = async (
+  tenantId,
+  fazendaId,
+  page = 1,
+  pageSize = 20
+) => {
   const columns = [
     { header: 'Animal / Brinco', accessor: 'brinco' },
     { header: 'Peso Atual', accessor: 'evolucao' },
     { header: 'GMD Calculado', accessor: 'gmd' },
-    { header: 'Última Pesagem', accessor: 'data' }
+    { header: 'Última Pesagem', accessor: 'data' },
   ];
 
   try {
@@ -100,17 +36,31 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     const [pesagensRes, gmdRes, weightRes] = await Promise.all([
-      withTimeout(supabase
-        .from('pesagens')
-        .select('id, animal_id, data_pesagem, peso, animais(brinco, lote_id)', { count: 'exact' })
-        .match(scope)
-        .order('data_pesagem', { ascending: false })
-        .range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
+      withTimeout(
+        supabase
+          .from('pesagens')
+          .select('id, animal_id, data_pesagem, peso, animais(brinco, lote_id)', { count: 'exact' })
+          .match(scope)
+          .order('data_pesagem', { ascending: false })
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('calculate_herd_gmd', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('get_herd_total_weight', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
     ]);
 
-    if (pesagensRes.error) throw pesagensRes.error;
+    if (pesagensRes.error) {
+      throw pesagensRes.error;
+    }
 
     const pesagens = pesagensRes.data || [];
     const gmdGlobal = Number(gmdRes.data || 0);
@@ -122,8 +72,12 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
       const prev = pesagens.slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
       let gmdVal: number | null = null;
       if (prev) {
-        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / 86400000;
-        if (days > 0) gmdVal = (Number(curr.peso) - Number(prev.peso)) / days;
+        const days =
+          (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) /
+          86400000;
+        if (days > 0) {
+          gmdVal = (Number(curr.peso) - Number(prev.peso)) / days;
+        }
       }
       const animal = Array.isArray(curr.animais) ? curr.animais[0] : curr.animais;
       return {
@@ -131,7 +85,7 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
         brinco: animal?.brinco || '---',
         evolucao: curr.peso ? `${Number(curr.peso).toFixed(1)} kg` : '---',
         gmd: gmdVal !== null ? `${gmdVal.toFixed(3)} kg/dia` : '---',
-        data: curr.data_pesagem ? new Date(curr.data_pesagem).toLocaleDateString('pt-BR') : '---'
+        data: curr.data_pesagem ? new Date(curr.data_pesagem).toLocaleDateString('pt-BR') : '---',
       };
     });
 
@@ -145,33 +99,40 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
       stats: [
         {
           label: 'GMD Médio Global',
-          subtitle: _lastWeighDate1 ? `Última pesagem em ${_lastWeighDate1}` : `Calculado em ${todayBR()}`,
+          subtitle: _lastWeighDate1
+            ? `Última pesagem em ${_lastWeighDate1}`
+            : `Calculado em ${todayBR()}`,
           sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
           change: gmdGlobal > 0 ? 'Calculado do rebanho' : 'Sem pesagens',
           trend: 'neutral' as const,
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Peso Total Rebanho',
-          subtitle: _lastWeighDate1 ? `Apurado em ${_lastWeighDate1}` : `Inventário em ${todayBR()}`,
+          subtitle: _lastWeighDate1
+            ? `Apurado em ${_lastWeighDate1}`
+            : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
           value: pesoTotal > 0 ? `${(pesoTotal / 1000).toFixed(1)} ton` : '---',
           change: pesoTotal > 0 ? 'Soma pesagens' : 'Sem dados',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Total Pesagens',
-          subtitle: _lastWeighDate1 ? `Última pesagem em ${_lastWeighDate1}` : 'Sem pesagens registradas',
+          subtitle: _lastWeighDate1
+            ? `Última pesagem em ${_lastWeighDate1}`
+            : 'Sem pesagens registradas',
           sparkline: buildSparkline(pesagens, 'data_pesagem', null),
-          value: pesagensRes.count !== null && pesagensRes.count > 0 ? String(pesagensRes.count) : '---',
+          value:
+            pesagensRes.count !== null && pesagensRes.count > 0 ? String(pesagensRes.count) : '---',
           change: pesagensRes.count > 0 ? 'Registros no período' : 'Sem pesagens',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'GMD Projetado',
@@ -179,12 +140,12 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
           sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
           value: gmdProjetado ? `${gmdProjetado.toFixed(3)} kg/dia` : '---',
           change: gmdProjetado ? 'Projeção +5% próx. ciclo' : 'Sem base de cálculo',
-          trend: gmdProjetado ? 'up' as const : 'neutral' as const,
+          trend: gmdProjetado ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
-        }
+          color: 'hsl(var(--success))',
+        },
       ],
-      totalCount: pesagensRes.count || 0
+      totalCount: pesagensRes.count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -195,15 +156,27 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
 // ─────────────────────────────────────────────────────────────
 // Pecuária: Sanidade Animal
 // ─────────────────────────────────────────────────────────────
-export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
+export const sanidadeAnimal: ReportHandler = async (
+  tenantId,
+  fazendaId,
+  page = 1,
+  pageSize = 20
+) => {
   const columns = [
     { header: 'Manejo / Vacina', accessor: 'vacina' },
     { header: 'Alvo', accessor: 'targetName' },
     { header: 'Tipo', accessor: 'targetType' },
     { header: 'Lote Aplicado', accessor: 'lote' },
     { header: 'Data Manejo', accessor: 'data' },
-    { header: 'Carência', accessor: (row: any) => row.carencia_dias ? `${row.carencia_dias} dias` : 'Isento' },
-    { header: 'Status Consumo', accessor: (row: any) => row.isBlocked ? `⚠️ Bloqueado (${row.diasRestantes}d)` : '✅ Liberado' }
+    {
+      header: 'Carência',
+      accessor: (row: any) => (row.carencia_dias ? `${row.carencia_dias} dias` : 'Isento'),
+    },
+    {
+      header: 'Status Consumo',
+      accessor: (row: any) =>
+        row.isBlocked ? `⚠️ Bloqueado (${row.diasRestantes}d)` : '✅ Liberado',
+    },
   ];
 
   try {
@@ -213,20 +186,31 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
     const today = new Date();
 
     const [sanidadeRes, statsRes, animalTotalRes] = await Promise.all([
-      withTimeout(supabase
-        .from('sanidade')
-        .select('*, animais:animal_id(brinco), lotes:lote_id(nome)', { count: 'exact' })
-        .match(scope)
-        .order('data_manejo', { ascending: false })
-        .range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_sanitary_coverage', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(supabase
-        .from('animais')
-        .select('id', { count: 'exact', head: true })
-        .match(scope) as unknown as Promise<any>)
+      withTimeout(
+        supabase
+          .from('sanidade')
+          .select('*, animais:animal_id(brinco), lotes:lote_id(nome)', { count: 'exact' })
+          .match(scope)
+          .order('data_manejo', { ascending: false })
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('get_sanitary_coverage', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase
+          .from('animais')
+          .select('id', { count: 'exact', head: true })
+          .match(scope) as unknown as Promise<any>
+      ),
     ]);
 
-    if (sanidadeRes.error) throw sanidadeRes.error;
+    if (sanidadeRes.error) {
+      throw sanidadeRes.error;
+    }
 
     const registros = sanidadeRes.data || [];
     const cobertura = Number(statsRes.data?.cobertura || 0);
@@ -236,7 +220,9 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
 
     // Alertas de carência reais: registros REALIZADOS que ainda estão em período de carência
     const alertasCarencia = registros.filter((s: any) => {
-      if (!s.carencia_dias || s.carencia_dias === 0) return false;
+      if (!s.carencia_dias || s.carencia_dias === 0) {
+        return false;
+      }
       const dataManejo = new Date(s.data_manejo);
       const dataLiberacao = new Date(dataManejo);
       dataLiberacao.setDate(dataLiberacao.getDate() + s.carencia_dias);
@@ -263,31 +249,43 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
           dataLiberacao,
           diasRestantes,
           isBlocked,
-          targetName: animal?.brinco ? `#${animal.brinco}` : (lote?.nome || 'Manejo Geral'),
-          targetType: animal?.brinco ? 'Individual' : 'Lote'
+          targetName: animal?.brinco ? `#${animal.brinco}` : lote?.nome || 'Manejo Geral',
+          targetType: animal?.brinco ? 'Individual' : 'Lote',
         };
       }),
       columns,
       stats: [
         {
           label: 'Cobertura Sanitária',
-          subtitle: _lastManejoDate ? `Último manejo em ${_lastManejoDate}` : `Calculado em ${todayBR()}`,
+          subtitle: _lastManejoDate
+            ? `Último manejo em ${_lastManejoDate}`
+            : `Calculado em ${todayBR()}`,
           sparkline: buildSparkline(registros, 'data_manejo', null),
           value: cobertura > 0 ? `${cobertura.toFixed(1)}%` : totalAnimais > 0 ? '0%' : '---',
           change: cobertura > 0 ? 'Animais vacinados' : 'Sem registros',
-          trend: cobertura >= 90 ? 'up' as const : cobertura > 0 ? 'neutral' as const : 'neutral' as const,
+          trend:
+            cobertura >= 90
+              ? ('up' as const)
+              : cobertura > 0
+                ? ('neutral' as const)
+                : ('neutral' as const),
           icon: Activity,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Aplicações (Mês)',
           subtitle: `Refer\u00eancia: ${monthYearBR()}`,
           sparkline: buildSparkline(registros, 'data_manejo', null),
-          value: aplicacoesMes > 0 ? String(aplicacoesMes) : registros.length > 0 ? String(registros.length) : '---',
+          value:
+            aplicacoesMes > 0
+              ? String(aplicacoesMes)
+              : registros.length > 0
+                ? String(registros.length)
+                : '---',
           change: aplicacoesMes > 0 ? 'Mês atual' : 'Período total',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Custo Sanitário / UA',
@@ -297,20 +295,23 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
           change: custoUA > 0 ? 'Por unidade animal' : 'Sem dados de custo',
           trend: 'neutral' as const,
           icon: Skull,
-          color: 'hsl(var(--danger))'
+          color: 'hsl(var(--danger))',
         },
         {
           label: 'Em Carência Ativa',
-          subtitle: alertasCarencia > 0 && _lastManejoDate ? `Desde ${_lastManejoDate}` : `Status em ${todayBR()}`,
+          subtitle:
+            alertasCarencia > 0 && _lastManejoDate
+              ? `Desde ${_lastManejoDate}`
+              : `Status em ${todayBR()}`,
           sparkline: buildSparkline(registros, 'data_manejo', null),
           value: alertasCarencia > 0 ? String(alertasCarencia) : '0',
           change: alertasCarencia > 0 ? 'Consumo bloqueado' : 'Todos liberados',
-          trend: alertasCarencia > 0 ? 'down' as const : 'up' as const,
+          trend: alertasCarencia > 0 ? ('down' as const) : ('up' as const),
           icon: Activity,
-          color: alertasCarencia > 0 ? 'hsl(var(--danger))' : 'hsl(var(--success))'
-        }
+          color: alertasCarencia > 0 ? 'hsl(var(--danger))' : 'hsl(var(--success))',
+        },
       ],
-      totalCount: sanidadeRes.count || 0
+      totalCount: sanidadeRes.count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -326,9 +327,21 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
     { header: 'Pasto / Piquete', accessor: 'nome' },
     { header: 'Área', accessor: 'area' },
     { header: 'Capim', accessor: (row: any) => row.tipo_capim || '---' },
-    { header: 'Capacidade UA/ha', accessor: (row: any) => row.capacidade_ua ? `${Number(row.capacidade_ua).toFixed(1)} UA/ha` : '---' },
+    {
+      header: 'Capacidade UA/ha',
+      accessor: (row: any) =>
+        row.capacidade_ua ? `${Number(row.capacidade_ua).toFixed(1)} UA/ha` : '---',
+    },
     { header: 'Lotação Atual', accessor: 'lotacao' },
-    { header: 'Status Ocupação', accessor: (row: any) => row.status === 'resting' ? '🟢 Descanso' : row.status === 'occupied' ? '🔴 Ocupado' : `${row.status || '---'}` }
+    {
+      header: 'Status Ocupação',
+      accessor: (row: any) =>
+        row.status === 'resting'
+          ? '🟢 Descanso'
+          : row.status === 'occupied'
+            ? '🔴 Ocupado'
+            : `${row.status || '---'}`,
+    },
   ];
 
   try {
@@ -337,36 +350,56 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     const [pastosRes, summaryRes] = await Promise.all([
-      withTimeout(supabase
-        .from('pastos')
-        .select('*, lotes(id, animais(count))', { count: 'exact' })
-        .match(scope)
-        .order('created_at', { ascending: false })
-        .range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
+      withTimeout(
+        supabase
+          .from('pastos')
+          .select('*, lotes(id, animais(count))', { count: 'exact' })
+          .match(scope)
+          .order('created_at', { ascending: false })
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('get_paddock_lotation_summary', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
     ]);
 
-    if (pastosRes.error) throw pastosRes.error;
+    if (pastosRes.error) {
+      throw pastosRes.error;
+    }
 
     const pastos = pastosRes.data || [];
-    const areaTotal = Number(summaryRes.data?.area_total || 0) || pastos.reduce((a: number, p: any) => a + Number(p.area || 0), 0);
+    const areaTotal =
+      Number(summaryRes.data?.area_total || 0) ||
+      pastos.reduce((a: number, p: any) => a + Number(p.area || 0), 0);
     const mediaLotacao = Number(summaryRes.data?.media_lotacao || 0);
-    const pastosDescanso = Number(summaryRes.data?.pastos_descanso || 0) || pastos.filter((p: any) => p.status === 'resting').length;
+    const pastosDescanso =
+      Number(summaryRes.data?.pastos_descanso || 0) ||
+      pastos.filter((p: any) => p.status === 'resting').length;
 
     const _lastPastoDate = pastos.length > 0 ? latestDate(pastos, 'created_at') : null;
 
     // Capacidade suporte real: soma de (area * capacidade_ua) por pasto
-    const capacidadeTotal = pastos.reduce((acc: number, p: any) => acc + (Number(p.area || 0) * Number(p.capacidade_ua || 0)), 0);
+    const capacidadeTotal = pastos.reduce(
+      (acc: number, p: any) => acc + Number(p.area || 0) * Number(p.capacidade_ua || 0),
+      0
+    );
 
     return {
       data: pastos.map((p: any) => {
-        const totalAnimais = p.lotes?.reduce((acc: number, l: any) =>
-          acc + ((Array.isArray(l.animais) ? l.animais[0] : l.animais)?.count || 0), 0) || 0;
+        const totalAnimais =
+          p.lotes?.reduce(
+            (acc: number, l: any) =>
+              acc + ((Array.isArray(l.animais) ? l.animais[0] : l.animais)?.count || 0),
+            0
+          ) || 0;
         return {
           ...p,
           nome: p.nome || '---',
           area: `${Number(p.area || 0).toFixed(2)} ha`,
-          lotacao: totalAnimais > 0 ? `${totalAnimais} UA` : '---'
+          lotacao: totalAnimais > 0 ? `${totalAnimais} UA` : '---',
         };
       }),
       columns,
@@ -379,17 +412,19 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
           change: areaTotal > 0 ? 'Cadastrado' : 'Sem pastos',
           trend: 'neutral' as const,
           icon: MapIcon,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Média Lotação',
-          subtitle: _lastPastoDate ? `Calculado em ${_lastPastoDate}` : `Verificado em ${todayBR()}`,
+          subtitle: _lastPastoDate
+            ? `Calculado em ${_lastPastoDate}`
+            : `Verificado em ${todayBR()}`,
           sparkline: buildSparkline(pastos, 'created_at', 'capacidade_ua'),
           value: mediaLotacao > 0 ? `${mediaLotacao.toFixed(2)} UA/ha` : '---',
           change: mediaLotacao > 0 ? 'Pressão de pastejo' : 'Sem dados',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Pastos em Descanso',
@@ -399,27 +434,28 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
           change: pastosDescanso > 0 ? `de ${pastosRes.count || 0} total` : 'Todos ocupados',
           trend: 'neutral' as const,
           icon: TrendingUp,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'Capacidade Suporte',
-          subtitle: _lastPastoDate ? `Base: dados de ${_lastPastoDate}` : `Calculado em ${todayBR()}`,
+          subtitle: _lastPastoDate
+            ? `Base: dados de ${_lastPastoDate}`
+            : `Calculado em ${todayBR()}`,
           sparkline: buildSparkline(pastos, 'created_at', 'capacidade_ua'),
           value: capacidadeTotal > 0 ? `${capacidadeTotal.toFixed(0)} UA` : '---',
           change: capacidadeTotal > 0 ? 'Soma área × cap. UA' : 'Sem capacidade definida',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--brand))'
-        }
+          color: 'hsl(var(--brand))',
+        },
       ],
-      totalCount: pastosRes.count || 0
+      totalCount: pastosRes.count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
     return { data: [], stats: [], columns, totalCount: 0 };
   }
 };
-
 
 // ─────────────────────────────────────────────────────────────
 // Pecuária: Confinamento
@@ -428,13 +464,38 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
   const columns = [
     { header: 'Curral', accessor: 'nome_curral' },
     { header: 'Lote', accessor: (row: any) => row.lotes?.nome || '---' },
-    { header: 'Data Entrada', accessor: (row: any) => row.data_inicio ? new Date(row.data_inicio).toLocaleDateString('pt-BR') : '---' },
-    { header: 'Peso Entrada', accessor: (row: any) => row.peso_entrada ? `${Number(row.peso_entrada).toFixed(1)} kg` : '---' },
-    { header: 'Dias / Alvo (DOF)', accessor: (row: any) => `${row.dof || 0} / ${row.dof_alvo || '---'} dias` },
-    { header: 'Progresso', accessor: (row: any) => row.dof_alvo ? `${Number(row.progress || 0).toFixed(0)}%` : '---' },
-    { header: 'Peso Projetado', accessor: (row: any) => row.projectedWeight ? `${Number(row.projectedWeight).toFixed(1)} kg` : '---' },
-    { header: 'Custo Diária (CPD)', accessor: (row: any) => row.cpd ? `R$ ${Number(row.cpd).toFixed(2)}` : '---' },
-    { header: 'Status', accessor: (row: any) => row.status === 'active' || row.status === 'ativo' ? '⚡ Ativo' : '✅ Finalizado' }
+    {
+      header: 'Data Entrada',
+      accessor: (row: any) =>
+        row.data_inicio ? new Date(row.data_inicio).toLocaleDateString('pt-BR') : '---',
+    },
+    {
+      header: 'Peso Entrada',
+      accessor: (row: any) =>
+        row.peso_entrada ? `${Number(row.peso_entrada).toFixed(1)} kg` : '---',
+    },
+    {
+      header: 'Dias / Alvo (DOF)',
+      accessor: (row: any) => `${row.dof || 0} / ${row.dof_alvo || '---'} dias`,
+    },
+    {
+      header: 'Progresso',
+      accessor: (row: any) => (row.dof_alvo ? `${Number(row.progress || 0).toFixed(0)}%` : '---'),
+    },
+    {
+      header: 'Peso Projetado',
+      accessor: (row: any) =>
+        row.projectedWeight ? `${Number(row.projectedWeight).toFixed(1)} kg` : '---',
+    },
+    {
+      header: 'Custo Diária (CPD)',
+      accessor: (row: any) => (row.cpd ? `R$ ${Number(row.cpd).toFixed(2)}` : '---'),
+    },
+    {
+      header: 'Status',
+      accessor: (row: any) =>
+        row.status === 'active' || row.status === 'ativo' ? '⚡ Ativo' : '✅ Finalizado',
+    },
   ];
 
   try {
@@ -444,38 +505,56 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
 
     // Buscar confinamentos + animais confinados reais + custo diário real de nutrição
     const [confRes, gmdRes, nutricaoRes] = await Promise.all([
-      withTimeout(supabase
-        .from('confinamento')
-        .select('*, lotes(id, nome, animais(count))', { count: 'exact' })
-        .match(scope)
-        .range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(supabase
-        .from('nutricao_diaria')
-        .select('custo_total, data')
-        .match(scope)
-        .order('data', { ascending: false })
-        .limit(30) as unknown as Promise<any>)
+      withTimeout(
+        supabase
+          .from('confinamento')
+          .select('*, lotes(id, nome, animais(count))', { count: 'exact' })
+          .match(scope)
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('calculate_herd_gmd', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase
+          .from('nutricao_diaria')
+          .select('custo_total, data')
+          .match(scope)
+          .order('data', { ascending: false })
+          .limit(30) as unknown as Promise<any>
+      ),
     ]);
 
-    if (confRes.error) throw confRes.error;
+    if (confRes.error) {
+      throw confRes.error;
+    }
 
     const conf = confRes.data || [];
     const gmdReal = Number(gmdRes.data || 0);
 
     // CPD real: média dos custos diários registrados nos últimos 30 dias
     const nutricao = nutricaoRes.data || [];
-    const cpdReal = nutricao.length > 0
-      ? nutricao.reduce((acc: number, n: any) => acc + Number(n.custo_total || 0), 0) / nutricao.length
-      : null;
+    const cpdReal =
+      nutricao.length > 0
+        ? nutricao.reduce((acc: number, n: any) => acc + Number(n.custo_total || 0), 0) /
+          nutricao.length
+        : null;
 
     // Animais confinados reais: count de animais nos lotes de confinamento
     const animaisConfinados = conf.reduce((acc: number, c: any) => {
       const lotes = Array.isArray(c.lotes) ? c.lotes : [c.lotes].filter(Boolean);
-      return acc + lotes.reduce((la: number, l: any) => {
-        const animCount = Array.isArray(l?.animais) ? (l.animais[0]?.count || 0) : (l?.animais?.count || 0);
-        return la + animCount;
-      }, 0);
+      return (
+        acc +
+        lotes.reduce((la: number, l: any) => {
+          const animCount = Array.isArray(l?.animais)
+            ? l.animais[0]?.count || 0
+            : l?.animais?.count || 0;
+          return la + animCount;
+        }, 0)
+      );
     }, 0);
 
     const _lastNutricaoDate = nutricao.length > 0 ? fmtDateBR(nutricao[0].data) : null;
@@ -487,29 +566,35 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
         const dof = Math.ceil(Math.abs(new Date().getTime() - startDate.getTime()) / 86400000);
         const progress = c.dof_alvo ? Math.min(100, (dof / c.dof_alvo) * 100) : null;
         // Peso projetado = peso entrada + dias × GMD real (se disponível)
-        const projectedWeight = c.peso_entrada && gmdReal > 0
-          ? Number(c.peso_entrada) + (dof * gmdReal)
-          : null;
+        const projectedWeight =
+          c.peso_entrada && gmdReal > 0 ? Number(c.peso_entrada) + dof * gmdReal : null;
         return {
           ...c,
           dof,
           progress,
           projectedWeight,
           cpd: cpdReal,
-          status: c.status || 'active'
+          status: c.status || 'active',
         };
       }),
       columns,
       stats: [
         {
           label: 'Animais Confinados',
-          subtitle: _lastConfDate ? `Entrada mais recente: ${_lastConfDate}` : `Inventário em ${todayBR()}`,
+          subtitle: _lastConfDate
+            ? `Entrada mais recente: ${_lastConfDate}`
+            : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(conf, 'data_inicio', null),
-          value: animaisConfinados > 0 ? String(animaisConfinados) : confRes.count !== null && confRes.count > 0 ? `${confRes.count} currais` : '---',
+          value:
+            animaisConfinados > 0
+              ? String(animaisConfinados)
+              : confRes.count !== null && confRes.count > 0
+                ? `${confRes.count} currais`
+                : '---',
           change: animaisConfinados > 0 ? 'Em currais ativos' : 'Sem animais',
           trend: 'neutral' as const,
           icon: Beef,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'GMD do Rebanho',
@@ -517,19 +602,21 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
           sparkline: buildSparkline(conf, 'data_inicio', null),
           value: gmdReal > 0 ? `${gmdReal.toFixed(3)} kg/dia` : '---',
           change: gmdReal > 0 ? 'Calculado de pesagens' : 'Sem pesagens',
-          trend: gmdReal > 0 ? 'up' as const : 'neutral' as const,
+          trend: gmdReal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Custo Diária (CPD)',
-          subtitle: _lastNutricaoDate ? `Última nutrição: ${_lastNutricaoDate}` : 'Sem registro de nutrição',
+          subtitle: _lastNutricaoDate
+            ? `Última nutrição: ${_lastNutricaoDate}`
+            : 'Sem registro de nutrição',
           sparkline: buildSparkline(nutricao, 'data', 'custo_total'),
           value: cpdReal ? `R$ ${cpdReal.toFixed(2)}` : '---',
           change: cpdReal ? 'Média 30 dias' : 'Sem nutrição registrada',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'Currais Ativos',
@@ -539,10 +626,10 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
           change: confRes.count > 0 ? 'Em operação' : 'Sem confinamento',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--brand))'
-        }
+          color: 'hsl(var(--brand))',
+        },
       ],
-      totalCount: confRes.count || 0
+      totalCount: confRes.count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -562,15 +649,63 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const today = new Date().toISOString().split('T')[0];
 
-    const [animalRes, gmdRes, healthRes, lotacaoRes, pesagensRes, manejosPendentesRes] = await Promise.all([
-      withTimeout(applyScope(supabase.from('animais').select('id', { count: 'exact', head: true }), tenantId, fazendaId) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(applyScope(supabase.from('sanidade').select('data_manejo, carencia_dias, status').eq('status', 'REALIZADO').gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(applyScope(supabase.from('pesagens').select('peso, data_pesagem').gte('data_pesagem', thirtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId) as unknown as Promise<any>),
-      // Manejos agendados reais (status PENDENTE ou AGENDADO com data >= hoje)
-      withTimeout(applyScope(supabase.from('sanidade').select('id, produto, titulo, lotes:lote_id(nome), data_manejo, tipo_manejo').in('status', ['PENDENTE', 'AGENDADO']).gte('data_manejo', today).order('data_manejo', { ascending: true }).limit(10), tenantId, fazendaId) as unknown as Promise<any>)
-    ]);
+    const [animalRes, gmdRes, healthRes, lotacaoRes, pesagensRes, manejosPendentesRes] =
+      await Promise.all([
+        withTimeout(
+          applyScope(
+            supabase.from('animais').select('id', { count: 'exact', head: true }),
+            tenantId,
+            fazendaId
+          ) as unknown as Promise<any>
+        ),
+        withTimeout(
+          supabase.rpc('calculate_herd_gmd', {
+            p_tenant_id: tenantId,
+            p_fazenda_id: fazendaId,
+          }) as unknown as Promise<any>
+        ),
+        withTimeout(
+          applyScope(
+            supabase
+              .from('sanidade')
+              .select('data_manejo, carencia_dias, status')
+              .eq('status', 'REALIZADO')
+              .gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]),
+            tenantId,
+            fazendaId
+          ) as unknown as Promise<any>
+        ),
+        withTimeout(
+          supabase.rpc('get_paddock_lotation_summary', {
+            p_tenant_id: tenantId,
+            p_fazenda_id: fazendaId,
+          }) as unknown as Promise<any>
+        ),
+        withTimeout(
+          applyScope(
+            supabase
+              .from('pesagens')
+              .select('peso, data_pesagem')
+              .gte('data_pesagem', thirtyDaysAgo.toISOString().split('T')[0]),
+            tenantId,
+            fazendaId
+          ) as unknown as Promise<any>
+        ),
+        // Manejos agendados reais (status PENDENTE ou AGENDADO com data >= hoje)
+        withTimeout(
+          applyScope(
+            supabase
+              .from('sanidade')
+              .select('id, produto, titulo, lotes:lote_id(nome), data_manejo, tipo_manejo')
+              .in('status', ['PENDENTE', 'AGENDADO'])
+              .gte('data_manejo', today)
+              .order('data_manejo', { ascending: true })
+              .limit(10),
+            tenantId,
+            fazendaId
+          ) as unknown as Promise<any>
+        ),
+      ]);
 
     // Carências ativas reais
     const activeWithdrawals = (healthRes.data || []).filter((e: any) => {
@@ -584,21 +719,31 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0);
     const lotacaoPercent = Number(lotacaoRes.data?.taxa_ocupacao || 0);
 
-    const _lastWeighDateOv = pesagensRes.data?.length > 0 ? latestDate(pesagensRes.data, 'data_pesagem') : null;
-    const _lastHealthDateOv = healthRes.data?.length > 0 ? latestDate(healthRes.data, 'data_manejo') : null;
+    const _lastWeighDateOv =
+      pesagensRes.data?.length > 0 ? latestDate(pesagensRes.data, 'data_pesagem') : null;
+    const _lastHealthDateOv =
+      healthRes.data?.length > 0 ? latestDate(healthRes.data, 'data_manejo') : null;
 
     // Fila operacional: manejos agendados reais
     const manejosPendentes = (manejosPendentesRes.data || []).map((m: any, i: number) => {
       const dataManejo = m.data_manejo ? new Date(m.data_manejo) : null;
-      const diffDays = dataManejo ? Math.ceil((dataManejo.getTime() - new Date().getTime()) / 86400000) : null;
+      const diffDays = dataManejo
+        ? Math.ceil((dataManejo.getTime() - new Date().getTime()) / 86400000)
+        : null;
       const lote = Array.isArray(m.lotes) ? m.lotes[0] : m.lotes;
       return {
         id: m.id || String(i),
         type: m.tipo_manejo || 'MANEJO',
         title: m.produto || m.titulo || 'Manejo Agendado',
         target: lote?.nome || 'Rebanho Geral',
-        date: dataManejo ? (diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `em ${diffDays} dias`) : '---',
-        priority: diffDays !== null && diffDays <= 1 ? 'high' : 'medium'
+        date: dataManejo
+          ? diffDays === 0
+            ? 'Hoje'
+            : diffDays === 1
+              ? 'Amanhã'
+              : `em ${diffDays} dias`
+          : '---',
+        priority: diffDays !== null && diffDays <= 1 ? 'high' : 'medium',
       };
     });
 
@@ -615,19 +760,21 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           icon: Beef,
           color: '#10b981',
           progress: animalCount > 0 ? 100 : 0,
-          periodLabel: 'Total em Pátio'
+          periodLabel: 'Total em Pátio',
         },
         {
           label: 'GMD Médio (Rebanho)',
-          subtitle: _lastWeighDateOv ? `Última pesagem em ${_lastWeighDateOv}` : 'Sem pesagens registradas',
+          subtitle: _lastWeighDateOv
+            ? `Última pesagem em ${_lastWeighDateOv}`
+            : 'Sem pesagens registradas',
           sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
           change: gmdGlobal > 0 ? 'Performance global' : 'Sem pesagens',
-          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
+          trend: gmdGlobal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
           color: '#3b82f6',
           progress: gmdGlobal > 0 ? Math.min(100, gmdGlobal * 80) : 0,
-          periodLabel: 'Calculado de pesagens'
+          periodLabel: 'Calculado de pesagens',
         },
         {
           label: 'Taxa de Lotação',
@@ -639,23 +786,25 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           icon: MapIcon,
           color: '#f59e0b',
           progress: Math.min(100, lotacaoPercent),
-          periodLabel: 'Capacidade Suporte'
+          periodLabel: 'Capacidade Suporte',
         },
         {
           label: 'Animais em Carência',
-          subtitle: _lastHealthDateOv ? `Último manejo em ${_lastHealthDateOv}` : `Status em ${todayBR()}`,
+          subtitle: _lastHealthDateOv
+            ? `Último manejo em ${_lastHealthDateOv}`
+            : `Status em ${todayBR()}`,
           sparkline: buildSparkline(healthRes.data || [], 'data_manejo', null),
           value: String(activeWithdrawals),
           change: activeWithdrawals > 0 ? 'Consumo bloqueado' : 'Todos liberados',
-          trend: activeWithdrawals > 0 ? 'down' as const : 'up' as const,
+          trend: activeWithdrawals > 0 ? ('down' as const) : ('up' as const),
           icon: Activity,
           color: activeWithdrawals > 0 ? '#ef4444' : '#10b981',
           progress: activeWithdrawals > 0 ? 30 : 100,
-          periodLabel: 'Alertas de Carência'
-        }
+          periodLabel: 'Alertas de Carência',
+        },
       ],
       columns: [],
-      totalCount: manejosPendentes.length
+      totalCount: manejosPendentes.length,
     };
   } catch (error) {
     console.error('[dashboardOverview] Critical Failure:', error);
@@ -670,9 +819,19 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
   const columns = [
     { header: 'Nome da Dieta', accessor: 'nome' },
     { header: 'Tipo', accessor: 'tipo' },
-    { header: 'Custo/kg Natural', accessor: (row: any) => row.custo_por_kg ? `R$ ${Number(row.custo_por_kg).toFixed(2)}` : '---' },
-    { header: 'MS %', accessor: (row: any) => row.percentual_ms ? `${row.percentual_ms}%` : '---' },
-    { header: 'Custo/kg MS', accessor: (row: any) => row.custoMS ? `R$ ${Number(row.custoMS).toFixed(2)}` : '---' }
+    {
+      header: 'Custo/kg Natural',
+      accessor: (row: any) =>
+        row.custo_por_kg ? `R$ ${Number(row.custo_por_kg).toFixed(2)}` : '---',
+    },
+    {
+      header: 'MS %',
+      accessor: (row: any) => (row.percentual_ms ? `${row.percentual_ms}%` : '---'),
+    },
+    {
+      header: 'Custo/kg MS',
+      accessor: (row: any) => (row.custoMS ? `R$ ${Number(row.custoMS).toFixed(2)}` : '---'),
+    },
   ];
 
   try {
@@ -680,13 +839,17 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
     const to = from + pageSize - 1;
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    const { data, count, error } = await withTimeout(supabase
-      .from('dietas')
-      .select('*', { count: 'exact' })
-      .match(scope)
-      .range(from, to) as unknown as Promise<any>);
+    const { data, count, error } = await withTimeout(
+      supabase
+        .from('dietas')
+        .select('*', { count: 'exact' })
+        .match(scope)
+        .range(from, to) as unknown as Promise<any>
+    );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const dietasData = (data || []).map((d: any) => {
       const ms = d.percentual_ms ? d.percentual_ms / 100 : 0.88;
@@ -697,9 +860,11 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
     // KPIs calculados dos dados reais
     const totalDietas = count || 0;
     const _lastDietDate = dietasData.length > 0 ? fmtDateBR(dietasData[0].created_at) : null;
-    const custoMedioKgMS = dietasData.length > 0
-      ? dietasData.filter((d: any) => d.custoMS).reduce((a: number, d: any) => a + d.custoMS, 0) / dietasData.filter((d: any) => d.custoMS).length
-      : null;
+    const custoMedioKgMS =
+      dietasData.length > 0
+        ? dietasData.filter((d: any) => d.custoMS).reduce((a: number, d: any) => a + d.custoMS, 0) /
+          dietasData.filter((d: any) => d.custoMS).length
+        : null;
 
     return {
       data: dietasData,
@@ -707,13 +872,15 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
       stats: [
         {
           label: 'Dietas Formuladas',
-          subtitle: _lastDietDate ? `Último cadastro em ${_lastDietDate}` : `Cadastro em ${todayBR()}`,
+          subtitle: _lastDietDate
+            ? `Último cadastro em ${_lastDietDate}`
+            : `Cadastro em ${todayBR()}`,
           sparkline: buildSparkline(dietasData, 'created_at', null),
           value: totalDietas > 0 ? String(totalDietas) : '---',
           change: totalDietas > 0 ? 'Cadastradas' : 'Sem dietas',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Custo Médio/kg MS',
@@ -723,7 +890,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
           change: custoMedioKgMS ? 'Média das dietas' : 'Sem dados de custo',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'Eficiência Alimentar',
@@ -733,7 +900,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
           change: 'Integração com pesagens',
           trend: 'neutral' as const,
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Consumo Médio (DM)',
@@ -743,10 +910,10 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
           change: 'Registrar nutrição diária',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--brand))'
-        }
+          color: 'hsl(var(--brand))',
+        },
       ],
-      totalCount: count || 0
+      totalCount: count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -761,11 +928,21 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
   const columns = [
     { header: 'Brinco', accessor: 'brinco' },
     { header: 'Raça', accessor: 'raca' },
-    { header: 'Sexo', accessor: (row: any) => row.sexo === 'M' ? 'Macho' : row.sexo === 'F' ? 'Fêmea' : row.sexo || '---' },
+    {
+      header: 'Sexo',
+      accessor: (row: any) =>
+        row.sexo === 'M' ? 'Macho' : row.sexo === 'F' ? 'Fêmea' : row.sexo || '---',
+    },
     { header: 'Lote', accessor: 'lote' },
-    { header: 'Peso Atual', accessor: (row: any) => row.peso_atual ? `${Number(row.peso_atual).toFixed(1)} kg` : '---' },
-    { header: 'Carência Sanitária', accessor: (row: any) => row.isSanitaryBlocked ? '⚠️ Bloqueado' : '✅ Liberado' },
-    { header: 'Status', accessor: 'status' }
+    {
+      header: 'Peso Atual',
+      accessor: (row: any) => (row.peso_atual ? `${Number(row.peso_atual).toFixed(1)} kg` : '---'),
+    },
+    {
+      header: 'Carência Sanitária',
+      accessor: (row: any) => (row.isSanitaryBlocked ? '⚠️ Bloqueado' : '✅ Liberado'),
+    },
+    { header: 'Status', accessor: 'status' },
   ];
 
   try {
@@ -784,13 +961,29 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
     sanidadeQuery = applyScope(sanidadeQuery, tenantId, fazendaId);
 
     const [dataRes, statsRes, sanidadeRes, gmdRes] = await Promise.all([
-      withTimeout(animaisQuery.order('created_at', { ascending: false }).range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_animal_stats', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(
+        animaisQuery
+          .order('created_at', { ascending: false })
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('get_animal_stats', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
       withTimeout(sanidadeQuery as unknown as Promise<any>),
-      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
+      withTimeout(
+        supabase.rpc('calculate_herd_gmd', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
     ]);
 
-    if (dataRes.error) throw dataRes.error;
+    if (dataRes.error) {
+      throw dataRes.error;
+    }
 
     const totalAnimals = dataRes.count || 0;
     const activeAnimals = Number(statsRes.data?.active || 0);
@@ -800,43 +993,57 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
 
     // Carências ativas: calcular quais animais/lotes estão em período de carência
     const activeSanidades = (sanidadeRes?.data || []).filter((s: any) => {
-      if (!s.data_manejo || !s.carencia_dias) return false;
+      if (!s.data_manejo || !s.carencia_dias) {
+        return false;
+      }
       const releaseDate = new Date(s.data_manejo);
       releaseDate.setDate(releaseDate.getDate() + Number(s.carencia_dias));
       return releaseDate > new Date();
     });
 
-    const _lastAnimalDate = dataRes.data?.[0]?.created_at ? fmtDateBR(dataRes.data[0].created_at) : null;
-    const blockedAnimalIds = new Set(activeSanidades.filter((s: any) => s.animal_id).map((s: any) => s.animal_id));
-    const blockedLoteIds = new Set(activeSanidades.filter((s: any) => s.lote_id).map((s: any) => s.lote_id));
+    const _lastAnimalDate = dataRes.data?.[0]?.created_at
+      ? fmtDateBR(dataRes.data[0].created_at)
+      : null;
+    const blockedAnimalIds = new Set(
+      activeSanidades.filter((s: any) => s.animal_id).map((s: any) => s.animal_id)
+    );
+    const blockedLoteIds = new Set(
+      activeSanidades.filter((s: any) => s.lote_id).map((s: any) => s.lote_id)
+    );
 
     return {
       data: (dataRes.data || []).map((a: any) => ({
         ...a,
         lote: a.lotes?.nome || '---',
-        isSanitaryBlocked: blockedAnimalIds.has(a.id) || (a.lote_id && blockedLoteIds.has(a.lote_id))
+        isSanitaryBlocked:
+          blockedAnimalIds.has(a.id) || (a.lote_id && blockedLoteIds.has(a.lote_id)),
       })),
       columns,
       stats: [
         {
           label: 'Total Rebanho',
-          subtitle: _lastAnimalDate ? `Último cadastro em ${_lastAnimalDate}` : `Inventário em ${todayBR()}`,
+          subtitle: _lastAnimalDate
+            ? `Último cadastro em ${_lastAnimalDate}`
+            : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
           value: totalAnimals > 0 ? totalAnimals.toLocaleString() : '---',
           change: activeAnimals > 0 ? `${activeAnimals} ativos` : 'Sem animais',
           trend: 'neutral' as const,
           icon: Beef,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Peso Médio',
           subtitle: 'Calculado de pesagens do rebanho',
           sparkline: buildSparkline(dataRes.data || [], 'created_at', 'peso_atual'),
           value: avgWeight > 0 ? `${avgWeight.toFixed(1)} kg` : '---',
-          change: avgWeight > 0 ? `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total` : 'Sem pesagens',
-          trend: avgWeight > 0 ? 'up' as const : 'neutral' as const,
+          change:
+            avgWeight > 0
+              ? `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total`
+              : 'Sem pesagens',
+          trend: avgWeight > 0 ? ('up' as const) : ('neutral' as const),
           icon: Scale,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'Saídas / Abatidos',
@@ -846,7 +1053,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
           change: deadAnimals > 0 ? 'Histórico registrado' : 'Nenhum registrado',
           trend: 'neutral' as const,
           icon: Skull,
-          color: 'hsl(var(--danger))'
+          color: 'hsl(var(--danger))',
         },
         {
           label: 'GMD Médio',
@@ -854,12 +1061,12 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
           sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
           change: gmdGlobal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
-          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
+          trend: gmdGlobal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
-        }
+          color: 'hsl(var(--success))',
+        },
       ],
-      totalCount: totalAnimals
+      totalCount: totalAnimals,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -873,9 +1080,13 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
 export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
     { header: 'Nome do Lote', accessor: 'nome' },
-    { header: 'Animais', accessor: (row: any) => row.quantidade_animais > 0 ? `${row.quantidade_animais} cab` : '---' },
+    {
+      header: 'Animais',
+      accessor: (row: any) =>
+        row.quantidade_animais > 0 ? `${row.quantidade_animais} cab` : '---',
+    },
     { header: 'Fase', accessor: (row: any) => row.fase || '---' },
-    { header: 'Status', accessor: (row: any) => row.status || '---' }
+    { header: 'Status', accessor: (row: any) => row.status || '---' },
   ];
 
   try {
@@ -888,22 +1099,32 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
     const { data, count, error } = await withTimeout(
       query.order('created_at', { ascending: false }).range(from, to) as unknown as Promise<any>
     );
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const mappedData = (data || []).map((l: any) => {
-      const animalCount = Array.isArray(l.animais) ? (l.animais[0]?.count || 0) : (l.animais?.count || 0);
+      const animalCount = Array.isArray(l.animais)
+        ? l.animais[0]?.count || 0
+        : l.animais?.count || 0;
       return { ...l, quantidade_animais: animalCount };
     });
 
     // KPIs calculados dos dados reais
-    const activeLots = mappedData.filter((l: any) => l.status?.toUpperCase() !== 'ARQUIVADO').length;
-    const totalAnimalsInLots = mappedData.reduce((acc: number, l: any) => acc + (l.quantidade_animais || 0), 0);
+    const activeLots = mappedData.filter(
+      (l: any) => l.status?.toUpperCase() !== 'ARQUIVADO'
+    ).length;
+    const totalAnimalsInLots = mappedData.reduce(
+      (acc: number, l: any) => acc + (l.quantidade_animais || 0),
+      0
+    );
 
     const _lastLoteDate = mappedData.length > 0 ? fmtDateBR(mappedData[0].created_at) : null;
 
     // Taxa de ocupação = lotes com animais / total de lotes
     const lotesComAnimais = mappedData.filter((l: any) => l.quantidade_animais > 0).length;
-    const taxaOcupacao = count && count > 0 ? ((lotesComAnimais / count) * 100).toFixed(0) + '%' : '---';
+    const taxaOcupacao =
+      count && count > 0 ? `${((lotesComAnimais / count) * 100).toFixed(0)}%` : '---';
 
     return {
       data: mappedData,
@@ -911,13 +1132,15 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
       stats: [
         {
           label: 'Lotes Operacionais',
-          subtitle: _lastLoteDate ? `Último cadastro em ${_lastLoteDate}` : `Status em ${todayBR()}`,
+          subtitle: _lastLoteDate
+            ? `Último cadastro em ${_lastLoteDate}`
+            : `Status em ${todayBR()}`,
           sparkline: buildSparkline(mappedData, 'created_at', null),
           value: count !== null && count > 0 ? String(count) : '---',
           change: activeLots > 0 ? `${activeLots} ativos` : 'Sem lotes',
           trend: 'neutral' as const,
           icon: MapIcon,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Taxa de Ocupação',
@@ -927,7 +1150,7 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
           change: taxaOcupacao !== '---' ? 'Lotes com animais' : 'Sem dados',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Animais Totais',
@@ -937,7 +1160,7 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
           change: totalAnimalsInLots > 0 ? 'Em lotes ativos' : 'Sem animais',
           trend: 'neutral' as const,
           icon: Beef,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Uniformidade Lotes',
@@ -947,10 +1170,10 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
           change: 'Calcular via pesagens',
           trend: 'neutral' as const,
           icon: TrendingUp,
-          color: 'hsl(var(--warning))'
-        }
+          color: 'hsl(var(--warning))',
+        },
       ],
-      totalCount: count || 0
+      totalCount: count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);
@@ -963,26 +1186,49 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
 // ─────────────────────────────────────────────────────────────
 export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
-    { header: 'Matriz / Brinco', accessor: (row: any) => row.animais?.brinco ? `#${row.animais.brinco}` : '---' },
+    {
+      header: 'Matriz / Brinco',
+      accessor: (row: any) => (row.animais?.brinco ? `#${row.animais.brinco}` : '---'),
+    },
     { header: 'Tipo Evento', accessor: 'tipo_evento' },
-    { header: 'Data Evento', accessor: (row: any) => row.data_evento ? new Date(row.data_evento).toLocaleDateString('pt-BR') : '---' },
+    {
+      header: 'Data Evento',
+      accessor: (row: any) =>
+        row.data_evento ? new Date(row.data_evento).toLocaleDateString('pt-BR') : '---',
+    },
     { header: 'Resultado', accessor: 'resultado' },
-    { header: 'Dias de Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${row.diasGestacao || 0} dias` : '---' },
-    { header: 'Previsão Parto', accessor: (row: any) => row.previsaoParto ? new Date(row.previsaoParto).toLocaleDateString('pt-BR') : '---' },
-    { header: 'Progresso Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${Number(row.progressoGestacao || 0).toFixed(0)}%` : '---' }
+    {
+      header: 'Dias de Gestação',
+      accessor: (row: any) =>
+        row.resultado === 'Prenha' ? `${row.diasGestacao || 0} dias` : '---',
+    },
+    {
+      header: 'Previsão Parto',
+      accessor: (row: any) =>
+        row.previsaoParto ? new Date(row.previsaoParto).toLocaleDateString('pt-BR') : '---',
+    },
+    {
+      header: 'Progresso Gestação',
+      accessor: (row: any) =>
+        row.resultado === 'Prenha' ? `${Number(row.progressoGestacao || 0).toFixed(0)}%` : '---',
+    },
   ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let query = supabase.from('eventos_reprodutivos').select('*, animais(id, brinco)', { count: 'exact' });
+    let query = supabase
+      .from('eventos_reprodutivos')
+      .select('*, animais(id, brinco)', { count: 'exact' });
     query = applyScope(query, tenantId, fazendaId);
 
     const { data, count, error } = await withTimeout(
       query.order('data_evento', { ascending: false }).range(from, to) as unknown as Promise<any>
     );
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const rawData = data || [];
     const gestacaoMedia = 285; // dias de gestação bovina padrão
@@ -1010,14 +1256,15 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
     // KPIs calculados dos dados reais
     const prenhas = rawData.filter((r: any) => r.resultado === 'Prenha').length;
     const totalEventos = count || rawData.length;
-    const taxaPrenhez = totalEventos > 0 ? ((prenhas / totalEventos) * 100).toFixed(1) + '%' : '---';
+    const taxaPrenhez =
+      totalEventos > 0 ? `${((prenhas / totalEventos) * 100).toFixed(1)}%` : '---';
 
     // Partos previstos nos próximos 30 dias
     const hoje = new Date();
     const daqui30 = new Date();
     daqui30.setDate(daqui30.getDate() + 30);
-    const partosPrevistosProximo = enrichedData.filter((e: any) =>
-      e.previsaoParto && e.previsaoParto >= hoje && e.previsaoParto <= daqui30
+    const partosPrevistosProximo = enrichedData.filter(
+      (e: any) => e.previsaoParto && e.previsaoParto >= hoje && e.previsaoParto <= daqui30
     ).length;
 
     return {
@@ -1026,13 +1273,15 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
       stats: [
         {
           label: 'Taxa de Prenhez',
-          subtitle: _lastEventDate ? `Último evento em ${_lastEventDate}` : `Apurada em ${todayBR()}`,
+          subtitle: _lastEventDate
+            ? `Último evento em ${_lastEventDate}`
+            : `Apurada em ${todayBR()}`,
           sparkline: buildSparkline(rawData, 'data_evento', null),
           value: taxaPrenhez,
           change: totalEventos > 0 ? `${prenhas} prenhas de ${totalEventos}` : 'Sem eventos',
-          trend: prenhas > 0 ? 'up' as const : 'neutral' as const,
+          trend: prenhas > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Partos Previstos (30d)',
@@ -1042,17 +1291,19 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: partosPrevistosProximo > 0 ? 'Próximos 30 dias' : 'Nenhum previsto',
           trend: 'neutral' as const,
           icon: Calendar,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Total Prenhas',
-          subtitle: _lastEventDate ? `Base: evento de ${_lastEventDate}` : `Inventário em ${todayBR()}`,
+          subtitle: _lastEventDate
+            ? `Base: evento de ${_lastEventDate}`
+            : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(rawData, 'data_evento', null),
           value: prenhas > 0 ? String(prenhas) : '---',
           change: prenhas > 0 ? 'Em gestação' : 'Sem prenhas',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--warning))'
+          color: 'hsl(var(--warning))',
         },
         {
           label: 'Intervalo Entre Partos',
@@ -1062,10 +1313,10 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: 'Requer histórico de partos',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--brand))'
-        }
+          color: 'hsl(var(--brand))',
+        },
       ],
-      totalCount: count || 0
+      totalCount: count || 0,
     };
   } catch (error) {
     console.error('[Reproducao] Error:', error);
@@ -1078,10 +1329,24 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
 // ─────────────────────────────────────────────────────────────
 export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
-    { header: 'Brinco', accessor: (row: any) => row.animais?.brinco ? `#${row.animais.brinco}` : '---' },
-    { header: 'Peso', accessor: (row: any) => row.peso ? `${Number(row.peso).toFixed(1)} kg` : '---' },
-    { header: 'GMD Calculado', accessor: (row: any) => row.gmd !== null && row.gmd !== undefined ? `${Number(row.gmd).toFixed(3)} kg/dia` : '---' },
-    { header: 'Data da Pesagem', accessor: (row: any) => row.data_pesagem ? new Date(row.data_pesagem).toLocaleDateString('pt-BR') : '---' }
+    {
+      header: 'Brinco',
+      accessor: (row: any) => (row.animais?.brinco ? `#${row.animais.brinco}` : '---'),
+    },
+    {
+      header: 'Peso',
+      accessor: (row: any) => (row.peso ? `${Number(row.peso).toFixed(1)} kg` : '---'),
+    },
+    {
+      header: 'GMD Calculado',
+      accessor: (row: any) =>
+        row.gmd !== null && row.gmd !== undefined ? `${Number(row.gmd).toFixed(3)} kg/dia` : '---',
+    },
+    {
+      header: 'Data da Pesagem',
+      accessor: (row: any) =>
+        row.data_pesagem ? new Date(row.data_pesagem).toLocaleDateString('pt-BR') : '---',
+    },
   ];
 
   try {
@@ -1090,14 +1355,32 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     const [pesagensRes, gmdRes, weightRes] = await Promise.all([
-      withTimeout(applyScope(supabase.from('pesagens').select('*, animais(id, brinco, lote_id)', { count: 'exact' }), tenantId, fazendaId)
-        .order('data_pesagem', { ascending: false })
-        .range(from, to) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
-      withTimeout(supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
+      withTimeout(
+        applyScope(
+          supabase.from('pesagens').select('*, animais(id, brinco, lote_id)', { count: 'exact' }),
+          tenantId,
+          fazendaId
+        )
+          .order('data_pesagem', { ascending: false })
+          .range(from, to) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('calculate_herd_gmd', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
+      withTimeout(
+        supabase.rpc('get_herd_total_weight', {
+          p_tenant_id: tenantId,
+          p_fazenda_id: fazendaId,
+        }) as unknown as Promise<any>
+      ),
     ]);
 
-    if (pesagensRes.error) throw pesagensRes.error;
+    if (pesagensRes.error) {
+      throw pesagensRes.error;
+    }
 
     const data = pesagensRes.data || [];
     const gmdGlobal = Number(gmdRes.data || 0);
@@ -1108,8 +1391,12 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
       const prev = data.slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
       let gmd: number | null = null;
       if (prev) {
-        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / 86400000;
-        if (days > 0) gmd = (Number(curr.peso) - Number(prev.peso)) / days;
+        const days =
+          (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) /
+          86400000;
+        if (days > 0) {
+          gmd = (Number(curr.peso) - Number(prev.peso)) / days;
+        }
       }
       const animal = Array.isArray(curr.animais) ? curr.animais[0] : curr.animais;
       return { ...curr, gmd, animais: animal };
@@ -1118,9 +1405,10 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
     const _lastPesagemDate = data.length > 0 ? fmtDateBR(data[0].data_pesagem) : null;
 
     // Peso médio dos dados da página atual
-    const pesoMedioPagina = data.length > 0
-      ? data.reduce((a: number, p: any) => a + Number(p.peso || 0), 0) / data.length
-      : 0;
+    const pesoMedioPagina =
+      data.length > 0
+        ? data.reduce((a: number, p: any) => a + Number(p.peso || 0), 0) / data.length
+        : 0;
 
     return {
       data: enrichedData,
@@ -1130,44 +1418,53 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
           label: 'Total de Pesagens',
           subtitle: _lastPesagemDate ? `Última pesagem em ${_lastPesagemDate}` : 'Sem pesagens',
           sparkline: buildSparkline(data, 'data_pesagem', null),
-          value: pesagensRes.count !== null && pesagensRes.count > 0 ? pesagensRes.count.toLocaleString() : '---',
+          value:
+            pesagensRes.count !== null && pesagensRes.count > 0
+              ? pesagensRes.count.toLocaleString()
+              : '---',
           change: pesagensRes.count > 0 ? 'Registros no banco' : 'Sem pesagens',
           trend: 'neutral' as const,
           icon: Scale,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'GMD Médio Global',
-          subtitle: _lastPesagemDate ? `Base: pesagem de ${_lastPesagemDate}` : 'Sem base de cálculo',
+          subtitle: _lastPesagemDate
+            ? `Base: pesagem de ${_lastPesagemDate}`
+            : 'Sem base de cálculo',
           sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
           change: gmdGlobal > 0 ? 'Rebanho completo' : 'Sem base de cálculo',
-          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
+          trend: gmdGlobal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
-          color: 'hsl(var(--success))'
+          color: 'hsl(var(--success))',
         },
         {
           label: 'Peso Total Rebanho',
-          subtitle: _lastPesagemDate ? `Apurado em ${_lastPesagemDate}` : `Inventário em ${todayBR()}`,
+          subtitle: _lastPesagemDate
+            ? `Apurado em ${_lastPesagemDate}`
+            : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
           value: pesoTotal > 0 ? `${(pesoTotal / 1000).toFixed(1)} ton` : '---',
           change: pesoTotal > 0 ? 'Soma última pesagem' : 'Sem dados',
           trend: 'neutral' as const,
           icon: Beef,
-          color: 'hsl(var(--brand))'
+          color: 'hsl(var(--brand))',
         },
         {
           label: 'Peso Médio (Página)',
-          subtitle: _lastPesagemDate ? `Última pesagem: ${_lastPesagemDate}` : `Média em ${todayBR()}`,
+          subtitle: _lastPesagemDate
+            ? `Última pesagem: ${_lastPesagemDate}`
+            : `Média em ${todayBR()}`,
           sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
           value: pesoMedioPagina > 0 ? `${pesoMedioPagina.toFixed(1)} kg` : '---',
           change: pesoMedioPagina > 0 ? `${data.length} registros exibidos` : 'Sem dados',
           trend: 'neutral' as const,
           icon: Activity,
-          color: 'hsl(var(--warning))'
-        }
+          color: 'hsl(var(--warning))',
+        },
       ],
-      totalCount: pesagensRes.count || 0
+      totalCount: pesagensRes.count || 0,
     };
   } catch (error: any) {
     console.error('Error:', error);

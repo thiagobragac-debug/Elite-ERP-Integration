@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -11,17 +22,47 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
 import { supabase } from '../../lib/supabase';
 import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
-import { Globe, Calendar, Filter, TrendingUp, TrendingDown, DollarSign, Activity, BarChart2 } from 'lucide-react';
+import {
+  Globe,
+  Calendar,
+  Filter,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Activity,
+  BarChart2,
+} from 'lucide-react';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
@@ -35,7 +76,7 @@ export const MarketSeasonality: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [indicator, setIndicator] = useState('boi_gordo_cepea');
-  
+
   // Available years based on data
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
@@ -48,42 +89,46 @@ export const MarketSeasonality: React.FC = () => {
     setLoading(true);
     try {
       let rawData: any[] = [];
-      
+
       if (indicator === 'relacao_bezerro_boi') {
         const [boiData, bezerroData] = await Promise.all([
           fetchHistoricalQuotes('boi_gordo_cepea', undefined, undefined, true),
-          fetchHistoricalQuotes('bezerro_ms_cepea', undefined, undefined, true)
+          fetchHistoricalQuotes('bezerro_ms_cepea', undefined, undefined, true),
         ]);
 
         const boiMap = new Map(boiData.map((d: any) => [d.date, Number(d.value)]));
-        rawData = bezerroData.map((bz: any) => {
-          const boiVal = boiMap.get(bz.date);
-          if (boiVal && boiVal > 0) {
-            return { date: bz.date, value: Number(bz.value) / boiVal };
-          }
-          return null;
-        }).filter(Boolean) as any[];
+        rawData = bezerroData
+          .map((bz: any) => {
+            const boiVal = boiMap.get(bz.date);
+            if (boiVal && boiVal > 0) {
+              return { date: bz.date, value: Number(bz.value) / boiVal };
+            }
+            return null;
+          })
+          .filter(Boolean) as any[];
       } else if (indicator === 'relacao_boi_milho') {
         const [boiData, milhoData] = await Promise.all([
           fetchHistoricalQuotes('boi_gordo_cepea', undefined, undefined, true),
-          fetchHistoricalQuotes('milho_cepea', undefined, undefined, true)
+          fetchHistoricalQuotes('milho_cepea', undefined, undefined, true),
         ]);
 
         const milhoMap = new Map(milhoData.map((d: any) => [d.date, Number(d.value)]));
-        rawData = boiData.map((boi: any) => {
-          const milhoVal = milhoMap.get(boi.date);
-          if (milhoVal && milhoVal > 0) {
-            return { date: boi.date, value: Number(boi.value) / milhoVal };
-          }
-          return null;
-        }).filter(Boolean) as any[];
+        rawData = boiData
+          .map((boi: any) => {
+            const milhoVal = milhoMap.get(boi.date);
+            if (milhoVal && milhoVal > 0) {
+              return { date: boi.date, value: Number(boi.value) / milhoVal };
+            }
+            return null;
+          })
+          .filter(Boolean) as any[];
       } else {
         rawData = await fetchHistoricalQuotes(indicator, undefined, undefined, true);
       }
 
       // Group by year
       const yearMap = new Set<string>();
-      
+
       // We want the X-axis to be Day/Month (e.g. "01/Jan", "15/Feb").
       // Since years can have 365 or 366 days, we can normalize to a single dummy year (e.g., 2000 - a leap year).
       const normalizedDataMap = new Map<string, any>(); // key: "MM-DD", value: { displayDate: "01/Jan", "2024": 300, "2025": 320 }
@@ -97,15 +142,18 @@ export const MarketSeasonality: React.FC = () => {
             const mm = String(m + 1).padStart(2, '0');
             const dd = String(d).padStart(2, '0');
             const key = `${mm}-${dd}`;
-            const displayDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+            const displayDate = dateObj.toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'short',
+            });
             normalizedDataMap.set(key, { key, displayDate });
           }
         }
       }
 
       rawData?.forEach((q: QuoteData) => {
-        const d = new Date(q.date.split('T')[0] + 'T12:00:00Z');
-        // Correct for timezone issues by using UTC string splitting if needed, 
+        const d = new Date(`${q.date.split('T')[0]}T12:00:00Z`);
+        // Correct for timezone issues by using UTC string splitting if needed,
         // but 'YYYY-MM-DD' parses to UTC usually. Let's use simple string split:
         const [year, month, day] = q.date.split('-');
         yearMap.add(year);
@@ -119,16 +167,17 @@ export const MarketSeasonality: React.FC = () => {
 
       const yearsArray = Array.from(yearMap).sort().reverse(); // Newest first
       setAvailableYears(yearsArray);
-      
+
       // Default select the last 3 years
       if (selectedYears.length === 0) {
         setSelectedYears(yearsArray.slice(0, 3));
       }
 
       // Convert map back to array and sort by key
-      const finalData = Array.from(normalizedDataMap.values()).sort((a, b) => a.key.localeCompare(b.key));
+      const finalData = Array.from(normalizedDataMap.values()).sort((a, b) =>
+        a.key.localeCompare(b.key)
+      );
       setData(finalData);
-
     } catch (err) {
       console.error('Failed to fetch market data:', err);
     } finally {
@@ -137,32 +186,38 @@ export const MarketSeasonality: React.FC = () => {
   };
 
   const toggleYear = (year: string) => {
-    setSelectedYears(prev => 
-      prev.includes(year) 
-        ? prev.filter(y => y !== year)
-        : [...prev, year].sort().reverse()
+    setSelectedYears((prev) =>
+      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year].sort().reverse()
     );
   };
 
   // Generate distinct colors for lines
   const colors = [
-    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
-    '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
+    '#3b82f6',
+    '#10b981',
+    '#f59e0b',
+    '#ef4444',
+    '#8b5cf6',
+    '#ec4899',
+    '#14b8a6',
+    '#f97316',
   ];
 
   const isRatio = indicator === 'relacao_bezerro_boi' || indicator === 'relacao_boi_milho';
   const prefix = isRatio ? '' : 'R$ ';
-  const suffix = indicator === 'relacao_bezerro_boi' ? ' @' : indicator === 'relacao_boi_milho' ? ' sc' : '';
+  const suffix =
+    indicator === 'relacao_bezerro_boi' ? ' @' : indicator === 'relacao_boi_milho' ? ' sc' : '';
 
   // Compute KPIs from multi-year data
   const latestYear = selectedYears.length > 0 ? selectedYears[0] : null;
   const prevYear = selectedYears.length > 1 ? selectedYears[1] : null;
 
-  const lastEntry = data.length > 0 ? [...data].reverse().find(d => d[latestYear!] != null) : null;
+  const lastEntry =
+    data.length > 0 ? [...data].reverse().find((d) => d[latestYear!] != null) : null;
   const currentVal = lastEntry && latestYear ? lastEntry[latestYear] : null;
 
   const allValues = data.flatMap((d: any) =>
-    selectedYears.map(y => d[y]).filter((v: any) => v != null)
+    selectedYears.map((y) => d[y]).filter((v: any) => v != null)
   ) as number[];
   const maxVal = allValues.length > 0 ? Math.max(...allValues) : null;
   const minVal = allValues.length > 0 ? Math.min(...allValues) : null;
@@ -177,12 +232,18 @@ export const MarketSeasonality: React.FC = () => {
   const avgPrev = prevYear ? avgYear(prevYear) : null;
   const yoyChange = avgLatest && avgPrev ? ((avgLatest - avgPrev) / avgPrev) * 100 : null;
 
-  const fmtVal = (v: number | null) => v != null ? `${prefix}${v.toFixed(isRatio ? 3 : 2)}${suffix}` : '—';
+  const fmtVal = (v: number | null) =>
+    v != null ? `${prefix}${v.toFixed(isRatio ? 3 : 2)}${suffix}` : '—';
 
   // Build a 7-point sparkline from last 7 data entries for each KPI
   const sparkLastN = (year: string | null, n: number = 7) => {
-    if (!year) return [];
-    const vals = data.filter(d => d[year] != null).slice(-n).map((d,i) => ({ value: d[year] as number, label: d.displayDate || `${i+1}` }));
+    if (!year) {
+      return [];
+    }
+    const vals = data
+      .filter((d) => d[year] != null)
+      .slice(-n)
+      .map((d, i) => ({ value: d[year] as number, label: d.displayDate || `${i + 1}` }));
     return vals;
   };
 
@@ -192,11 +253,12 @@ export const MarketSeasonality: React.FC = () => {
       value: fmtVal(currentVal),
       icon: DollarSign,
       color: '#10b981',
-      progress: maxVal && minVal && currentVal ? ((currentVal - minVal) / (maxVal - minVal)) * 100 : 0,
+      progress:
+        maxVal && minVal && currentVal ? ((currentVal - minVal) / (maxVal - minVal)) * 100 : 0,
       change: latestYear ? `Ano ${latestYear}` : 'Selecione um ano',
       trend: yoyChange !== null ? (yoyChange >= 0 ? 'up' : 'down') : undefined,
       sparkline: sparkLastN(latestYear),
-      periodLabel: latestYear ? `Ano ${latestYear}` : 'Série Histórica'
+      periodLabel: latestYear ? `Ano ${latestYear}` : 'Série Histórica',
     },
     {
       label: 'Máxima Histórica',
@@ -206,7 +268,7 @@ export const MarketSeasonality: React.FC = () => {
       progress: 100,
       change: `${selectedYears.length} anos comparados`,
       sparkline: sparkLastN(latestYear),
-      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
+      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa',
     },
     {
       label: 'Mínima Histórica',
@@ -216,7 +278,7 @@ export const MarketSeasonality: React.FC = () => {
       progress: 0,
       change: `Amplitude: ${fmtVal(amplitude)}`,
       sparkline: sparkLastN(latestYear),
-      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
+      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa',
     },
     {
       label: `Variação YoY (${latestYear} vs ${prevYear || '—'})`,
@@ -224,23 +286,38 @@ export const MarketSeasonality: React.FC = () => {
       icon: Activity,
       color: yoyChange !== null ? (yoyChange >= 0 ? '#10b981' : '#ef4444') : '#f59e0b',
       progress: yoyChange !== null ? Math.min(Math.abs(yoyChange) * 5, 100) : 0,
-      change: yoyChange !== null ? (yoyChange >= 0 ? 'Acima do ano anterior' : 'Abaixo do ano anterior') : 'Selecione 2+ anos',
+      change:
+        yoyChange !== null
+          ? yoyChange >= 0
+            ? 'Acima do ano anterior'
+            : 'Abaixo do ano anterior'
+          : 'Selecione 2+ anos',
       trend: yoyChange !== null ? (yoyChange >= 0 ? 'up' : 'down') : undefined,
       sparkline: buildSparkline(data || [], 'data', 'preco'),
-      periodLabel: latestYear && prevYear ? `${prevYear} → ${latestYear}` : 'Ano a Ano'
-    }
+      periodLabel: latestYear && prevYear ? `${prevYear} → ${latestYear}` : 'Ano a Ano',
+    },
   ];
 
   return (
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Comparativo Ano a Ano' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Mercado', href: '/mercado/indicadores' },
+              { label: 'Comparativo Ano a Ano' },
+            ]}
+          />
           <h1 className="page-title">Comparativo Ano a Ano</h1>
-          <p className="page-subtitle">Sobreposição de curvas históricas para identificar ciclos de safra e entressafra</p>
+          <p className="page-subtitle">
+            Sobreposição de curvas históricas para identificar ciclos de safra e entressafra
+          </p>
         </div>
-        
-        <div className="page-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+
+        <div
+          className="page-actions"
+          style={{ display: 'flex', gap: '16px', alignItems: 'center' }}
+        >
           {/* O seletor de indicador foi movido para o painel de filtros abaixo */}
         </div>
       </header>
@@ -248,7 +325,9 @@ export const MarketSeasonality: React.FC = () => {
       {/* KPI Dashboard padronizado */}
       <div className="next-gen-kpi-grid" style={{ marginBottom: '24px' }}>
         {loading
-          ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
           : kpis.map((kpi, idx) => (
               <TauzeStatCard
                 key={idx}
@@ -262,17 +341,44 @@ export const MarketSeasonality: React.FC = () => {
                 sparkline={kpi.sparkline}
                 periodLabel={kpi.periodLabel}
               />
-            ))
-        }
+            ))}
       </div>
 
-      <div className="panel-header-tauze" style={{ background: 'hsl(var(--bg-main))', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))', marginBottom: '24px', height: 'fit-content', flex: 'none' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
-          
+      <div
+        className="panel-header-tauze"
+        style={{
+          background: 'hsl(var(--bg-main))',
+          padding: '16px',
+          borderRadius: '16px',
+          border: '1px solid hsl(var(--border))',
+          marginBottom: '24px',
+          height: 'fit-content',
+          flex: 'none',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '24px',
+            alignItems: 'flex-start',
+            width: '100%',
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '250px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Indicador</label>
-            <select 
-              value={indicator} 
+            <label
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Indicador
+            </label>
+            <select
+              value={indicator}
               onChange={(e) => setIndicator(e.target.value)}
               className="market-select-tauze"
               style={{ height: '42px', padding: '0 12px', width: '100%' }}
@@ -287,13 +393,31 @@ export const MarketSeasonality: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-            <label style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anos Selecionados para Comparativo</label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minHeight: '42px', alignItems: 'center' }}>
+            <label
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Anos Selecionados para Comparativo
+            </label>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+                minHeight: '42px',
+                alignItems: 'center',
+              }}
+            >
               {availableYears.map((year, i) => {
                 const isActive = selectedYears.includes(year);
                 const color = colors[i % colors.length];
                 return (
-                  <button 
+                  <button
                     key={year}
                     onClick={() => toggleYear(year)}
                     style={{
@@ -309,7 +433,7 @@ export const MarketSeasonality: React.FC = () => {
                       height: '38px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
                     }}
                     onMouseOver={(e) => {
                       if (!isActive) {
@@ -326,70 +450,88 @@ export const MarketSeasonality: React.FC = () => {
                   >
                     {year}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
-
         </div>
       </div>
 
       <div className="admin-intelligence-grid" style={{ gridTemplateColumns: '1fr' }}>
         <section className="intelligence-panel premium-card main-chart">
-          
           <div className="chart-container-large" style={{ marginTop: '30px' }}>
             {loading ? (
-              <div style={{ height: '450px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div
+                style={{
+                  height: '450px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <span className="loading-text">Processando milhares de dados...</span>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={450}>
                 <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="displayDate" 
-                    axisLine={false} 
-                    tickLine={false} 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="displayDate"
+                    axisLine={false}
+                    tickLine={false}
                     tick={{ fontSize: 11, fill: 'hsl(var(--text-muted))' }}
                     dy={10}
                     minTickGap={40}
                   />
-                  <YAxis 
-                    domain={['auto', 'auto']} 
-                    axisLine={false} 
-                    tickLine={false} 
+                  <YAxis
+                    domain={['auto', 'auto']}
+                    axisLine={false}
+                    tickLine={false}
                     tick={{ fontSize: 11, fill: 'hsl(var(--text-muted))' }}
                     tickFormatter={(value) => `${prefix}${value}${suffix}`}
                     width={isRatio ? 40 : 60}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--bg-card))', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--bg-card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '12px',
                       boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                      color: 'hsl(var(--text-main))'
+                      color: 'hsl(var(--text-main))',
                     }}
-                    labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '8px', fontWeight: 'bold' }}
-                    formatter={(val: any, name: any) => [`${prefix}${Number(val).toFixed(isRatio ? 3 : 2)}${suffix}`, `Ano ${name}`]}
+                    labelStyle={{
+                      color: 'hsl(var(--text-muted))',
+                      marginBottom: '8px',
+                      fontWeight: 'bold',
+                    }}
+                    formatter={(val: any, name: any) => [
+                      `${prefix}${Number(val).toFixed(isRatio ? 3 : 2)}${suffix}`,
+                      `Ano ${name}`,
+                    ]}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  
+
                   {availableYears.map((year, i) => {
-                    if (!selectedYears.includes(year)) return null;
+                    if (!selectedYears.includes(year)) {
+                      return null;
+                    }
                     return (
-                      <Line 
+                      <Line
                         key={year}
-                        type="monotone" 
-                        dataKey={year} 
+                        type="monotone"
+                        dataKey={year}
                         name={year}
-                        stroke={colors[i % colors.length]} 
+                        stroke={colors[i % colors.length]}
                         strokeWidth={2}
                         dot={false}
                         activeDot={{ r: 6 }}
                         connectNulls={true} // In case some days don't have quotes (weekends)
                       />
-                    )
+                    );
                   })}
                 </LineChart>
               </ResponsiveContainer>

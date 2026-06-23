@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import toast from 'react-hot-toast';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -13,16 +24,30 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
+import {
   Activity,
-  Plus, 
-  Search, 
+  Plus,
+  Search,
   Filter,
   FileText,
   Building2,
@@ -35,7 +60,7 @@ import {
   Trash2,
   Edit3,
   History,
-  Printer
+  Printer,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -54,7 +79,15 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const EntryInvoice: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,14 +95,33 @@ export const EntryInvoice: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'INVOICES' | 'FISCAL') || 'INVOICES';
   const setActiveTab = (tab: string) => {
-    setSearchParams((prev: URLSearchParams) => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev: URLSearchParams) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  const [selectedInvoice, setSelectedInvoice] = usePersistentState<any>('EntryInvoice_selectedInvoice', null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('EntryInvoice_isHistoryModalOpen', false);
+  const [selectedInvoice, setSelectedInvoice] = usePersistentState<any>(
+    'EntryInvoice_selectedInvoice',
+    null
+  );
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'EntryInvoice_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showDivergences, setShowDivergences] = usePersistentState('EntryInvoice_showDivergences', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('EntryInvoice_showAdvancedFilters', false);
+  const [showDivergences, setShowDivergences] = usePersistentState(
+    'EntryInvoice_showDivergences',
+    false
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'EntryInvoice_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     suppliers: [],
@@ -77,7 +129,7 @@ export const EntryInvoice: React.FC = () => {
     maxAmount: 100000,
     dateStart: '',
     dateEnd: '',
-    onlyDelayed: false
+    onlyDelayed: false,
   });
 
   // Server-side pagination
@@ -90,17 +142,29 @@ export const EntryInvoice: React.FC = () => {
 
   // React Query Fetch
   const { data: queryData = { invoices: [], totalCount: 0 }, isLoading: loading } = useQuery({
-    queryKey: ['purchasing_invoices', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab],
+    queryKey: [
+      'purchasing_invoices',
+      activeFarmId,
+      activeTenantId,
+      isGlobalMode,
+      page,
+      debouncedSearch,
+      filterValues,
+      activeTab,
+    ],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
       let query = supabase
         .from('notas_entrada')
-        .select('id, numero_nota, serie, data_emissao, valor_total, fornecedor_id, created_at, iss_retido, irrf_retido, csll_retido, pis_retido, cofins_retido, inss_retido, valor_liquido, modelo_fiscal', { count: 'exact' })
+        .select(
+          'id, numero_nota, serie, data_emissao, valor_total, fornecedor_id, created_at, iss_retido, irrf_retido, csll_retido, pis_retido, cofins_retido, inss_retido, valor_liquido, modelo_fiscal, parceiros(nome)',
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false })
         .range(from, to);
-      
+
       query = applyFarmFilter(query);
 
       if (debouncedSearch) {
@@ -121,63 +185,85 @@ export const EntryInvoice: React.FC = () => {
       }
 
       const { data, count, error } = await query;
-      if (error) throw error;
-      
-      if (!data) return { invoices: [], totalCount: 0 };
-
-      // Buscar parceiros (fornecedores) separadamente
-      const fornecedorIds = [...new Set(data.map((d: any) => d.fornecedor_id).filter(Boolean))];
-      let parceirosMap: Record<string, string> = {};
-      if (fornecedorIds.length > 0) {
-        const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
-        if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
+      if (error) {
+        throw error;
       }
 
+      if (!data) {
+        return { invoices: [], totalCount: 0 };
+      }
+
+      // Data already includes parceiros via JOIN - no need for separate query
       const enriched = data.map((d: any) => ({
         ...d,
-        parceiros: { nome: parceirosMap[d.fornecedor_id] || 'N/A' }
+        parceiros: d.parceiros || { nome: 'N/A' },
       }));
 
       return { invoices: enriched, totalCount: count || 0 };
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
-  const invoices = queryData.invoices;
-  const totalCount = queryData.totalCount;
+  const { invoices } = queryData;
+  const { totalCount } = queryData;
 
   // Compute stats dynamically
-  const totalValor = invoices.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+  const totalValor = invoices.reduce(
+    (acc: number, curr: any) => acc + Number(curr.valor_total || 0),
+    0
+  );
   const matchedWithOC = invoices.filter((n: any) => n.valor_total > 1000).length;
   const fiscalCredits = totalValor * 0.12;
 
   const stats = [
-    { label: 'Notas Processadas', value: totalCount > 0 ? totalCount : '---', icon: FileText, color: '#10b981', 
-      progress: totalCount > 0 ? 100 : 0, 
+    {
+      label: 'Notas Processadas',
+      value: totalCount > 0 ? totalCount : '---',
+      icon: FileText,
+      color: '#10b981',
+      progress: totalCount > 0 ? 100 : 0,
       change: totalCount > 0 ? 'Total Localizado' : 'Sem notas',
-      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total'),
     },
-    { label: 'Créditos Fiscais (Est.)', 
-      value: fiscalCredits > 0 ? fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-      icon: DollarSign, color: '#3b82f6', 
-      progress: fiscalCredits > 0 ? Math.min(100, (fiscalCredits / totalValor) * 100) : 0, 
-      trend: fiscalCredits > 0 ? 'up' as const : 'neutral' as const, 
+    {
+      label: 'Créditos Fiscais (Est.)',
+      value:
+        fiscalCredits > 0
+          ? fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+          : '---',
+      icon: DollarSign,
+      color: '#3b82f6',
+      progress: fiscalCredits > 0 ? Math.min(100, (fiscalCredits / totalValor) * 100) : 0,
+      trend: fiscalCredits > 0 ? ('up' as const) : ('neutral' as const),
       change: fiscalCredits > 0 ? 'Estimativa 12% s/Valor' : 'Sem notas para calcular',
-      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total'),
     },
-    { label: 'Aderência ao Pedido', 
-      value: invoices.length > 0 ? `${((matchedWithOC / (invoices.length || 1)) * 100).toFixed(0)}%` : '---', 
-      icon: CheckCircle2, color: '#166634', 
-      progress: invoices.length > 0 ? (matchedWithOC / (invoices.length || 1)) * 100 : 0, 
+    {
+      label: 'Aderência ao Pedido',
+      value:
+        invoices.length > 0
+          ? `${((matchedWithOC / (invoices.length || 1)) * 100).toFixed(0)}%`
+          : '---',
+      icon: CheckCircle2,
+      color: '#166634',
+      progress: invoices.length > 0 ? (matchedWithOC / (invoices.length || 1)) * 100 : 0,
       change: invoices.length > 0 ? 'Compliance OC' : 'Sem notas',
-      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total'),
     },
-    { label: 'Ticket Médio NF', 
-      value: invoices.length > 0 && totalValor > 0 ? (totalValor / invoices.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-      icon: Barcode, color: '#f59e0b', 
-      progress: 0, 
+    {
+      label: 'Ticket Médio NF',
+      value:
+        invoices.length > 0 && totalValor > 0
+          ? (totalValor / invoices.length).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            })
+          : '---',
+      icon: Barcode,
+      color: '#f59e0b',
+      progress: 0,
       change: invoices.length > 0 ? 'Valor médio por nota' : 'Sem notas',
-      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total'),
     },
   ];
 
@@ -223,60 +309,87 @@ export const EntryInvoice: React.FC = () => {
         .eq('modelo_fiscal', payload.modelo_fiscal || '');
 
       if (existing && existing.length > 0) {
-        const isDuplicate = selectedInvoice 
-          ? existing.some(e => e.id !== selectedInvoice.id) 
+        const isDuplicate = selectedInvoice
+          ? existing.some((e) => e.id !== selectedInvoice.id)
           : existing.length > 0;
-          
+
         if (isDuplicate) {
-          throw new Error(`Já existe uma Nota Fiscal cadastrada com o Número ${payload.numero_nota}, Série ${payload.serie || 's/n'} e Modelo ${payload.modelo_fiscal} para este Fornecedor. Valores duplicados não são permitidos.`);
+          throw new Error(
+            `Já existe uma Nota Fiscal cadastrada com o Número ${payload.numero_nota}, Série ${payload.serie || 's/n'} e Modelo ${payload.modelo_fiscal} para este Fornecedor. Valores duplicados não são permitidos.`
+          );
         }
       }
 
       if (selectedInvoice) {
-        const { error } = await supabase.from('notas_entrada').update(payload).eq('id', selectedInvoice.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('notas_entrada')
+          .update(payload)
+          .eq('id', selectedInvoice.id);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase.from('notas_entrada').insert([{ ...payload, fazenda_id: activeFarm?.id || activeFarmId, tenant_id: activeFarm?.tenantId || activeTenantId }]);
-        if (error) throw error;
-        
+        const { error } = await supabase.from('notas_entrada').insert([
+          {
+            ...payload,
+            fazenda_id: activeFarm?.id || activeFarmId,
+            tenant_id: activeFarm?.tenantId || activeTenantId,
+          },
+        ]);
+        if (error) {
+          throw error;
+        }
+
         // Gerar Movimentações de Estoque
         if (data.itens && data.itens.length > 0) {
-          const movimentacoes = data.itens.filter((item: any) => item.produto_id && item.quantidade > 0 && item.is_storable).map((item: any) => ({
-            tenant_id: activeFarm?.tenantId || activeTenantId,
-            fazenda_id: activeFarm?.id || activeFarmId,
-            produto_id: item.produto_id,
-            tipo: 'ENTRADA',
-            quantidade: item.embalagem_fator ? item.quantidade * item.embalagem_fator : item.quantidade,
-            data_movimentacao: payload.data_entrada || payload.data_emissao,
-            origem_destino: 'Nota Fiscal ' + payload.numero_nota,
-            responsavel: 'Sistema',
-            deposito_id: item.deposito_id || null,
-            custo_unitario: item.embalagem_fator ? item.preco_unitario / item.embalagem_fator : item.preco_unitario || 0,
-            origem: 'COMPRA'
-          }));
-          
+          const movimentacoes = data.itens
+            .filter((item: any) => item.produto_id && item.quantidade > 0 && item.is_storable)
+            .map((item: any) => ({
+              tenant_id: activeFarm?.tenantId || activeTenantId,
+              fazenda_id: activeFarm?.id || activeFarmId,
+              produto_id: item.produto_id,
+              tipo: 'ENTRADA',
+              quantidade: item.embalagem_fator
+                ? item.quantidade * item.embalagem_fator
+                : item.quantidade,
+              data_movimentacao: payload.data_entrada || payload.data_emissao,
+              origem_destino: `Nota Fiscal ${payload.numero_nota}`,
+              responsavel: 'Sistema',
+              deposito_id: item.deposito_id || null,
+              custo_unitario: item.embalagem_fator
+                ? item.preco_unitario / item.embalagem_fator
+                : item.preco_unitario || 0,
+              origem: 'COMPRA',
+            }));
+
           if (movimentacoes.length > 0) {
-            const { error: movError } = await supabase.from('movimentacoes_estoque').insert(movimentacoes);
-            if (movError) throw movError;
+            const { error: movError } = await supabase
+              .from('movimentacoes_estoque')
+              .insert(movimentacoes);
+            if (movError) {
+              throw movError;
+            }
           }
 
           // Atualizar custo_padrao e custo_ultima_compra em cada produto da NF
           for (const item of data.itens.filter((i: any) => i.produto_id && i.preco_unitario > 0)) {
-            const unitPrice = item.embalagem_fator ? item.preco_unitario / item.embalagem_fator : item.preco_unitario;
+            const unitPrice = item.embalagem_fator
+              ? item.preco_unitario / item.embalagem_fator
+              : item.preco_unitario;
             await supabase
               .from('produtos')
-              .update({ 
+              .update({
                 custo_ultima_compra: unitPrice,
-                custo_padrao: unitPrice
+                custo_padrao: unitPrice,
               })
               .eq('id', item.produto_id);
           }
         }
-        
+
         // Gerar Contas a Pagar
         if (data.generate_financial) {
           let contasPagar: any[] = [];
-          
+
           if (data.payment_condition === 'vista') {
             contasPagar.push({
               tenant_id: activeFarm?.tenantId || activeTenantId,
@@ -286,7 +399,7 @@ export const EntryInvoice: React.FC = () => {
               valor_total: data.valor_liquido || payload.valor_total,
               data_vencimento: payload.data_entrada || payload.data_emissao,
               status: 'pendente',
-              metodo_pagamento: data.payment_method || 'Boleto'
+              metodo_pagamento: data.payment_method || 'Boleto',
             });
           } else if (data.installmentsList && data.installmentsList.length > 0) {
             contasPagar = data.installmentsList.map((inst: any) => ({
@@ -297,13 +410,15 @@ export const EntryInvoice: React.FC = () => {
               valor_total: inst.value,
               data_vencimento: inst.dueDate,
               status: 'pendente',
-              metodo_pagamento: data.payment_method || 'Boleto'
+              metodo_pagamento: data.payment_method || 'Boleto',
             }));
           }
-          
+
           if (contasPagar.length > 0) {
             const { error: finError } = await supabase.from('contas_pagar').insert(contasPagar);
-            if (finError) throw finError;
+            if (finError) {
+              throw finError;
+            }
           }
         }
       }
@@ -314,12 +429,14 @@ export const EntryInvoice: React.FC = () => {
       toast.success(selectedInvoice ? 'Nota fiscal atualizada!' : 'Nota fiscal lançada!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao salvar nota fiscal: ' + err.message);
-    }
+      toast.error(`Erro ao salvar nota fiscal: ${err.message}`);
+    },
   });
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!activeFarm) {
+      return;
+    }
     saveInvoiceMutation.mutate(data);
   };
 
@@ -331,8 +448,10 @@ export const EntryInvoice: React.FC = () => {
         .select('numero_nota, fornecedor_id')
         .eq('id', id)
         .single();
-        
-      if (!invoice) throw new Error('Nota fiscal não encontrada');
+
+      if (!invoice) {
+        throw new Error('Nota fiscal não encontrada');
+      }
 
       if (invoice.numero_nota) {
         // 1.5. Check if any associated contas a pagar is already paid
@@ -341,11 +460,18 @@ export const EntryInvoice: React.FC = () => {
           .select('status')
           .eq('fornecedor_id', invoice.fornecedor_id)
           .ilike('descricao', `NF ${invoice.numero_nota} - Parcela%`);
-          
-        if (fetchFinError) throw fetchFinError;
 
-        if (financeRecords && financeRecords.some(r => r.status && r.status.toUpperCase() === 'PAGO')) {
-          throw new Error('Não é possível excluir a nota fiscal pois existem parcelas já pagas. Cancele o pagamento no financeiro primeiro.');
+        if (fetchFinError) {
+          throw fetchFinError;
+        }
+
+        if (
+          financeRecords &&
+          financeRecords.some((r) => r.status && r.status.toUpperCase() === 'PAGO')
+        ) {
+          throw new Error(
+            'Não é possível excluir a nota fiscal pois existem parcelas já pagas. Cancele o pagamento no financeiro primeiro.'
+          );
         }
 
         // 1.8. Check if deletion will result in negative stock
@@ -361,9 +487,11 @@ export const EntryInvoice: React.FC = () => {
             .select('settings')
             .eq('id', activeTenantId)
             .single();
-            
-          const allowNegativeStock = tenantData?.settings?.permitir_estoque_negativo !== false && tenantData?.settings?.allow_negative_stock !== false;
-          
+
+          const allowNegativeStock =
+            tenantData?.settings?.permitir_estoque_negativo !== false &&
+            tenantData?.settings?.allow_negative_stock !== false;
+
           if (!allowNegativeStock) {
             for (const mov of movements) {
               if (mov.produto_id && mov.deposito_id) {
@@ -373,12 +501,14 @@ export const EntryInvoice: React.FC = () => {
                   .eq('produto_id', mov.produto_id)
                   .eq('deposito_id', mov.deposito_id)
                   .maybeSingle();
-                  
+
                 const currentStock = saldoData ? Number(saldoData.quantidade) : 0;
                 const quantityToDelete = Number(mov.quantidade);
-                
+
                 if (currentStock - quantityToDelete < 0) {
-                  throw new Error(`Não é possível excluir a nota fiscal. A remoção geraria estoque negativo para um ou mais produtos (Estoque atual: ${currentStock}, Tentativa de remover: ${quantityToDelete}). Verifique as configurações da empresa ou o saldo atual.`);
+                  throw new Error(
+                    `Não é possível excluir a nota fiscal. A remoção geraria estoque negativo para um ou mais produtos (Estoque atual: ${currentStock}, Tentativa de remover: ${quantityToDelete}). Verifique as configurações da empresa ou o saldo atual.`
+                  );
                 }
               }
             }
@@ -391,8 +521,10 @@ export const EntryInvoice: React.FC = () => {
           .delete()
           .eq('fornecedor_id', invoice.fornecedor_id)
           .ilike('descricao', `NF ${invoice.numero_nota} - Parcela%`);
-          
-        if (finError) console.error('Erro ao excluir contas a pagar', finError);
+
+        if (finError) {
+          console.error('Erro ao excluir contas a pagar', finError);
+        }
 
         // 3. Delete associated movimentacoes de estoque
         const { error: movError } = await supabase
@@ -400,49 +532,91 @@ export const EntryInvoice: React.FC = () => {
           .delete()
           .eq('origem_destino', `Nota Fiscal ${invoice.numero_nota}`)
           .eq('tipo', 'ENTRADA');
-          
-        if (movError) console.error('Erro ao excluir movimentacoes', movError);
+
+        if (movError) {
+          console.error('Erro ao excluir movimentacoes', movError);
+        }
       }
 
       // 4. Delete the invoice
       const { error } = await supabase.from('notas_entrada').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing_invoices'] });
       toast.success('Nota fiscal excluída!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao excluir nota fiscal: ' + err.message);
-    }
+      toast.error(`Erro ao excluir nota fiscal: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta nota fiscal?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir esta nota fiscal?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteInvoiceMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = invoices.map(item => ({
+    const exportData = invoices.map((item) => ({
       Numero_Nota: item.numero_nota,
       Fornecedor: item.fornecedor || '-',
-      Data_Emissao: item.data_emissao ? new Date(item.data_emissao).toLocaleDateString('pt-BR') : '-',
+      Data_Emissao: item.data_emissao
+        ? new Date(item.data_emissao).toLocaleDateString('pt-BR')
+        : '-',
       Valor_Total: item.valor_total || 0,
-      Status: item.status || '-'
+      Status: item.status || '-',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'notas_entrada');
-    else if (format === 'excel') exportToExcel(exportData, 'notas_entrada');
-    else if (format === 'pdf') exportToPDF(exportData, 'notas_entrada', 'Relatório de Notas Fiscais de Entrada');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'notas_entrada');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'notas_entrada');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'notas_entrada', 'Relatório de Notas Fiscais de Entrada');
+    }
   };
 
   const handleViewDetails = (inv: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: inv.data_emissao, title: 'Nota Fiscal: ' + inv.numero_nota, subtitle: 'Série: ' + inv.serie, value: Number(inv.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' },
-      { id: '2', date: inv.data_entrada || inv.created_at, title: 'Entrada no Estoque', subtitle: 'Mercadoria conferida e lote gerado', value: 'CONCLUÍDO', status: 'success' },
-      { id: '3', date: inv.created_at, title: 'Chave de Acesso', subtitle: inv.chave_xml || 'Não informada', value: 'XML', status: 'info' },
+      {
+        id: '1',
+        date: inv.data_emissao,
+        title: `Nota Fiscal: ${inv.numero_nota}`,
+        subtitle: `Série: ${inv.serie}`,
+        value: Number(inv.valor_total).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }),
+        status: 'success',
+      },
+      {
+        id: '2',
+        date: inv.data_entrada || inv.created_at,
+        title: 'Entrada no Estoque',
+        subtitle: 'Mercadoria conferida e lote gerado',
+        value: 'CONCLUÍDO',
+        status: 'success',
+      },
+      {
+        id: '3',
+        date: inv.created_at,
+        title: 'Chave de Acesso',
+        subtitle: inv.chave_xml || 'Não informada',
+        value: 'XML',
+        status: 'info',
+      },
     ]);
   };
 
@@ -454,58 +628,107 @@ export const EntryInvoice: React.FC = () => {
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
             NF {item.numero_nota}
           </span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             SÉRIE: {item.serie || '1'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Parceiro Emitente',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
             <Building2 size={12} color="#94a3b8" />
             {item.parceiros?.nome || 'FORNECEDOR N/A'}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Data de Emissão',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#64748b',
+            fontWeight: 600,
+            fontSize: '12px',
+          }}
+        >
           <Calendar size={14} />
-          <span>{item.data_emissao ? new Date(item.data_emissao).toLocaleDateString() : 'N/A'}</span>
+          <span>
+            {item.data_emissao ? new Date(item.data_emissao).toLocaleDateString() : 'N/A'}
+          </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Data de Entrada',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#0f172a', fontWeight: 700, fontSize: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#0f172a',
+            fontWeight: 700,
+            fontSize: '12px',
+          }}
+        >
           <Calendar size={14} color="#10b981" />
-          <span>{item.data_entrada ? new Date(item.data_entrada).toLocaleDateString() : new Date(item.created_at).toLocaleDateString()}</span>
+          <span>
+            {item.data_entrada
+              ? new Date(item.data_entrada).toLocaleDateString()
+              : new Date(item.created_at).toLocaleDateString()}
+          </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Valor Total NF',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
-            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {Number(item.valor_total).toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            })}
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status / Compliance',
@@ -519,28 +742,40 @@ export const EntryInvoice: React.FC = () => {
           </div>
         );
       },
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="entry-invoice-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Notas Fiscais de Entrada' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Compras', href: '/compras/dashboard' },
+              { label: 'Notas Fiscais de Entrada' },
+            ]}
+          />
           <h1 className="page-title">Notas Fiscais de Entrada</h1>
-          <p className="page-subtitle">Recebimento de mercadorias, conferência física/fiscal e alimentação automática do estoque em tempo real.</p>
+          <p className="page-subtitle">
+            Recebimento de mercadorias, conferência física/fiscal e alimentação automática do
+            estoque em tempo real.
+          </p>
         </div>
         <div className="page-actions">
-          <button 
-            className={`glass-btn secondary ${showDivergences ? 'active' : ''}`} 
+          <button
+            className={`glass-btn secondary ${showDivergences ? 'active' : ''}`}
             onClick={() => setShowDivergences(!showDivergences)}
-            style={showDivergences ? { 
-              background: 'hsl(45, 93%, 47%, 0.1)', 
-              borderColor: '#f59e0b',
-              color: '#d97706',
-              boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)'
-            } : {}}
+            style={
+              showDivergences
+                ? {
+                    background: 'hsl(45, 93%, 47%, 0.1)',
+                    borderColor: '#f59e0b',
+                    color: '#d97706',
+                    boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)',
+                  }
+                : {}
+            }
           >
             <Activity size={18} />
             {showDivergences ? 'AUDITORIA ATIVA' : 'DIVERGÊNCIAS'}
@@ -553,36 +788,45 @@ export const EntryInvoice: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={FileText} color="" 
-            periodLabel="Mes Atual"
-          />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change || '---'}
-            trend={stat.trend === 'neutral' ? undefined : stat.trend}
-            sparkline={stat.sparkline}
-          
-            periodLabel="Mes Atual"
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <TauzeStatCard
+                  key={i}
+                  loading={true}
+                  label=""
+                  value=""
+                  icon={FileText}
+                  color=""
+                  periodLabel="Mes Atual"
+                />
+              ))
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change || '---'}
+                trend={stat.trend === 'neutral' ? undefined : stat.trend}
+                sparkline={stat.sparkline}
+                periodLabel="Mes Atual"
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'INVOICES' ? 'active' : ''}`}
             onClick={() => setActiveTab('INVOICES')}
           >
             Notas de Entrada
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'FISCAL' ? 'active' : ''}`}
             onClick={() => setActiveTab('FISCAL')}
           >
@@ -592,17 +836,17 @@ export const EntryInvoice: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Filtrar por número da nota ou parceiro..." 
+            placeholder="Filtrar por número da nota ou parceiro..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -610,26 +854,49 @@ export const EntryInvoice: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-invoice');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-invoice" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-invoice')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-invoice')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-invoice')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <PurchasingFilterModal 
+      <PurchasingFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -637,13 +904,26 @@ export const EntryInvoice: React.FC = () => {
       />
 
       <div className="management-content">
-        <ModernTable 
+        <ModernTable
           emptyState={
-            !searchTerm && filterValues.status === 'all' && filterValues.minAmount === 0 && !filterValues.dateStart && !filterValues.dateEnd && !filterValues.onlyDelayed ? (
+            !searchTerm &&
+            filterValues.status === 'all' &&
+            filterValues.minAmount === 0 &&
+            !filterValues.dateStart &&
+            !filterValues.dateEnd &&
+            !filterValues.onlyDelayed ? (
               <EmptyState
-                title={activeTab === 'INVOICES' ? "Nenhuma nota de entrada registrada" : "Nenhuma nota aguardando processamento fiscal"}
-                description={activeTab === 'INVOICES' ? "Não há notas fiscais lançadas no momento." : "As rotinas fiscais estão em dia."}
-                actionLabel={activeTab === 'INVOICES' ? "Lançar Nota" : undefined}
+                title={
+                  activeTab === 'INVOICES'
+                    ? 'Nenhuma nota de entrada registrada'
+                    : 'Nenhuma nota aguardando processamento fiscal'
+                }
+                description={
+                  activeTab === 'INVOICES'
+                    ? 'Não há notas fiscais lançadas no momento.'
+                    : 'As rotinas fiscais estão em dia.'
+                }
+                actionLabel={activeTab === 'INVOICES' ? 'Lançar Nota' : undefined}
                 onAction={activeTab === 'INVOICES' ? handleOpenCreate : undefined}
                 icon={FileText}
               />
@@ -654,7 +934,7 @@ export const EntryInvoice: React.FC = () => {
                 icon={Search}
               />
             )
-          } 
+          }
           data={invoices}
           columns={tableColumns}
           loading={loading}
@@ -665,13 +945,25 @@ export const EntryInvoice: React.FC = () => {
           itemsPerPage={pageSize}
           actions={(item) => (
             <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
+              <button
+                className="action-dot info"
+                onClick={() => handleViewDetails(item)}
+                title="Dossiê"
+              >
                 <History size={18} />
               </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+              <button
+                className="action-dot edit"
+                onClick={() => handleOpenEdit(item)}
+                title="Editar"
+              >
                 <Edit3 size={18} />
               </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+              <button
+                className="action-dot delete"
+                onClick={() => handleDelete(item.id)}
+                title="Excluir"
+              >
                 <Trash2 size={18} />
               </button>
             </div>
@@ -679,14 +971,14 @@ export const EntryInvoice: React.FC = () => {
         />
       </div>
 
-      <EntryInvoiceForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <EntryInvoiceForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         initialData={selectedInvoice}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê de Entrada"

@@ -6,7 +6,9 @@ export const MFAGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { isAuthenticated, aal, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null;
+  if (loading) {
+    return null;
+  }
 
   // If not logged in, go to login
   if (!isAuthenticated) {
@@ -15,7 +17,7 @@ export const MFAGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   // If logged in as admin but only aal1, and we are not on the enrollment page, go to enrollment
   const isAdmin = useAuth().user?.role === 'admin';
-  
+
   if (isAdmin && aal === 'aal1' && location.pathname !== '/mfa-enroll') {
     return <Navigate to="/mfa-enroll" replace />;
   }

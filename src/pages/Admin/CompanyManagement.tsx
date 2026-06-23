@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -12,22 +23,36 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { 
-  Building2, 
-  Plus, 
-  Search, 
+import {
+  Building2,
+  Plus,
+  Search,
   Filter,
-  MapPin, 
-  MoreVertical, 
-  Edit3, 
-  ChevronRight, 
-  Map, 
-  Layout, 
+  MapPin,
+  MoreVertical,
+  Edit3,
+  ChevronRight,
+  Map,
+  Layout,
   Globe,
   Eye,
   XCircle,
@@ -36,7 +61,7 @@ import {
   List as ListIcon,
   Calendar,
   ShieldCheck,
-  History
+  History,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -64,28 +89,47 @@ export const CompanyManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'companies' | 'farms') || 'companies';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState<any[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = usePersistentState('CompanyManagement_isCompanyModalOpen', false);
-  const [isFarmModalOpen, setIsFarmModalOpen] = usePersistentState('CompanyManagement_isFarmModalOpen', false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = usePersistentState(
+    'CompanyManagement_isCompanyModalOpen',
+    false
+  );
+  const [isFarmModalOpen, setIsFarmModalOpen] = usePersistentState(
+    'CompanyManagement_isFarmModalOpen',
+    false
+  );
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('CompanyManagement_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'CompanyManagement_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('company-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('CompanyManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'CompanyManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     state: 'all',
     minArea: 0,
     maxArea: 100000,
     onlyValidated: false,
-    hasMatriz: 'all'
+    hasMatriz: 'all',
   });
   const [stats, setStats] = useState<any[]>([]);
 
@@ -99,104 +143,232 @@ export const CompanyManagement: React.FC = () => {
   }, [activeTenantId, tenant, page]);
 
   const fetchData = async () => {
-    if (!activeTenantId) return;
+    if (!activeTenantId) {
+      return;
+    }
     setLoading(true);
     try {
       const [{ data: unitsData }, { data: farmsData }] = await Promise.all([
         supabase.from('unidades').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId),
-        supabase.from('fazendas').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
+        supabase.from('fazendas').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId),
       ]);
 
-      if (unitsData) setCompanies(unitsData);
-      if (farmsData) setFarms(farmsData);
+      if (unitsData) {
+        setCompanies(unitsData);
+      }
+      if (farmsData) {
+        setFarms(farmsData);
+      }
 
       // Strategic Intelligence Calculations
       const isTemplate = tenant?.is_template === true;
       const totalUnits = (unitsData?.length || 0) + (farmsData?.length || 0);
-      const totalArea = (farmsData || []).reduce((acc: any, f: any) => acc + (Number(f.area_total) || 0), 0);
-      const matrizCount = (unitsData || []).filter((u: any) => u.tipo?.toLowerCase() === 'matriz').length;
-      const complianceScore = isTemplate ? 100 : Math.floor((matrizCount > 0 ? 60 : 0) + (totalUnits > 0 ? 40 : 0));
+      const totalArea = (farmsData || []).reduce(
+        (acc: any, f: any) => acc + (Number(f.area_total) || 0),
+        0
+      );
+      const matrizCount = (unitsData || []).filter(
+        (u: any) => u.tipo?.toLowerCase() === 'matriz'
+      ).length;
+      const complianceScore = isTemplate
+        ? 100
+        : Math.floor((matrizCount > 0 ? 60 : 0) + (totalUnits > 0 ? 40 : 0));
 
       setStats([
-        { 
-          label: 'Unidades Ativas', 
-          value: totalUnits, 
-          icon: Building2, 
-          color: '#3b82f6', 
+        {
+          label: 'Unidades Ativas',
+          value: totalUnits,
+          icon: Building2,
+          color: '#3b82f6',
           progress: totalUnits > 0 ? 100 : 0,
           change: 'Instâncias Ativas',
           periodLabel: 'Portfólio Global',
-          sparkline: totalUnits > 0 ? [
-            { value: Math.max(1, totalUnits - 6), label: `${Math.max(1, totalUnits - 6)} unid.` },
-            { value: Math.max(1, totalUnits - 5), label: `${Math.max(1, totalUnits - 5)} unid.` },
-            { value: Math.max(1, totalUnits - 4), label: `${Math.max(1, totalUnits - 4)} unid.` },
-            { value: Math.max(1, totalUnits - 3), label: `${Math.max(1, totalUnits - 3)} unid.` },
-            { value: Math.max(1, totalUnits - 2), label: `${Math.max(1, totalUnits - 2)} unid.` },
-            { value: Math.max(1, totalUnits - 1), label: `${Math.max(1, totalUnits - 1)} unid.` },
-            { value: totalUnits, label: `Hoje: ${totalUnits} unid.` }
-          ] : []
+          sparkline:
+            totalUnits > 0
+              ? [
+                  {
+                    value: Math.max(1, totalUnits - 6),
+                    label: `${Math.max(1, totalUnits - 6)} unid.`,
+                  },
+                  {
+                    value: Math.max(1, totalUnits - 5),
+                    label: `${Math.max(1, totalUnits - 5)} unid.`,
+                  },
+                  {
+                    value: Math.max(1, totalUnits - 4),
+                    label: `${Math.max(1, totalUnits - 4)} unid.`,
+                  },
+                  {
+                    value: Math.max(1, totalUnits - 3),
+                    label: `${Math.max(1, totalUnits - 3)} unid.`,
+                  },
+                  {
+                    value: Math.max(1, totalUnits - 2),
+                    label: `${Math.max(1, totalUnits - 2)} unid.`,
+                  },
+                  {
+                    value: Math.max(1, totalUnits - 1),
+                    label: `${Math.max(1, totalUnits - 1)} unid.`,
+                  },
+                  { value: totalUnits, label: `Hoje: ${totalUnits} unid.` },
+                ]
+              : [],
         },
-        { 
-          label: 'Área Consolidada', 
-          value: `${totalArea.toLocaleString('pt-BR')} ha`, 
-          icon: Map, 
-          color: '#10b981', 
+        {
+          label: 'Área Consolidada',
+          value: `${totalArea.toLocaleString('pt-BR')} ha`,
+          icon: Map,
+          color: '#10b981',
           progress: totalArea > 0 ? 100 : 0,
           change: 'Área de Produção',
           periodLabel: 'Atual',
-          sparkline: totalArea > 0 ? [
-            { value: Math.round(totalArea * 0.6), label: `${Math.round(totalArea * 0.6).toLocaleString('pt-BR')} ha` },
-            { value: Math.round(totalArea * 0.68), label: `${Math.round(totalArea * 0.68).toLocaleString('pt-BR')} ha` },
-            { value: Math.round(totalArea * 0.75), label: `${Math.round(totalArea * 0.75).toLocaleString('pt-BR')} ha` },
-            { value: Math.round(totalArea * 0.82), label: `${Math.round(totalArea * 0.82).toLocaleString('pt-BR')} ha` },
-            { value: Math.round(totalArea * 0.88), label: `${Math.round(totalArea * 0.88).toLocaleString('pt-BR')} ha` },
-            { value: Math.round(totalArea * 0.94), label: `${Math.round(totalArea * 0.94).toLocaleString('pt-BR')} ha` },
-            { value: totalArea, label: `Hoje: ${totalArea.toLocaleString('pt-BR')} ha` }
-          ] : []
+          sparkline:
+            totalArea > 0
+              ? [
+                  {
+                    value: Math.round(totalArea * 0.6),
+                    label: `${Math.round(totalArea * 0.6).toLocaleString('pt-BR')} ha`,
+                  },
+                  {
+                    value: Math.round(totalArea * 0.68),
+                    label: `${Math.round(totalArea * 0.68).toLocaleString('pt-BR')} ha`,
+                  },
+                  {
+                    value: Math.round(totalArea * 0.75),
+                    label: `${Math.round(totalArea * 0.75).toLocaleString('pt-BR')} ha`,
+                  },
+                  {
+                    value: Math.round(totalArea * 0.82),
+                    label: `${Math.round(totalArea * 0.82).toLocaleString('pt-BR')} ha`,
+                  },
+                  {
+                    value: Math.round(totalArea * 0.88),
+                    label: `${Math.round(totalArea * 0.88).toLocaleString('pt-BR')} ha`,
+                  },
+                  {
+                    value: Math.round(totalArea * 0.94),
+                    label: `${Math.round(totalArea * 0.94).toLocaleString('pt-BR')} ha`,
+                  },
+                  { value: totalArea, label: `Hoje: ${totalArea.toLocaleString('pt-BR')} ha` },
+                ]
+              : [],
         },
-        { 
-          label: 'Governança Fiscal', 
-          value: isTemplate ? 'TEMPLATE MASTER' : (matrizCount > 0 ? 'MATRIZ ATIVA' : 'PENDENTE'), 
-          icon: ShieldCheck, 
-          color: isTemplate ? '#10b981' : (matrizCount > 0 ? '#10b981' : '#ef4444'), 
-          progress: isTemplate ? 100 : (matrizCount > 0 ? 100 : 0),
-          change: isTemplate ? 'Não Aplicável' : (matrizCount > 0 ? 'Conforme' : 'Risco Fiscal'),
+        {
+          label: 'Governança Fiscal',
+          value: isTemplate ? 'TEMPLATE MASTER' : matrizCount > 0 ? 'MATRIZ ATIVA' : 'PENDENTE',
+          icon: ShieldCheck,
+          color: isTemplate ? '#10b981' : matrizCount > 0 ? '#10b981' : '#ef4444',
+          progress: isTemplate ? 100 : matrizCount > 0 ? 100 : 0,
+          change: isTemplate ? 'Não Aplicável' : matrizCount > 0 ? 'Conforme' : 'Risco Fiscal',
           periodLabel: 'Auditoria',
           sparkline: isTemplate
-            ? [{ value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100, label: 'Template' }]
-            : (matrizCount > 0
-              ? [{ value: 40 }, { value: 55 }, { value: 65 }, { value: 75 }, { value: 85 }, { value: 95 }, { value: 100, label: 'Conforme' }]
-              : [])
+            ? [
+                { value: 100 },
+                { value: 100 },
+                { value: 100 },
+                { value: 100 },
+                { value: 100 },
+                { value: 100 },
+                { value: 100, label: 'Template' },
+              ]
+            : matrizCount > 0
+              ? [
+                  { value: 40 },
+                  { value: 55 },
+                  { value: 65 },
+                  { value: 75 },
+                  { value: 85 },
+                  { value: 95 },
+                  { value: 100, label: 'Conforme' },
+                ]
+              : [],
         },
-        { 
-          label: 'Score Operacional', 
-          value: complianceScore > 0 ? `${complianceScore}%` : '---', 
-          icon: Layout, 
-          color: complianceScore > 80 ? '#10b981' : '#f59e0b', 
+        {
+          label: 'Score Operacional',
+          value: complianceScore > 0 ? `${complianceScore}%` : '---',
+          icon: Layout,
+          color: complianceScore > 80 ? '#10b981' : '#f59e0b',
           progress: complianceScore > 0 ? complianceScore : 0,
           change: complianceScore > 0 ? 'Health Index' : '---',
           periodLabel: 'Sistema',
-          sparkline: complianceScore > 0 ? [
-            { value: Math.round(complianceScore * 0.55), label: `${Math.round(complianceScore * 0.55)}%` },
-            { value: Math.round(complianceScore * 0.64), label: `${Math.round(complianceScore * 0.64)}%` },
-            { value: Math.round(complianceScore * 0.72), label: `${Math.round(complianceScore * 0.72)}%` },
-            { value: Math.round(complianceScore * 0.80), label: `${Math.round(complianceScore * 0.80)}%` },
-            { value: Math.round(complianceScore * 0.88), label: `${Math.round(complianceScore * 0.88)}%` },
-            { value: Math.round(complianceScore * 0.94), label: `${Math.round(complianceScore * 0.94)}%` },
-            { value: complianceScore, label: `Hoje: ${complianceScore}%` }
-          ] : []
-        }
+          sparkline:
+            complianceScore > 0
+              ? [
+                  {
+                    value: Math.round(complianceScore * 0.55),
+                    label: `${Math.round(complianceScore * 0.55)}%`,
+                  },
+                  {
+                    value: Math.round(complianceScore * 0.64),
+                    label: `${Math.round(complianceScore * 0.64)}%`,
+                  },
+                  {
+                    value: Math.round(complianceScore * 0.72),
+                    label: `${Math.round(complianceScore * 0.72)}%`,
+                  },
+                  {
+                    value: Math.round(complianceScore * 0.8),
+                    label: `${Math.round(complianceScore * 0.8)}%`,
+                  },
+                  {
+                    value: Math.round(complianceScore * 0.88),
+                    label: `${Math.round(complianceScore * 0.88)}%`,
+                  },
+                  {
+                    value: Math.round(complianceScore * 0.94),
+                    label: `${Math.round(complianceScore * 0.94)}%`,
+                  },
+                  { value: complianceScore, label: `Hoje: ${complianceScore}%` },
+                ]
+              : [],
+        },
       ]);
     } catch (err) {
-      console.error("CompanyManagement: Error fetching data from database:", err);
+      console.error('CompanyManagement: Error fetching data from database:', err);
       setCompanies([]);
       setFarms([]);
-      
+
       setStats([
-        { label: 'Unidades Ativas', value: 0, icon: Building2, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Área Consolidada', value: '0 ha', icon: Map, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Governança Fiscal', value: 'INDISPONÍVEL', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Score Operacional', value: '0%', icon: Layout, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
+        {
+          label: 'Unidades Ativas',
+          value: 0,
+          icon: Building2,
+          color: '#ef4444',
+          progress: 0,
+          change: 'Erro de Conexão',
+          periodLabel: 'Indisponível',
+          sparkline: [],
+        },
+        {
+          label: 'Área Consolidada',
+          value: '0 ha',
+          icon: Map,
+          color: '#ef4444',
+          progress: 0,
+          change: 'Erro de Conexão',
+          periodLabel: 'Indisponível',
+          sparkline: [],
+        },
+        {
+          label: 'Governança Fiscal',
+          value: 'INDISPONÍVEL',
+          icon: ShieldCheck,
+          color: '#ef4444',
+          progress: 0,
+          change: 'Erro de Conexão',
+          periodLabel: 'Indisponível',
+          sparkline: [],
+        },
+        {
+          label: 'Score Operacional',
+          value: '0%',
+          icon: Layout,
+          color: '#ef4444',
+          progress: 0,
+          change: 'Erro de Conexão',
+          periodLabel: 'Indisponível',
+          sparkline: [],
+        },
       ]);
     } finally {
       setLoading(false);
@@ -236,7 +408,7 @@ export const CompanyManagement: React.FC = () => {
       if (editingItem) {
         await supabase.from('unidades').update(payload).eq('id', editingItem.id);
       } else {
-        await supabase.from('unidades').insert([{ ...payload, tenant_id: tenant.id }]);
+        await supabase.from('unidades').insert([{ ...payload, tenant_id: tenant!.id }]);
       }
       fetchData();
       setIsCompanyModalOpen(false);
@@ -256,13 +428,13 @@ export const CompanyManagement: React.FC = () => {
         localizacao: formData.location,
         municipio: formData.municipio || null,
         uf: formData.uf || null,
-        unidade_id: formData.companyId
+        unidade_id: formData.companyId,
       };
 
       if (editingItem) {
         await supabase.from('fazendas').update(payload).eq('id', editingItem.id);
       } else {
-        await supabase.from('fazendas').insert([{ ...payload, tenant_id: tenant.id }]);
+        await supabase.from('fazendas').insert([{ ...payload, tenant_id: tenant!.id }]);
       }
       fetchData();
       setIsFarmModalOpen(false);
@@ -274,17 +446,30 @@ export const CompanyManagement: React.FC = () => {
 
   const handleDelete = async (type: 'company' | 'farm', id: string) => {
     if (type === 'company') {
-      const company = companies.find(c => c.id === id);
+      const company = companies.find((c) => c.id === id);
       if (company?.tipo?.toUpperCase() === 'MATRIZ') {
-        toast.error('Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.');
+        toast.error(
+          'Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.'
+        );
         return;
       }
     }
 
-    const isConfirmed = await confirm({ title: 'Atenção', description: `Tem certeza que deseja excluir esta ${type === 'company' ? 'empresa' : 'fazenda'}?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: `Tem certeza que deseja excluir esta ${type === 'company' ? 'empresa' : 'fazenda'}?`,
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     try {
-      await supabase.from(type === 'company' ? 'unidades' : 'fazendas').delete().eq('id', id);
+      await supabase
+        .from(type === 'company' ? 'unidades' : 'fazendas')
+        .delete()
+        .eq('id', id);
       fetchData();
     } catch (err) {
       console.error(err);
@@ -298,21 +483,27 @@ export const CompanyManagement: React.FC = () => {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*', { count: 'exact' })
-        .eq('tenant_id', tenant.id)
-        .order('created_at', { ascending: false })
-        ;
-
-      if (error) throw error;
+        .eq('tenant_id', tenant!.id)
+        .order('created_at', { ascending: false });
+      if (error) {
+        throw error;
+      }
 
       if (data) {
-        setHistoryItems(data.map((log: any) => ({
-          id: log.id,
-          date: log.created_at,
-          title: log.action || 'Ação do Sistema',
-          subtitle: log.user_email || 'Usuário do Sistema',
-          value: log.details || log.entity_name,
-          status: log.action?.toLowerCase().includes('erro') || log.action?.toLowerCase().includes('falha') ? 'error' : 'success'
-        })));
+        setHistoryItems(
+          data.map((log: any) => ({
+            id: log.id,
+            date: log.created_at,
+            title: log.action || 'Ação do Sistema',
+            subtitle: log.user_email || 'Usuário do Sistema',
+            value: log.details || log.entity_name,
+            status:
+              log.action?.toLowerCase().includes('erro') ||
+              log.action?.toLowerCase().includes('falha')
+                ? 'error'
+                : 'success',
+          }))
+        );
       } else {
         setHistoryItems([]);
       }
@@ -325,7 +516,9 @@ export const CompanyManagement: React.FC = () => {
   };
 
   const syncWithTenant = async () => {
-    if (!tenant) return;
+    if (!tenant) {
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
@@ -333,16 +526,18 @@ export const CompanyManagement: React.FC = () => {
         razao_social: tenant.nome || tenant.name,
         documento: tenant.documento || tenant.document,
         tipo: 'matriz',
-        tenant_id: tenant.id
+        tenant_id: tenant.id,
       };
-      
+
       const { error } = await supabase.from('unidades').insert([payload]);
-      if (error) throw error;
-      
+      if (error) {
+        throw error;
+      }
+
       fetchData();
     } catch (err: any) {
       console.error('Erro ao sincronizar com tenant:', err);
-      toast.error('Falha ao sincronizar dados: ' + (err.message || 'Erro desconhecido.'));
+      toast.error(`Falha ao sincronizar dados: ${err.message || 'Erro desconhecido.'}`);
     } finally {
       setLoading(false);
     }
@@ -350,30 +545,46 @@ export const CompanyManagement: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     if (activeTab === 'companies') {
-      const exportData = filteredCompanies.map(item => ({
+      const exportData = filteredCompanies.map((item) => ({
         RazaoSocial: item.razao_social || item.nome,
         CNPJ: item.cnpj || item.documento || '---',
         Cidade: item.cidade || '---',
         Estado: item.estado || '---',
         Tipo: item.tipo || 'UNIDADE',
-        Status: item.ativo ? 'Ativo' : 'Inativo'
+        Status: item.ativo ? 'Ativo' : 'Inativo',
       }));
 
-      if (format === 'csv') exportToCSV(exportData, 'empresas_unidades');
-      else if (format === 'excel') exportToExcel(exportData, 'empresas_unidades');
-      else if (format === 'pdf') exportToPDF(exportData, 'empresas_unidades', 'Relatório de Governança - Empresas e Matrizes');
+      if (format === 'csv') {
+        exportToCSV(exportData, 'empresas_unidades');
+      } else if (format === 'excel') {
+        exportToExcel(exportData, 'empresas_unidades');
+      } else if (format === 'pdf') {
+        exportToPDF(
+          exportData,
+          'empresas_unidades',
+          'Relatório de Governança - Empresas e Matrizes'
+        );
+      }
     } else {
-      const exportData = filteredFarms.map(item => ({
+      const exportData = filteredFarms.map((item) => ({
         Nome: item.nome,
         Area_ha: item.area_total || 0,
         Localizacao: item.localizacao || '---',
-        Empresa_Pai: companies.find(c => c.id === item.unidade_id)?.razao_social || 'N/A',
-        IE_Produtor: item.ie_produtor || '---'
+        Empresa_Pai: companies.find((c) => c.id === item.unidade_id)?.razao_social || 'N/A',
+        IE_Produtor: item.ie_produtor || '---',
       }));
 
-      if (format === 'csv') exportToCSV(exportData, 'fazendas_unidades');
-      else if (format === 'excel') exportToExcel(exportData, 'fazendas_unidades');
-      else if (format === 'pdf') exportToPDF(exportData, 'fazendas_unidades', 'Relatório de Governança - Fazendas e Unidades Produtivas');
+      if (format === 'csv') {
+        exportToCSV(exportData, 'fazendas_unidades');
+      } else if (format === 'excel') {
+        exportToExcel(exportData, 'fazendas_unidades');
+      } else if (format === 'pdf') {
+        exportToPDF(
+          exportData,
+          'fazendas_unidades',
+          'Relatório de Governança - Fazendas e Unidades Produtivas'
+        );
+      }
     }
   };
 
@@ -387,27 +598,29 @@ export const CompanyManagement: React.FC = () => {
             CNPJ: {item.cnpj || item.documento || '---'}
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Contato',
       accessor: (item: any) => (
         <div className="table-cell-title">
-          <span className="main-text" style={{ fontSize: 13 }}>{item.email || '---'}</span>
-          <div className="sub-meta text-[11px]">
-            {item.telefone || '---'}
-          </div>
+          <span className="main-text" style={{ fontSize: 13 }}>
+            {item.email || '---'}
+          </span>
+          <div className="sub-meta text-[11px]">{item.telefone || '---'}</div>
         </div>
-      )
+      ),
     },
     {
       header: 'Localização',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <MapPin size={14} />
-          <span>{item.cidade || '---'} / {item.estado || '--'}</span>
+          <span>
+            {item.cidade || '---'} / {item.estado || '--'}
+          </span>
         </div>
-      )
+      ),
     },
     {
       header: 'Tipo',
@@ -416,19 +629,28 @@ export const CompanyManagement: React.FC = () => {
           {item.tipo || 'UNIDADE'}
         </span>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.ativo ? '#10b981' : '#ef4444' }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: item.ativo ? '#10b981' : '#ef4444' }}>
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: item.ativo ? '#10b981' : '#ef4444',
+            }}
+          />
+          <span
+            style={{ fontSize: 12, fontWeight: 700, color: item.ativo ? '#10b981' : '#ef4444' }}
+          >
             {item.ativo ? 'ATIVO' : 'INATIVO'}
           </span>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   const farmColumns = [
@@ -441,54 +663,62 @@ export const CompanyManagement: React.FC = () => {
             {item.localizacao || 'Sem localização'}
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Documentos',
       accessor: (item: any) => (
         <div className="table-cell-title">
-          <span className="main-text" style={{ fontSize: 12 }}>IE: {item.ie_produtor || '---'}</span>
-          <div className="sub-meta text-[11px]">
-            NIRF: {item.nirf || '---'}
-          </div>
+          <span className="main-text" style={{ fontSize: 12 }}>
+            IE: {item.ie_produtor || '---'}
+          </span>
+          <div className="sub-meta text-[11px]">NIRF: {item.nirf || '---'}</div>
         </div>
-      )
+      ),
     },
     {
       header: 'Área Total',
       accessor: (item: any) => (
-        <div className="table-cell-meta" style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+        <div
+          className="table-cell-meta"
+          style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}
+        >
           <Layout size={14} style={{ color: 'hsl(var(--brand))' }} />
           <span>{item.area_total || 0} ha</span>
         </div>
-      )
+      ),
     },
     {
       header: 'Município / UF',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <MapPin size={14} />
-          <span>{item.municipio || '---'} / {item.uf || '--'}</span>
+          <span>
+            {item.municipio || '---'} / {item.uf || '--'}
+          </span>
         </div>
-      )
+      ),
     },
     {
       header: 'Empresa Vinculada',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <Building2 size={14} />
-          <span style={{ fontWeight: 600 }}>{companies.find(c => c.id === item.unidade_id)?.razao_social || 'N/A'}</span>
+          <span style={{ fontWeight: 600 }}>
+            {companies.find((c) => c.id === item.unidade_id)?.razao_social || 'N/A'}
+          </span>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
-  const filteredCompanies = companies.filter(c => {
-    const matchesSearch = (c.razao_social?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-                         (c.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-                         (c.cnpj || '').includes(searchTerm) ||
-                         (c.documento || '').includes(searchTerm);
-    
+  const filteredCompanies = companies.filter((c) => {
+    const matchesSearch =
+      (c.razao_social?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (c.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (c.cnpj || '').includes(searchTerm) ||
+      (c.documento || '').includes(searchTerm);
+
     const matchesType = filterValues.type === 'all' || c.tipo?.toLowerCase() === filterValues.type;
     const matchesState = filterValues.state === 'all' || c.estado === filterValues.state;
     const matchesValidated = !filterValues.onlyValidated || c.ativo;
@@ -496,29 +726,40 @@ export const CompanyManagement: React.FC = () => {
     return matchesSearch && matchesType && matchesState && matchesValidated;
   });
 
-  const filteredFarms = farms.filter(f => {
+  const filteredFarms = farms.filter((f) => {
     const matchesSearch = (f.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    
-    const matchesArea = filterValues.maxArea >= 100000 || (Number(f.area_total || 0) <= filterValues.maxArea);
-    const matchesState = filterValues.state === 'all' || f.localizacao?.includes(filterValues.state);
+
+    const matchesArea =
+      filterValues.maxArea >= 100000 || Number(f.area_total || 0) <= filterValues.maxArea;
+    const matchesState =
+      filterValues.state === 'all' || f.localizacao?.includes(filterValues.state);
 
     return matchesSearch && matchesArea && matchesState;
   });
 
-  const hasMatriz = companies.some(c => c.tipo?.toUpperCase() === 'MATRIZ');
+  const hasMatriz = companies.some((c) => c.tipo?.toUpperCase() === 'MATRIZ');
 
   return (
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Empresas & Fazendas' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Administração', href: '/admin/intelligence' },
+              { label: 'Empresas & Fazendas' },
+            ]}
+          />
           <h1 className="page-title">Empresas & Fazendas</h1>
-          <p className="page-subtitle">Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.</p>
+          <p className="page-subtitle">
+            Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.
+          </p>
         </div>
         <div className="page-actions">
-          <button 
-            className="primary-btn" 
-            onClick={() => activeTab === 'companies' ? setIsCompanyModalOpen(true) : setIsFarmModalOpen(true)}
+          <button
+            className="primary-btn"
+            onClick={() =>
+              activeTab === 'companies' ? setIsCompanyModalOpen(true) : setIsFarmModalOpen(true)
+            }
           >
             <Plus size={18} />
             {activeTab === 'companies' ? 'ADICIONAR EMPRESA' : 'NOVA FAZENDA'}
@@ -527,32 +768,34 @@ export const CompanyManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                periodLabel={stat.periodLabel}
+                sparkline={stat.sparkline}
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'companies' ? 'active' : ''}`}
             onClick={() => setActiveTab('companies')}
           >
             Empresas (Matriz/Filial)
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'farms' ? 'active' : ''}`}
             onClick={() => setActiveTab('farms')}
           >
@@ -562,24 +805,28 @@ export const CompanyManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder={activeTab === 'companies' ? "Buscar por razão social ou CNPJ..." : "Buscar fazenda por nome..."} 
+            placeholder={
+              activeTab === 'companies'
+                ? 'Buscar por razão social ou CNPJ...'
+                : 'Buscar fazenda por nome...'
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -589,7 +836,7 @@ export const CompanyManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -597,26 +844,49 @@ export const CompanyManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-company');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-company" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-company')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-company')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-company')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <CompanyFilterModal 
+      <CompanyFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -625,7 +895,7 @@ export const CompanyManagement: React.FC = () => {
 
       <div className="management-content">
         {activeTab === 'companies' && !hasMatriz && !loading && !tenant?.is_template && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="matriz-warning-banner"
@@ -634,7 +904,10 @@ export const CompanyManagement: React.FC = () => {
               <XCircle size={20} />
               <div>
                 <strong>Atenção: Nenhuma Empresa Matriz Detectada</strong>
-                <p>O ecossistema requer pelo menos uma unidade configurada como MATRIZ para fins fiscais e de governança.</p>
+                <p>
+                  O ecossistema requer pelo menos uma unidade configurada como MATRIZ para fins
+                  fiscais e de governança.
+                </p>
               </div>
             </div>
             <div className="warning-actions">
@@ -650,21 +923,21 @@ export const CompanyManagement: React.FC = () => {
 
         <AnimatePresence mode="wait">
           {activeTab === 'companies' ? (
-            <motion.div 
+            <motion.div
               key="companies-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
               {viewMode === 'list' ? (
-                <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
+                <ModernTable
+                  emptyState={
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  }
                   data={filteredCompanies}
                   columns={companyColumns}
                   loading={loading}
@@ -672,10 +945,21 @@ export const CompanyManagement: React.FC = () => {
                   searchPlaceholder="Buscar por razão social ou CNPJ..."
                   actions={(item) => (
                     <div className="modern-actions">
-                      <button className="action-dot info" onClick={() => handleViewLogs(item)} title="Histórico">
+                      <button
+                        className="action-dot info"
+                        onClick={() => handleViewLogs(item)}
+                        title="Histórico"
+                      >
                         <Eye size={18} />
                       </button>
-                      <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsCompanyModalOpen(true); }} title="Editar">
+                      <button
+                        className="action-dot edit"
+                        onClick={() => {
+                          setEditingItem(item);
+                          setIsCompanyModalOpen(true);
+                        }}
+                        title="Editar"
+                      >
                         <Edit3 size={18} />
                       </button>
                     </div>
@@ -686,21 +970,25 @@ export const CompanyManagement: React.FC = () => {
                   title="Nenhuma empresa encontrada"
                   description="Não há empresas cadastradas que correspondam aos filtros atuais."
                   actionLabel="Nova Empresa"
-                  onAction={() => { setEditingItem(null); setIsCompanyModalOpen(true); }}
+                  onAction={() => {
+                    setEditingItem(null);
+                    setIsCompanyModalOpen(true);
+                  }}
                   icon={Building2}
                 />
               ) : (
                 <div className="user-cards-grid">
-                  {filteredCompanies.map(c => {
-                    const farmCount = farms.filter(f => f.unidade_id === c.id).length;
+                  {filteredCompanies.map((c) => {
+                    const farmCount = farms.filter((f) => f.unidade_id === c.id).length;
                     const isMatriz = c.tipo?.toLowerCase() === 'matriz';
                     const hasCnpj = !!c.cnpj || !!c.documento;
                     const hasAddress = !!c.cidade;
-                    const healthPercentage = (isMatriz ? 40 : 20) + (hasCnpj ? 30 : 0) + (hasAddress ? 30 : 0);
+                    const healthPercentage =
+                      (isMatriz ? 40 : 20) + (hasCnpj ? 30 : 0) + (hasAddress ? 30 : 0);
 
                     return (
-                      <motion.div 
-                        key={c.id} 
+                      <motion.div
+                        key={c.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`company-card-premium ${isMatriz ? 'matriz' : 'filial'}`}
@@ -711,9 +999,30 @@ export const CompanyManagement: React.FC = () => {
                             <Building2 size={24} />
                           </div>
                           <div className="card-bottom-actions">
-                            <button className="action-icon-btn info" onClick={() => handleViewLogs(c)} title="Histórico"><History size={14} /></button>
-                            <button className="action-icon-btn edit" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
-                            <button className="action-icon-btn delete" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={14} /></button>
+                            <button
+                              className="action-icon-btn info"
+                              onClick={() => handleViewLogs(c)}
+                              title="Histórico"
+                            >
+                              <History size={14} />
+                            </button>
+                            <button
+                              className="action-icon-btn edit"
+                              onClick={() => {
+                                setEditingItem(c);
+                                setIsCompanyModalOpen(true);
+                              }}
+                              title="Editar"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              className="action-icon-btn delete"
+                              onClick={() => handleDelete('company', c.id)}
+                              title="Excluir"
+                            >
+                              <XCircle size={14} />
+                            </button>
                           </div>
                         </div>
 
@@ -734,7 +1043,9 @@ export const CompanyManagement: React.FC = () => {
                           </div>
 
                           <div className="entity-sub-info">
-                            {c.cnpj || c.documento ? `CNPJ: ${c.cnpj || c.documento}` : 'Sem CNPJ registrado'}
+                            {c.cnpj || c.documento
+                              ? `CNPJ: ${c.cnpj || c.documento}`
+                              : 'Sem CNPJ registrado'}
                           </div>
 
                           {/* Featured Metric Panel (Highlighting value/importance) */}
@@ -752,12 +1063,17 @@ export const CompanyManagement: React.FC = () => {
                               <span>{healthPercentage}%</span>
                             </div>
                             <div className="premium-progress-bar">
-                              <div 
-                                className="progress-fill" 
-                                style={{ 
-                                  width: `${healthPercentage}%`, 
-                                  background: healthPercentage === 100 ? '#10b981' : healthPercentage >= 50 ? 'hsl(var(--brand))' : '#ca8a04' 
-                                }} 
+                              <div
+                                className="progress-fill"
+                                style={{
+                                  width: `${healthPercentage}%`,
+                                  background:
+                                    healthPercentage === 100
+                                      ? '#10b981'
+                                      : healthPercentage >= 50
+                                        ? 'hsl(var(--brand))'
+                                        : '#ca8a04',
+                                }}
                               />
                             </div>
                           </div>
@@ -766,7 +1082,11 @@ export const CompanyManagement: React.FC = () => {
                           <div className="card-footer-row">
                             <div className="footer-meta-item">
                               <MapPin size={11} />
-                              <span>{c.cidade ? `${c.cidade}/${c.estado || 'BR'}` : 'Localidade pendente'}</span>
+                              <span>
+                                {c.cidade
+                                  ? `${c.cidade}/${c.estado || 'BR'}`
+                                  : 'Localidade pendente'}
+                              </span>
                             </div>
                             {isMatriz && (
                               <div className="footer-meta-item highlight">
@@ -783,21 +1103,21 @@ export const CompanyManagement: React.FC = () => {
               )}
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="farms-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
               {viewMode === 'list' ? (
-                <ModernTable 
+                <ModernTable
                   emptyState={
                     <EmptyState
                       title="Nenhum registro encontrado"
                       description="Sua busca não retornou resultados."
                       icon={Search}
                     />
-                  } 
+                  }
                   data={filteredFarms}
                   columns={farmColumns}
                   loading={loading}
@@ -805,10 +1125,21 @@ export const CompanyManagement: React.FC = () => {
                   searchPlaceholder="Buscar fazenda por nome..."
                   actions={(item) => (
                     <div className="modern-actions">
-                      <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsFarmModalOpen(true); }} title="Editar">
+                      <button
+                        className="action-dot edit"
+                        onClick={() => {
+                          setEditingItem(item);
+                          setIsFarmModalOpen(true);
+                        }}
+                        title="Editar"
+                      >
                         <Edit3 size={18} />
                       </button>
-                      <button className="action-dot delete" onClick={() => handleDelete('farm', item.id)} title="Excluir">
+                      <button
+                        className="action-dot delete"
+                        onClick={() => handleDelete('farm', item.id)}
+                        title="Excluir"
+                      >
                         <XCircle size={18} />
                       </button>
                     </div>
@@ -819,18 +1150,21 @@ export const CompanyManagement: React.FC = () => {
                   title="Nenhuma unidade produtiva encontrada"
                   description="Não há unidades cadastradas que correspondam aos filtros atuais."
                   actionLabel="Nova Unidade"
-                  onAction={() => { setEditingItem(null); setIsFarmModalOpen(true); }}
+                  onAction={() => {
+                    setEditingItem(null);
+                    setIsFarmModalOpen(true);
+                  }}
                   icon={Map}
                 />
               ) : (
                 <div className="user-cards-grid">
-                  {filteredFarms.map(f => {
-                    const parentCompany = companies.find(c => c.id === f.unidade_id);
+                  {filteredFarms.map((f) => {
+                    const parentCompany = companies.find((c) => c.id === f.unidade_id);
                     const totalArea = Number(f.area_total || 0);
 
                     return (
-                      <motion.div 
-                        key={f.id} 
+                      <motion.div
+                        key={f.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="farm-card-premium"
@@ -841,8 +1175,23 @@ export const CompanyManagement: React.FC = () => {
                             <Map size={24} />
                           </div>
                           <div className="card-bottom-actions">
-                            <button className="action-icon-btn edit" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
-                            <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={14} /></button>
+                            <button
+                              className="action-icon-btn edit"
+                              onClick={() => {
+                                setEditingItem(f);
+                                setIsFarmModalOpen(true);
+                              }}
+                              title="Editar"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              className="action-icon-btn delete"
+                              onClick={() => handleDelete('farm', f.id)}
+                              title="Excluir"
+                            >
+                              <XCircle size={14} />
+                            </button>
                           </div>
                         </div>
 
@@ -863,7 +1212,11 @@ export const CompanyManagement: React.FC = () => {
                           <div className="featured-metric-panel area-highlight">
                             <div className="metric-label">ÁREA TOTAL PRODUTIVA</div>
                             <div className="metric-value">
-                              {totalArea.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ha
+                              {totalArea.toLocaleString('pt-BR', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}{' '}
+                              ha
                             </div>
                           </div>
 
@@ -874,7 +1227,9 @@ export const CompanyManagement: React.FC = () => {
                             </div>
                             <div className="parent-link-badge">
                               <Building2 size={12} />
-                              <span>{parentCompany?.razao_social || 'Nenhuma empresa vinculada'}</span>
+                              <span>
+                                {parentCompany?.razao_social || 'Nenhuma empresa vinculada'}
+                              </span>
                             </div>
                           </div>
 
@@ -882,7 +1237,11 @@ export const CompanyManagement: React.FC = () => {
                           <div className="card-footer-row">
                             <div className="footer-meta-item">
                               <MapPin size={11} />
-                              <span>{f.municipio ? `${f.municipio}/${f.uf || 'BR'}` : f.localizacao || 'Sem localização'}</span>
+                              <span>
+                                {f.municipio
+                                  ? `${f.municipio}/${f.uf || 'BR'}`
+                                  : f.localizacao || 'Sem localização'}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1299,27 +1658,27 @@ export const CompanyManagement: React.FC = () => {
         }
       `}</style>
 
-      <CompanyForm 
-        isOpen={isCompanyModalOpen} 
+      <CompanyForm
+        isOpen={isCompanyModalOpen}
         onClose={() => {
           setIsCompanyModalOpen(false);
           setEditingItem(null);
-        }} 
-        onSubmit={handleAddCompany} 
+        }}
+        onSubmit={handleAddCompany}
         initialData={editingItem}
       />
 
-      <FarmForm 
-        isOpen={isFarmModalOpen} 
+      <FarmForm
+        isOpen={isFarmModalOpen}
         onClose={() => {
           setIsFarmModalOpen(false);
           setEditingItem(null);
-        }} 
-        onSubmit={handleAddFarm} 
+        }}
+        onSubmit={handleAddFarm}
         initialData={editingItem}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Histórico de Auditoria"
@@ -1327,7 +1686,6 @@ export const CompanyManagement: React.FC = () => {
         items={historyItems}
         loading={historyLoading}
       />
-
     </div>
   );
 };

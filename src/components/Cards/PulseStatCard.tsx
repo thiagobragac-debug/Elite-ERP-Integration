@@ -31,7 +31,7 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
   sparkline = [],
   loading = false,
   periodLabel = 'Últimos 30 dias',
-  className = ''
+  className = '',
 }) => {
   const normalized = React.useMemo(() => normalizeSparkline(sparkline), [sparkline]);
 
@@ -42,16 +42,18 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
   }, []);
 
   if (loading) {
-    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }}></div>;
+    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }} />;
   }
 
-  const hasData = normalized.length > 0 && normalized.some(s => s.value > 0);
+  const hasData = normalized.length > 0 && normalized.some((s) => s.value > 0);
   const dataToRender = hasData
     ? normalized
-    : Array(15).fill(null).map(() => ({ value: 0, label: 'Sem Histórico' }));
+    : Array(15)
+        .fill(null)
+        .map(() => ({ value: 0, label: 'Sem Histórico' }));
 
-  const maxVal = Math.max(...dataToRender.map(s => s.value), 1);
-  const minVal = hasData ? Math.min(...dataToRender.map(s => s.value)) : 0;
+  const maxVal = Math.max(...dataToRender.map((s) => s.value), 1);
+  const minVal = hasData ? Math.min(...dataToRender.map((s) => s.value)) : 0;
   const range = maxVal - minVal;
 
   return (
@@ -75,7 +77,7 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
               transition={{ duration: 1.5, ease: 'easeOut' }}
             />
           </svg>
-          <div className="icon-center" style={{ color: color }}>
+          <div className="icon-center" style={{ color }}>
             <Icon size={28} />
           </div>
         </div>
@@ -92,7 +94,7 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
         </div>
       </div>
 
-      <div className="kpi-divider"></div>
+      <div className="kpi-divider" />
 
       <div
         style={{
@@ -121,18 +123,27 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
               : Math.round(0.15 * SPARKLINE_H);
             const opacityVal = hasData ? 0.35 + ratio * 0.65 : 0.2;
 
-            const displayValue = hasData && item.value >= 1000
-              ? item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-              : hasData && item.value % 1 !== 0
-                ? item.value.toFixed(2)
-                : hasData
-                  ? item.value.toFixed(0)
-                  : null;
+            const displayValue =
+              hasData && item.value >= 1000
+                ? item.value.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    maximumFractionDigits: 0,
+                  })
+                : hasData && item.value % 1 !== 0
+                  ? item.value.toFixed(2)
+                  : hasData
+                    ? item.value.toFixed(0)
+                    : null;
 
             return (
               <div
                 key={i}
-                title={item.label && displayValue ? `${displayValue} — ${item.label}` : (item.label || displayValue || '')}
+                title={
+                  item.label && displayValue
+                    ? `${displayValue} — ${item.label}`
+                    : item.label || displayValue || ''
+                }
                 style={{
                   flex: 1,
                   minWidth: 0,

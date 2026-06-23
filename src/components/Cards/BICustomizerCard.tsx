@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Settings, ChevronRight } from 'lucide-react';
+import { PieChart, Settings } from 'lucide-react';
 
 interface BICustomizerCardProps {
   onClick?: () => void;
@@ -11,10 +11,12 @@ export const BICustomizerCard: React.FC<BICustomizerCardProps> = ({ onClick }) =
       <div className="bi-icon-wrapper">
         <PieChart size={24} className="bi-icon" />
       </div>
-      
+
       <div className="bi-content">
         <h3 className="bi-title">Construtor de BI Customizado</h3>
-        <p className="bi-subtitle">Combine diferentes métricas e crie visualizações exclusivas para sua operação.</p>
+        <p className="bi-subtitle">
+          Combine diferentes métricas e crie visualizações exclusivas para sua operação.
+        </p>
       </div>
 
       <button className="bi-action-btn" onClick={onClick}>

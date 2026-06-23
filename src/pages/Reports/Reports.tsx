@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { 
-  FileText, 
-  Download, 
-  Filter, 
-  Calendar, 
+import {
+  FileText,
+  Download,
+  Filter,
+  Calendar,
   ChevronRight,
   PieChart,
   BarChart3,
@@ -30,7 +30,7 @@ import {
   Globe,
   BarChart4,
   Leaf,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +39,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useTenant } from '../../contexts/TenantContext';
 import { fetchReportDataById } from '../../hooks/useReportData';
-import { exportToExcel } from '../../utils/exportUtils';
+import { exportToBrazilianCSV } from '../../utils/export';
 import { ScheduleModal } from './components/ScheduleModal';
 import { PeriodSelectorModal } from './components/PeriodSelectorModal';
 import { ReportFilterModal } from './components/ReportFilterModal';
@@ -49,60 +49,73 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-
 export const Reports: React.FC = () => {
   const { tenant, userProfile, refreshProfile } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId } = useFarmFilter();
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
+  const [activeCategory, setActiveCategory] = useState<
+    'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'
+  >('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isViewerOpen, setIsViewerOpen] = usePersistentState('Reports_isViewerOpen', false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useViewMode('reports-overview', 'grid');
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = usePersistentState('Reports_isScheduleModalOpen', false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = usePersistentState(
+    'Reports_isScheduleModalOpen',
+    false
+  );
   const [reportToSchedule, setReportToSchedule] = useState<any>(null);
-  const [isPeriodModalOpen, setIsPeriodModalOpen] = usePersistentState('Reports_isPeriodModalOpen', false);
+  const [isPeriodModalOpen, setIsPeriodModalOpen] = usePersistentState(
+    'Reports_isPeriodModalOpen',
+    false
+  );
   const [selectedPeriod, setSelectedPeriod] = useState('safra_atual');
-  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState('Reports_isFilterModalOpen', false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState(
+    'Reports_isFilterModalOpen',
+    false
+  );
   const [advancedFilters, setAdvancedFilters] = useState({
     tags: [] as string[],
     complexity: 'all',
     onlyFavorites: false,
-    minIntegrity: 0
+    minIntegrity: 0,
   });
-
 
   // Carregar favoritos iniciais do perfil
   useEffect(() => {
     if (userProfile?.settings?.reportFavorites) {
-      setFavorites(userProfile.settings.reportFavorites);
+      setFavorites(userProfile.settings.reportFavorites as string[]);
     }
   }, [userProfile]);
 
   const toggleFavorite = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!userProfile?.id) return;
+    if (!userProfile?.id) {
+      return;
+    }
 
-    const newFavorites = favorites.includes(id) 
-      ? favorites.filter(f => f !== id) 
+    const newFavorites = favorites.includes(id)
+      ? favorites.filter((f) => f !== id)
       : [...favorites, id];
-    
+
     // Atualização otimista
     setFavorites(newFavorites);
 
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          settings: { 
-            ...(userProfile.settings || {}), 
-            reportFavorites: newFavorites 
-          } 
+        .update({
+          settings: {
+            ...(userProfile.settings || {}),
+            reportFavorites: newFavorites,
+          },
         })
         .eq('id', userProfile.id);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       // Opcional: atualizar o perfil no contexto para manter consistência
       await refreshProfile();
     } catch (error) {
@@ -113,46 +126,354 @@ export const Reports: React.FC = () => {
   };
 
   const reportTypes = [
-    { id: '1', title: 'Performance Ponderal (GMD)', category: 'livestock', icon: Activity, desc: 'Análise de conversão alimentar e eficiência de ganho de peso.', color: '#10b981', categoryLabel: 'PECUÁRIA', tags: ['Zootécnico', 'Operacional'], complexity: 'Médio', integrity: 100 },
-    { id: '2', title: 'Heatmap de Ocupação de Pasto', category: 'livestock', icon: Layers, desc: 'Distribuição espacial UA/ha e taxa de lotação dinâmica.', color: '#10b981', categoryLabel: 'PECUÁRIA', tags: ['Zootécnico', 'Auditoria'], complexity: 'Pesado', integrity: 100 },
-    { id: '3', title: 'Inventário Geral de Rebanho', category: 'livestock', icon: ClipboardList, desc: 'Contagem oficial por lote, categoria e fase produtiva.', color: '#10b981', categoryLabel: 'PECUÁRIA', tags: ['Auditoria', 'Fiscal'], complexity: 'Médio', integrity: 100 },
-    { id: '4', title: 'Rastreabilidade e Sanidade', category: 'livestock', icon: Activity, desc: 'Histórico sanitário completo e certificação de origem.', color: '#10b981', categoryLabel: 'PECUÁRIA', tags: ['Operacional', 'Auditoria'], complexity: 'Leve', integrity: 75 },
-    { id: '5', title: 'Projeção de Abate (Predição)', category: 'livestock', icon: Zap, desc: 'Estimativa de peso e data de saída baseada em IA.', color: '#10b981', categoryLabel: 'PECUÁRIA', tags: ['Zootécnico', 'Operacional'], complexity: 'Pesado', integrity: 100 },
+    {
+      id: '1',
+      title: 'Performance Ponderal (GMD)',
+      category: 'livestock',
+      icon: Activity,
+      desc: 'Análise de conversão alimentar e eficiência de ganho de peso.',
+      color: '#10b981',
+      categoryLabel: 'PECUÁRIA',
+      tags: ['Zootécnico', 'Operacional'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '2',
+      title: 'Heatmap de Ocupação de Pasto',
+      category: 'livestock',
+      icon: Layers,
+      desc: 'Distribuição espacial UA/ha e taxa de lotação dinâmica.',
+      color: '#10b981',
+      categoryLabel: 'PECUÁRIA',
+      tags: ['Zootécnico', 'Auditoria'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
+    {
+      id: '3',
+      title: 'Inventário Geral de Rebanho',
+      category: 'livestock',
+      icon: ClipboardList,
+      desc: 'Contagem oficial por lote, categoria e fase produtiva.',
+      color: '#10b981',
+      categoryLabel: 'PECUÁRIA',
+      tags: ['Auditoria', 'Fiscal'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '4',
+      title: 'Rastreabilidade e Sanidade',
+      category: 'livestock',
+      icon: Activity,
+      desc: 'Histórico sanitário completo e certificação de origem.',
+      color: '#10b981',
+      categoryLabel: 'PECUÁRIA',
+      tags: ['Operacional', 'Auditoria'],
+      complexity: 'Leve',
+      integrity: 75,
+    },
+    {
+      id: '5',
+      title: 'Projeção de Abate (Predição)',
+      category: 'livestock',
+      icon: Zap,
+      desc: 'Estimativa de peso e data de saída baseada em IA.',
+      color: '#10b981',
+      categoryLabel: 'PECUÁRIA',
+      tags: ['Zootécnico', 'Operacional'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
 
     // FINANCEIRO
-    { id: '6', title: 'DRE & Fluxo Consolidado', category: 'finance', icon: DollarSign, desc: 'Demonstrativo de resultados e saúde financeira do exercício.', color: '#3b82f6', categoryLabel: 'FINANCEIRO', tags: ['Financeiro', 'Fiscal'], complexity: 'Médio', integrity: 100 },
-    { id: '7', title: 'Balanço Patrimonial Agro', category: 'finance', icon: BarChart3, desc: 'Visão contábil de ativos biológicos e imobilizados.', color: '#3b82f6', categoryLabel: 'FINANCEIRO', tags: ['Financeiro', 'Fiscal', 'Auditoria'], complexity: 'Médio', integrity: 100 },
-    { id: '8', title: 'Custo p/ @ Produzida', category: 'finance', icon: Target, desc: 'Break-even e eficiência econômica por arroba.', color: '#3b82f6', categoryLabel: 'FINANCEIRO', tags: ['Financeiro', 'Operacional'], complexity: 'Pesado', integrity: 100 },
-    { id: '9', title: 'Fluxo de Caixa Projetado', category: 'finance', icon: DollarSign, desc: 'Análise de liquidez e compromissos futuros.', color: '#3b82f6', categoryLabel: 'FINANCEIRO', tags: ['Financeiro'], complexity: 'Médio', integrity: 100 },
+    {
+      id: '6',
+      title: 'DRE & Fluxo Consolidado',
+      category: 'finance',
+      icon: DollarSign,
+      desc: 'Demonstrativo de resultados e saúde financeira do exercício.',
+      color: '#3b82f6',
+      categoryLabel: 'FINANCEIRO',
+      tags: ['Financeiro', 'Fiscal'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '7',
+      title: 'Balanço Patrimonial Agro',
+      category: 'finance',
+      icon: BarChart3,
+      desc: 'Visão contábil de ativos biológicos e imobilizados.',
+      color: '#3b82f6',
+      categoryLabel: 'FINANCEIRO',
+      tags: ['Financeiro', 'Fiscal', 'Auditoria'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '8',
+      title: 'Custo p/ @ Produzida',
+      category: 'finance',
+      icon: Target,
+      desc: 'Break-even e eficiência econômica por arroba.',
+      color: '#3b82f6',
+      categoryLabel: 'FINANCEIRO',
+      tags: ['Financeiro', 'Operacional'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
+    {
+      id: '9',
+      title: 'Fluxo de Caixa Projetado',
+      category: 'finance',
+      icon: DollarSign,
+      desc: 'Análise de liquidez e compromissos futuros.',
+      color: '#3b82f6',
+      categoryLabel: 'FINANCEIRO',
+      tags: ['Financeiro'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
 
     // FROTA
-    { id: '10', title: 'TCO de Frota Agroindustrial', category: 'fleet', icon: Truck, desc: 'Custo total de propriedade e eficiência mecânica por ativo.', color: '#6366f1', categoryLabel: 'FROTA', tags: ['Logística', 'Operacional'], complexity: 'Médio', integrity: 100 },
-    { id: '11', title: 'Eficiência Energética (Diesel)', category: 'fleet', icon: BarChart3, desc: 'Benchmark de consumo L/h entre operadores e máquinas.', color: '#6366f1', categoryLabel: 'FROTA', tags: ['Operacional', 'RH'], complexity: 'Leve', integrity: 100 },
-    { id: '12', title: 'Plano de Manutenção Preventiva', category: 'fleet', icon: Settings, desc: 'Cronograma de revisões e disponibilidade de frota.', color: '#6366f1', categoryLabel: 'FROTA', tags: ['Operacional'], complexity: 'Leve', integrity: 100 },
+    {
+      id: '10',
+      title: 'TCO de Frota Agroindustrial',
+      category: 'fleet',
+      icon: Truck,
+      desc: 'Custo total de propriedade e eficiência mecânica por ativo.',
+      color: '#6366f1',
+      categoryLabel: 'FROTA',
+      tags: ['Logística', 'Operacional'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '11',
+      title: 'Eficiência Energética (Diesel)',
+      category: 'fleet',
+      icon: BarChart3,
+      desc: 'Benchmark de consumo L/h entre operadores e máquinas.',
+      color: '#6366f1',
+      categoryLabel: 'FROTA',
+      tags: ['Operacional', 'RH'],
+      complexity: 'Leve',
+      integrity: 100,
+    },
+    {
+      id: '12',
+      title: 'Plano de Manutenção Preventiva',
+      category: 'fleet',
+      icon: Settings,
+      desc: 'Cronograma de revisões e disponibilidade de frota.',
+      color: '#6366f1',
+      categoryLabel: 'FROTA',
+      tags: ['Operacional'],
+      complexity: 'Leve',
+      integrity: 100,
+    },
 
     // SUPRIMENTOS
-    { id: '13', title: 'Giro de Estoque & Insumos', category: 'supply', icon: Package, desc: 'Predição de ruptura e análise de consumo de insumos.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Logística', 'Financeiro'], complexity: 'Médio', integrity: 100 },
-    { id: '14', title: 'ABC de Compras Agro', category: 'supply', icon: ShoppingCart, desc: 'Curva de criticidade e concentração de fornecedores.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Operacional', 'Financeiro'], complexity: 'Leve', integrity: 100 },
-    { id: '15', title: 'Acuracidade de Inventário', category: 'supply', icon: Target, desc: 'Auditoria de estoque físico vs. contábil.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Auditoria', 'Operacional'], complexity: 'Médio', integrity: 100 },
+    {
+      id: '13',
+      title: 'Giro de Estoque & Insumos',
+      category: 'supply',
+      icon: Package,
+      desc: 'Predição de ruptura e análise de consumo de insumos.',
+      color: '#f59e0b',
+      categoryLabel: 'SUPRIMENTOS',
+      tags: ['Logística', 'Financeiro'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '14',
+      title: 'ABC de Compras Agro',
+      category: 'supply',
+      icon: ShoppingCart,
+      desc: 'Curva de criticidade e concentração de fornecedores.',
+      color: '#f59e0b',
+      categoryLabel: 'SUPRIMENTOS',
+      tags: ['Operacional', 'Financeiro'],
+      complexity: 'Leve',
+      integrity: 100,
+    },
+    {
+      id: '15',
+      title: 'Acuracidade de Inventário',
+      category: 'supply',
+      icon: Target,
+      desc: 'Auditoria de estoque físico vs. contábil.',
+      color: '#f59e0b',
+      categoryLabel: 'SUPRIMENTOS',
+      tags: ['Auditoria', 'Operacional'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
 
     // COMERCIAL
-    { id: '16', title: 'Análise de Ticket Médio Venda', category: 'sales', icon: TrendingUp, desc: 'Performance de comercialização e praças de destino.', color: '#db2777', categoryLabel: 'COMERCIAL', tags: ['Financeiro'], complexity: 'Leve', integrity: 100 },
-    { id: '17', title: 'Pipeline de Contratos Futuros', category: 'sales', icon: ClipboardList, desc: 'Gestão de exposição e contratos de termo.', color: '#db2777', categoryLabel: 'COMERCIAL', tags: ['Financeiro', 'Fiscal'], complexity: 'Médio', integrity: 100 },
+    {
+      id: '16',
+      title: 'Análise de Ticket Médio Venda',
+      category: 'sales',
+      icon: TrendingUp,
+      desc: 'Performance de comercialização e praças de destino.',
+      color: '#db2777',
+      categoryLabel: 'COMERCIAL',
+      tags: ['Financeiro'],
+      complexity: 'Leve',
+      integrity: 100,
+    },
+    {
+      id: '17',
+      title: 'Pipeline de Contratos Futuros',
+      category: 'sales',
+      icon: ClipboardList,
+      desc: 'Gestão de exposição e contratos de termo.',
+      color: '#db2777',
+      categoryLabel: 'COMERCIAL',
+      tags: ['Financeiro', 'Fiscal'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
 
     // GOVERNANÇA
-    { id: '18', title: 'Relatório de Auditoria (Logs)', category: 'gov', icon: Shield, desc: 'Rastreabilidade de ações e conformidade de acesso.', color: '#94a3b8', categoryLabel: 'GOVERNANÇA', tags: ['Auditoria', 'RH'], complexity: 'Leve', integrity: 100 },
-    { id: '19', title: 'KPIs de Sustentabilidade', category: 'gov', icon: Activity, desc: 'Métricas ESG e eficiência socioambiental.', color: '#94a3b8', categoryLabel: 'GOVERNANÇA', tags: ['Auditoria', 'Operacional'], complexity: 'Médio', integrity: 50 },
-    { id: '20', title: 'Consolidado de Unidades (Multi-fazenda)', category: 'gov', icon: LayoutGrid, desc: 'Visão agregada de performance corporativa.', color: '#94a3b8', categoryLabel: 'GOVERNANÇA', tags: ['Financeiro', 'Operacional'], complexity: 'Pesado', integrity: 100 },
+    {
+      id: '18',
+      title: 'Relatório de Auditoria (Logs)',
+      category: 'gov',
+      icon: Shield,
+      desc: 'Rastreabilidade de ações e conformidade de acesso.',
+      color: '#94a3b8',
+      categoryLabel: 'GOVERNANÇA',
+      tags: ['Auditoria', 'RH'],
+      complexity: 'Leve',
+      integrity: 100,
+    },
+    {
+      id: '19',
+      title: 'KPIs de Sustentabilidade',
+      category: 'gov',
+      icon: Activity,
+      desc: 'Métricas ESG e eficiência socioambiental.',
+      color: '#94a3b8',
+      categoryLabel: 'GOVERNANÇA',
+      tags: ['Auditoria', 'Operacional'],
+      complexity: 'Médio',
+      integrity: 50,
+    },
+    {
+      id: '20',
+      title: 'Consolidado de Unidades (Multi-fazenda)',
+      category: 'gov',
+      icon: LayoutGrid,
+      desc: 'Visão agregada de performance corporativa.',
+      color: '#94a3b8',
+      categoryLabel: 'GOVERNANÇA',
+      tags: ['Financeiro', 'Operacional'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
 
     // INTELIGÊNCIA AVANÇADA (NEW)
-    { id: '21', title: 'Simulação de Monte Carlo (Risco)', category: 'finance', icon: Brain, desc: 'Análise probabilística de rentabilidade e estresse financeiro.', color: '#8b5cf6', categoryLabel: 'IA PREDITIVA', tags: ['Financeiro', 'Auditoria'], complexity: 'Pesado', integrity: 100 },
-    { id: '22', title: 'Predição de Suporte de Pasto (IA)', category: 'livestock', icon: Globe, desc: 'Estimativa de suporte biológico via NDVI e dados climáticos.', color: '#8b5cf6', categoryLabel: 'IA PREDITIVA', tags: ['Zootécnico', 'Operacional'], complexity: 'Pesado', integrity: 75 },
-    { id: '23', title: 'Análise de Sensibilidade (@ vs Dólar)', category: 'finance', icon: BarChart4, desc: 'Matriz de impacto cambial na margem líquida direta.', color: '#3b82f6', categoryLabel: 'ESTRATÉGICO', tags: ['Financeiro'], complexity: 'Médio', integrity: 100 },
-    { id: '24', title: 'IPB (Índice Produtividade Biológica)', category: 'livestock', icon: Target, desc: 'Score consolidado de eficiência produtiva do plantel.', color: '#10b981', categoryLabel: 'CIÊNCIA DE DADOS', tags: ['Zootécnico'], complexity: 'Médio', integrity: 100 },
-    { id: '25', title: 'Benchmarking Best Practices', category: 'gov', icon: TrendingUp, desc: 'Comparativo inter-unidades para identificação de Gold Standards.', color: '#94a3b8', categoryLabel: 'GOVERNANÇA', tags: ['Auditoria', 'Operacional'], complexity: 'Pesado', integrity: 100 },
-    { id: '26', title: 'Balanço de Carbono (ESG)', category: 'gov', icon: Leaf, desc: 'Monitoramento de sequestro vs. emissão entérica certificada.', color: '#10b981', categoryLabel: 'SUSTENTABILIDADE', tags: ['Auditoria', 'Fiscal'], complexity: 'Médio', integrity: 100 },
-    { id: '27', title: 'Conformidade Socioambiental', category: 'gov', icon: Shield, desc: 'Auditoria de áreas embargadas e compliance de parceiros.', color: '#ef4444', categoryLabel: 'RISCO & COMPLIANCE', tags: ['Auditoria', 'Fiscal'], complexity: 'Médio', integrity: 100 },
-    { id: '28', title: 'Análise de Variância (Plan x Real)', category: 'finance', icon: BarChart3, desc: 'Decomposição de desvios por preço, volume e eficiência.', color: '#3b82f6', categoryLabel: 'CONTROLADORIA', tags: ['Financeiro', 'Fiscal'], complexity: 'Pesado', integrity: 100 },
+    {
+      id: '21',
+      title: 'Simulação de Monte Carlo (Risco)',
+      category: 'finance',
+      icon: Brain,
+      desc: 'Análise probabilística de rentabilidade e estresse financeiro.',
+      color: '#8b5cf6',
+      categoryLabel: 'IA PREDITIVA',
+      tags: ['Financeiro', 'Auditoria'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
+    {
+      id: '22',
+      title: 'Predição de Suporte de Pasto (IA)',
+      category: 'livestock',
+      icon: Globe,
+      desc: 'Estimativa de suporte biológico via NDVI e dados climáticos.',
+      color: '#8b5cf6',
+      categoryLabel: 'IA PREDITIVA',
+      tags: ['Zootécnico', 'Operacional'],
+      complexity: 'Pesado',
+      integrity: 75,
+    },
+    {
+      id: '23',
+      title: 'Análise de Sensibilidade (@ vs Dólar)',
+      category: 'finance',
+      icon: BarChart4,
+      desc: 'Matriz de impacto cambial na margem líquida direta.',
+      color: '#3b82f6',
+      categoryLabel: 'ESTRATÉGICO',
+      tags: ['Financeiro'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '24',
+      title: 'IPB (Índice Produtividade Biológica)',
+      category: 'livestock',
+      icon: Target,
+      desc: 'Score consolidado de eficiência produtiva do plantel.',
+      color: '#10b981',
+      categoryLabel: 'CIÊNCIA DE DADOS',
+      tags: ['Zootécnico'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '25',
+      title: 'Benchmarking Best Practices',
+      category: 'gov',
+      icon: TrendingUp,
+      desc: 'Comparativo inter-unidades para identificação de Gold Standards.',
+      color: '#94a3b8',
+      categoryLabel: 'GOVERNANÇA',
+      tags: ['Auditoria', 'Operacional'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
+    {
+      id: '26',
+      title: 'Balanço de Carbono (ESG)',
+      category: 'gov',
+      icon: Leaf,
+      desc: 'Monitoramento de sequestro vs. emissão entérica certificada.',
+      color: '#10b981',
+      categoryLabel: 'SUSTENTABILIDADE',
+      tags: ['Auditoria', 'Fiscal'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '27',
+      title: 'Conformidade Socioambiental',
+      category: 'gov',
+      icon: Shield,
+      desc: 'Auditoria de áreas embargadas e compliance de parceiros.',
+      color: '#ef4444',
+      categoryLabel: 'RISCO & COMPLIANCE',
+      tags: ['Auditoria', 'Fiscal'],
+      complexity: 'Médio',
+      integrity: 100,
+    },
+    {
+      id: '28',
+      title: 'Análise de Variância (Plan x Real)',
+      category: 'finance',
+      icon: BarChart3,
+      desc: 'Decomposição de desvios por preço, volume e eficiência.',
+      color: '#3b82f6',
+      categoryLabel: 'CONTROLADORIA',
+      tags: ['Financeiro', 'Fiscal'],
+      complexity: 'Pesado',
+      integrity: 100,
+    },
   ];
 
   const handleGenerateReport = (report: any) => {
@@ -162,43 +483,49 @@ export const Reports: React.FC = () => {
 
   const handleDirectDownload = async (e: React.MouseEvent, report: any) => {
     e.stopPropagation();
-    if (!tenant?.id) return;
+    if (!tenant?.id) {
+      return;
+    }
 
     try {
       // Feedback visual: mudar cursor para 'wait'
       document.body.style.cursor = 'wait';
-      
-      const { data, columns } = await fetchReportDataById(report.id, activeTenantId || '', activeFarmId || undefined);
-      
+
+      const { data, columns } = await fetchReportDataById(
+        report.id,
+        activeTenantId || '',
+        activeFarmId || undefined
+      );
+
       if (data && data.length > 0) {
-        exportToExcel(data, columns, report.title);
-        
+        exportToBrazilianCSV(data, columns, report.title);
+
         // Atualizar timestamp de geração
         if (userProfile?.id) {
           const now = new Date().toISOString();
-          const newHistory = { 
+          const newHistory = {
             ...(userProfile.settings?.generationHistory || {}),
-            [report.id]: now
+            [report.id]: now,
           };
-          
+
           await supabase
             .from('profiles')
-            .update({ 
-              settings: { 
-                ...(userProfile.settings || {}), 
-                generationHistory: newHistory 
-              } 
+            .update({
+              settings: {
+                ...(userProfile.settings || {}),
+                generationHistory: newHistory,
+              },
             })
             .eq('id', userProfile.id);
-            
+
           await refreshProfile();
         }
       } else {
-        toast.error("Este relatório não possui dados para exportação no momento.");
+        toast.error('Este relatório não possui dados para exportação no momento.');
       }
     } catch (error) {
-      console.error("Erro ao baixar relatório:", error);
-      toast.error("Erro ao processar exportação. Tente novamente.");
+      console.error('Erro ao baixar relatório:', error);
+      toast.error('Erro ao processar exportação. Tente novamente.');
     } finally {
       document.body.style.cursor = 'default';
     }
@@ -210,38 +537,70 @@ export const Reports: React.FC = () => {
     setIsScheduleModalOpen(true);
   };
 
-
   const getGenerationTime = (reportId: string) => {
-    const timestamp = userProfile?.settings?.generationHistory?.[reportId];
-    if (!timestamp) return { date: 'Nunca', time: '--:--:--' };
-    
-    const d = new Date(timestamp);
+    const timestamp = (userProfile?.settings?.generationHistory as Record<string, unknown>)?.[reportId];
+    if (!timestamp) {
+      return { date: 'Nunca', time: '--:--:--' };
+    }
+
+    const d = new Date(timestamp as string);
     return {
-      date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
-      time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      date: d
+        .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+        .toUpperCase(),
+      time: d.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
     };
   };
 
-  const filteredReports = reportTypes
-    .filter(r => (activeCategory === 'all' || r.category === activeCategory))
-    .filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .filter(r => {
-      // Advanced Filters
-      const matchesTags = advancedFilters.tags.length === 0 || 
-        advancedFilters.tags.every(tag => 
-          r.tags?.some(rTag => rTag.toLowerCase() === tag.toLowerCase())
-        );
-      
-      const matchesComplexity = advancedFilters.complexity === 'all' || 
-        r.complexity === advancedFilters.complexity;
-      
-      const matchesFavorites = !advancedFilters.onlyFavorites || 
-        favorites.includes(r.id);
-      
-      const matchesIntegrity = (r.integrity || 0) >= advancedFilters.minIntegrity;
+  const filteredReports = React.useMemo(() => {
+    const planModules = tenant?.plan_details?.modules || [];
+    const hasPlanRestriction = tenant && tenant.plan !== 'BETA_FREE' && planModules.length > 0;
 
-      return matchesTags && matchesComplexity && matchesFavorites && matchesIntegrity;
-    });
+    const categoryToModuleMap: Record<string, string[]> = {
+      'livestock': ['Pecuária'],
+      'finance': ['Financeiro & Banco'],
+      'fleet': ['Máquina & Frota'],
+      'supply': ['Compra & Cotação', 'Estoque'],
+      'sales': ['Venda & CRM'],
+      'gov': ['Financeiro & Banco', 'Administração'],
+    };
+
+    return reportTypes
+      .filter((r) => activeCategory === 'all' || r.category === activeCategory)
+      .filter((r) => r.title.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter((r) => {
+        // Plan restriction
+        if (hasPlanRestriction) {
+          const requiredModules = categoryToModuleMap[r.category] || [];
+          if (requiredModules.length > 0) {
+            const hasAccess = requiredModules.some(mod => planModules.includes(mod));
+            if (!hasAccess) return false;
+          }
+        }
+        return true;
+      })
+      .filter((r) => {
+        // Advanced Filters
+        const matchesTags =
+          advancedFilters.tags.length === 0 ||
+          advancedFilters.tags.every((tag) =>
+            r.tags?.some((rTag) => rTag.toLowerCase() === tag.toLowerCase())
+          );
+
+        const matchesComplexity =
+          advancedFilters.complexity === 'all' || r.complexity === advancedFilters.complexity;
+
+        const matchesFavorites = !advancedFilters.onlyFavorites || favorites.includes(r.id);
+
+        const matchesIntegrity = (r.integrity || 0) >= advancedFilters.minIntegrity;
+
+        return matchesTags && matchesComplexity && matchesFavorites && matchesIntegrity;
+      });
+  }, [reportTypes, activeCategory, searchTerm, advancedFilters, favorites, tenant]);
 
   return (
     <div className="admin-page animate-slide-up">
@@ -250,8 +609,8 @@ export const Reports: React.FC = () => {
           <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Relatórios Operacionais' }]} />
           <h1 className="page-title">Relatórios Operacionais</h1>
           <p className="page-subtitle">
-            {isGlobalMode 
-              ? 'Visão consolidada de todas as unidades produtivas do grupo.' 
+            {isGlobalMode
+              ? 'Visão consolidada de todas as unidades produtivas do grupo.'
               : `Listagem técnica e exportação de documentos da unidade ${activeFarm?.name || 'sua fazenda'}.`}
           </p>
         </div>
@@ -260,291 +619,313 @@ export const Reports: React.FC = () => {
             <PieChart size={18} />
             CENTRAL DE BI
           </button>
-          <button className="primary-btn" onClick={() => toast.error('Dossier Mode: Selecione múltiplos relatórios para compilar um dossiê executivo.')}>
+          <button
+            className="primary-btn"
+            onClick={() =>
+              toast.error(
+                'Dossier Mode: Selecione múltiplos relatórios para compilar um dossiê executivo.'
+              )
+            }
+          >
             <Layers size={18} />
             GERAR DOSSIÊ
           </button>
         </div>
       </header>
 
+      <motion.div key="main-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="tauze-controls-row" style={{ marginTop: '24px' }}>
+          <div className="tauze-search-wrapper">
+            <Search size={18} className="s-icon" />
+            <input
+              type="text"
+              className="tauze-search-input"
+              placeholder="Pesquisar relatórios por nome ou tag técnica..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
+          <div className="view-mode-toggle">
+            <button
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="Visualização em Lista"
+            >
+              <ClipboardList size={18} />
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Visualização em Grade"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
 
-      <motion.div 
-        key="main-content"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-      <div className="tauze-controls-row" style={{ marginTop: '24px' }}>
-        <div className="tauze-search-wrapper">
-          <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
-            className="tauze-search-input"
-            placeholder="Pesquisar relatórios por nome ou tag técnica..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div className="tauze-filter-group">
+            <button
+              className={`icon-btn-secondary ${selectedPeriod !== 'safra_atual' ? 'active' : ''}`}
+              title="Filtrar por Período"
+              onClick={() => setIsPeriodModalOpen(true)}
+            >
+              <Calendar size={18} />
+            </button>
+            <button
+              className={`icon-btn-secondary ${
+                advancedFilters.tags.length > 0 ||
+                advancedFilters.complexity !== 'all' ||
+                advancedFilters.onlyFavorites ||
+                advancedFilters.minIntegrity > 0
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={() => setIsFilterModalOpen(true)}
+              title="Filtros Avançados"
+            >
+              <Filter size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className="view-mode-toggle">
-          <button 
-            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-            title="Visualização em Lista"
-          >
-            <ClipboardList size={18} />
-          </button>
-          <button 
-            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => setViewMode('grid')}
-            title="Visualização em Grade"
-          >
-            <LayoutGrid size={18} />
-          </button>
-        </div>
-
-        <div className="tauze-filter-group">
-          <button 
-            className={`icon-btn-secondary ${selectedPeriod !== 'safra_atual' ? 'active' : ''}`} 
-            title="Filtrar por Período"
-            onClick={() => setIsPeriodModalOpen(true)}
-          >
-            <Calendar size={18} />
-          </button>
-          <button 
-            className={`icon-btn-secondary ${
-              advancedFilters.tags.length > 0 || 
-              advancedFilters.complexity !== 'all' || 
-              advancedFilters.onlyFavorites || 
-              advancedFilters.minIntegrity > 0 ? 'active' : ''
-            }`}
-            onClick={() => setIsFilterModalOpen(true)}
-            title="Filtros Avançados"
-          >
-            <Filter size={18} />
-          </button>
-        </div>
-      </div>
-
-
-            <div className="report-hub-layout">
-              {/* Sidebar de Navegação */}
-              <aside className="report-sidebar-nav">
-                <div className="nav-section">
-                  <span className="section-label">CATEGORIAS</span>
-                  <div className="nav-items">
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'all' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('all')}
-                    >
-                      <Layers size={16} />
-                      <span>Todos os Relatórios</span>
-                      <span className="count">{reportTypes.length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'livestock' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('livestock')}
-                    >
-                      <Activity size={16} />
-                      <span>Pecuária & Manejo</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'livestock').length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'finance' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('finance')}
-                    >
-                      <DollarSign size={16} />
-                      <span>Financeiro & DRE</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'finance').length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'fleet' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('fleet')}
-                    >
-                      <Truck size={16} />
-                      <span>Frota & Logística</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'fleet').length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'supply' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('supply')}
-                    >
-                      <Package size={16} />
-                      <span>Suprimentos & Estoque</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'supply').length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'sales' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('sales')}
-                    >
-                      <ShoppingCart size={16} />
-                      <span>Vendas & CRM</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'sales').length}</span>
-                    </button>
-                    <button 
-                      className={`nav-item-btn ${activeCategory === 'gov' ? 'active' : ''}`}
-                      onClick={() => setActiveCategory('gov')}
-                    >
-                      <Shield size={16} />
-                      <span>Governança & ESG</span>
-                      <span className="count">{reportTypes.filter(r => r.category === 'gov').length}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="nav-section" style={{ marginTop: '32px' }}>
-                  <span className="section-label">PREFERIDOS</span>
-                  <div className="nav-items">
-                    {favorites.length > 0 ? (
-                      reportTypes.filter(r => favorites.includes(r.id)).map(fav => (
-                        <button 
-                          key={`fav-${fav.id}`}
-                          className="nav-item-btn fav-item"
-                          onClick={() => handleGenerateReport(fav)}
-                        >
-                          <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
-                          <span>{fav.title}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="empty-favorites">
-                        Nenhum favorito selecionado
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </aside>
-
-              {/* Lista Principal de Documentos */}
-              <main className="report-document-list">
-                <div className={`list-header-meta ${viewMode === 'grid' ? 'hidden' : ''}`}>
-                  <div className="col-name">NOME DO DOCUMENTO</div>
-                  <div className="col-meta">METADADOS TÉCNICOS</div>
-                  <div className="col-last">ÚLTIMA GERAÇÃO</div>
-                  <div className="col-actions"></div>
-                </div>
-
-                <div className={`document-rows ${viewMode}`}>
-                    {filteredReports.length === 0 ? (
-                      <EmptyState
-                        title="Nenhum relatório encontrado"
-                        description="Sua busca ou filtro não retornou resultados. Tente ajustar os filtros ou limpar a pesquisa."
-                        actionLabel="Limpar filtros"
-                        onAction={() => { setSearchTerm(''); setActiveCategory('all'); setAdvancedFilters({ tags: [], complexity: 'all', onlyFavorites: false, minIntegrity: 0 }); }}
-                        icon={FileText}
-                      />
-                    ) : filteredReports.map((report, idx) => (
-                      <motion.div 
-                        key={report.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        className="report-document-row"
-                        onClick={() => handleGenerateReport(report)}
-                      >
-                        <div className="doc-main-col">
-                          <button 
-                            className={`favorite-star ${favorites.includes(report.id) ? 'active' : ''}`} 
-                            onClick={(e) => toggleFavorite(e, report.id)}
-                          >
-                            <Star 
-                              size={14} 
-                              fill={favorites.includes(report.id) ? "#f59e0b" : "none"} 
-                              stroke={favorites.includes(report.id) ? "#f59e0b" : "currentColor"} 
-                            />
-                          </button>
-                          <div className="doc-info">
-                            <div className="doc-icon-wrapper" style={{ background: `${report.color}15`, color: report.color }}>
-                              <FileText size={20} />
-                            </div>
-                            <div className="doc-text">
-                              <span className="title">{report.title}</span>
-                              <p className="doc-row-desc">{report.desc}</p>
-                              <div className="category-badge-wrapper">
-                                <span className="cat-dot" style={{ backgroundColor: report.color }}></span>
-                                <span className="category">{report.categoryLabel}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="doc-metadata">
-                          {report.tags?.slice(0, 2).map((tag: string) => (
-                            <div key={tag} className="meta-tag">
-                              <Layers size={12} />
-                              <span>{tag.toUpperCase()}</span>
-                            </div>
-                          ))}
-                          <div className={`meta-tag complexity ${report.complexity?.toLowerCase()}`}>
-                            <Zap size={12} />
-                            <span>{report.complexity}</span>
-                          </div>
-                          <div className={`meta-tag integrity ${report.integrity >= 90 ? 'high' : 'low'}`}>
-                            <Shield size={12} />
-                            <span>INTEGRIDADE: {report.integrity}%</span>
-                          </div>
-                        </div>
-
-                      <div className="doc-timestamp">
-                        <span className="date">{getGenerationTime(report.id).date}</span>
-                        <span className="time">{getGenerationTime(report.id).time}</span>
-                      </div>
-
-                        <div className="doc-actions">
-                          <button 
-                            className="action-btn-doc" 
-                            title="Agendar Relatório Automático" 
-                            onClick={(e) => handleOpenSchedule(e, report)}
-                          >
-                            <Clock size={16} />
-                          </button>
-
-                          <button 
-                            className="action-btn-doc" 
-                            title="Download Direto Excel" 
-                            onClick={(e) => handleDirectDownload(e, report)}
-                          >
-                            <Download size={16} />
-                          </button>
-                        </div>
-                    </motion.div>
-                    ))}
-                </div>
-              </main>
+        <div className="report-hub-layout">
+          {/* Sidebar de Navegação */}
+          <aside className="report-sidebar-nav">
+            <div className="nav-section">
+              <span className="section-label">CATEGORIAS</span>
+              <div className="nav-items">
+                <button
+                  className={`nav-item-btn ${activeCategory === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('all')}
+                >
+                  <Layers size={16} />
+                  <span>Todos os Relatórios</span>
+                  <span className="count">{reportTypes.length}</span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'livestock' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('livestock')}
+                >
+                  <Activity size={16} />
+                  <span>Pecuária & Manejo</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'livestock').length}
+                  </span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'finance' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('finance')}
+                >
+                  <DollarSign size={16} />
+                  <span>Financeiro & DRE</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'finance').length}
+                  </span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'fleet' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('fleet')}
+                >
+                  <Truck size={16} />
+                  <span>Frota & Logística</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'fleet').length}
+                  </span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'supply' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('supply')}
+                >
+                  <Package size={16} />
+                  <span>Suprimentos & Estoque</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'supply').length}
+                  </span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'sales' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('sales')}
+                >
+                  <ShoppingCart size={16} />
+                  <span>Vendas & CRM</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'sales').length}
+                  </span>
+                </button>
+                <button
+                  className={`nav-item-btn ${activeCategory === 'gov' ? 'active' : ''}`}
+                  onClick={() => setActiveCategory('gov')}
+                >
+                  <Shield size={16} />
+                  <span>Governança & ESG</span>
+                  <span className="count">
+                    {reportTypes.filter((r) => r.category === 'gov').length}
+                  </span>
+                </button>
+              </div>
             </div>
 
+            <div className="nav-section" style={{ marginTop: '32px' }}>
+              <span className="section-label">PREFERIDOS</span>
+              <div className="nav-items">
+                {favorites.length > 0 ? (
+                  reportTypes
+                    .filter((r) => favorites.includes(r.id))
+                    .map((fav) => (
+                      <button
+                        key={`fav-${fav.id}`}
+                        className="nav-item-btn fav-item"
+                        onClick={() => handleGenerateReport(fav)}
+                      >
+                        <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
+                        <span>{fav.title}</span>
+                      </button>
+                    ))
+                ) : (
+                  <div className="empty-favorites">Nenhum favorito selecionado</div>
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* Lista Principal de Documentos */}
+          <main className="report-document-list">
+            <div className={`list-header-meta ${viewMode === 'grid' ? 'hidden' : ''}`}>
+              <div className="col-name">NOME DO DOCUMENTO</div>
+              <div className="col-meta">METADADOS TÉCNICOS</div>
+              <div className="col-last">ÚLTIMA GERAÇÃO</div>
+              <div className="col-actions" />
+            </div>
+
+            <div className={`document-rows ${viewMode}`}>
+              {filteredReports.length === 0 ? (
+                <EmptyState
+                  title="Nenhum relatório encontrado"
+                  description="Sua busca ou filtro não retornou resultados. Tente ajustar os filtros ou limpar a pesquisa."
+                  actionLabel="Limpar filtros"
+                  onAction={() => {
+                    setSearchTerm('');
+                    setActiveCategory('all');
+                    setAdvancedFilters({
+                      tags: [],
+                      complexity: 'all',
+                      onlyFavorites: false,
+                      minIntegrity: 0,
+                    });
+                  }}
+                  icon={FileText}
+                />
+              ) : (
+                filteredReports.map((report, idx) => (
+                  <motion.div
+                    key={report.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="report-document-row"
+                    onClick={() => handleGenerateReport(report)}
+                  >
+                    <div className="doc-main-col">
+                      <button
+                        className={`favorite-star ${favorites.includes(report.id) ? 'active' : ''}`}
+                        onClick={(e) => toggleFavorite(e, report.id)}
+                      >
+                        <Star
+                          size={14}
+                          fill={favorites.includes(report.id) ? '#f59e0b' : 'none'}
+                          stroke={favorites.includes(report.id) ? '#f59e0b' : 'currentColor'}
+                        />
+                      </button>
+                      <div className="doc-info">
+                        <div
+                          className="doc-icon-wrapper"
+                          style={{ background: `${report.color}15`, color: report.color }}
+                        >
+                          <FileText size={20} />
+                        </div>
+                        <div className="doc-text">
+                          <span className="title">{report.title}</span>
+                          <p className="doc-row-desc">{report.desc}</p>
+                          <div className="category-badge-wrapper">
+                            <span className="cat-dot" style={{ backgroundColor: report.color }} />
+                            <span className="category">{report.categoryLabel}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="doc-metadata">
+                      {report.tags?.slice(0, 2).map((tag: string) => (
+                        <div key={tag} className="meta-tag">
+                          <Layers size={12} />
+                          <span>{tag.toUpperCase()}</span>
+                        </div>
+                      ))}
+                      <div className={`meta-tag complexity ${report.complexity?.toLowerCase()}`}>
+                        <Zap size={12} />
+                        <span>{report.complexity}</span>
+                      </div>
+                      <div
+                        className={`meta-tag integrity ${report.integrity >= 90 ? 'high' : 'low'}`}
+                      >
+                        <Shield size={12} />
+                        <span>INTEGRIDADE: {report.integrity}%</span>
+                      </div>
+                    </div>
+
+                    <div className="doc-timestamp">
+                      <span className="date">{getGenerationTime(report.id).date}</span>
+                      <span className="time">{getGenerationTime(report.id).time}</span>
+                    </div>
+
+                    <div className="doc-actions">
+                      <button
+                        className="action-btn-doc"
+                        title="Agendar Relatório Automático"
+                        onClick={(e) => handleOpenSchedule(e, report)}
+                      >
+                        <Clock size={16} />
+                      </button>
+
+                      <button
+                        className="action-btn-doc"
+                        title="Download Direto Excel"
+                        onClick={(e) => handleDirectDownload(e, report)}
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </main>
+        </div>
       </motion.div>
 
       {isViewerOpen && selectedReport && (
-        <ReportViewer 
-          report={selectedReport} 
-          onClose={() => setIsViewerOpen(false)} 
-        />
+        <ReportViewer report={selectedReport} onClose={() => setIsViewerOpen(false)} />
       )}
 
       {isScheduleModalOpen && reportToSchedule && (
-        <ScheduleModal 
-          report={reportToSchedule}
-          onClose={() => setIsScheduleModalOpen(false)}
-        />
+        <ScheduleModal report={reportToSchedule} onClose={() => setIsScheduleModalOpen(false)} />
       )}
 
       {isPeriodModalOpen && (
-        <PeriodSelectorModal 
-        isOpen={isPeriodModalOpen} 
-        onClose={() => setIsPeriodModalOpen(false)}
-        selectedPeriod={selectedPeriod}
-        onSelect={setSelectedPeriod}
-      />
+        <PeriodSelectorModal
+          isOpen={isPeriodModalOpen}
+          onClose={() => setIsPeriodModalOpen(false)}
+          selectedPeriod={selectedPeriod}
+          onSelect={setSelectedPeriod}
+        />
       )}
 
-      <ReportFilterModal 
+      <ReportFilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
         filters={advancedFilters}
         setFilters={setAdvancedFilters}
       />
-
 
       <style>{`
         .reporting-engine-bar {

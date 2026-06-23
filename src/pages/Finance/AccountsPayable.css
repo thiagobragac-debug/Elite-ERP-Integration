@@ -92,7 +92,9 @@
   font-size: 0.95rem;
 }
 
-.amount-cell.positive { color: hsl(var(--text-main)); }
+.amount-cell.positive {
+  color: hsl(var(--text-main));
+}
 
 .status-pill {
   padding: 4px 10px;
@@ -102,9 +104,18 @@
   text-transform: uppercase;
 }
 
-.status-pill.paid { background: hsl(161 64% 95%); color: hsl(161 64% 25%); }
-.status-pill.overdue { background: #fee2e2; color: #ef4444; }
-.status-pill.pending { background: hsl(32 95% 95%); color: hsl(32 95% 25%); }
+.status-pill.paid {
+  background: hsl(161 64% 95%);
+  color: hsl(161 64% 25%);
+}
+.status-pill.overdue {
+  background: #fee2e2;
+  color: #ef4444;
+}
+.status-pill.pending {
+  background: hsl(32 95% 95%);
+  color: hsl(32 95% 25%);
+}
 
 .action-icon-btn {
   width: 36px;
@@ -117,10 +128,23 @@
   border: 1px solid transparent;
 }
 
-.action-icon-btn.success { color: #10b981; background: #dcfce7; }
-.action-icon-btn.info { color: hsl(var(--brand)); background: hsl(var(--brand) / 0.1); }
-.action-icon-btn.edit { color: hsl(var(--text-muted)); background: hsl(var(--bg-main)); border-color: hsl(var(--border)); }
-.action-icon-btn.delete { color: #ef4444; background: #fee2e2; }
+.action-icon-btn.success {
+  color: #10b981;
+  background: #dcfce7;
+}
+.action-icon-btn.info {
+  color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.1);
+}
+.action-icon-btn.edit {
+  color: hsl(var(--text-muted));
+  background: hsl(var(--bg-main));
+  border-color: hsl(var(--border));
+}
+.action-icon-btn.delete {
+  color: #ef4444;
+  background: #fee2e2;
+}
 
 .action-icon-btn:hover {
   transform: translateY(-2px);

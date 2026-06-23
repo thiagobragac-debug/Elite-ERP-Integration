@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { 
-  DollarSign, 
-  Calendar, 
-  Building2, 
+import {
+  DollarSign,
+  Calendar,
+  Building2,
   FileText,
   CreditCard,
   Target,
@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   Receipt,
   MapPin,
-  Barcode
+  Barcode,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -20,7 +20,6 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useEffect } from 'react';
 import { SearchableSelect } from './SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
-
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -31,7 +30,14 @@ interface TransactionFormProps {
   actionId?: number;
 }
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose, type, onSubmit, initialData, actionId }) => {
+export const TransactionForm: React.FC<TransactionFormProps> = ({
+  isOpen,
+  onClose,
+  type,
+  onSubmit,
+  initialData,
+  actionId,
+}) => {
   const { activeFarm, activeTenantId } = useTenant();
   const [formData, setFormData] = usePersistentState('TransactionForm_formData', {
     description: '',
@@ -41,9 +47,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
     documentNumber: '',
     category: '',
     costCenter: '',
-    entityId: '', 
+    entityId: '',
     paymentMethod: 'Boleto',
-    status: 'PENDENTE'
+    status: 'PENDENTE',
   });
 
   const [entities, setEntities] = useState<any[]>([]);
@@ -51,7 +57,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
+    if (!actionId) {
+      return;
+    } // Ignore on initial mount / refresh
 
     if (isOpen && activeTenantId) {
       fetchEntities();
@@ -67,11 +75,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
       query = query.eq('is_customer', true);
     }
     const { data } = await query;
-    if (data) setEntities(data);
+    if (data) {
+      setEntities(data);
+    }
   };
 
   const fetchCategories = async () => {
-    if (!activeTenantId) return;
+    if (!activeTenantId) {
+      return;
+    }
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -79,18 +91,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
       .eq('modulo', 'financeiro')
       .eq('is_active', true)
       .order('nome');
-    if (data) setCategories(data);
+    if (data) {
+      setCategories(data);
+    }
   };
 
   const handleCategoriaChange = async (val: string) => {
     setFormData({ ...formData, category: val });
-    if (val && val.trim().length > 0 && !categories.find(c => String(c.nome) === val)) {
+    if (val && val.trim().length > 0 && !categories.find((c) => String(c.nome) === val)) {
       try {
         await supabase.from('categorias_sistema').insert({
           tenant_id: activeTenantId,
           modulo: 'financeiro',
           nome: val.trim(),
-          is_active: true
+          is_active: true,
         });
         fetchCategories();
       } catch (err) {
@@ -100,7 +114,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
   };
 
   React.useEffect(() => {
-    if (initialData) { setFormData({
+    if (initialData) {
+      setFormData({
         description: initialData.descricao || '',
         value: initialData.valor_total?.toString() || '',
         dueDate: initialData.data_vencimento || '',
@@ -110,7 +125,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         costCenter: initialData.centro_custo || '',
         entityId: initialData.parceiro_id || initialData.parceiro_id || '',
         paymentMethod: initialData.metodo_pagamento || initialData.metodo_recebimento || 'Boleto',
-        status: initialData.status || 'PENDENTE'
+        status: initialData.status || 'PENDENTE',
       });
     } else {
       setFormData({
@@ -123,16 +138,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         costCenter: '',
         entityId: '',
         paymentMethod: 'Boleto',
-        status: 'PENDENTE'
+        status: 'PENDENTE',
       });
     }
   }, [initialData, isOpen, actionId]);
 
-  const title = initialData 
-    ? (type === 'payable' ? 'Editar Conta a Pagar' : 'Editar Conta a Receber')
-    : (type === 'payable' ? 'Nova Conta a Pagar' : 'Nova Conta a Receber');
-    
-  const subtitle = type === 'payable' ? 'Registre uma saída de caixa para fornecedores.' : 'Registre uma entrada de caixa de parceiros.';
+  const title = initialData
+    ? type === 'payable'
+      ? 'Editar Conta a Pagar'
+      : 'Editar Conta a Receber'
+    : type === 'payable'
+      ? 'Nova Conta a Pagar'
+      : 'Nova Conta a Receber';
+
+  const subtitle =
+    type === 'payable'
+      ? 'Registre uma saída de caixa para fornecedores.'
+      : 'Registre uma entrada de caixa de parceiros.';
   const entityLabel = type === 'payable' ? 'Parceiro' : 'Parceiro';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,7 +168,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
   };
 
   return (
-    <SidePanel size="medium"
+    <SidePanel
+      size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -163,63 +186,75 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Descrição da Transação</label>
-            <input 
+            <label className="tauze-label">
+              <FileText size={14} /> Descrição da Transação
+            </label>
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder={type === 'payable' ? "Ex: Compra de Farelo de Soja" : "Ex: Venda de 1000 sc de Soja"} 
+              type="text"
+              placeholder={
+                type === 'payable' ? 'Ex: Compra de Farelo de Soja' : 'Ex: Venda de 1000 sc de Soja'
+              }
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              required
             />
           </div>
         </div>
         <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Valor (R$)</label>
-            <input 
+            <label className="tauze-label">
+              <DollarSign size={14} /> Valor (R$)
+            </label>
+            <input
               className="tauze-input"
-              type="number" 
-              step="0.01" 
-              placeholder="0.00" 
+              type="number"
+              step="0.01"
+              placeholder="0.00"
               value={formData.value}
-              onChange={(e) => setFormData({...formData, value: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              required
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Competência (Emissão)</label>
-            <DateInput 
+            <label className="tauze-label">
+              <Calendar size={14} /> Competência (Emissão)
+            </label>
+            <DateInput
               className="tauze-input"
-              type="date" 
+              type="date"
               value={formData.issueDate}
-              onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+              required
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data de Vencimento</label>
-            <DateInput 
+            <label className="tauze-label">
+              <Calendar size={14} /> Data de Vencimento
+            </label>
+            <DateInput
               className="tauze-input"
-              type="date" 
+              type="date"
               value={formData.dueDate}
-              onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-              required 
+              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              required
             />
           </div>
         </div>
 
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Receipt size={14} /> Documento Fiscal / Contrato (NF-e, CPR, Boleto)</label>
-            <input 
+            <label className="tauze-label">
+              <Receipt size={14} /> Documento Fiscal / Contrato (NF-e, CPR, Boleto)
+            </label>
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Ex: NF 123456 / Linha Digitável" 
+              type="text"
+              placeholder="Ex: NF 123456 / Linha Digitável"
               value={formData.documentNumber}
-              onChange={(e) => setFormData({...formData, documentNumber: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, documentNumber: e.target.value })}
             />
           </div>
         </div>
@@ -232,35 +267,44 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> {entityLabel}</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <Building2 size={14} /> {entityLabel}
+            </label>
+            <SearchableSelect
               value={formData.entityId}
-              onChange={(val: any) => setFormData({...formData, entityId: val})}
+              onChange={(val: any) => setFormData({ ...formData, entityId: val })}
               options={[
                 { value: '', label: `Selecionar ${entityLabel.toLowerCase()}...` },
-                ...(entities || []).map(e => ({ value: String(e.id), label: String(e.nome) })),
+                ...(entities || []).map((e) => ({ value: String(e.id), label: String(e.nome) })),
               ]}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Target size={14} /> Plano de Contas (Categoria)</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <Target size={14} /> Plano de Contas (Categoria)
+            </label>
+            <SearchableSelect
               value={formData.category}
               onChange={handleCategoriaChange}
               options={[
                 { value: '', label: 'Selecionar...' },
-                ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+                ...(categories || []).map((cat) => ({
+                  value: String(cat.nome),
+                  label: String(cat.nome),
+                })),
               ]}
               creatable={true}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><MapPin size={14} /> Centro de Custo (Local)</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <MapPin size={14} /> Centro de Custo (Local)
+            </label>
+            <SearchableSelect
               value={formData.costCenter}
-              onChange={(val: any) => setFormData({...formData, costCenter: val})}
+              onChange={(val: any) => setFormData({ ...formData, costCenter: val })}
               options={[
                 { value: '', label: 'Nenhum / Global' },
                 { value: 'Fazenda Santa Clara', label: 'Fazenda Santa Clara' },
@@ -280,10 +324,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><CreditCard size={14} /> Forma de Pagamento</label>
-            <SearchableSelect 
+            <label className="tauze-label">
+              <CreditCard size={14} /> Forma de Pagamento
+            </label>
+            <SearchableSelect
               value={formData.paymentMethod}
-              onChange={(val: any) => setFormData({...formData, paymentMethod: val})}
+              onChange={(val: any) => setFormData({ ...formData, paymentMethod: val })}
               options={[
                 { value: 'Boleto', label: 'Boleto' },
                 { value: 'PIX', label: 'PIX' },
@@ -296,18 +342,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
         </div>
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Situação do Lançamento</label>
+            <label className="tauze-label">
+              <Activity size={14} /> Situação do Lançamento
+            </label>
             <div className="tauze-form-radio-group">
-              <div 
+              <div
                 className={`tauze-form-radio-item ${formData.status === 'PENDENTE' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, status: 'PENDENTE'})}
+                onClick={() => setFormData({ ...formData, status: 'PENDENTE' })}
               >
                 <Calendar size={16} />
                 <span>Pendente</span>
               </div>
-              <div 
+              <div
                 className={`tauze-form-radio-item ${formData.status === 'PAGO' || formData.status === 'RECEBIDO' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, status: type === 'payable' ? 'PAGO' : 'RECEBIDO'})}
+                onClick={() =>
+                  setFormData({ ...formData, status: type === 'payable' ? 'PAGO' : 'RECEBIDO' })
+                }
               >
                 <CheckCircle2 size={16} />
                 <span>{type === 'payable' ? 'Pago' : 'Recebido'}</span>

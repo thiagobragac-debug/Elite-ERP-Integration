@@ -104,35 +104,41 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       </div>
 
       {/* Labels */}
-      {(label || (showStatus)) && (
+      {(label || showStatus) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {label && (
-            <span style={{
-              fontSize: size === 'sm' ? 12 : size === 'lg' ? 14 : 13,
-              fontWeight: 600,
-              color: 'hsl(var(--text-main))',
-              lineHeight: 1.3,
-            }}>
+            <span
+              style={{
+                fontSize: size === 'sm' ? 12 : size === 'lg' ? 14 : 13,
+                fontWeight: 600,
+                color: 'hsl(var(--text-main))',
+                lineHeight: 1.3,
+              }}
+            >
               {label}
             </span>
           )}
           {showStatus && (
-            <span style={{
-              fontSize: size === 'sm' ? 11 : 12,
-              fontWeight: 700,
-              color: checked ? '#10b981' : 'hsl(var(--text-muted))',
-              transition: 'color 0.2s',
-              letterSpacing: '0.02em',
-            }}>
+            <span
+              style={{
+                fontSize: size === 'sm' ? 11 : 12,
+                fontWeight: 700,
+                color: checked ? '#10b981' : 'hsl(var(--text-muted))',
+                transition: 'color 0.2s',
+                letterSpacing: '0.02em',
+              }}
+            >
               {checked ? labelOn : labelOff}
             </span>
           )}
           {description && (
-            <span style={{
-              fontSize: 11,
-              color: 'hsl(var(--text-muted))',
-              lineHeight: 1.4,
-            }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: 'hsl(var(--text-muted))',
+                lineHeight: 1.4,
+              }}
+            >
               {description}
             </span>
           )}

@@ -1,7 +1,7 @@
 .sidebar {
   width: var(--sidebar-width);
   height: calc(100vh - 2rem);
-  background: hsl(var(--bg-sidebar));
+  background: var(--sidebar-bg-custom, hsl(var(--bg-sidebar)));
   border: 1px solid hsl(var(--border) / 0.1);
   display: flex;
   flex-direction: column;
@@ -44,19 +44,21 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar.collapsed .logo-container {
   justify-content: center;
 }
 
-.sidebar.collapsed .logo-text {
+.sidebar.collapsed .system-name {
   display: none;
 }
 
 .sidebar-collapse-btn {
   background: transparent;
-  color: white;
+  color: var(--sidebar-font-custom, white);
   border: none;
   opacity: 0.5;
   cursor: pointer;
@@ -83,6 +85,7 @@
   justify-content: center;
   box-shadow: 0 8px 16px -4px hsl(var(--brand) / 0.4);
   position: relative;
+  flex-shrink: 0;
 }
 
 .logo-icon::after {
@@ -93,12 +96,21 @@
   border: 2px solid hsl(var(--brand) / 0.2);
 }
 
-.logo-text {
+.system-name {
   font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: white;
+  font-size: 1.45rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff 0%, hsl(var(--brand-light)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .sidebar-nav {
@@ -125,7 +137,7 @@
   justify-content: space-between;
   padding: 12px 16px;
   border-radius: 12px;
-  color: hsl(215 20% 70%);
+  color: var(--sidebar-font-custom, hsl(215 20% 70%));
   font-weight: 700;
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -200,7 +212,7 @@
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 0.8rem;
-  color: hsl(215 20% 60%);
+  color: var(--sidebar-font-custom, hsl(215 20% 60%));
   transition: all 0.2s ease;
   font-weight: 600;
 }
@@ -212,8 +224,9 @@
 }
 
 .submenu-item.active {
-  color: hsl(var(--brand));
-  background: hsl(var(--brand) / 0.1);
+  color: hsl(var(--brand-light));
+  background: hsl(var(--brand) / 0.15);
+  font-weight: 700;
 }
 
 .sidebar-footer {
@@ -252,7 +265,8 @@
   cursor: pointer;
 }
 
-.tenant-badge:hover, .tenant-badge.active {
+.tenant-badge:hover,
+.tenant-badge.active {
   border-color: hsl(var(--brand) / 0.5);
   transform: translateY(-2px);
   background: hsl(215 20% 20%);
@@ -370,8 +384,14 @@
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 
 /* ── Global Mode Styles ─────────────────────────────────── */

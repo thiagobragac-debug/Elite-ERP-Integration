@@ -9,9 +9,12 @@ import toast from 'react-hot-toast';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { DateInput } from '../../components/Form/DateInput';
 
-const AutoBlockDateCell: React.FC<{ row: any, updateMutation: any }> = ({ row, updateMutation }) => {
+const AutoBlockDateCell: React.FC<{ row: any; updateMutation: any }> = ({
+  row,
+  updateMutation,
+}) => {
   const [value, setValue] = useState(row.data_bloqueio_automatico || '');
-  
+
   React.useEffect(() => {
     setValue(row.data_bloqueio_automatico || '');
   }, [row.data_bloqueio_automatico]);
@@ -20,7 +23,7 @@ const AutoBlockDateCell: React.FC<{ row: any, updateMutation: any }> = ({ row, u
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <DateInput 
+      <DateInput
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => {
@@ -29,13 +32,13 @@ const AutoBlockDateCell: React.FC<{ row: any, updateMutation: any }> = ({ row, u
           }
         }}
         className="tauze-input"
-        style={{ 
-          height: '32px', 
-          minHeight: '32px', 
+        style={{
+          height: '32px',
+          minHeight: '32px',
           width: '140px',
           fontSize: '12px',
           borderColor: isLocked && row.status !== 'FECHADO' ? 'hsl(var(--warning))' : undefined,
-          background: isLocked && row.status !== 'FECHADO' ? 'hsl(var(--warning)/0.1)' : undefined
+          background: isLocked && row.status !== 'FECHADO' ? 'hsl(var(--warning)/0.1)' : undefined,
         }}
         disabled={row.status === 'FECHADO'}
       />
@@ -68,81 +71,105 @@ export const PeriodManagementTab: React.FC<any> = () => {
     { value: 9, label: 'Setembro' },
     { value: 10, label: 'Outubro' },
     { value: 11, label: 'Novembro' },
-    { value: 12, label: 'Dezembro' }
+    { value: 12, label: 'Dezembro' },
   ];
 
   const { data: periods = [], isLoading } = useQuery({
     queryKey: ['periodos_contabeis', tenant?.id, selectedYear],
     queryFn: async () => {
-      if (!tenant?.id) return [];
+      if (!tenant?.id) {
+        return [];
+      }
       const { data, error } = await supabase
         .from('periodos_contabeis')
         .select('*')
         .eq('tenant_id', tenant.id)
         .eq('ano', selectedYear);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return data;
     },
-    enabled: !!tenant?.id
+    enabled: !!tenant?.id,
   });
 
   const togglePeriodMutation = useMutation({
-    mutationFn: async ({ mes, status, id }: { mes: number, status: 'ABERTO' | 'FECHADO', id?: string }) => {
+    mutationFn: async ({
+      mes,
+      status,
+      id,
+    }: {
+      mes: number;
+      status: 'ABERTO' | 'FECHADO';
+      id?: string;
+    }) => {
       if (id) {
         const { error } = await supabase
           .from('periodos_contabeis')
-          .update({ 
-            status, 
+          .update({
+            status,
             fechado_em: status === 'FECHADO' ? new Date().toISOString() : null,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', id);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase
-          .from('periodos_contabeis')
-          .insert([{
+        const { error } = await supabase.from('periodos_contabeis').insert([
+          {
             tenant_id: tenant!.id,
             ano: selectedYear,
             mes,
             status,
-            fechado_em: status === 'FECHADO' ? new Date().toISOString() : null
-          }]);
-        if (error) throw error;
+            fechado_em: status === 'FECHADO' ? new Date().toISOString() : null,
+          },
+        ]);
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['periodos_contabeis'] });
-      toast.success(variables.status === 'FECHADO' ? 'Período Fechado com sucesso!' : 'Período Reaberto com sucesso!');
+      toast.success(
+        variables.status === 'FECHADO'
+          ? 'Período Fechado com sucesso!'
+          : 'Período Reaberto com sucesso!'
+      );
     },
     onError: (err: any) => {
-      console.error("Erro no togglePeriodMutation:", err);
+      console.error('Erro no togglePeriodMutation:', err);
       toast.error(`Erro ao alterar o status do período: ${err.message || 'Erro desconhecido'}`);
-    }
+    },
   });
 
   const updateAutoBlockDateMutation = useMutation({
-    mutationFn: async ({ mes, dateStr, id }: { mes: number, dateStr: string, id?: string }) => {
+    mutationFn: async ({ mes, dateStr, id }: { mes: number; dateStr: string; id?: string }) => {
       if (id) {
         const { error } = await supabase
           .from('periodos_contabeis')
-          .update({ 
+          .update({
             data_bloqueio_automatico: dateStr || null,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', id);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase
-          .from('periodos_contabeis')
-          .insert([{
+        const { error } = await supabase.from('periodos_contabeis').insert([
+          {
             tenant_id: tenant!.id,
             ano: selectedYear,
             mes,
             status: 'ABERTO',
-            data_bloqueio_automatico: dateStr || null
-          }]);
-        if (error) throw error;
+            data_bloqueio_automatico: dateStr || null,
+          },
+        ]);
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -150,9 +177,9 @@ export const PeriodManagementTab: React.FC<any> = () => {
       toast.success('Data de bloqueio atualizada com sucesso!');
     },
     onError: (err: any) => {
-      console.error("Erro no updateAutoBlockDateMutation:", err);
+      console.error('Erro no updateAutoBlockDateMutation:', err);
       toast.error(`Erro ao salvar data de bloqueio: ${err.message || 'Erro desconhecido'}`);
-    }
+    },
   });
 
   const handleToggle = async (mes: number, currentStatus: 'ABERTO' | 'FECHADO', id?: string) => {
@@ -163,31 +190,35 @@ export const PeriodManagementTab: React.FC<any> = () => {
         description: `Deseja realmente FECHAR o mês ${mes}/${selectedYear}? Nenhuma movimentação financeira ou de estoque poderá ser criada, alterada ou excluída neste período.`,
         confirmText: 'Sim, Fechar Mês',
         cancelText: 'Cancelar',
-        variant: 'danger'
+        variant: 'danger',
       });
-      if (!isConfirmed) return;
+      if (!isConfirmed) {
+        return;
+      }
     } else {
       const isConfirmed = await confirm({
         title: 'Atenção: Reabrir Período',
         description: `CUIDADO! Deseja realmente REABRIR o mês ${mes}/${selectedYear}? Isso permitirá edições que podem alterar relatórios contábeis passados.`,
         confirmText: 'Sim, Reabrir',
         cancelText: 'Cancelar',
-        variant: 'danger'
+        variant: 'danger',
       });
-      if (!isConfirmed) return;
+      if (!isConfirmed) {
+        return;
+      }
     }
     togglePeriodMutation.mutate({ mes, status: newStatus, id });
   };
 
-  const gridData = months.map(m => {
-    const period = periods.find(p => p.mes === m.value);
+  const gridData = months.map((m) => {
+    const period = periods.find((p) => p.mes === m.value);
     return {
       mes: m.value,
       label: m.label,
       id: period?.id,
       status: period?.status || 'ABERTO',
       fechado_em: period?.fechado_em,
-      data_bloqueio_automatico: period?.data_bloqueio_automatico || ''
+      data_bloqueio_automatico: period?.data_bloqueio_automatico || '',
     };
   });
 
@@ -195,84 +226,126 @@ export const PeriodManagementTab: React.FC<any> = () => {
     {
       header: 'Mês',
       accessor: (row: any) => <span style={{ fontWeight: 600 }}>{row.label}</span>,
-      width: '150px'
+      width: '150px',
     },
     {
       header: 'Status Contábil',
       accessor: (row: any) => {
-        const isAutoLocked = row.data_bloqueio_automatico && new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
+        const isAutoLocked =
+          row.data_bloqueio_automatico &&
+          new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
         const isManualClosed = row.status === 'FECHADO';
-        const effectiveStatus = isManualClosed ? 'FECHADO' : (isAutoLocked ? 'BLOQUEADO' : 'ABERTO');
-        
+        const effectiveStatus = isManualClosed ? 'FECHADO' : isAutoLocked ? 'BLOQUEADO' : 'ABERTO';
+
         return (
-          <span className={`status-chip ${effectiveStatus !== 'ABERTO' ? 'danger' : 'success'}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}>
+          <span
+            className={`status-chip ${effectiveStatus !== 'ABERTO' ? 'danger' : 'success'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}
+          >
             {effectiveStatus !== 'ABERTO' ? <Lock size={14} /> : <Unlock size={14} />}
             {effectiveStatus}
           </span>
         );
       },
-      width: '180px'
+      width: '180px',
     },
     {
       header: 'Data de Fechamento',
       accessor: (row: any) => {
-        const isAutoLocked = row.data_bloqueio_automatico && new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
+        const isAutoLocked =
+          row.data_bloqueio_automatico &&
+          new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
         const isManualClosed = row.status === 'FECHADO';
-        
+
         let dateStr = '-';
         if (isManualClosed && row.fechado_em) {
           dateStr = new Date(row.fechado_em).toLocaleDateString('pt-BR');
         } else if (isAutoLocked && row.data_bloqueio_automatico) {
-          dateStr = new Date(`${row.data_bloqueio_automatico}T00:00:00`).toLocaleDateString('pt-BR');
+          dateStr = new Date(`${row.data_bloqueio_automatico}T00:00:00`).toLocaleDateString(
+            'pt-BR'
+          );
         }
 
         return (
           <span style={{ color: 'hsl(var(--text-muted))' }}>
-            {dateStr} {isAutoLocked && !isManualClosed && <span style={{ fontSize: '10px', color: 'hsl(var(--warning))', marginLeft: '4px', fontWeight: 600 }}>(SISTEMA)</span>}
+            {dateStr}{' '}
+            {isAutoLocked && !isManualClosed && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: 'hsl(var(--warning))',
+                  marginLeft: '4px',
+                  fontWeight: 600,
+                }}
+              >
+                (SISTEMA)
+              </span>
+            )}
           </span>
         );
-      }
+      },
     },
     {
       header: 'Bloqueio Automático',
-      accessor: (row: any) => <AutoBlockDateCell row={row} updateMutation={updateAutoBlockDateMutation} />
-    }
+      accessor: (row: any) => (
+        <AutoBlockDateCell row={row} updateMutation={updateAutoBlockDateMutation} />
+      ),
+    },
   ];
 
   return (
     <div className="tab-content-wrapper animate-slide-up">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+        }}
+      >
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
           Gestão de Períodos Contábeis
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '14px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>Ano Base:</span>
-          <select 
+          <span style={{ fontSize: '14px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
+            Ano Base:
+          </span>
+          <select
             className="tauze-input"
             value={selectedYear}
-            onChange={e => setSelectedYear(parseInt(e.target.value))}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             style={{ width: '120px' }}
           >
             {[...Array(14)].map((_, i) => {
               const year = new Date().getFullYear() - 10 + i;
-              return <option key={year} value={year}>{year}</option>;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
             })}
           </select>
         </div>
       </div>
       <main className="hub-content" style={{ padding: 0 }}>
-        <ModernTable 
+        <ModernTable
           data={gridData}
           columns={columns}
           loading={isLoading}
           itemsPerPage={12}
           actions={(row: any) => {
-            const isAutoLocked = row.data_bloqueio_automatico && new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
+            const isAutoLocked =
+              row.data_bloqueio_automatico &&
+              new Date() >= new Date(`${row.data_bloqueio_automatico}T00:00:00`);
             const isManualClosed = row.status === 'FECHADO';
-            const effectiveStatus = isManualClosed ? 'FECHADO' : (isAutoLocked ? 'BLOQUEADO' : 'ABERTO');
-            
+            const effectiveStatus = isManualClosed
+              ? 'FECHADO'
+              : isAutoLocked
+                ? 'BLOQUEADO'
+                : 'ABERTO';
+
             return (
-              <button 
+              <button
                 className={`icon-btn-secondary ${effectiveStatus !== 'ABERTO' ? '' : 'danger-hover'}`}
                 onClick={() => {
                   if (isAutoLocked && !isManualClosed) {
@@ -291,13 +364,17 @@ export const PeriodManagementTab: React.FC<any> = () => {
                   padding: '6px 12px',
                   borderRadius: '8px',
                   width: '120px',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
                 }}
               >
                 {effectiveStatus !== 'ABERTO' ? (
-                  <><Unlock size={14} /> Reabrir</>
+                  <>
+                    <Unlock size={14} /> Reabrir
+                  </>
                 ) : (
-                  <><Lock size={14} /> Fechar</>
+                  <>
+                    <Lock size={14} /> Fechar
+                  </>
                 )}
               </button>
             );

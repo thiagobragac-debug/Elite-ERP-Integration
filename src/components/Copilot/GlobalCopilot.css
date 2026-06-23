@@ -11,7 +11,7 @@
   align-items: center;
   gap: 12px;
   font-weight: 800;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   z-index: 2147483647;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -50,7 +50,7 @@
   background: hsl(var(--bg-card));
   color: hsl(var(--text-main));
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .copilot-floating-btn:hover {
@@ -65,7 +65,7 @@
   width: 380px;
   background: hsl(var(--bg-card));
   border-radius: 28px;
-  box-shadow: 0 40px 80px rgba(0,0,0,0.2);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
   z-index: 2147483647;
   display: flex;
   flex-direction: column;
@@ -106,24 +106,83 @@
   opacity: 1;
 }
 
-.copilot-chat { 
-  padding: 16px; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 16px; 
-  min-height: 350px; 
+.copilot-chat {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 350px;
   max-height: 450px;
   overflow-y: auto;
   background: hsl(var(--bg-card));
 }
-.msg.system { background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: hsl(var(--text-main)); align-self: flex-start; max-width: 85%; border: 1px solid hsl(var(--border)); }
-.msg.user { background: #0f172a; color: white; padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; align-self: flex-end; max-width: 85%; }
-.msg.suggestion { border: 1px solid hsl(var(--border)); padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #16a34a; cursor: pointer; transition: all 0.2s; background: hsl(var(--bg-main) / 0.3); }
-.msg.suggestion:hover { background: hsl(var(--brand) / 0.1); border-color: #16a34a; }
+.msg.system {
+  background: hsl(var(--bg-main));
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(var(--text-main));
+  align-self: flex-start;
+  max-width: 85%;
+  border: 1px solid hsl(var(--border));
+}
+.msg.user {
+  background: #0f172a;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  align-self: flex-end;
+  max-width: 85%;
+}
+.msg.suggestion {
+  border: 1px solid hsl(var(--border));
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: hsl(var(--bg-main) / 0.3);
+}
+.msg.suggestion:hover {
+  background: hsl(var(--brand) / 0.1);
+  border-color: #16a34a;
+}
 
-.copilot-input { padding: 20px; border-top: 1px solid hsl(var(--border)); display: flex; gap: 12px; background: hsl(var(--bg-card)); }
-.copilot-input input { flex: 1; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; color: hsl(var(--text-main)); }
-.send-btn { background: #16a34a; color: white; border: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.copilot-input {
+  padding: 20px;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  gap: 12px;
+  background: hsl(var(--bg-card));
+}
+.copilot-input input {
+  flex: 1;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-main));
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  color: hsl(var(--text-main));
+}
+.send-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
 
 /* Hide Copilot when standard forms, side panels, or modal overlays are open */
 body:has(.tauze-sidepanel-overlay, .tauze-modal-overlay) .copilot-floating-btn,

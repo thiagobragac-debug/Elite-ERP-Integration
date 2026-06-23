@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  Scale,
+  HeartPulse,
+  Calendar,
+  FileText,
+  Hash,
+  Stethoscope,
+  Activity,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
@@ -22,7 +32,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   activeTenantId,
   activeFarmId,
   insertPayload,
-  onSuccess
+  onSuccess,
 }) => {
   const [activeTab, setActiveTab] = useState<'PESO' | 'SANIDADE'>('PESO');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,14 +41,18 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   // States for Weighing (Pesagem)
   const [weightData, setWeightData] = useState({
     peso: '',
-    data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    observacao: ''
+    data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0],
+    observacao: '',
   });
 
   // States for Sanitary (Sanidade)
   const [healthData, setHealthData] = useState({
     tipo: 'VACINA',
-    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0],
     titulo: '',
     produto: '',
     produto_id: '' as string,
@@ -48,7 +62,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     local_aplicacao: '',
     carencia_dias: '0',
     observacao: '',
-    status: 'REALIZADO'
+    status: 'REALIZADO',
   });
 
   // Products from inventory
@@ -60,12 +74,16 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       setErrorMsg(null);
       setWeightData({
         peso: animal.peso_atual?.toString() || '',
-        data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        observacao: ''
+        data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .split('T')[0],
+        observacao: '',
       });
       setHealthData({
         tipo: 'VACINA',
-        data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .split('T')[0],
         titulo: '',
         produto: '',
         produto_id: '',
@@ -75,7 +93,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         local_aplicacao: '',
         carencia_dias: '0',
         observacao: '',
-        status: 'REALIZADO'
+        status: 'REALIZADO',
       });
 
       // Fetch products from inventory (storable, with custo_medio)
@@ -86,12 +104,16 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         .eq('is_storable', true)
         .order('nome')
         .then(({ data }) => {
-          if (data) setAvailableProducts(data);
+          if (data) {
+            setAvailableProducts(data);
+          }
         });
     }
   }, [isOpen, animal, activeTenantId]);
 
-  if (!isOpen || !animal) return null;
+  if (!isOpen || !animal) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,16 +139,21 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         peso: parseFloat(weightData.peso),
         data_pesagem: weightData.data_pesagem,
         observacao: weightData.observacao || 'Registrado via Manejo Rápido',
-        ...insertPayload
+        ...insertPayload,
       };
 
       const { error } = await supabase.from('pesagens').insert([payload]);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       // Update animal's current weight
-      await supabase.from('animais').update({
-        peso_atual: parseFloat(weightData.peso)
-      }).eq('id', animal.id);
+      await supabase
+        .from('animais')
+        .update({
+          peso_atual: parseFloat(weightData.peso),
+        })
+        .eq('id', animal.id);
 
       onSuccess();
       onClose();
@@ -165,11 +192,16 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         carencia_dias: parseInt(healthData.carencia_dias) || 0,
         observacao: healthData.observacao || 'Registrado via Manejo Rápido',
         status: healthData.status,
-        ...insertPayload
+        ...insertPayload,
       };
 
-      const { data: sanidadeData, error } = await supabase.from('sanidade').insert([sanidadePayload]).select();
-      if (error) throw error;
+      const { data: sanidadeData, error } = await supabase
+        .from('sanidade')
+        .insert([sanidadePayload])
+        .select();
+      if (error) {
+        throw error;
+      }
 
       // Cascata: gravar em sanidade_animais com custo real do estoque
       if (sanidadeData && sanidadeData.length > 0) {
@@ -184,20 +216,24 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         const parsedDose = Number(String(healthData.dose || '1').replace(/[^0-9.]/g, '')) || 1;
         const totalCost = parsedDose * custoMedio;
 
-        const { error: saError } = await supabase.from('sanidade_animais').insert([{
-          tenant_id: activeTenantId,
-          fazenda_id: activeFarmId,
-          sanidade_id: sanidadeData[0].id,
-          animal_id: animal.id,
-          produto_id: healthData.produto_id,
-          quantidade_dose: parsedDose,
-          valor_unitario_aplicado: custoMedio,
-          valor_total_aplicado: totalCost,
-          data_aplicacao: healthData.data_manejo,
-          fase: 'RECRIA'
-        }]);
+        const { error: saError } = await supabase.from('sanidade_animais').insert([
+          {
+            tenant_id: activeTenantId,
+            fazenda_id: activeFarmId,
+            sanidade_id: sanidadeData[0].id,
+            animal_id: animal.id,
+            produto_id: healthData.produto_id,
+            quantidade_dose: parsedDose,
+            valor_unitario_aplicado: custoMedio,
+            valor_total_aplicado: totalCost,
+            data_aplicacao: healthData.data_manejo,
+            fase: 'RECRIA',
+          },
+        ]);
 
-        if (saError) console.error('Erro na cascata sanidade_animais:', saError);
+        if (saError) {
+          console.error('Erro na cascata sanidade_animais:', saError);
+        }
       }
 
       onSuccess();
@@ -228,7 +264,10 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
           <button
             type="button"
             className={`segment-item ${activeTab === 'PESO' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('PESO'); setErrorMsg(null); }}
+            onClick={() => {
+              setActiveTab('PESO');
+              setErrorMsg(null);
+            }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <Scale size={16} />
@@ -237,7 +276,10 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
           <button
             type="button"
             className={`segment-item ${activeTab === 'SANIDADE' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('SANIDADE'); setErrorMsg(null); }}
+            onClick={() => {
+              setActiveTab('SANIDADE');
+              setErrorMsg(null);
+            }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <HeartPulse size={16} />
@@ -247,20 +289,22 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       </div>
 
       {errorMsg && (
-        <div style={{
-          gridColumn: 'span 2',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '12px 16px',
-          borderRadius: '12px',
-          fontSize: '13px',
-          fontWeight: 600,
-          marginBottom: '8px'
-        }}>
+        <div
+          style={{
+            gridColumn: 'span 2',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 600,
+            marginBottom: '8px',
+          }}
+        >
           <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>{errorMsg}</span>
         </div>
@@ -269,7 +313,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       {activeTab === 'PESO' ? (
         <div className="form-grid">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Scale size={14} /> Peso Atual (kg)</label>
+            <label className="tauze-label">
+              <Scale size={14} /> Peso Atual (kg)
+            </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
                 className="tauze-input"
@@ -277,45 +323,53 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
                 step="0.01"
                 placeholder="0.00"
                 value={weightData.peso}
-                onChange={e => setWeightData({ ...weightData, peso: e.target.value })}
+                onChange={(e) => setWeightData({ ...weightData, peso: e.target.value })}
                 required
                 disabled={isSubmitting}
                 style={{ paddingRight: '48px', fontSize: '16px', fontWeight: 800 }}
                 autoFocus
               />
-              <span style={{
-                position: 'absolute',
-                right: '16px',
-                fontSize: '12px',
-                fontWeight: 800,
-                color: 'hsl(var(--text-muted))',
-                background: 'rgba(0, 0, 0, 0.05)',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                pointerEvents: 'none'
-              }}>kg</span>
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: 'hsl(var(--text-muted))',
+                  background: 'rgba(0, 0, 0, 0.05)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  pointerEvents: 'none',
+                }}
+              >
+                kg
+              </span>
             </div>
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data da Pesagem</label>
+            <label className="tauze-label">
+              <Calendar size={14} /> Data da Pesagem
+            </label>
             <DateInput
               className="tauze-input"
               type="date"
               value={weightData.data_pesagem}
-              onChange={e => setWeightData({ ...weightData, data_pesagem: e.target.value })}
+              onChange={(e) => setWeightData({ ...weightData, data_pesagem: e.target.value })}
               required
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><FileText size={14} /> Observação</label>
+            <label className="tauze-label">
+              <FileText size={14} /> Observação
+            </label>
             <textarea
               className="tauze-input"
               placeholder="Ex: Animal calmo, pesagem de rotina..."
               value={weightData.observacao}
-              onChange={e => setWeightData({ ...weightData, observacao: e.target.value })}
+              onChange={(e) => setWeightData({ ...weightData, observacao: e.target.value })}
               disabled={isSubmitting}
               rows={3}
             />
@@ -324,147 +378,169 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       ) : (
         <div className="form-grid">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Stethoscope size={14} /> Tipo de Manejo</label>
+            <label className="tauze-label">
+              <Stethoscope size={14} /> Tipo de Manejo
+            </label>
             <SearchableSelect
               value={healthData.tipo}
-              onChange={val => setHealthData({ ...healthData, tipo: val })}
+              onChange={(val) => setHealthData({ ...healthData, tipo: val })}
               disabled={isSubmitting}
               options={[
                 { value: 'VACINA', label: 'Vacina' },
                 { value: 'VERMIFUGO', label: 'Vermífugo' },
                 { value: 'MEDICAMENTO', label: 'Medicamento' },
-                { value: 'TRATAMENTO', label: 'Tratamento' }
+                { value: 'TRATAMENTO', label: 'Tratamento' },
               ]}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data do Manejo</label>
+            <label className="tauze-label">
+              <Calendar size={14} /> Data do Manejo
+            </label>
             <DateInput
               className="tauze-input"
               type="date"
               value={healthData.data_manejo}
-              onChange={e => setHealthData({ ...healthData, data_manejo: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, data_manejo: e.target.value })}
               required
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><FileText size={14} /> Título / Descrição</label>
+            <label className="tauze-label">
+              <FileText size={14} /> Título / Descrição
+            </label>
             <input
               className="tauze-input"
               type="text"
               placeholder="Ex: Vacinação contra Febre Aftosa"
               value={healthData.titulo}
-              onChange={e => setHealthData({ ...healthData, titulo: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, titulo: e.target.value })}
               required
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Sparkles size={14} /> Fármaco / Produto (Estoque)</label>
+            <label className="tauze-label">
+              <Sparkles size={14} /> Fármaco / Produto (Estoque)
+            </label>
             <SearchableSelect
               value={healthData.produto_id}
               onChange={(val: string) => {
-                const prod = availableProducts.find(p => p.id === val);
+                const prod = availableProducts.find((p) => p.id === val);
                 if (prod) {
                   setHealthData({
                     ...healthData,
                     produto_id: prod.id,
                     produto: prod.nome,
-                    produto_custo_medio: Number(prod.custo_medio || 0)
+                    produto_custo_medio: Number(prod.custo_medio || 0),
                   });
                 }
               }}
-              options={availableProducts.map(p => ({
+              options={availableProducts.map((p) => ({
                 value: p.id,
-                label: `${p.nome} (${p.unidade || 'UN'}) — R$ ${Number(p.custo_medio || 0).toFixed(2)}/un`
+                label: `${p.nome} (${p.unidade || 'UN'}) — R$ ${Number(p.custo_medio || 0).toFixed(2)}/un`,
               }))}
               placeholder="Selecione o produto do estoque..."
               disabled={isSubmitting}
             />
             {healthData.produto_custo_medio > 0 && (
-              <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700, marginTop: '4px' }}>
+              <div
+                style={{ fontSize: '10px', color: '#10b981', fontWeight: 700, marginTop: '4px' }}
+              >
                 ✅ Custo unitário: R$ {Number(healthData.produto_custo_medio).toFixed(2)}
               </div>
             )}
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Dose</label>
+            <label className="tauze-label">
+              <Hash size={14} /> Dose
+            </label>
             <input
               className="tauze-input"
               type="text"
               placeholder="Ex: 2 ml"
               value={healthData.dose}
-              onChange={e => setHealthData({ ...healthData, dose: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, dose: e.target.value })}
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Via de Aplicação</label>
+            <label className="tauze-label">
+              <Activity size={14} /> Via de Aplicação
+            </label>
             <SearchableSelect
               value={healthData.via_aplicacao}
-              onChange={val => setHealthData({ ...healthData, via_aplicacao: val })}
+              onChange={(val) => setHealthData({ ...healthData, via_aplicacao: val })}
               disabled={isSubmitting}
               options={[
                 { value: 'IM', label: 'Intramuscular (IM)' },
                 { value: 'SC', label: 'Subcutânea (SC)' },
                 { value: 'ORAL', label: 'Oral' },
                 { value: 'TOPICO', label: 'Tópico' },
-                { value: 'IV', label: 'Intravenosa (IV)' }
+                { value: 'IV', label: 'Intravenosa (IV)' },
               ]}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><AlertCircle size={14} /> Carência (Dias)</label>
+            <label className="tauze-label">
+              <AlertCircle size={14} /> Carência (Dias)
+            </label>
             <input
               className="tauze-input"
               type="number"
               min="0"
               placeholder="0"
               value={healthData.carencia_dias}
-              onChange={e => setHealthData({ ...healthData, carencia_dias: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, carencia_dias: e.target.value })}
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Local de Aplicação</label>
+            <label className="tauze-label">
+              <Hash size={14} /> Local de Aplicação
+            </label>
             <input
               className="tauze-input"
               type="text"
               placeholder="Ex: Tábua do pescoço"
               value={healthData.local_aplicacao}
-              onChange={e => setHealthData({ ...healthData, local_aplicacao: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, local_aplicacao: e.target.value })}
               disabled={isSubmitting}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Status</label>
+            <label className="tauze-label">
+              <Activity size={14} /> Status
+            </label>
             <SearchableSelect
               value={healthData.status}
-              onChange={val => setHealthData({ ...healthData, status: val })}
+              onChange={(val) => setHealthData({ ...healthData, status: val })}
               disabled={isSubmitting}
               options={[
                 { value: 'REALIZADO', label: 'Realizado' },
-                { value: 'PENDENTE', label: 'Pendente' }
+                { value: 'PENDENTE', label: 'Pendente' },
               ]}
             />
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><FileText size={14} /> Observações</label>
+            <label className="tauze-label">
+              <FileText size={14} /> Observações
+            </label>
             <textarea
               className="tauze-input"
               placeholder="Ex: Aplicação tranquila..."
               value={healthData.observacao}
-              onChange={e => setHealthData({ ...healthData, observacao: e.target.value })}
+              onChange={(e) => setHealthData({ ...healthData, observacao: e.target.value })}
               disabled={isSubmitting}
               rows={2}
             />

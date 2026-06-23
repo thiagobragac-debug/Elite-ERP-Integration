@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  PieChart, 
-  Layout, 
-  Shield, 
-  Save, 
+import {
+  Settings,
+  PieChart,
+  Layout,
+  Shield,
+  Save,
   RefreshCw,
   Globe,
   Zap,
@@ -20,7 +20,7 @@ import {
   TrendingDown,
   Clock,
   Target,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
@@ -44,37 +44,316 @@ interface Metric {
 }
 
 const AVAILABLE_METRICS: Metric[] = [
-  { id: 'gmd', name: 'Evolução de GMD', cat: 'Pecuária', icon: Activity, value: '0.842 kg', trend: '+4.2%', isPositive: true, color: '#10b981' },
-  { id: 'lotacao', name: 'Taxa de Lotação', cat: 'Pastos', icon: PieChart, value: '1.42 UA/ha', trend: '-0.5%', isPositive: false, color: '#3b82f6' },
-  { id: 'caixa', name: 'Fluxo de Caixa', cat: 'Finanças', icon: DollarSign, value: 'R$ 142k', trend: '+12.8%', isPositive: true, color: '#f59e0b' },
-  { id: 'estoque', name: 'Giro de Estoque', cat: 'Estoque', icon: Settings, value: '4.2x', trend: '+1.2%', isPositive: true, color: '#6366f1' },
-  { id: 'ebitda', name: 'EBITDA Projetado', cat: 'Estratégico', icon: Zap, value: '24.2%', trend: '+0.8%', isPositive: true, color: '#8b5cf6' },
-  { id: 'diesel', name: 'Eficiência Diesel', cat: 'Frota', icon: Activity, value: '12.4 L/h', trend: '-2.1%', isPositive: true, color: '#ef4444' },
-  { id: 'mortalidade', name: 'Taxa Mortalidade', cat: 'Sanidade', icon: Activity, value: '0.8%', trend: '-0.1%', isPositive: true, color: '#ef4444' },
-  { id: 'arroba_custo', name: 'Custo p/ @ Produzida', cat: 'Financeiro', icon: DollarSign, value: 'R$ 184,20', trend: '-1.5%', isPositive: true, color: '#16a34a' },
-  { id: 'prenhez', name: 'Taxa de Prenhez', cat: 'Reprodução', icon: Activity, value: '82.4%', trend: '+3.1%', isPositive: true, color: '#db2777' },
-  { id: 'ims', name: 'Ingestão de Matéria Seca', cat: 'Nutrição', icon: Activity, value: '2.4% PV', trend: '+0.2%', isPositive: true, color: '#ea580c' },
-  { id: 'cocho', name: 'Disponibilidade de Cocho', cat: 'Nutrição', icon: Layout, value: '94.2%', trend: '+1.0%', isPositive: true, color: '#0891b2' },
-  { id: 'conversao_alim', name: 'Conversão Alimentar', cat: 'Nutrição', icon: Activity, value: '6.2:1', trend: '-2.1%', isPositive: true, color: '#10b981' },
-  { id: 'produtividade_ha', name: 'Produtividade (@/ha/ano)', cat: 'Performance', icon: TrendingUp, value: '18.4 @', trend: '+5.2%', isPositive: true, color: '#16a34a' },
-  { id: 'ciclo_engorda', name: 'Ciclo de Engorda', cat: 'Pecuária', icon: Clock, value: '94 dias', trend: '-4d', isPositive: true, color: '#3b82f6' },
-  { id: 'saving_compras', name: 'Saving de Compras', cat: 'Suprimentos', icon: DollarSign, value: '12.4%', trend: '+1.5%', isPositive: true, color: '#10b981' },
-  { id: 'lead_time', name: 'Lead Time Médio', cat: 'Suprimentos', icon: Clock, value: '4.2 dias', trend: '-0.5d', isPositive: true, color: '#f59e0b' },
-  { id: 'acuracidade_est', name: 'Acuracidade Estoque', cat: 'Estoque', icon: Settings, value: '98.8%', trend: '+0.5%', isPositive: true, color: '#10b981' },
-  { id: 'ruptura_est', name: 'Índice de Ruptura', cat: 'Estoque', icon: AlertCircle, value: '1.2%', trend: '-0.8%', isPositive: true, color: '#ef4444' },
-  { id: 'manutencao_hora', name: 'Custo Manutenção/h', cat: 'Frota', icon: Settings, value: 'R$ 42,10', trend: '-2.5%', isPositive: true, color: '#3b82f6' },
-  { id: 'disponibilidade_frota', name: 'Disp. de Frota', cat: 'Frota', icon: Monitor, value: '92.4%', trend: '+2.1%', isPositive: true, color: '#10b981' },
-  { id: 'margem_contribuicao', name: 'Margem de Contrib.', cat: 'Financeiro', icon: TrendingUp, value: 'R$ 1.2k/animal', trend: '+8.4%', isPositive: true, color: '#8b5cf6' },
-  { id: 'break_even', name: 'Break-even (@)', cat: 'Financeiro', icon: Target, value: 'R$ 172,40', trend: '-1.2%', isPositive: true, color: '#16a34a' },
-  { id: 'ticket_venda', name: 'Ticket Médio Venda', cat: 'Vendas', icon: DollarSign, value: 'R$ 4.2k', trend: '+2.5%', isPositive: true, color: '#f59e0b' },
-  { id: 'ebitda_operacional', name: 'EBITDA Operacional', cat: 'Finanças', icon: Zap, value: 'R$ 152k', trend: '+4.5%', isPositive: true, color: '#8b5cf6' },
-  { id: 'burn_rate', name: 'Burn Rate / Runway', cat: 'Estratégico', icon: Activity, value: '14 meses', trend: 'Estável', isPositive: true, color: '#f59e0b' },
-  { id: 'ponto_equilibrio', name: 'Ponto de Equilíbrio', cat: 'Finanças', icon: Target, value: 'R$ 280k', trend: '-2.1%', isPositive: true, color: '#3b82f6' },
-  { id: 'checklist_logistico', name: 'Checklist Logístico', cat: 'Logística', icon: Check, value: '94%', trend: '+2.0%', isPositive: true, color: '#10b981' },
-  { id: 'divergencia_log', name: 'Divergência de Frete', cat: 'Logística', icon: AlertCircle, value: '1.2%', trend: '-0.5%', isPositive: true, color: '#ef4444' },
-  { id: 'carbono_estoque', name: 'Estoque de Carbono', cat: 'ESG', icon: Globe, value: '2.4t/ha', trend: '+0.8', isPositive: true, color: '#059669' },
-  { id: 'compliance_amb', name: 'Compliance Ambiental', cat: 'ESG', icon: Shield, value: '100%', trend: 'Total', isPositive: true, color: '#10b981' },
-  { id: 'preco_arroba', name: 'Cotação da @ (B3)', cat: 'Mercado', icon: TrendingUp, value: 'R$ 242,50', trend: '+1.2%', isPositive: true, color: '#8b5cf6' },
+  {
+    id: 'gmd',
+    name: 'Evolução de GMD',
+    cat: 'Pecuária',
+    icon: Activity,
+    value: '0.842 kg',
+    trend: '+4.2%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'lotacao',
+    name: 'Taxa de Lotação',
+    cat: 'Pastos',
+    icon: PieChart,
+    value: '1.42 UA/ha',
+    trend: '-0.5%',
+    isPositive: false,
+    color: '#3b82f6',
+  },
+  {
+    id: 'caixa',
+    name: 'Fluxo de Caixa',
+    cat: 'Finanças',
+    icon: DollarSign,
+    value: 'R$ 142k',
+    trend: '+12.8%',
+    isPositive: true,
+    color: '#f59e0b',
+  },
+  {
+    id: 'estoque',
+    name: 'Giro de Estoque',
+    cat: 'Estoque',
+    icon: Settings,
+    value: '4.2x',
+    trend: '+1.2%',
+    isPositive: true,
+    color: '#6366f1',
+  },
+  {
+    id: 'ebitda',
+    name: 'EBITDA Projetado',
+    cat: 'Estratégico',
+    icon: Zap,
+    value: '24.2%',
+    trend: '+0.8%',
+    isPositive: true,
+    color: '#8b5cf6',
+  },
+  {
+    id: 'diesel',
+    name: 'Eficiência Diesel',
+    cat: 'Frota',
+    icon: Activity,
+    value: '12.4 L/h',
+    trend: '-2.1%',
+    isPositive: true,
+    color: '#ef4444',
+  },
+  {
+    id: 'mortalidade',
+    name: 'Taxa Mortalidade',
+    cat: 'Sanidade',
+    icon: Activity,
+    value: '0.8%',
+    trend: '-0.1%',
+    isPositive: true,
+    color: '#ef4444',
+  },
+  {
+    id: 'arroba_custo',
+    name: 'Custo p/ @ Produzida',
+    cat: 'Financeiro',
+    icon: DollarSign,
+    value: 'R$ 184,20',
+    trend: '-1.5%',
+    isPositive: true,
+    color: '#16a34a',
+  },
+  {
+    id: 'prenhez',
+    name: 'Taxa de Prenhez',
+    cat: 'Reprodução',
+    icon: Activity,
+    value: '82.4%',
+    trend: '+3.1%',
+    isPositive: true,
+    color: '#db2777',
+  },
+  {
+    id: 'ims',
+    name: 'Ingestão de Matéria Seca',
+    cat: 'Nutrição',
+    icon: Activity,
+    value: '2.4% PV',
+    trend: '+0.2%',
+    isPositive: true,
+    color: '#ea580c',
+  },
+  {
+    id: 'cocho',
+    name: 'Disponibilidade de Cocho',
+    cat: 'Nutrição',
+    icon: Layout,
+    value: '94.2%',
+    trend: '+1.0%',
+    isPositive: true,
+    color: '#0891b2',
+  },
+  {
+    id: 'conversao_alim',
+    name: 'Conversão Alimentar',
+    cat: 'Nutrição',
+    icon: Activity,
+    value: '6.2:1',
+    trend: '-2.1%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'produtividade_ha',
+    name: 'Produtividade (@/ha/ano)',
+    cat: 'Performance',
+    icon: TrendingUp,
+    value: '18.4 @',
+    trend: '+5.2%',
+    isPositive: true,
+    color: '#16a34a',
+  },
+  {
+    id: 'ciclo_engorda',
+    name: 'Ciclo de Engorda',
+    cat: 'Pecuária',
+    icon: Clock,
+    value: '94 dias',
+    trend: '-4d',
+    isPositive: true,
+    color: '#3b82f6',
+  },
+  {
+    id: 'saving_compras',
+    name: 'Saving de Compras',
+    cat: 'Suprimentos',
+    icon: DollarSign,
+    value: '12.4%',
+    trend: '+1.5%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'lead_time',
+    name: 'Lead Time Médio',
+    cat: 'Suprimentos',
+    icon: Clock,
+    value: '4.2 dias',
+    trend: '-0.5d',
+    isPositive: true,
+    color: '#f59e0b',
+  },
+  {
+    id: 'acuracidade_est',
+    name: 'Acuracidade Estoque',
+    cat: 'Estoque',
+    icon: Settings,
+    value: '98.8%',
+    trend: '+0.5%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'ruptura_est',
+    name: 'Índice de Ruptura',
+    cat: 'Estoque',
+    icon: AlertCircle,
+    value: '1.2%',
+    trend: '-0.8%',
+    isPositive: true,
+    color: '#ef4444',
+  },
+  {
+    id: 'manutencao_hora',
+    name: 'Custo Manutenção/h',
+    cat: 'Frota',
+    icon: Settings,
+    value: 'R$ 42,10',
+    trend: '-2.5%',
+    isPositive: true,
+    color: '#3b82f6',
+  },
+  {
+    id: 'disponibilidade_frota',
+    name: 'Disp. de Frota',
+    cat: 'Frota',
+    icon: Monitor,
+    value: '92.4%',
+    trend: '+2.1%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'margem_contribuicao',
+    name: 'Margem de Contrib.',
+    cat: 'Financeiro',
+    icon: TrendingUp,
+    value: 'R$ 1.2k/animal',
+    trend: '+8.4%',
+    isPositive: true,
+    color: '#8b5cf6',
+  },
+  {
+    id: 'break_even',
+    name: 'Break-even (@)',
+    cat: 'Financeiro',
+    icon: Target,
+    value: 'R$ 172,40',
+    trend: '-1.2%',
+    isPositive: true,
+    color: '#16a34a',
+  },
+  {
+    id: 'ticket_venda',
+    name: 'Ticket Médio Venda',
+    cat: 'Vendas',
+    icon: DollarSign,
+    value: 'R$ 4.2k',
+    trend: '+2.5%',
+    isPositive: true,
+    color: '#f59e0b',
+  },
+  {
+    id: 'ebitda_operacional',
+    name: 'EBITDA Operacional',
+    cat: 'Finanças',
+    icon: Zap,
+    value: 'R$ 152k',
+    trend: '+4.5%',
+    isPositive: true,
+    color: '#8b5cf6',
+  },
+  {
+    id: 'burn_rate',
+    name: 'Burn Rate / Runway',
+    cat: 'Estratégico',
+    icon: Activity,
+    value: '14 meses',
+    trend: 'Estável',
+    isPositive: true,
+    color: '#f59e0b',
+  },
+  {
+    id: 'ponto_equilibrio',
+    name: 'Ponto de Equilíbrio',
+    cat: 'Finanças',
+    icon: Target,
+    value: 'R$ 280k',
+    trend: '-2.1%',
+    isPositive: true,
+    color: '#3b82f6',
+  },
+  {
+    id: 'checklist_logistico',
+    name: 'Checklist Logístico',
+    cat: 'Logística',
+    icon: Check,
+    value: '94%',
+    trend: '+2.0%',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'divergencia_log',
+    name: 'Divergência de Frete',
+    cat: 'Logística',
+    icon: AlertCircle,
+    value: '1.2%',
+    trend: '-0.5%',
+    isPositive: true,
+    color: '#ef4444',
+  },
+  {
+    id: 'carbono_estoque',
+    name: 'Estoque de Carbono',
+    cat: 'ESG',
+    icon: Globe,
+    value: '2.4t/ha',
+    trend: '+0.8',
+    isPositive: true,
+    color: '#059669',
+  },
+  {
+    id: 'compliance_amb',
+    name: 'Compliance Ambiental',
+    cat: 'ESG',
+    icon: Shield,
+    value: '100%',
+    trend: 'Total',
+    isPositive: true,
+    color: '#10b981',
+  },
+  {
+    id: 'preco_arroba',
+    name: 'Cotação da @ (B3)',
+    cat: 'Mercado',
+    icon: TrendingUp,
+    value: 'R$ 242,50',
+    trend: '+1.2%',
+    isPositive: true,
+    color: '#8b5cf6',
+  },
 ];
 
 export const SystemSettingsTab: React.FC<{
@@ -86,7 +365,7 @@ export const SystemSettingsTab: React.FC<{
   const { tenant, refreshData, userProfile, refreshProfile } = useTenant();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  
+
   const handleSetTheme = (targetTheme: 'light' | 'dark') => {
     if (theme !== targetTheme) {
       toggleTheme();
@@ -101,7 +380,9 @@ export const SystemSettingsTab: React.FC<{
     if (savedLocal) {
       try {
         const parsed = JSON.parse(savedLocal);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       } catch (e) {}
     }
     return ['gmd', 'lotacao', 'caixa'];
@@ -109,10 +390,10 @@ export const SystemSettingsTab: React.FC<{
   const [metricTargets, setMetricTargets] = useState<any>({
     gmd: { mode: 'auto', manualValue: 1.2, autoFormula: 'Média + 15%' },
     lotacao: { mode: 'manual', manualValue: 1.5, autoFormula: 'Capacidade Nominal' },
-    caixa: { mode: 'auto', manualValue: 100000, autoFormula: 'Projeção Mensal' }
+    caixa: { mode: 'auto', manualValue: 100000, autoFormula: 'Projeção Mensal' },
   });
   const [auditLogsEnabled, setAuditLogsEnabled] = useState<boolean>(
-    tenant?.settings?.security?.auditLogsEnabled ?? true
+    (tenant?.settings?.security as { auditLogsEnabled?: boolean } | undefined)?.auditLogsEnabled ?? true
   );
   const [sidebarAlerts, setSidebarAlerts] = useState<{
     enabled: boolean;
@@ -125,30 +406,34 @@ export const SystemSettingsTab: React.FC<{
     lotes: true,
     financeiro: true,
     sanidade: true,
-    configuracoes: true
+    configuracoes: true,
   });
 
   useEffect(() => {
     // O roteamento interno de tabs agora é controlado pelo ModuleSettings.
-    
+
     // Sincronizar com o banco de dados se disponível e não houver cache local prioritário
     const dbMetrics = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
     if (dbMetrics && !localStorage.getItem('tauze_selected_metrics')) {
-      setSelectedMetrics(dbMetrics);
+      setSelectedMetrics(dbMetrics as string[]);
     }
-    
+
     if (tenant?.settings?.metric_targets) {
       setMetricTargets(tenant.settings.metric_targets);
     }
 
-    const dbAlerts = userProfile?.settings?.sidebar_alerts || tenant?.settings?.sidebar_alerts;
+    const dbAlerts = (userProfile?.settings?.sidebar_alerts ||
+      tenant?.settings?.sidebar_alerts) as {
+      enabled?: boolean; lotes?: boolean; financeiro?: boolean;
+      sanidade?: boolean; configuracoes?: boolean;
+    } | undefined;
     if (dbAlerts) {
       setSidebarAlerts({
         enabled: dbAlerts.enabled ?? true,
         lotes: dbAlerts.lotes ?? true,
         financeiro: dbAlerts.financeiro ?? true,
         sanidade: dbAlerts.sanidade ?? true,
-        configuracoes: dbAlerts.configuracoes ?? true
+        configuracoes: dbAlerts.configuracoes ?? true,
       });
     }
   }, [location.pathname, tenant, userProfile]);
@@ -166,7 +451,7 @@ export const SystemSettingsTab: React.FC<{
   const handleSave = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
-    
+
     localStorage.setItem('tauze_selected_metrics', JSON.stringify(selectedMetrics));
 
     if (tenant?.id) {
@@ -174,14 +459,16 @@ export const SystemSettingsTab: React.FC<{
       const id = saveScope === 'global' ? tenant.id : user?.id;
       const targetData = saveScope === 'global' ? tenant.settings : userProfile?.settings;
 
-      if (!id) return;
+      if (!id) {
+        return;
+      }
 
       const updatedSettings = {
         ...(targetData || {}),
         selected_metrics: selectedMetrics,
         metric_targets: metricTargets,
         sidebar_alerts: sidebarAlerts,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
@@ -197,16 +484,19 @@ export const SystemSettingsTab: React.FC<{
           entity: table === 'tenants' ? 'tenant_settings' : 'profile_settings',
           entity_id: id,
           old_data: { selected_metrics: targetData?.selected_metrics },
-          new_data: { selected_metrics: selectedMetrics }
+          new_data: { selected_metrics: selectedMetrics },
         });
-        
-        if (saveScope === 'global') await refreshData();
-        else await refreshProfile();
+
+        if (saveScope === 'global') {
+          await refreshData();
+        } else {
+          await refreshProfile();
+        }
       } else {
-        console.error("Erro ao salvar no banco:", error);
+        console.error('Erro ao salvar no banco:', error);
       }
     }
-    
+
     setTimeout(() => {
       setIsSaving(false);
       setSaveSuccess(true);
@@ -219,30 +509,34 @@ export const SystemSettingsTab: React.FC<{
     try {
       const settingsKey = saveScope === 'global' ? 'tenant' : 'profile';
       const targetData = saveScope === 'global' ? tenant?.settings : userProfile?.settings;
-      
+
       const newSettings = {
         ...(targetData || {}),
         metric_targets: {
           ...(targetData?.metric_targets || {}),
-          [metric]: config
-        }
+          [metric]: config,
+        },
       };
 
       const table = saveScope === 'global' ? 'tenants' : 'profiles';
       const id = saveScope === 'global' ? tenant?.id : userProfile?.id;
 
-      if (!id) throw new Error("ID de referência não encontrado");
+      if (!id) {
+        throw new Error('ID de referência não encontrado');
+      }
 
-      const { error } = await supabase
-        .from(table)
-        .update({ settings: newSettings })
-        .eq('id', id);
+      const { error } = await supabase.from(table).update({ settings: newSettings }).eq('id', id);
 
-      if (error) throw error;
-      
-      if (saveScope === 'global') await refreshData();
-      else await refreshProfile();
-      
+      if (error) {
+        throw error;
+      }
+
+      if (saveScope === 'global') {
+        await refreshData();
+      } else {
+        await refreshProfile();
+      }
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
@@ -255,8 +549,8 @@ export const SystemSettingsTab: React.FC<{
   // O salvamento no localStorage agora é feito apenas no handleSave para evitar sobrescritas acidentais no mount
 
   const toggleMetric = (id: string) => {
-    setSelectedMetrics(prev => 
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    setSelectedMetrics((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   };
 
@@ -277,8 +571,8 @@ export const SystemSettingsTab: React.FC<{
           ...currentSettings,
           security: {
             ...(currentSettings.security || {}),
-            auditLogsEnabled: newValue
-          }
+            auditLogsEnabled: newValue,
+          },
         };
 
         const { error } = await supabase
@@ -286,10 +580,12 @@ export const SystemSettingsTab: React.FC<{
           .update({ settings: newSettings })
           .eq('id', tenant.id);
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         await refreshData();
       } catch (err) {
-        console.warn("Failed to sync audit logs setting with database:", err);
+        console.warn('Failed to sync audit logs setting with database:', err);
         setAuditLogsEnabled(!newValue); // revert on failure
       }
     }
@@ -300,7 +596,7 @@ export const SystemSettingsTab: React.FC<{
       <main className="hub-content" style={{ padding: 0 }}>
         <AnimatePresence mode="wait">
           {activeTab === 'system' && (
-            <motion.div 
+            <motion.div
               key="system"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -320,7 +616,9 @@ export const SystemSettingsTab: React.FC<{
                     </div>
                     <div className="tauze-field">
                       <label>Fuso Horário Padrão</label>
-                      <select defaultValue="BR"><option>Brasília (GMT-3)</option></select>
+                      <select defaultValue="BR">
+                        <option>Brasília (GMT-3)</option>
+                      </select>
                     </div>
                   </div>
                 </section>
@@ -336,17 +634,17 @@ export const SystemSettingsTab: React.FC<{
                         <span className="t">Autenticação em 2 Etapas</span>
                         <span className="d">Proteger contas administrativas.</span>
                       </div>
-                      <div className="toggle-box active"></div>
+                      <div className="toggle-box active" />
                     </div>
                     <div className="premium-switch">
                       <div className="info">
                         <span className="t">Logs de Auditoria</span>
                         <span className="d">Rastrear todas as ações do sistema.</span>
                       </div>
-                      <div 
+                      <div
                         className={`toggle-box ${auditLogsEnabled ? 'active' : ''}`}
                         onClick={toggleAuditLogs}
-                      ></div>
+                      />
                     </div>
                   </div>
                 </section>
@@ -357,13 +655,13 @@ export const SystemSettingsTab: React.FC<{
                     <h3>Visual da Interface</h3>
                   </div>
                   <div className="appearance-grid">
-                    <div 
+                    <div
                       className={`theme-card ${theme === 'light' ? 'active' : ''}`}
                       onClick={() => handleSetTheme('light')}
                     >
                       Modo Claro (Tauze)
                     </div>
-                    <div 
+                    <div
                       className={`theme-card ${theme === 'dark' ? 'active' : ''}`}
                       onClick={() => handleSetTheme('dark')}
                     >
@@ -381,55 +679,141 @@ export const SystemSettingsTab: React.FC<{
                     <div className="premium-switch">
                       <div className="info">
                         <span className="t">Ativar Indicadores de Alertas</span>
-                        <span className="d">Mostrar bolinhas com contadores de pendências no menu lateral.</span>
+                        <span className="d">
+                          Mostrar bolinhas com contadores de pendências no menu lateral.
+                        </span>
                       </div>
-                      <div 
+                      <div
                         className={`toggle-box ${sidebarAlerts.enabled ? 'active' : ''}`}
-                        onClick={() => setSidebarAlerts(prev => ({ ...prev, enabled: !prev.enabled }))}
-                      ></div>
+                        onClick={() =>
+                          setSidebarAlerts((prev) => ({ ...prev, enabled: !prev.enabled }))
+                        }
+                      />
                     </div>
-                    
+
                     {sidebarAlerts.enabled && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px', paddingLeft: '8px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          marginTop: '16px',
+                          paddingLeft: '8px',
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             id="alert-lotes"
                             checked={sidebarAlerts.lotes}
-                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, lotes: e.target.checked }))}
-                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                            onChange={(e) =>
+                              setSidebarAlerts((prev) => ({ ...prev, lotes: e.target.checked }))
+                            }
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: 'hsl(var(--brand))',
+                              cursor: 'pointer',
+                            }}
                           />
-                          <label htmlFor="alert-lotes" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Lotes Pendentes/Divergentes</label>
+                          <label
+                            htmlFor="alert-lotes"
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: 'hsl(var(--text-main))',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Alertas de Lotes Pendentes/Divergentes
+                          </label>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             id="alert-financeiro"
                             checked={sidebarAlerts.financeiro}
-                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, financeiro: e.target.checked }))}
-                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                            onChange={(e) =>
+                              setSidebarAlerts((prev) => ({
+                                ...prev,
+                                financeiro: e.target.checked,
+                              }))
+                            }
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: 'hsl(var(--brand))',
+                              cursor: 'pointer',
+                            }}
                           />
-                          <label htmlFor="alert-financeiro" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Finanças Vencidas (Pagar/Receber)</label>
+                          <label
+                            htmlFor="alert-financeiro"
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: 'hsl(var(--text-main))',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Alertas de Finanças Vencidas (Pagar/Receber)
+                          </label>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             id="alert-sanidade"
                             checked={sidebarAlerts.sanidade}
-                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, sanidade: e.target.checked }))}
-                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                            onChange={(e) =>
+                              setSidebarAlerts((prev) => ({ ...prev, sanidade: e.target.checked }))
+                            }
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: 'hsl(var(--brand))',
+                              cursor: 'pointer',
+                            }}
                           />
-                          <label htmlFor="alert-sanidade" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Sanidade (Carência/Quarentena)</label>
+                          <label
+                            htmlFor="alert-sanidade"
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: 'hsl(var(--text-main))',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Alertas de Sanidade (Carência/Quarentena)
+                          </label>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             id="alert-configuracoes"
                             checked={sidebarAlerts.configuracoes}
-                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, configuracoes: e.target.checked }))}
-                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                            onChange={(e) =>
+                              setSidebarAlerts((prev) => ({
+                                ...prev,
+                                configuracoes: e.target.checked,
+                              }))
+                            }
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: 'hsl(var(--brand))',
+                              cursor: 'pointer',
+                            }}
                           />
-                          <label htmlFor="alert-configuracoes" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Faturas & Planos Vencidos</label>
+                          <label
+                            htmlFor="alert-configuracoes"
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: 'hsl(var(--text-main))',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Alertas de Faturas & Planos Vencidos
+                          </label>
                         </div>
                       </div>
                     )}
@@ -440,7 +824,7 @@ export const SystemSettingsTab: React.FC<{
           )}
 
           {activeTab === 'governance' && (
-            <motion.div 
+            <motion.div
               key="governance"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -459,14 +843,16 @@ export const SystemSettingsTab: React.FC<{
                         <span className="t">Trava de Período Fiscal</span>
                         <span className="d">Impedir edições em registros com mais de 30 dias.</span>
                       </div>
-                      <div className="toggle-box active"></div>
+                      <div className="toggle-box active" />
                     </div>
                     <div className="premium-switch">
                       <div className="info">
                         <span className="t">Validação de CNPJ Sefaz</span>
-                        <span className="d">Verificação automática em tempo real de fornecedores.</span>
+                        <span className="d">
+                          Verificação automática em tempo real de fornecedores.
+                        </span>
                       </div>
-                      <div className="toggle-box active"></div>
+                      <div className="toggle-box active" />
                     </div>
                   </div>
                 </section>
@@ -486,7 +872,7 @@ export const SystemSettingsTab: React.FC<{
                         <span className="t">Cálculo de Impostos Auto</span>
                         <span className="d">Aplicar regras fiscais padrão do estado.</span>
                       </div>
-                      <div className="toggle-box active"></div>
+                      <div className="toggle-box active" />
                     </div>
                   </div>
                 </section>
@@ -512,7 +898,7 @@ export const SystemSettingsTab: React.FC<{
           )}
 
           {activeTab === 'bi' && (
-            <motion.div 
+            <motion.div
               key="bi"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -525,18 +911,18 @@ export const SystemSettingsTab: React.FC<{
                     <Target size={18} />
                     <h3>Motor de Metas de Performance (Híbrido)</h3>
                   </div>
-                  
+
                   <div className="scope-toggle-container">
                     <span className="scope-label">SALVAR ALTERAÇÕES EM:</span>
                     <div className="scope-switcher">
-                      <button 
+                      <button
                         className={`scope-btn ${saveScope === 'global' ? 'active' : ''}`}
                         onClick={() => setSaveScope('global')}
                       >
                         <LayoutGrid size={14} />
                         FAZENDA (GLOBAL)
                       </button>
-                      <button 
+                      <button
                         className={`scope-btn ${saveScope === 'personal' ? 'active' : ''}`}
                         onClick={() => setSaveScope('personal')}
                       >
@@ -548,9 +934,9 @@ export const SystemSettingsTab: React.FC<{
 
                   <div className="targets-config-list">
                     {['gmd', 'lotacao', 'caixa'].map((mId) => {
-                      const metric = AVAILABLE_METRICS.find(m => m.id === mId);
+                      const metric = AVAILABLE_METRICS.find((m) => m.id === mId);
                       const target = metricTargets[mId] || { mode: 'auto', manualValue: 0 };
-                      
+
                       return (
                         <div key={mId} className="target-config-row">
                           <div className="m-info">
@@ -564,22 +950,26 @@ export const SystemSettingsTab: React.FC<{
                           </div>
 
                           <div className="mode-selector">
-                            <button 
+                            <button
                               className={`mode-btn ${target.mode === 'auto' ? 'active' : ''}`}
-                              onClick={() => setMetricTargets({
-                                ...metricTargets,
-                                [mId]: { ...target, mode: 'auto' }
-                              })}
+                              onClick={() =>
+                                setMetricTargets({
+                                  ...metricTargets,
+                                  [mId]: { ...target, mode: 'auto' },
+                                })
+                              }
                             >
                               <Zap size={12} />
                               <span>IA AUTOMÁTICA</span>
                             </button>
-                            <button 
+                            <button
                               className={`mode-btn ${target.mode === 'manual' ? 'active' : ''}`}
-                              onClick={() => setMetricTargets({
-                                ...metricTargets,
-                                [mId]: { ...target, mode: 'manual' }
-                              })}
+                              onClick={() =>
+                                setMetricTargets({
+                                  ...metricTargets,
+                                  [mId]: { ...target, mode: 'manual' },
+                                })
+                              }
                             >
                               <Monitor size={12} />
                               <span>MANUAL</span>
@@ -590,19 +980,23 @@ export const SystemSettingsTab: React.FC<{
                             {target.mode === 'manual' ? (
                               <div className="manual-input">
                                 <label>Valor da Meta</label>
-                                <input 
-                                  type="number" 
+                                <input
+                                  type="number"
                                   value={target.manualValue}
-                                  onChange={(e) => setMetricTargets({
-                                    ...metricTargets,
-                                    [mId]: { ...target, manualValue: parseFloat(e.target.value) }
-                                  })}
+                                  onChange={(e) =>
+                                    setMetricTargets({
+                                      ...metricTargets,
+                                      [mId]: { ...target, manualValue: parseFloat(e.target.value) },
+                                    })
+                                  }
                                 />
                               </div>
                             ) : (
                               <div className="auto-info">
                                 <span className="label">Cálculo Baseado em:</span>
-                                <span className="formula">{target.autoFormula || 'Histórico de 6 Meses'}</span>
+                                <span className="formula">
+                                  {target.autoFormula || 'Histórico de 6 Meses'}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -616,7 +1010,7 @@ export const SystemSettingsTab: React.FC<{
           )}
 
           {activeTab === 'canvas' && (
-            <motion.div 
+            <motion.div
               key="canvas"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -630,14 +1024,18 @@ export const SystemSettingsTab: React.FC<{
                     <h3>Seletor de Métricas</h3>
                   </div>
                   <div className="metrics-list-clean">
-                    {AVAILABLE_METRICS.map(m => (
-                      <button 
-                        key={m.id} 
+                    {AVAILABLE_METRICS.map((m) => (
+                      <button
+                        key={m.id}
                         className={`metric-option-item ${selectedMetrics.includes(m.id) ? 'active' : ''}`}
                         onClick={() => toggleMetric(m.id)}
                       >
                         <div className={`check ${selectedMetrics.includes(m.id) ? 'active' : ''}`}>
-                          {selectedMetrics.includes(m.id) ? <Check size={14} /> : <Plus size={14} />}
+                          {selectedMetrics.includes(m.id) ? (
+                            <Check size={14} />
+                          ) : (
+                            <Plus size={14} />
+                          )}
                         </div>
                         <div className="txt">
                           <span className="name">{m.name}</span>
@@ -646,57 +1044,100 @@ export const SystemSettingsTab: React.FC<{
                       </button>
                     ))}
                   </div>
-                  
+
                   <div className="panel-header" style={{ marginTop: '24px' }}>
                     <Monitor size={18} />
                     <h3>Modelos Premium</h3>
                   </div>
-                  <div className="canvas-presets-grid" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button 
+                  <div
+                    className="canvas-presets-grid"
+                    style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                  >
+                    <button
                       className="preset-card"
-                      onClick={() => setSelectedMetrics(['ebitda_operacional', 'burn_rate', 'ponto_equilibrio', 'caixa'])}
+                      onClick={() =>
+                        setSelectedMetrics([
+                          'ebitda_operacional',
+                          'burn_rate',
+                          'ponto_equilibrio',
+                          'caixa',
+                        ])
+                      }
                     >
-                      <div className="p-icon" style={{ background: '#8b5cf6' }}><DollarSign size={16} /></div>
+                      <div className="p-icon" style={{ background: '#8b5cf6' }}>
+                        <DollarSign size={16} />
+                      </div>
                       <div className="p-info">
                         <span className="t">CFO Intelligence Hub</span>
                         <span className="d">Métricas avançadas de tesouraria.</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       className="preset-card"
-                      onClick={() => setSelectedMetrics(['checklist_logistico', 'disponibilidade_frota', 'divergencia_log', 'lead_time'])}
+                      onClick={() =>
+                        setSelectedMetrics([
+                          'checklist_logistico',
+                          'disponibilidade_frota',
+                          'divergencia_log',
+                          'lead_time',
+                        ])
+                      }
                     >
-                      <div className="p-icon" style={{ background: '#10b981' }}><Globe size={16} /></div>
+                      <div className="p-icon" style={{ background: '#10b981' }}>
+                        <Globe size={16} />
+                      </div>
                       <div className="p-info">
                         <span className="t">Auditoria Logística</span>
                         <span className="d">Monitoramento de fretes e prazos.</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       className="preset-card"
-                      onClick={() => setSelectedMetrics(['gmd', 'lotacao', 'produtividade_ha', 'arroba_custo'])}
+                      onClick={() =>
+                        setSelectedMetrics(['gmd', 'lotacao', 'produtividade_ha', 'arroba_custo'])
+                      }
                     >
-                      <div className="p-icon" style={{ background: '#3b82f6' }}><Activity size={16} /></div>
+                      <div className="p-icon" style={{ background: '#3b82f6' }}>
+                        <Activity size={16} />
+                      </div>
                       <div className="p-info">
                         <span className="t">Performance de Rebanho</span>
                         <span className="d">Foco total em produção agropecuária.</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       className="preset-card"
-                      onClick={() => setSelectedMetrics(['carbono_estoque', 'compliance_amb', 'ims', 'manutencao_hora'])}
+                      onClick={() =>
+                        setSelectedMetrics([
+                          'carbono_estoque',
+                          'compliance_amb',
+                          'ims',
+                          'manutencao_hora',
+                        ])
+                      }
                     >
-                      <div className="p-icon" style={{ background: '#059669' }}><Globe size={16} /></div>
+                      <div className="p-icon" style={{ background: '#059669' }}>
+                        <Globe size={16} />
+                      </div>
                       <div className="p-info">
                         <span className="t">Sustentabilidade (ESG)</span>
                         <span className="d">Balanço de carbono e conformidade.</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       className="preset-card"
-                      onClick={() => setSelectedMetrics(['preco_arroba', 'saving_compras', 'ticket_venda', 'ebitda_operacional'])}
+                      onClick={() =>
+                        setSelectedMetrics([
+                          'preco_arroba',
+                          'saving_compras',
+                          'ticket_venda',
+                          'ebitda_operacional',
+                        ])
+                      }
                     >
-                      <div className="p-icon" style={{ background: '#f59e0b' }}><TrendingUp size={16} /></div>
+                      <div className="p-icon" style={{ background: '#f59e0b' }}>
+                        <TrendingUp size={16} />
+                      </div>
                       <div className="p-info">
                         <span className="t">Market Intelligence</span>
                         <span className="d">Cotações B3 e margens de venda.</span>
@@ -714,56 +1155,92 @@ export const SystemSettingsTab: React.FC<{
                     <div className="modern-section-header" style={{ marginBottom: '12px' }}>
                       <div className="title-group">
                         <Layout size={16} className="text-brand" />
-                        <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Layout do Dashboard</h4>
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            color: '#475569',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Layout do Dashboard
+                        </h4>
                       </div>
-                      <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Arraste para reordenar</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
+                        Arraste para reordenar
+                      </span>
                     </div>
-                    <Reorder.Group 
+                    <Reorder.Group
                       as="div"
                       axis="y"
-                      values={selectedMetrics} 
+                      values={selectedMetrics}
                       onReorder={setSelectedMetrics}
                       className="reorder-wrapper"
                     >
-                      {selectedMetrics.map(id => {
-                        const m = AVAILABLE_METRICS.find(metric => metric.id === id);
-                        if (!m) return null;
+                      {selectedMetrics.map((id) => {
+                        const m = AVAILABLE_METRICS.find((metric) => metric.id === id);
+                        if (!m) {
+                          return null;
+                        }
                         return (
-                        <Reorder.Item 
-                          as="div"
-                          value={m.id}
-                          key={m.id} 
-                          className="v-widget active"
-                          whileDrag={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.1)", zIndex: 50 }}
-                        >
-                          <div className="v-widget-header" style={{ cursor: 'grab' }}>
-                            <div className="icon-c" style={{ color: m.color }}>
-                              <m.icon size={14} />
+                          <Reorder.Item
+                            as="div"
+                            value={m.id}
+                            key={m.id}
+                            className="v-widget active"
+                            whileDrag={{
+                              scale: 1.02,
+                              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                              zIndex: 50,
+                            }}
+                          >
+                            <div className="v-widget-header" style={{ cursor: 'grab' }}>
+                              <div className="icon-c" style={{ color: m.color }}>
+                                <m.icon size={14} />
+                              </div>
+                              <span>{m.name}</span>
+                              <button
+                                className="remove-w"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => toggleMetric(m.id)}
+                              >
+                                <X size={12} />
+                              </button>
                             </div>
-                            <span>{m.name}</span>
-                            <button className="remove-w" onPointerDown={(e) => e.stopPropagation()} onClick={() => toggleMetric(m.id)}><X size={12} /></button>
-                          </div>
-                          <div className="v-widget-body">
-                            <div className="v-value-row">
-                              <span className="val">{m.value}</span>
-                              <div className={`trend-tag ${m.isPositive ? 'up' : 'down'}`}>
-                                {m.isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                <span>{m.trend}</span>
+                            <div className="v-widget-body">
+                              <div className="v-value-row">
+                                <span className="val">{m.value}</span>
+                                <div className={`trend-tag ${m.isPositive ? 'up' : 'down'}`}>
+                                  {m.isPositive ? (
+                                    <TrendingUp size={10} />
+                                  ) : (
+                                    <TrendingDown size={10} />
+                                  )}
+                                  <span>{m.trend}</span>
+                                </div>
+                              </div>
+                              <div className="mini-bar-chart">
+                                {[40, 70, 45, 90, 65, 80, 95].map((h, i) => (
+                                  <div
+                                    key={i}
+                                    className="bar"
+                                    style={{
+                                      height: `${h}%`,
+                                      backgroundColor: m.color,
+                                      opacity: 0.3 + i * 0.1,
+                                    }}
+                                  />
+                                ))}
                               </div>
                             </div>
-                            <div className="mini-bar-chart">
-                              {[40, 70, 45, 90, 65, 80, 95].map((h, i) => (
-                                <div key={i} className="bar" style={{ height: `${h}%`, backgroundColor: m.color, opacity: 0.3 + (i * 0.1) }} />
-                              ))}
-                            </div>
-                          </div>
-                        </Reorder.Item>
+                          </Reorder.Item>
                         );
                       })}
                     </Reorder.Group>
                     {selectedMetrics.length < 4 && (
-                      <div 
-                        className="v-widget dash-border clickable-add" 
+                      <div
+                        className="v-widget dash-border clickable-add"
                         onClick={() => {
                           const list = document.querySelector('.metrics-list-clean');
                           list?.scrollIntoView({ behavior: 'smooth' });

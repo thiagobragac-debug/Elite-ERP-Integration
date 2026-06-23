@@ -27,7 +27,7 @@ describe('ColorPicker', () => {
     render(<ColorPicker {...defaultProps} />);
     const greenBtn = screen.getByTitle('Verde');
     expect(greenBtn).toBeInTheDocument();
-    
+
     fireEvent.click(greenBtn);
     expect(defaultProps.onChange).toHaveBeenCalledWith('#10b981'); // Verde
   });
@@ -38,7 +38,7 @@ describe('ColorPicker', () => {
       { value: '#ffffff', label: 'White' },
     ];
     render(<ColorPicker {...defaultProps} colors={customColors} />);
-    
+
     expect(screen.getByTitle('Black')).toBeInTheDocument();
     expect(screen.getByTitle('White')).toBeInTheDocument();
     expect(screen.queryByTitle('Verde')).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('ColorPicker', () => {
     // The native color input is inside a div with title "Cor Personalizada"
     const colorInput = document.querySelector('input[type="color"]');
     expect(colorInput).toBeInTheDocument();
-    
+
     if (colorInput) {
       fireEvent.change(colorInput, { target: { value: '#123456' } });
       expect(defaultProps.onChange).toHaveBeenCalledWith('#123456');

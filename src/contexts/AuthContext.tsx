@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser, AuthError } from '@supabase/supabase-js';
+import { setUserContext, clearSentryContext } from '../lib/sentry';
+import { resetUser } from '../lib/analytics';
 
 interface User {
   id: string;
@@ -15,9 +17,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   aal: 'aal1' | 'aal2' | null;
   setAal: (level: 'aal1' | 'aal2' | null) => void;
-  login: (email: string, password: string) => Promise<{ error: any }>;
-  loginWithGoogle: () => Promise<{ error: any }>;
-  registerTenant: (payload: any) => Promise<{ error: any }>;
+  login: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  loginWithGoogle: () => Promise<{ error: AuthError | null }>;
+  registerTenant: (payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    companyName: string;
+  }) => Promise<{ error: Error | AuthError | null }>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -33,11 +40,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check active sessions and sets the user
     const getSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
           console.error('Error fetching session:', error);
-          if (error.message.includes('refresh_token_not_found') || error.message.includes('invalid_grant')) {
+          if (
+            error.message.includes('refresh_token_not_found') ||
+            error.message.includes('invalid_grant')
+          ) {
             await supabase.auth.signOut();
           }
         }
@@ -45,13 +58,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (session?.user) {
           setUser({
             id: session.user.id,
-            name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'User',
+            name:
+              session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
-            role: 'admin'
+            role: (session.user.user_metadata?.role as 'admin' | 'user') || 'user',
           });
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData) {
-            setAal(aalData.currentLevel);
+            setAal(aalData.currentLevel as 'aal1' | 'aal2' | null);
           } else {
             setAal('aal1');
           }
@@ -68,24 +82,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     getSession();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
           name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'User',
           email: session.user.email || '',
-          role: 'admin'
+          role: (session.user.user_metadata?.role as 'admin' | 'user') || 'user',
         });
-        
+
         // Fetch AAL asynchronously without blocking the gotrue-js lock manager
-        supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: aalData }) => {
-          if (aalData) {
-            setAal(aalData.currentLevel);
-          } else {
-            setAal('aal1');
-          }
-        }).catch(console.error);
-        
+        supabase.auth.mfa
+          .getAuthenticatorAssuranceLevel()
+          .then(({ data: aalData }) => {
+            if (aalData) {
+              setAal(aalData.currentLevel as 'aal1' | 'aal2' | null);
+            } else {
+              setAal('aal1');
+            }
+          })
+          .catch(console.error);
       } else {
         setUser(null);
         setAal(null);
@@ -121,86 +139,68 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    clearSentryContext();
+    resetUser(); // Reset analytics user identity
   };
 
-  const registerTenant = async (payload: { email: string; password: string; fullName: string; companyName: string }) => {
+  const registerTenant = async (payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    companyName: string;
+  }): Promise<{ error: Error | AuthError | null }> => {
     try {
       // 1. Criar Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: payload.email,
         password: payload.password,
         options: {
-          data: { full_name: payload.fullName }
-        }
+          data: { full_name: payload.fullName },
+        },
       });
 
-      if (authError) throw authError;
-      
+      if (authError) {
+        throw authError;
+      }
+
       const newUserId = authData.user?.id;
-      if (!newUserId) throw new Error('Não foi possível obter o ID do usuário.');
+      if (!newUserId) {
+        throw new Error('Não foi possível obter o ID do usuário.');
+      }
 
-      // 2. Criar Tenant
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert([{ 
-          nome: payload.companyName, 
-          status: 'ativo', 
-          plano: 'trial' 
-        }])
-        .select()
-        .single();
+      // 2. Chamar a RPC transacionada no banco para criar toda a estrutura do Tenant de forma atômica
+      const { error: rpcError } = await supabase.rpc('register_new_tenant', {
+        p_user_id: newUserId,
+        p_email: payload.email,
+        p_full_name: payload.fullName,
+        p_company_name: payload.companyName,
+      });
 
-      if (tenantError) throw tenantError;
-
-      // 3. Criar Unidade (Empresa)
-      const { data: unidadeData, error: unidadeError } = await supabase
-        .from('unidades')
-        .insert([{
-          tenant_id: tenantData.id,
-          nome: payload.companyName,
-          tipo: 'Matriz'
-        }])
-        .select()
-        .single();
-
-      if (unidadeError) throw unidadeError;
-
-      // 4. Criar Fazenda
-      const { data: fazendaData, error: fazendaError } = await supabase
-        .from('fazendas')
-        .insert([{
-          tenant_id: tenantData.id,
-          unidade_id: unidadeData.id,
-          nome: 'Fazenda Principal'
-        }])
-        .select()
-        .single();
-
-      if (fazendaError) throw fazendaError;
-
-      // 5. Atualizar Profile
-      // Verifica se o profile já existe (criado por trigger) e faz um upsert
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert([{
-          id: newUserId,
-          tenant_id: tenantData.id,
-          role: 'ADMIN',
-          full_name: payload.fullName,
-          fazendas_permitidas: [fazendaData.id]
-        }]);
-
-      if (profileError) throw profileError;
+      if (rpcError) {
+        throw rpcError;
+      }
 
       return { error: null };
     } catch (error: any) {
       console.error('Erro no registro do tenant:', error);
-      return { error };
+      return { error: error as Error | AuthError };
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, loginWithGoogle, registerTenant, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        aal,
+        setAal,
+        login,
+        loginWithGoogle,
+        registerTenant,
+        logout,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -4,12 +4,16 @@ import { supabase } from '../lib/supabase';
 /**
  * A custom hook that works exactly like useState, but persists the state in sessionStorage
  * AND syncs automatically to the cloud (user_drafts) for Enterprise Auto-Save.
- * 
+ *
  * @param key Unique key for sessionStorage/Cloud Draft
  * @param initialValue Default value if nothing is saved
  */
-export function usePersistentState<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-  const isComplex = typeof initialValue === 'object' && !Array.isArray(initialValue) && initialValue !== null;
+export function usePersistentState<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T | ((val: T) => T)) => void] {
+  const isComplex =
+    typeof initialValue === 'object' && !Array.isArray(initialValue) && initialValue !== null;
   const isInitialMount = useRef(true);
   const skipNextCloudSave = useRef(false);
 
@@ -38,8 +42,10 @@ export function usePersistentState<T>(key: string, initialValue: T): [T, (value:
 
   // Phase 2: Enterprise Cloud Draft - Cloud Hydration
   useEffect(() => {
-    if (!isComplex) return;
-    
+    if (!isComplex) {
+      return;
+    }
+
     let isMounted = true;
     const fetchCloudDraft = async () => {
       try {
@@ -48,7 +54,7 @@ export function usePersistentState<T>(key: string, initialValue: T): [T, (value:
           .select('payload')
           .eq('draft_key', key)
           .maybeSingle();
-          
+
         if (error && error.code !== 'PGRST116') {
           // PGRST116 is 0 rows returned
           console.warn('Failed to fetch cloud draft:', error);
@@ -68,13 +74,19 @@ export function usePersistentState<T>(key: string, initialValue: T): [T, (value:
 
     fetchCloudDraft();
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [key, isComplex]);
 
   // Phase 2: Enterprise Cloud Draft - Auto-Save
   useEffect(() => {
-    if (state === undefined || state === null) return;
-    if (!isComplex) return;
+    if (state === undefined || state === null) {
+      return;
+    }
+    if (!isComplex) {
+      return;
+    }
 
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -86,22 +98,24 @@ export function usePersistentState<T>(key: string, initialValue: T): [T, (value:
       return;
     }
 
-    // Debounce to avoid flooding the database on every keystroke
     const timeoutId = setTimeout(async () => {
       try {
         const { data: userData } = await supabase.auth.getUser();
-        if (!userData?.user) return; // Only save if logged in
+        if (!userData?.user) return;
 
-        await supabase.from('user_drafts').upsert({
-          user_id: userData.user.id,
-          draft_key: key,
-          payload: state,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id, draft_key' });
+        await supabase.from('user_drafts').upsert(
+          {
+            user_id: userData.user.id,
+            draft_key: key,
+            payload: state,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'draft_key' }
+        );
       } catch (error) {
-        console.warn('Failed to auto-save cloud draft:', error);
+        // Silent fail — auto-save é nice-to-have, não crítico
       }
-    }, 3000); // 3 seconds debounce for snappy cloud save
+    }, 3000);
 
     return () => clearTimeout(timeoutId);
   }, [key, state, isComplex]);

@@ -2,10 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export interface CepeaLiveData {
-  valor: string;       // ex: "348,30"
-  valorNum: number;    // ex: 348.30
-  data: string;        // ex: "27/05/2026" (vinda da CEPEA)
-  isoDate: string;     // ex: "2026-05-27"
+  valor: string; // ex: "348,30"
+  valorNum: number; // ex: 348.30
+  data: string; // ex: "27/05/2026" (vinda da CEPEA)
+  isoDate: string; // ex: "2026-05-27"
   capturedAt: Date;
 }
 
@@ -35,7 +35,9 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
 
       if (data) {
         setLive({
@@ -57,10 +59,16 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchLatestQuote();
 
     // 2. Subscribe to realtime updates for market_quotes
-    const channel = supabase.channel('market-quotes-changes')
+    const channel = supabase
+      .channel('market-quotes-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'market_quotes', filter: `indicator=eq.${INDICATOR}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'market_quotes',
+          filter: `indicator=eq.${INDICATOR}`,
+        },
         (payload) => {
           if (payload.new && 'value' in payload.new) {
             const row = payload.new as any;
@@ -81,9 +89,5 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  return (
-    <CepeaContext.Provider value={{ live, loading }}>
-      {children}
-    </CepeaContext.Provider>
-  );
+  return <CepeaContext.Provider value={{ live, loading }}>{children}</CepeaContext.Provider>;
 };

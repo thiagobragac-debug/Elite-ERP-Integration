@@ -1,11 +1,8 @@
-import toast from 'react-hot-toast';
-﻿/**
+import toast from 'react-hot-toast'; /**
  * Stripe Integration Utility - Tauze ERP SaaS v5.0
  * Handles subscription creation, usage reporting (metered billing), and webhook processing.
  */
-
 const STRIPE_PK = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const STRIPE_SK = import.meta.env.VITE_STRIPE_SECRET_KEY;
 
 if (!STRIPE_PK || STRIPE_PK.includes('seu_token_aqui')) {
   console.warn('[Stripe] Chave Pública não configurada. Verifique seu arquivo .env');
@@ -28,10 +25,10 @@ export const stripe = {
     }
 
     console.log(`[Stripe] Creating checkout session for Tenant: ${tenantId}, Plan: ${planId}`);
-    
+
     // In a real implementation, this would call a Supabase Edge Function or Backend
     // that interacts with the Stripe API.
-    
+
     // Example logic for the edge function:
     /*
     const session = await stripe.checkout.sessions.create({
@@ -45,7 +42,7 @@ export const stripe = {
     });
     return session;
     */
-    
+
     return { url: 'https://checkout.stripe.com/pay/mock_session' };
   },
 
@@ -55,7 +52,7 @@ export const stripe = {
    */
   reportUsage: async (subscriptionItemId: string, quantity: number) => {
     console.log(`[Stripe] Reporting usage: ${quantity} units for Item: ${subscriptionItemId}`);
-    
+
     // Logic for reporting usage to Stripe:
     /*
     await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
@@ -72,22 +69,22 @@ export const stripe = {
    */
   handleWebhook: async (event: any) => {
     const { type, data } = event;
-    
+
     switch (type) {
       case 'invoice.paid':
         console.log('[Stripe Webhook] Payment received for invoice:', data.object.id);
         // Update tenant status to 'ACTIVE' and reset overdue flags
         break;
-      
+
       case 'invoice.payment_failed':
         console.log('[Stripe Webhook] Payment failed for invoice:', data.object.id);
         // Trigger Phase 3: Lifecycle Governance (Hard/Soft Lock)
         break;
-        
+
       case 'customer.subscription.deleted':
         console.log('[Stripe Webhook] Subscription canceled');
         // Terminate access for the tenant
         break;
     }
-  }
+  },
 };

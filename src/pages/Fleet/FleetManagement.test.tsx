@@ -15,26 +15,26 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     applyTenantFilter: (q: any) => q,
     canCreate: true,
     activeFarm: { id: 'farm-1', tenantId: 'tenant-1', name: 'Fazenda Boa Esperança' },
-    insertPayload: {}
-  })
+    insertPayload: {},
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('../../hooks/useViewMode', () => ({
   useViewMode: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('../../hooks/useServerPagination', () => ({
@@ -44,14 +44,14 @@ vi.mock('../../hooks/useServerPagination', () => ({
     totalCount: 2,
     setTotalCount: vi.fn(),
     setPage: vi.fn(),
-    getRange: () => ({ from: 0, to: 19 })
-  })
+    getRange: () => ({ from: 0, to: 19 }),
+  }),
 }));
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -59,22 +59,40 @@ vi.mock('@tanstack/react-query', async () => {
       if (key === 'machines') {
         return {
           data: [
-            { id: '1', nome: 'Trator MF', tipo: 'Trator', categoria: 'Trator', marca: 'Massey', modelo: '4292', ano: 2020, status: 'active', horimetro_atual: 150 },
-            { id: '2', nome: 'Colheitadeira TC', tipo: 'Colheitadeira', categoria: 'Colheitadeira', marca: 'New Holland', modelo: 'TC5090', ano: 2018, status: 'maintenance', horimetro_atual: 450 }
+            {
+              id: '1',
+              nome: 'Trator MF',
+              tipo: 'Trator',
+              categoria: 'Trator',
+              marca: 'Massey',
+              modelo: '4292',
+              ano: 2020,
+              status: 'active',
+              horimetro_atual: 150,
+            },
+            {
+              id: '2',
+              nome: 'Colheitadeira TC',
+              tipo: 'Colheitadeira',
+              categoria: 'Colheitadeira',
+              marca: 'New Holland',
+              modelo: 'TC5090',
+              ano: 2018,
+              status: 'maintenance',
+              horimetro_atual: 450,
+            },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       if (key === 'fuelStats') {
         return {
-          data: [
-            { litros: 200, maquina_id: '1' }
-          ],
-          isLoading: false
+          data: [{ litros: 200, maquina_id: '1' }],
+          isLoading: false,
         };
       }
       return { data: [], isLoading: false };
-    })
+    }),
   };
 });
 
@@ -121,7 +139,7 @@ describe('FleetManagement', () => {
     renderComponent();
     const tab = screen.getAllByText('Trator')[0];
     fireEvent.click(tab);
-    
+
     expect(screen.getAllByText('Trator MF').length).toBeGreaterThan(0);
     expect(screen.queryByText('Colheitadeira TC')).not.toBeInTheDocument();
   });

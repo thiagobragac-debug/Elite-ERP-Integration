@@ -13,25 +13,25 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     isGlobalMode: false,
     applyFarmFilter: (q: any) => q,
     canCreate: true,
-    activeFarm: { id: 'farm-1', tenantId: 'tenant-1' }
-  })
+    activeFarm: { id: 'farm-1', tenantId: 'tenant-1' },
+  }),
 }));
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -40,17 +40,41 @@ vi.mock('@tanstack/react-query', async () => {
         return {
           data: {
             data: [
-              { id: '1', tipo: 'in', quantidade: 50, valor_unitario: 10, data_movimentacao: '2026-06-08', responsavel: 'Admin', produtos: { nome: 'Semente Milho', unidade: 'kg' } },
-              { id: '2', tipo: 'out', quantidade: 20, valor_unitario: 10, data_movimentacao: '2026-06-07', responsavel: 'Admin', produtos: { nome: 'Semente Milho', unidade: 'kg' } },
-              { id: '3', tipo: 'transfer', quantidade: 10, valor_unitario: 50, data_movimentacao: '2026-06-06', responsavel: 'User', produtos: { nome: 'Adubo', unidade: 'kg' } }
+              {
+                id: '1',
+                tipo: 'in',
+                quantidade: 50,
+                valor_unitario: 10,
+                data_movimentacao: '2026-06-08',
+                responsavel: 'Admin',
+                produtos: { nome: 'Semente Milho', unidade: 'kg' },
+              },
+              {
+                id: '2',
+                tipo: 'out',
+                quantidade: 20,
+                valor_unitario: 10,
+                data_movimentacao: '2026-06-07',
+                responsavel: 'Admin',
+                produtos: { nome: 'Semente Milho', unidade: 'kg' },
+              },
+              {
+                id: '3',
+                tipo: 'transfer',
+                quantidade: 10,
+                valor_unitario: 50,
+                data_movimentacao: '2026-06-06',
+                responsavel: 'User',
+                produtos: { nome: 'Adubo', unidade: 'kg' },
+              },
             ],
-            count: 3
+            count: 3,
           },
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: { data: [], count: 0 }, isLoading: false };
-    })
+    }),
   };
 });
 
@@ -81,10 +105,10 @@ describe('MovementManagement', () => {
 
   it('renders stats correctly based on query data', () => {
     renderComponent();
-    
+
     // Movimentações = 3
     expect(screen.getAllByText('3').length).toBeGreaterThan(0);
-    
+
     // Entradas = 1, Saídas = 1
     expect(screen.getByText('Entradas (Pág.)')).toBeInTheDocument();
     expect(screen.getByText('Saídas (Pág.)')).toBeInTheDocument();
@@ -94,7 +118,7 @@ describe('MovementManagement', () => {
     renderComponent();
     expect(screen.getAllByText('Semente Milho').length).toBe(2);
     expect(screen.getByText('Adubo')).toBeInTheDocument();
-    
+
     // Types
     expect(screen.getByText('Entrada')).toBeInTheDocument();
     expect(screen.getByText('Saída')).toBeInTheDocument();
@@ -105,10 +129,10 @@ describe('MovementManagement', () => {
     renderComponent();
     const logTab = screen.getByText('Log de Movimentos');
     const analysisTab = screen.getByText('Análise de Fluxo');
-    
+
     expect(logTab).toHaveClass('active');
     expect(analysisTab).not.toHaveClass('active');
-    
+
     fireEvent.click(analysisTab);
     expect(analysisTab).toHaveClass('active');
     expect(logTab).not.toHaveClass('active');

@@ -5,12 +5,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ClipboardList, 
-  Plus, 
-  Users, 
-  Scale, 
-  Layers, 
+import {
+  ClipboardList,
+  Plus,
+  Users,
+  Scale,
+  Layers,
   ArrowRightLeft,
   Trash2,
   Search,
@@ -28,7 +28,7 @@ import {
   Activity,
   AlertCircle,
   Clock,
-  Truck
+  Truck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -53,24 +53,51 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const LotManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('LotManagement_isModalOpen', false);
   const [formActionId, setFormActionId] = useState<number>(0);
-  const [isRelocateModalOpen, setIsRelocateModalOpen] = usePersistentState('LotManagement_isRelocateModalOpen', false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = usePersistentState('LotManagement_isAssignModalOpen', false);
+  const [isRelocateModalOpen, setIsRelocateModalOpen] = usePersistentState(
+    'LotManagement_isRelocateModalOpen',
+    false
+  );
+  const [isAssignModalOpen, setIsAssignModalOpen] = usePersistentState(
+    'LotManagement_isAssignModalOpen',
+    false
+  );
   const [selectedLot, setSelectedLot] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = usePersistentState('LotManagement_isDetailsModalOpen', false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = usePersistentState(
+    'LotManagement_isDetailsModalOpen',
+    false
+  );
   const [lotToView, setLotToView] = useState<any>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ATIVO' | 'PENDENTE' | 'ARQUIVADO') || 'ATIVO';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  const [isProcessModalOpen, setIsProcessModalOpen] = usePersistentState('LotManagement_isProcessModalOpen', false);
+  const [isProcessModalOpen, setIsProcessModalOpen] = usePersistentState(
+    'LotManagement_isProcessModalOpen',
+    false
+  );
   const [lotToProcess, setLotToProcess] = useState<any>(null);
   const [mockPendingLots, setMockPendingLots] = useState<any[]>([
     {
@@ -82,7 +109,7 @@ export const LotManagement: React.FC = () => {
       custo_total_aquisicao: 90000,
       custo_por_cabeca: 1500,
       fornecedor: 'Fazenda Santa Rita',
-      status: 'PENDENTE'
+      status: 'PENDENTE',
     },
     {
       id: 'lot-pend-2',
@@ -93,31 +120,33 @@ export const LotManagement: React.FC = () => {
       custo_total_aquisicao: 72000,
       custo_por_cabeca: 1800,
       fornecedor: 'Estância Bela Vista',
-      status: 'PENDENTE'
-    }
+      status: 'PENDENTE',
+    },
   ]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('LotManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'LotManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     dateStart: '',
     dateEnd: '',
     finalidades: [] as string[],
     minOccupancy: 0,
-    uniformityLevel: 'all'
+    uniformityLevel: 'all',
   });
   const [viewMode, setViewMode] = useViewMode('pecuaria-lot-management', 'grid');
-  
+
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  
 
-  const { 
-    data: fetchedLots = [], 
-    stats = [], 
-    loading = false, 
-    error = null, 
+  const {
+    data: fetchedLots = [],
+    stats = [],
+    loading = false,
+    error = null,
     totalCount = 0,
-    refresh 
+    refresh,
   } = useReportData('lotes', { page, pageSize });
 
   const [localLots, setLocalLots] = useState<any[]>([]);
@@ -141,12 +170,19 @@ export const LotManagement: React.FC = () => {
   };
 
   const toggleArchiveMutation = useMutation({
-    mutationFn: async ({ lot, newStatus, isArchived }: { lot: any; newStatus: string; isArchived: boolean }) => {
-      const { error } = await supabase
-        .from('lotes')
-        .update({ status: newStatus })
-        .eq('id', lot.id);
-      if (error) throw error;
+    mutationFn: async ({
+      lot,
+      newStatus,
+      isArchived,
+    }: {
+      lot: any;
+      newStatus: string;
+      isArchived: boolean;
+    }) => {
+      const { error } = await supabase.from('lotes').update({ status: newStatus }).eq('id', lot.id);
+      if (error) {
+        throw error;
+      }
 
       if (activeTenantId) {
         await logAudit({
@@ -157,7 +193,7 @@ export const LotManagement: React.FC = () => {
           entity_id: lot.id,
           description: `Lote "${lot.nome}" foi ${isArchived ? 'reativado' : 'arquivado'}`,
           old_data: { status: lot.status || 'ATIVO' },
-          new_data: { status: newStatus }
+          new_data: { status: newStatus },
         });
       }
     },
@@ -166,16 +202,16 @@ export const LotManagement: React.FC = () => {
       toast.success('✅ Lote atualizado com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao arquivar/reativar lote: ' + err.message);
+      toast.error(`❌ Erro ao arquivar/reativar lote: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleToggleArchive = async (lot: any) => {
     const isArchived = lot.status?.toUpperCase() === 'ARQUIVADO';
     const newStatus = isArchived ? 'ATIVO' : 'ARQUIVADO';
     const actionText = isArchived ? 'reativar' : 'arquivar';
-    
+
     if (!isArchived) {
       try {
         const { count, error: countError } = await supabase
@@ -184,28 +220,43 @@ export const LotManagement: React.FC = () => {
           .eq('lote_id', lot.id)
           .in('status', ['ATIVO', 'Ativo', 'ativo']);
 
-        if (countError) throw countError;
+        if (countError) {
+          throw countError;
+        }
 
         if (count && count > 0) {
-          toast.error(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui ${count} animais ativos vinculados. Por favor, transfira os animais para outro lote antes de arquivar.`);
+          toast.error(
+            `❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui ${count} animais ativos vinculados. Por favor, transfira os animais para outro lote antes de arquivar.`
+          );
           return;
         }
       } catch (err: any) {
-        console.warn('Falha na consulta ao banco de animais, aplicando validação padrão:', err.message);
+        console.warn(
+          'Falha na consulta ao banco de animais, aplicando validação padrão:',
+          err.message
+        );
         if (lot.nome?.includes('01') || lot.nome?.includes('Recria') || lot.nome === '1') {
-          toast.error(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`);
+          toast.error(
+            `❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`
+          );
           return;
         }
       }
     }
 
-    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja realmente ${actionText} o lote "${lot.nome}"?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: `Deseja realmente ${actionText} o lote "${lot.nome}"?`,
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
 
     // Optimistic update
-    setLocalLots(prev => 
-      prev.map(l => l.id === lot.id ? { ...l, status: newStatus } : l)
-    );
+    setLocalLots((prev) => prev.map((l) => (l.id === lot.id ? { ...l, status: newStatus } : l)));
 
     toggleArchiveMutation.mutate({ lot, newStatus, isArchived });
   };
@@ -213,24 +264,34 @@ export const LotManagement: React.FC = () => {
   const deleteLotMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('lotes').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Lote excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir lote: ' + err.message);
+      toast.error(`❌ Erro ao excluir lote: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este lote?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
-    
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este lote?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
+
     // Optimistic update
-    setLocalLots(prev => prev.filter(l => l.id !== id));
+    setLocalLots((prev) => prev.filter((l) => l.id !== id));
 
     deleteLotMutation.mutate(id);
   };
@@ -243,17 +304,20 @@ export const LotManagement: React.FC = () => {
   const saveLotMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedLot) {
-        const { error } = await supabase
-          .from('lotes')
-          .update(payload)
-          .eq('id', selectedLot.id);
-        if (error) throw error;
+        const { error } = await supabase.from('lotes').update(payload).eq('id', selectedLot.id);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase.from('lotes').insert([{
-          ...insertPayload,
-          ...payload
-        }]);
-        if (error) throw error;
+        const { error } = await supabase.from('lotes').insert([
+          {
+            ...insertPayload,
+            ...payload,
+          },
+        ]);
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -262,9 +326,9 @@ export const LotManagement: React.FC = () => {
       toast.success(selectedLot ? '✅ Lote atualizado!' : '✅ Lote cadastrado!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar lote: ' + err.message);
+      toast.error(`❌ Erro ao salvar lote: ${err.message}`);
       refresh();
-    }
+    },
   });
 
   const handleSubmit = async (data: any) => {
@@ -289,162 +353,270 @@ export const LotManagement: React.FC = () => {
       programa_bonificacao: data.programa_bonificacao || null,
       meta_rendimento_carcaca: parseFloat(data.meta_rendimento_carcaca) || null,
       peso_carcaca_alvo: parseFloat(data.peso_carcaca_alvo) || null,
-      exige_rastreabilidade: data.exige_rastreabilidade || false
+      exige_rastreabilidade: data.exige_rastreabilidade || false,
     };
 
     if (selectedLot) {
       // Optimistic update
-      setLocalLots(prev => prev.map(l => l.id === selectedLot.id ? { ...l, ...payload } : l));
+      setLocalLots((prev) => prev.map((l) => (l.id === selectedLot.id ? { ...l, ...payload } : l)));
     } else {
       const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
       const newLot = {
         id: mockNewId,
         ...payload,
         ...insertPayload,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
       // Optimistic insert
-      setLocalLots(prev => [newLot, ...prev]);
+      setLocalLots((prev) => [newLot, ...prev]);
     }
 
     saveLotMutation.mutate(payload);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = localLots.map(item => ({
+    const exportData = localLots.map((item) => ({
       Nome: item.nome,
       Status: item.status || 'ATIVO',
       Capacidade: item.capacidade,
       GMD_Alvo: item.gmd_alvo,
       Peso_Alvo: item.peso_alvo,
-      Data_Inicio: item.data_inicio
+      Data_Inicio: item.data_inicio,
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'log_lotes');
-    else if (format === 'excel') exportToExcel(exportData, 'log_lotes');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_lotes', 'Relatório de Lotes');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'log_lotes');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'log_lotes');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'log_lotes', 'Relatório de Lotes');
+    }
   };
 
-  const filteredLots = (activeTab === 'PENDENTE' ? mockPendingLots : localLots).filter(l => {
+  const filteredLots = (activeTab === 'PENDENTE' ? mockPendingLots : localLots).filter((l) => {
     const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-    if (activeTab === 'PENDENTE') return matchesSearch;
+    if (activeTab === 'PENDENTE') {
+      return matchesSearch;
+    }
     const status = (l.status || '').toUpperCase();
-    const matchesTab = activeTab === 'ATIVO' ? (status === 'ATIVO' || !l.status) : status === 'ARQUIVADO';
-    
-    const matchesStatus = filterValues.status === 'all' || (l.status || '').toLowerCase() === filterValues.status.toLowerCase();
-    const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
-                       (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
-    
+    const matchesTab =
+      activeTab === 'ATIVO' ? status === 'ATIVO' || !l.status : status === 'ARQUIVADO';
+
+    const matchesStatus =
+      filterValues.status === 'all' ||
+      (l.status || '').toLowerCase() === filterValues.status.toLowerCase();
+    const matchesDate =
+      (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
+      (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
+
     const occupancy = l.capacidade ? (25 / l.capacidade) * 100 : 0;
     const matchesOccupancy = occupancy >= filterValues.minOccupancy;
-    const matchesFinalidade = filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
-    
-    return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesOccupancy && matchesFinalidade;
+    const matchesFinalidade =
+      filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
+
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesStatus &&
+      matchesDate &&
+      matchesOccupancy &&
+      matchesFinalidade
+    );
   });
 
   const tableColumns = [
-    { 
-      header: 'Lote / Código', 
+    {
+      header: 'Lote / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
-          <div 
-            style={{ 
-              width: '10px', 
-              height: '10px', 
-              borderRadius: '50%', 
-              backgroundColor: item.cor || '#6366f1', 
+          <div
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: item.cor || '#6366f1',
               flexShrink: 0,
-              boxShadow: `0 0 6px ${(item.cor || '#6366f1')}66`
-            }} 
+              boxShadow: `0 0 6px ${item.cor || '#6366f1'}66`,
+            }}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
-            <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+              {item.nome}
+            </span>
+            <span
+              className="sub-meta"
+              style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+            >
               ID: {item.id?.slice(0, 8).toUpperCase()}
             </span>
           </div>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Finalidade / Categoria', 
+    {
+      header: 'Finalidade / Categoria',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.finalidade || item.descricao || '---'}
           </span>
-          <span className="sub-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#94a3b8' }}>
+          <span
+            className="sub-meta"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              fontSize: '9px',
+              letterSpacing: '0.05em',
+              color: '#94a3b8',
+            }}
+          >
             <Tag size={10} /> Bovinos
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Capacidade & Ocupação', 
+    {
+      header: 'Capacidade & Ocupação',
       accessor: (item: any) => {
         const currentAnimals = item.quantidade_animais || 0;
-        const occupancy = item.capacidade ? Math.min(100, Math.round((currentAnimals / item.capacidade) * 100)) : 0; 
+        const occupancy = item.capacidade
+          ? Math.min(100, Math.round((currentAnimals / item.capacidade) * 100))
+          : 0;
         const isOvercrowded = occupancy > 90;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '140px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, fontStyle: 'italic', color: '#64748b' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={10} /> OCUPAÇÃO</span>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '140px',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                fontStyle: 'italic',
+                color: '#64748b',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Users size={10} /> OCUPAÇÃO
+              </span>
               <span style={{ color: isOvercrowded ? '#f43f5e' : '#6366f1' }}>{occupancy}%</span>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  borderRadius: '99px', 
-                  transition: 'width 0.5s', 
+            <div
+              style={{
+                height: '6px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: '99px',
+                  transition: 'width 0.5s',
                   backgroundColor: isOvercrowded ? '#f43f5e' : '#6366f1',
-                  width: `${occupancy}%` 
-                }} 
+                  width: `${occupancy}%`,
+                }}
               />
             </div>
             <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', marginTop: '2px' }}>
-              {currentAnimals} / {item.capacidade ? `${item.capacidade} cabeças` : '--- (capacidade não definida)'}
+              {currentAnimals} /{' '}
+              {item.capacidade ? `${item.capacidade} cabeças` : '--- (capacidade não definida)'}
             </span>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Meta (GMD Alvo)', 
+    {
+      header: 'Meta (GMD Alvo)',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-          <div style={{ color: '#059669', backgroundColor: '#ecfdf5', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #d1fae5', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+          }}
+        >
+          <div
+            style={{
+              color: '#059669',
+              backgroundColor: '#ecfdf5',
+              padding: '2px 8px',
+              borderRadius: '9999px',
+              border: '1px solid #d1fae5',
+              fontSize: '10px',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
             <TrendingUp size={10} /> {item.gmd_alvo ? `${item.gmd_alvo} kg/d` : 'N/D'}
           </div>
-          <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>GMD Projetado</span>
+          <span
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              color: '#94a3b8',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
+            GMD Projetado
+          </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
-    { 
-      header: 'Ciclo / Dias de Uso', 
+    {
+      header: 'Ciclo / Dias de Uso',
       accessor: (item: any) => {
-         let days = 0;
-         if (item.data_inicio) {
-             days = Math.floor((new Date().getTime() - new Date(item.data_inicio).getTime()) / (1000 * 3600 * 24));
-         }
-         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+        let days = 0;
+        if (item.data_inicio) {
+          days = Math.floor(
+            (new Date().getTime() - new Date(item.data_inicio).getTime()) / (1000 * 3600 * 24)
+          );
+        }
+        return (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              color: '#64748b',
+              fontWeight: 600,
+              fontSize: '12px',
+            }}
+          >
             <Calendar size={14} />
             <span>{days > 0 ? `${days} dias` : 'Hoje'}</span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
-    { 
-      header: 'Status Operacional', 
+    {
+      header: 'Status Operacional',
       accessor: (item: any) => {
-         const isActive = item.status === 'ATIVO' || !item.status;
-         return (
+        const isActive = item.status === 'ATIVO' || !item.status;
+        return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <span className={`status-pill ${isActive ? 'active' : 'warning'}`}>
               {isActive ? 'EM USO' : 'ARQUIVADO'}
@@ -452,17 +624,21 @@ export const LotManagement: React.FC = () => {
           </div>
         );
       },
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="lot-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Lotes' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Lotes' }]}
+          />
           <h1 className="page-title">Lotes</h1>
-          <p className="page-subtitle">Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.</p>
+          <p className="page-subtitle">
+            Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
@@ -481,35 +657,41 @@ export const LotManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats?.map((stat: any, idx: number) => (
-          <TauzeStatCard 
-            key={idx}
-            {...stat}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ATIVO')}
           >
             Lotes Ativos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
             onClick={() => setActiveTab('PENDENTE')}
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             Pendentes
-            <span style={{ fontSize: '10px', background: 'hsl(var(--warning))', color: '#000', padding: '2px 6px', borderRadius: '10px', fontWeight: 800 }}>
+            <span
+              style={{
+                fontSize: '10px',
+                background: 'hsl(var(--warning))',
+                color: '#000',
+                padding: '2px 6px',
+                borderRadius: '10px',
+                fontWeight: 800,
+              }}
+            >
               {mockPendingLots.length}
             </span>
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ARQUIVADO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ARQUIVADO')}
           >
@@ -519,24 +701,24 @@ export const LotManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Filtrar por nome do lote..." 
+            placeholder="Filtrar por nome do lote..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -546,7 +728,7 @@ export const LotManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -554,26 +736,49 @@ export const LotManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-lots');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-lots" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-lots')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-lots')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-lots')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <LotFilterModal 
+      <LotFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -582,7 +787,7 @@ export const LotManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             emptyState={
               localLots.length === 0 ? (
                 <EmptyState
@@ -611,63 +816,110 @@ export const LotManagement: React.FC = () => {
             searchPlaceholder="Filtrar base de lotes..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes"><Eye size={18} /></button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
-                <button 
-                  className={`action-dot ${item.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`} 
-                  onClick={() => handleToggleArchive(item)} 
-                  title={item.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'}
+                <button
+                  className="action-dot info"
+                  onClick={() => handleViewDetails(item)}
+                  title="Detalhes"
                 >
-                  {item.status?.toUpperCase() === 'ARQUIVADO' ? <RefreshCw size={18} /> : <Archive size={18} />}
+                  <Eye size={18} />
                 </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  className={`action-dot ${item.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
+                  onClick={() => handleToggleArchive(item)}
+                  title={
+                    item.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'
+                  }
+                >
+                  {item.status?.toUpperCase() === 'ARQUIVADO' ? (
+                    <RefreshCw size={18} />
+                  ) : (
+                    <Archive size={18} />
+                  )}
+                </button>
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             )}
           />
         ) : (
           <div className="lot-cards-grid animate-fade-in">
             {filteredLots.length === 0 ? (
-              <div 
-                className="lot-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="lot-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   {localLots.length === 0 ? <Layers size={22} /> : <Search size={22} />}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
                   {localLots.length === 0 ? 'Nenhum lote cadastrado' : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {localLots.length === 0 ? 'Não há lotes operacionais registrados.' : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {localLots.length === 0
+                    ? 'Não há lotes operacionais registrados.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
                 {localLots.length === 0 && (
-                  <button 
-                    className="primary-btn" 
+                  <button
+                    className="primary-btn"
                     onClick={handleOpenCreate}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO LOTE</span>
@@ -675,82 +927,190 @@ export const LotManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              filteredLots.map(l => {
+              filteredLots.map((l) => {
                 if (activeTab === 'PENDENTE') {
                   const isSlaExpired = new Date(l.data_limite) < new Date('2026-06-05');
                   return (
-                    <div 
-                      key={l.id} 
+                    <div
+                      key={l.id}
                       className={`lot-card-premium ${isSlaExpired ? 'danger-badge' : 'warning-badge'}`}
-                      style={{ 
+                      style={{
                         animation: isSlaExpired ? 'pulse-border 2s infinite' : 'none',
                       }}
                     >
-                      <div 
+                      <div
                         style={{
                           position: 'absolute',
-                          left: 0, top: 0, bottom: 0, width: '6px',
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: '6px',
                           backgroundColor: isSlaExpired ? '#ef4444' : '#f59e0b',
                           boxShadow: `4px 0 15px ${isSlaExpired ? '#ef4444' : '#f59e0b'}55`,
-                          zIndex: 2
+                          zIndex: 2,
                         }}
                       />
                       <div className="card-left-section" style={{ width: '120px' }}>
-                        <div 
+                        <div
                           className="card-avatar"
                           style={{
-                            backgroundColor: isSlaExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            backgroundColor: isSlaExpired
+                              ? 'rgba(239, 68, 68, 0.1)'
+                              : 'rgba(245, 158, 11, 0.1)',
                             color: isSlaExpired ? '#ef4444' : '#f59e0b',
-                            borderColor: isSlaExpired ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                            borderColor: isSlaExpired
+                              ? 'rgba(239, 68, 68, 0.2)'
+                              : 'rgba(245, 158, 11, 0.2)',
                           }}
                         >
                           <Truck size={28} />
                         </div>
-                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textAlign: 'center', margin: '4px 0' }}>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            color: 'hsl(var(--text-muted))',
+                            textAlign: 'center',
+                            margin: '4px 0',
+                          }}
+                        >
                           NF DE ENTRADA
                         </span>
                       </div>
 
-                      <div className="card-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div
+                        className="card-main-content"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          padding: '16px 20px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                          }}
+                        >
                           <div>
-                            <h3 style={{ fontSize: '15.5px', fontWeight: 900, color: 'hsl(var(--text-main))', margin: 0 }}>{l.nome}</h3>
-                            <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Fornecedor: {l.fornecedor}</span>
+                            <h3
+                              style={{
+                                fontSize: '15.5px',
+                                fontWeight: 900,
+                                color: 'hsl(var(--text-main))',
+                                margin: 0,
+                              }}
+                            >
+                              {l.nome}
+                            </h3>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                color: 'hsl(var(--text-muted))',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Fornecedor: {l.fornecedor}
+                            </span>
                           </div>
-                          <span className={`status-pill mini ${isSlaExpired ? 'stopped' : 'warning-badge'}`} style={{ textTransform: 'uppercase', fontSize: '9px', fontWeight: 800 }}>
+                          <span
+                            className={`status-pill mini ${isSlaExpired ? 'stopped' : 'warning-badge'}`}
+                            style={{ textTransform: 'uppercase', fontSize: '9px', fontWeight: 800 }}
+                          >
                             {isSlaExpired ? '⚠️ SLA Expirado' : '⏳ Aguardando'}
                           </span>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'hsl(var(--bg-main)/0.4)', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border)/0.5)' }}>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '8px',
+                            background: 'hsl(var(--bg-main)/0.4)',
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: '1px solid hsl(var(--border)/0.5)',
+                          }}
+                        >
                           <div>
-                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Animais na NF</div>
-                            <div style={{ fontSize: '14px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>{l.quantidade_nota} Cab.</div>
+                            <div
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                color: '#94a3b8',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              Animais na NF
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 900,
+                                color: 'hsl(var(--text-main))',
+                              }}
+                            >
+                              {l.quantidade_nota} Cab.
+                            </div>
                           </div>
                           <div>
-                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Custo/Cabeça</div>
+                            <div
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                color: '#94a3b8',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              Custo/Cabeça
+                            </div>
                             <div style={{ fontSize: '14px', fontWeight: 900, color: '#10b981' }}>
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(l.custo_por_cabeca)}
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(l.custo_por_cabeca)}
                             </div>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: isSlaExpired ? '#ef4444' : 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: 'auto',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: isSlaExpired ? '#ef4444' : 'hsl(var(--text-muted))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
                             <Clock size={12} />
                             Prazo: {new Date(l.data_limite).toLocaleDateString('pt-BR')}
                           </span>
 
-                          <button 
+                          <button
                             className="primary-btn"
-                            style={{ 
-                              height: '32px', 
-                              minHeight: 'auto', 
-                              padding: '0 14px', 
-                              fontSize: '11px', 
+                            style={{
+                              height: '32px',
+                              minHeight: 'auto',
+                              padding: '0 14px',
+                              fontSize: '11px',
                               fontWeight: 900,
-                              background: isSlaExpired ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand)/0.8))',
-                              boxShadow: isSlaExpired ? '0 4px 12px rgba(239, 68, 68, 0.25)' : '0 4px 12px hsl(var(--brand)/0.25)'
+                              background: isSlaExpired
+                                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                                : 'linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand)/0.8))',
+                              boxShadow: isSlaExpired
+                                ? '0 4px 12px rgba(239, 68, 68, 0.25)'
+                                : '0 4px 12px hsl(var(--brand)/0.25)',
                             }}
                             onClick={() => {
                               setLotToProcess(l);
@@ -768,11 +1128,11 @@ export const LotManagement: React.FC = () => {
                 const totalAnimals = l.quantidade_animais !== undefined ? l.quantidade_animais : 0;
                 const capacity = l.capacidade || 0;
                 const occupancyPercent = capacity > 0 ? (totalAnimals / capacity) * 100 : 0;
-                
+
                 let badgeClass = 'active'; // green
                 let badgeText = 'ATIVO';
                 let borderClass = 'active';
-                
+
                 if (l.status?.toUpperCase() === 'ARQUIVADO') {
                   badgeClass = 'stopped';
                   badgeText = 'ARQUIVADO';
@@ -788,59 +1148,99 @@ export const LotManagement: React.FC = () => {
                 }
 
                 return (
-                  <div 
-                    key={l.id} 
-                    className={`lot-card-premium ${borderClass}`}
-                  >
+                  <div key={l.id} className={`lot-card-premium ${borderClass}`}>
                     {/* Indicador de cor vertical personalizado */}
-                    <div 
+                    <div
                       style={{
                         position: 'absolute',
                         left: 0,
                         top: 0,
                         bottom: 0,
                         width: '6px',
-                        backgroundColor: l.cor || (l.status?.toUpperCase() === 'ARQUIVADO' ? '#94a3b8' : '#10b981'),
-                        boxShadow: `4px 0 15px ${(l.cor || '#10b981')}55`,
-                        zIndex: 2
+                        backgroundColor:
+                          l.cor ||
+                          (l.status?.toUpperCase() === 'ARQUIVADO' ? '#94a3b8' : '#10b981'),
+                        boxShadow: `4px 0 15px ${l.cor || '#10b981'}55`,
+                        zIndex: 2,
                       }}
                     />
                     <div className="card-left-section">
-                      <div 
+                      <div
                         className="card-avatar"
                         style={{
                           backgroundColor: l.cor ? `${l.cor}15` : undefined,
                           color: l.cor || 'var(--brand)',
                           borderColor: l.cor ? `${l.cor}33` : undefined,
-                          boxShadow: l.cor ? `0 8px 20px ${l.cor}15` : undefined
+                          boxShadow: l.cor ? `0 8px 20px ${l.cor}15` : undefined,
                         }}
                       >
                         <Layers size={28} />
                       </div>
                       <div className="card-bottom-actions">
-                        <button className="action-icon-btn info" onClick={() => handleViewDetails(l)} title="Detalhes"><Eye size={14} /></button>
-                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(l)} title="Editar"><Edit3 size={14} /></button>
-                        <button 
-                          className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`} 
-                          onClick={() => handleToggleArchive(l)} 
-                          title={l.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'}
+                        <button
+                          className="action-icon-btn info"
+                          onClick={() => handleViewDetails(l)}
+                          title="Detalhes"
                         >
-                          {l.status?.toUpperCase() === 'ARQUIVADO' ? <RefreshCw size={14} /> : <Archive size={14} />}
+                          <Eye size={14} />
                         </button>
-                        <button className="action-icon-btn delete" onClick={() => handleDelete(l.id)} title="Excluir"><Trash2 size={14} /></button>
+                        <button
+                          className="action-icon-btn edit"
+                          onClick={() => handleOpenEdit(l)}
+                          title="Editar"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
+                          onClick={() => handleToggleArchive(l)}
+                          title={
+                            l.status?.toUpperCase() === 'ARQUIVADO'
+                              ? 'Reativar Lote'
+                              : 'Arquivar Lote'
+                          }
+                        >
+                          {l.status?.toUpperCase() === 'ARQUIVADO' ? (
+                            <RefreshCw size={14} />
+                          ) : (
+                            <Archive size={14} />
+                          )}
+                        </button>
+                        <button
+                          className="action-icon-btn delete"
+                          onClick={() => handleDelete(l.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
 
                     <div className="card-main-content">
-                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div
+                        className="card-header-info"
+                        style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
+                      >
                         <div className="title-row" style={{ width: '100%' }}>
-                           <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
+                          <h3
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--text-main))',
+                              width: '100%',
+                            }}
+                          >
+                            {l.nome}
+                          </h3>
                         </div>
-                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`status-pill mini ${badgeClass}`}>
-                            {badgeText}
-                          </span>
-                          <div className="card-type-meta">{l.finalidade || l.descricao || '---'}</div>
+                        <div
+                          className="meta-row"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span className={`status-pill mini ${badgeClass}`}>{badgeText}</span>
+                          <div className="card-type-meta">
+                            {l.finalidade || l.descricao || '---'}
+                          </div>
                         </div>
                       </div>
 
@@ -852,7 +1252,7 @@ export const LotManagement: React.FC = () => {
                           </span>
                         </div>
                         <div className="occ-bar-container">
-                          <div 
+                          <div
                             className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
                             style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
                           />
@@ -869,7 +1269,9 @@ export const LotManagement: React.FC = () => {
                         </div>
                         <div className="meta-item">
                           <Activity size={12} />
-                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                          <span className="card-farm-meta">
+                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -885,16 +1287,16 @@ export const LotManagement: React.FC = () => {
         )}
       </div>
 
-      <LotForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <LotForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedLot}
         loading={saveLotMutation.isPending}
       />
 
-      <RelocateForm 
+      <RelocateForm
         isOpen={isRelocateModalOpen}
         onClose={() => setIsRelocateModalOpen(false)}
         actionId={formActionId}
@@ -915,7 +1317,7 @@ export const LotManagement: React.FC = () => {
         mode="lote"
       />
 
-      <AnimalListModal 
+      <AnimalListModal
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         title={`Animais no Lote: ${lotToView?.nome}`}
@@ -928,7 +1330,7 @@ export const LotManagement: React.FC = () => {
         lote={lotToProcess}
         onSuccess={() => {
           setIsProcessModalOpen(false);
-          setMockPendingLots(prev => prev.filter(p => p.id !== lotToProcess.id));
+          setMockPendingLots((prev) => prev.filter((p) => p.id !== lotToProcess.id));
           refresh();
         }}
       />

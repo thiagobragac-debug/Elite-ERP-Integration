@@ -1,7 +1,18 @@
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../contexts/TenantContext';
 
-export const useApprovalQueue = () => {
+interface UseApprovalQueueReturn {
+  submitForApproval: (
+    moduleName: string,
+    referenceId: string,
+    referenceTable: string,
+    amount: number,
+    description: string,
+    requester: string
+  ) => Promise<boolean>;
+}
+
+export const useApprovalQueue = (): UseApprovalQueueReturn => {
   const { activeTenantId, activeFarmId } = useTenant();
 
   const submitForApproval = async (
@@ -12,7 +23,9 @@ export const useApprovalQueue = () => {
     description: string,
     requester: string
   ) => {
-    if (!activeTenantId) return false;
+    if (!activeTenantId) {
+      return false;
+    }
 
     try {
       // 1. Check if there are active rules for this module
@@ -24,39 +37,42 @@ export const useApprovalQueue = () => {
         .eq('active', true)
         .lte('min_amount', amount);
 
-      if (rulesError) throw rulesError;
+      if (rulesError) {
+        throw rulesError;
+      }
 
       // 2. If no active rule applies, return false (no approval needed)
       if (!rules || rules.length === 0) {
-        return false; 
+        return false;
       }
 
       // Pick the rule with highest stages if multiple match
-      const maxStagesRule = rules.reduce((prev, current) => 
-        (prev.stages > current.stages) ? prev : current
+      const maxStagesRule = rules.reduce((prev, current) =>
+        prev.stages > current.stages ? prev : current
       );
 
       // 3. Create entry in approval_queue
-      const { error: queueError } = await supabase
-        .from('approval_queue')
-        .insert([{
+      const { error: queueError } = await supabase.from('approval_queue').insert([
+        {
           tenant_id: activeTenantId,
           farm_id: activeFarmId || null,
           type: moduleName,
           reference_id: referenceId,
           reference_table: referenceTable,
-          description: description,
-          requester: requester,
-          amount: amount,
+          description,
+          requester,
+          amount,
           status: 'pending',
           current_stage: 1,
-          total_stages: maxStagesRule.stages
-        }]);
+          total_stages: maxStagesRule.stages,
+        },
+      ]);
 
-      if (queueError) throw queueError;
+      if (queueError) {
+        throw queueError;
+      }
 
       return true; // Sent to approval queue
-
     } catch (err) {
       console.error('[useApprovalQueue] Error submitting to approval queue:', err);
       return false; // Fail silently but log error, meaning fallback to auto-approval or alert user

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertTriangle,
   FileText,
   DollarSign,
@@ -25,7 +25,7 @@ import {
   TrendingUp,
   RefreshCw,
   Calendar,
-  Archive
+  Archive,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -74,22 +74,35 @@ export const ApprovalCenter: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as TabType) || 'pendencies';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
   const [viewMode, setViewMode] = useViewMode('admin-approval-center', 'grid');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState('ApprovalCenter_isFilterModalOpen', false);
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState(
+    'ApprovalCenter_isFilterModalOpen',
+    false
+  );
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
     dateStart: '',
     dateEnd: '',
     minAmount: '',
-    maxAmount: ''
+    maxAmount: '',
   });
 
-  const [isRuleModalOpen, setIsRuleModalOpen] = usePersistentState('ApprovalCenter_isRuleModalOpen', false);
+  const [isRuleModalOpen, setIsRuleModalOpen] = usePersistentState(
+    'ApprovalCenter_isRuleModalOpen',
+    false
+  );
   const [selectedRule, setSelectedRule] = useState<ApprovalRule | null>(null);
 
   const queryClient = useQueryClient();
@@ -97,13 +110,27 @@ export const ApprovalCenter: React.FC = () => {
   const isReady = !!activeTenantId;
 
   // Query approval rules & approval queue
-  const { data: approvalData = { rules: [], pendencies: [] }, isLoading: loading, error: queryError } = useQuery({
+  const {
+    data: approvalData = { rules: [], pendencies: [] },
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
     queryKey: ['approvals', activeTenantId],
     queryFn: async () => {
-      if (!activeTenantId) return { rules: [], pendencies: [] };
+      if (!activeTenantId) {
+        return { rules: [], pendencies: [] };
+      }
       const [rulesRes, queueRes] = await Promise.all([
-        supabase.from('approval_rules').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false }),
-        supabase.from('approval_queue').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false })
+        supabase
+          .from('approval_rules')
+          .select('*', { count: 'exact' })
+          .eq('tenant_id', activeTenantId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('approval_queue')
+          .select('*', { count: 'exact' })
+          .eq('tenant_id', activeTenantId)
+          .order('created_at', { ascending: false }),
       ]);
 
       const rules = (rulesRes.data || []).map((r: any) => ({
@@ -111,7 +138,7 @@ export const ApprovalCenter: React.FC = () => {
         module: r.module,
         condition: r.condition_label,
         stages: r.stages,
-        active: r.active
+        active: r.active,
       }));
 
       const pendencies = (queueRes.data || []).map((q: any) => ({
@@ -124,57 +151,72 @@ export const ApprovalCenter: React.FC = () => {
         status: q.status,
         stage: q.current_stage,
         totalStages: q.total_stages,
-        reference_id: q.reference_id
+        reference_id: q.reference_id,
       }));
 
       return { rules, pendencies };
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
-  const rules = approvalData.rules;
-  const pendencies = approvalData.pendencies;
+  const { rules } = approvalData;
+  const { pendencies } = approvalData;
 
   if (queryError) {
-    console.error("[ApprovalCenter] Query error:", queryError);
+    console.error('[ApprovalCenter] Query error:', queryError);
   }
 
   const toggleRuleMutation = useMutation({
     mutationFn: async (rule: ApprovalRule) => {
-      const { error } = await supabase.from('approval_rules').update({ active: !rule.active }).eq('id', rule.id);
-      if (error) throw error;
+      const { error } = await supabase
+        .from('approval_rules')
+        .update({ active: !rule.active })
+        .eq('id', rule.id);
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success('Regra atualizada com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao alternar regra: ' + err.message);
-    }
+      toast.error(`❌ Erro ao alternar regra: ${err.message}`);
+    },
   });
 
   const handleToggleRule = async (id: string) => {
     const rule = rules.find((r) => r.id === id);
-    if (!rule) return;
+    if (!rule) {
+      return;
+    }
     toggleRuleMutation.mutate(rule);
   };
 
   const deleteRuleMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('approval_rules').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success('Regra excluída com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir regra: ' + err.message);
-    }
+      toast.error(`❌ Erro ao excluir regra: ${err.message}`);
+    },
   });
 
   const handleDeleteRule = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir esta regra?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Tem certeza que deseja excluir esta regra?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
     if (isConfirmed) {
       deleteRuleMutation.mutate(id);
     }
@@ -188,15 +230,22 @@ export const ApprovalCenter: React.FC = () => {
         condition_label: data.condition,
         min_amount: data.min_amount || 0,
         stages: data.stages || 1,
-        active: data.active ?? true
+        active: data.active ?? true,
       };
 
       if (selectedRule) {
-        const { error } = await supabase.from('approval_rules').update(payload).eq('id', selectedRule.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('approval_rules')
+          .update(payload)
+          .eq('id', selectedRule.id);
+        if (error) {
+          throw error;
+        }
       } else {
         const { error } = await supabase.from('approval_rules').insert([payload]);
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -205,8 +254,8 @@ export const ApprovalCenter: React.FC = () => {
       toast.success('Regra salva com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar regra: ' + err.message);
-    }
+      toast.error(`❌ Erro ao salvar regra: ${err.message}`);
+    },
   });
 
   const handleSaveRule = async (data: any) => {
@@ -224,23 +273,30 @@ export const ApprovalCenter: React.FC = () => {
         newStatus = 'approved';
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('approval_queue').update({
-        current_stage: nextStage,
-        status: newStatus,
-        approved_by: user?.id,
-        approved_at: newStatus === 'approved' ? new Date().toISOString() : null
-      }).eq('id', item.db_id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('approval_queue')
+        .update({
+          current_stage: nextStage,
+          status: newStatus,
+          approved_by: user?.id,
+          approved_at: newStatus === 'approved' ? new Date().toISOString() : null,
+        })
+        .eq('id', item.db_id);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success('Solicitação processada com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao aprovar: ' + err.message);
-    }
+      toast.error(`❌ Erro ao aprovar: ${err.message}`);
+    },
   });
 
   const handleApprove = async (item: PendingItem) => {
@@ -249,16 +305,21 @@ export const ApprovalCenter: React.FC = () => {
 
   const rejectMutation = useMutation({
     mutationFn: async (item: PendingItem) => {
-      const { error } = await supabase.from('approval_queue').update({ status: 'rejected' }).eq('id', item.db_id);
-      if (error) throw error;
+      const { error } = await supabase
+        .from('approval_queue')
+        .update({ status: 'rejected' })
+        .eq('id', item.db_id);
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success('Solicitação rejeitada.');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao rejeitar: ' + err.message);
-    }
+      toast.error(`❌ Erro ao rejeitar: ${err.message}`);
+    },
   });
 
   const handleReject = async (item: PendingItem) => {
@@ -267,26 +328,39 @@ export const ApprovalCenter: React.FC = () => {
 
   const revertMutation = useMutation({
     mutationFn: async (item: PendingItem) => {
-      const { error } = await supabase.from('approval_queue').update({ 
-        status: 'pending', 
-        current_stage: 1, 
-        approved_by: null, 
-        approved_at: null 
-      }).eq('id', item.db_id);
-      if (error) throw error;
+      const { error } = await supabase
+        .from('approval_queue')
+        .update({
+          status: 'pending',
+          current_stage: 1,
+          approved_by: null,
+          approved_at: null,
+        })
+        .eq('id', item.db_id);
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success('Decisão revertida com sucesso.');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao reverter decisão: ' + err.message);
-    }
+      toast.error(`❌ Erro ao reverter decisão: ${err.message}`);
+    },
   });
 
   const handleRevert = async (item: PendingItem) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja reverter esta decisão? O status voltará para pendente.', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Tem certeza que deseja reverter esta decisão? O status voltará para pendente.',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     revertMutation.mutate(item);
   };
 
@@ -298,144 +372,334 @@ export const ApprovalCenter: React.FC = () => {
   const approvedCount = pendencies.filter((p) => p.status === 'approved').length;
   const rejectedCount = pendencies.filter((p) => p.status === 'rejected').length;
 
-  const pendingAmount = pendencies.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const pendingAmount = pendencies
+    .filter((p) => p.status === 'pending')
+    .reduce((sum, p) => sum + p.amount, 0);
 
   const stats = [
-    { 
-      label: 'Aguardando', value: pendingCount, icon: Clock, color: '#eab308', 
-      progress: pendingCount > 0 ? 100 : 0, change: 'Revisão', periodLabel: 'Requisições pendentes',
-      sparkline: pendingCount > 0 ? [{ value: 5 }, { value: 3 }, { value: 4 }, { value: 2 }, { value: pendingCount }] : []
+    {
+      label: 'Aguardando',
+      value: pendingCount,
+      icon: Clock,
+      color: '#eab308',
+      progress: pendingCount > 0 ? 100 : 0,
+      change: 'Revisão',
+      periodLabel: 'Requisições pendentes',
+      sparkline:
+        pendingCount > 0
+          ? [{ value: 5 }, { value: 3 }, { value: 4 }, { value: 2 }, { value: pendingCount }]
+          : [],
     },
-    { 
-      label: 'Volume Pendente', value: formatCurrency(pendingAmount), icon: DollarSign, color: '#3b82f6', 
-      progress: pendingAmount > 0 ? 100 : 0, change: 'Capital', periodLabel: 'Impacto financeiro retido',
-      sparkline: pendingAmount > 0 ? [{ value: 10000 }, { value: 15000 }, { value: 12000 }, { value: 17000 }, { value: pendingAmount }] : []
+    {
+      label: 'Volume Pendente',
+      value: formatCurrency(pendingAmount),
+      icon: DollarSign,
+      color: '#3b82f6',
+      progress: pendingAmount > 0 ? 100 : 0,
+      change: 'Capital',
+      periodLabel: 'Impacto financeiro retido',
+      sparkline:
+        pendingAmount > 0
+          ? [
+              { value: 10000 },
+              { value: 15000 },
+              { value: 12000 },
+              { value: 17000 },
+              { value: pendingAmount },
+            ]
+          : [],
     },
-    { 
-      label: 'Aprovados', value: approvedCount, icon: CheckCircle, color: '#22c55e', 
-      progress: approvedCount > 0 ? 100 : 0, change: 'Concluído', periodLabel: 'Nos últimos 7 dias',
-      sparkline: approvedCount > 0 ? [{ value: 10 }, { value: 12 }, { value: 9 }, { value: 11 }, { value: approvedCount }] : []
+    {
+      label: 'Aprovados',
+      value: approvedCount,
+      icon: CheckCircle,
+      color: '#22c55e',
+      progress: approvedCount > 0 ? 100 : 0,
+      change: 'Concluído',
+      periodLabel: 'Nos últimos 7 dias',
+      sparkline:
+        approvedCount > 0
+          ? [{ value: 10 }, { value: 12 }, { value: 9 }, { value: 11 }, { value: approvedCount }]
+          : [],
     },
-    { 
-      label: 'Recusados', value: rejectedCount, icon: XCircle, color: '#ef4444', 
-      progress: rejectedCount > 0 ? 100 : 0, change: 'Bloqueado', periodLabel: 'Nos últimos 7 dias',
-      sparkline: rejectedCount > 0 ? [{ value: 0 }, { value: 1 }, { value: 0 }, { value: 2 }, { value: rejectedCount }] : []
-    }
+    {
+      label: 'Recusados',
+      value: rejectedCount,
+      icon: XCircle,
+      color: '#ef4444',
+      progress: rejectedCount > 0 ? 100 : 0,
+      change: 'Bloqueado',
+      periodLabel: 'Nos últimos 7 dias',
+      sparkline:
+        rejectedCount > 0
+          ? [{ value: 0 }, { value: 1 }, { value: 0 }, { value: 2 }, { value: rejectedCount }]
+          : [],
+    },
   ];
   const pendencyColumns = [
     {
       header: 'ID / Tipo',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {item.type.includes('Compra') ? <ShoppingCart size={14} /> : item.type.includes('Pagar') ? <DollarSign size={14} /> : <FileText size={14} />}
+          <span
+            className="main-text"
+            style={{
+              fontWeight: 800,
+              color: '#1e293b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {item.type.includes('Compra') ? (
+              <ShoppingCart size={14} />
+            ) : item.type.includes('Pagar') ? (
+              <DollarSign size={14} />
+            ) : (
+              <FileText size={14} />
+            )}
             {item.type}
           </span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Solicitante & Data', 
+    {
+      header: 'Solicitante & Data',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.requester}
           </span>
-          <span className="sub-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#94a3b8' }}>
+          <span
+            className="sub-meta"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              fontSize: '9px',
+              letterSpacing: '0.05em',
+              color: '#94a3b8',
+            }}
+          >
             <Calendar size={10} /> {item.date}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Valor',
       accessor: (item: any) => (
-        <div style={{ color: '#3b82f6', backgroundColor: '#eff6ff', padding: '4px 10px', borderRadius: '6px', border: '1px solid #dbeafe', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <div
+          style={{
+            color: '#3b82f6',
+            backgroundColor: '#eff6ff',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            border: '1px solid #dbeafe',
+            fontSize: '11px',
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
           {formatCurrency(item.amount)}
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Status / Etapa',
       accessor: (item: any) => {
         const percent = Math.min((item.stage / item.totalStages) * 100, 100);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, fontStyle: 'italic', color: '#64748b' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Layers size={10} /> ETAPA ATUAL</span>
-              <span style={{ color: item.status === 'pending' ? '#eab308' : item.status === 'approved' ? '#22c55e' : '#ef4444' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '130px',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                fontStyle: 'italic',
+                color: '#64748b',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Layers size={10} /> ETAPA ATUAL
+              </span>
+              <span
+                style={{
+                  color:
+                    item.status === 'pending'
+                      ? '#eab308'
+                      : item.status === 'approved'
+                        ? '#22c55e'
+                        : '#ef4444',
+                }}
+              >
                 {item.stage} / {item.totalStages}
               </span>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  borderRadius: '99px', 
-                  backgroundColor: item.status === 'pending' ? '#eab308' : item.status === 'approved' ? '#22c55e' : '#ef4444', 
-                  width: `${percent}%` 
-                }} 
+            <div
+              style={{
+                height: '6px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: '99px',
+                  backgroundColor:
+                    item.status === 'pending'
+                      ? '#eab308'
+                      : item.status === 'approved'
+                        ? '#22c55e'
+                        : '#ef4444',
+                  width: `${percent}%`,
+                }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '2px' }}>
-              <span className={`status-pill mini ${item.status === 'pending' ? 'warning-badge' : item.status === 'approved' ? 'active' : 'danger-badge'}`} style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}>
-                {item.status === 'pending' ? 'AGUARDANDO' : item.status === 'approved' ? 'APROVADO' : 'RECUSADO'}
+              <span
+                className={`status-pill mini ${item.status === 'pending' ? 'warning-badge' : item.status === 'approved' ? 'active' : 'danger-badge'}`}
+                style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}
+              >
+                {item.status === 'pending'
+                  ? 'AGUARDANDO'
+                  : item.status === 'approved'
+                    ? 'APROVADO'
+                    : 'RECUSADO'}
               </span>
             </div>
           </div>
         );
       },
-      align: 'left' as const
-    }
+      align: 'left' as const,
+    },
   ];
 
   const rulesColumns = [
-    { 
-      header: 'Módulo / Gatilho', 
+    {
+      header: 'Módulo / Gatilho',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.module}</span>
-          <span className="sub-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#94a3b8' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.module}
+          </span>
+          <span
+            className="sub-meta"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              fontSize: '9px',
+              letterSpacing: '0.05em',
+              color: '#94a3b8',
+            }}
+          >
             <Activity size={10} /> Regra Operacional
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
-    { 
-      header: 'Condição', 
+    {
+      header: 'Condição',
       accessor: (item: any) => (
-        <div style={{ color: '#059669', backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '6px', border: '1px solid #d1fae5', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <div
+          style={{
+            color: '#059669',
+            backgroundColor: '#ecfdf5',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            border: '1px solid #d1fae5',
+            fontSize: '11px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
           <Filter size={12} /> {item.condition}
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Hierarquia (Etapas)',
       accessor: (item: any) => {
         const percent = Math.min((item.stages / 3) * 100, 100);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, fontStyle: 'italic', color: '#64748b' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Layers size={10} /> NÍVEIS</span>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '120px',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                fontStyle: 'italic',
+                color: '#64748b',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Layers size={10} /> NÍVEIS
+              </span>
               <span style={{ color: '#6366f1' }}>{item.stages}</span>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ height: '100%', borderRadius: '99px', backgroundColor: '#6366f1', width: `${percent}%` }} 
+            <div
+              style={{
+                height: '6px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: '99px',
+                  backgroundColor: '#6366f1',
+                  width: `${percent}%`,
+                }}
               />
             </div>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Status',
@@ -446,48 +710,68 @@ export const ApprovalCenter: React.FC = () => {
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
-  const filteredPendencies = pendencies.filter(p => {
-    const matchesSearch = p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.requester.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  const filteredPendencies = pendencies.filter((p) => {
+    const matchesSearch =
+      p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.requester.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = filters.status === 'all' || p.status === filters.status;
-    
+
     // Simplistic mapping since mock rules use different strings sometimes
-    const matchesType = filters.type === 'all' || p.type === filters.type || (filters.type.includes('Compra') && p.type.includes('Compra'));
-    
+    const matchesType =
+      filters.type === 'all' ||
+      p.type === filters.type ||
+      (filters.type.includes('Compra') && p.type.includes('Compra'));
+
     const parseDate = (dStr: string) => {
       const [d, m, y] = dStr.split('/');
-      return new Date(Number(y), Number(m)-1, Number(d)).getTime();
+      return new Date(Number(y), Number(m) - 1, Number(d)).getTime();
     };
 
     let matchesDate = true;
     if (filters.dateStart || filters.dateEnd) {
       const pd = parseDate(p.date);
-      if (filters.dateStart && pd < new Date(filters.dateStart).getTime()) matchesDate = false;
-      if (filters.dateEnd && pd > new Date(filters.dateEnd).getTime()) matchesDate = false;
+      if (filters.dateStart && pd < new Date(filters.dateStart).getTime()) {
+        matchesDate = false;
+      }
+      if (filters.dateEnd && pd > new Date(filters.dateEnd).getTime()) {
+        matchesDate = false;
+      }
     }
 
     let matchesAmount = true;
-    if (filters.minAmount && p.amount < Number(filters.minAmount)) matchesAmount = false;
-    if (filters.maxAmount && p.amount > Number(filters.maxAmount)) matchesAmount = false;
+    if (filters.minAmount && p.amount < Number(filters.minAmount)) {
+      matchesAmount = false;
+    }
+    if (filters.maxAmount && p.amount > Number(filters.maxAmount)) {
+      matchesAmount = false;
+    }
 
     return matchesSearch && matchesStatus && matchesType && matchesDate && matchesAmount;
   });
 
-  const filteredRules = rules.filter(r => {
-    const matchesSearch = r.module.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          r.condition.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    let matchesStatus = true;
-    if (filters.status === 'active') matchesStatus = r.active === true;
-    if (filters.status === 'inactive') matchesStatus = r.active === false;
+  const filteredRules = rules.filter((r) => {
+    const matchesSearch =
+      r.module.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.condition.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesType = filters.type === 'all' || r.module === filters.type || (filters.type.includes('Compra') && r.module.includes('Compra'));
+    let matchesStatus = true;
+    if (filters.status === 'active') {
+      matchesStatus = r.active === true;
+    }
+    if (filters.status === 'inactive') {
+      matchesStatus = r.active === false;
+    }
+
+    const matchesType =
+      filters.type === 'all' ||
+      r.module === filters.type ||
+      (filters.type.includes('Compra') && r.module.includes('Compra'));
 
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -496,13 +780,26 @@ export const ApprovalCenter: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Aprovações' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Administração', href: '/admin/intelligence' },
+              { label: 'Aprovações' },
+            ]}
+          />
           <h1 className="page-title">Aprovações</h1>
-          <p className="page-subtitle">Gestão de regras operacionais e painel de pendências de autorização.</p>
+          <p className="page-subtitle">
+            Gestão de regras operacionais e painel de pendências de autorização.
+          </p>
         </div>
         <div className="page-actions">
           {activeTab === 'rules' && (
-            <button className="primary-btn" onClick={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}>
+            <button
+              className="primary-btn"
+              onClick={() => {
+                setSelectedRule(null);
+                setIsRuleModalOpen(true);
+              }}
+            >
               <Plus size={18} />
               <span>NOVA REGRA</span>
             </button>
@@ -511,32 +808,34 @@ export const ApprovalCenter: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                periodLabel={stat.periodLabel}
+                sparkline={stat.sparkline}
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'pendencies' ? 'active' : ''}`}
             onClick={() => setActiveTab('pendencies')}
           >
             Fila de Pendências
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'rules' ? 'active' : ''}`}
             onClick={() => setActiveTab('rules')}
           >
@@ -546,10 +845,10 @@ export const ApprovalCenter: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar aprovações..." 
+            placeholder="Buscar aprovações..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -557,14 +856,14 @@ export const ApprovalCenter: React.FC = () => {
 
         {activeTab === 'rules' && (
           <div className="view-mode-toggle">
-            <button 
+            <button
               className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
               title="Visualização em Lista"
             >
               <ListIcon size={18} />
             </button>
-            <button 
+            <button
               className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
               title="Visualização em Cards"
@@ -575,7 +874,11 @@ export const ApprovalCenter: React.FC = () => {
         )}
 
         <div className="tauze-filter-group">
-          <button className="icon-btn-secondary" title="Filtros" onClick={() => setIsFilterModalOpen(true)}>
+          <button
+            className="icon-btn-secondary"
+            title="Filtros"
+            onClick={() => setIsFilterModalOpen(true)}
+          >
             <Filter size={20} />
           </button>
         </div>
@@ -584,18 +887,18 @@ export const ApprovalCenter: React.FC = () => {
       <div className="management-content">
         <AnimatePresence mode="wait">
           {activeTab === 'pendencies' ? (
-            <motion.div 
+            <motion.div
               key="pendencies-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <ModernTable 
+              <ModernTable
                 data={filteredPendencies}
-            totalCount={totalCount}
-            currentPage={page}
-            onPageChange={setPage}
-            itemsPerPage={pageSize}
+                totalCount={totalCount}
+                currentPage={page}
+                onPageChange={setPage}
+                itemsPerPage={pageSize}
                 columns={pendencyColumns}
                 loading={loading}
                 hideHeader={true}
@@ -616,20 +919,41 @@ export const ApprovalCenter: React.FC = () => {
                   )
                 }
                 actions={(item) => (
-                  <div className="modern-actions" style={{ justifyContent: 'flex-end', width: '100%' }}>
+                  <div
+                    className="modern-actions"
+                    style={{ justifyContent: 'flex-end', width: '100%' }}
+                  >
                     {item.status === 'pending' ? (
                       <>
-                        <button 
-                          className="action-dot" 
-                          style={{ background: '#22c55e20', color: '#22c55e', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
+                        <button
+                          className="action-dot"
+                          style={{
+                            background: '#22c55e20',
+                            color: '#22c55e',
+                            width: 'auto',
+                            padding: '0 12px',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            textTransform: 'uppercase',
+                          }}
                           title="Aprovar"
                           onClick={() => handleApprove(item)}
                         >
                           Aprovar
                         </button>
-                        <button 
-                          className="action-dot" 
-                          style={{ background: '#ef444420', color: '#ef4444', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
+                        <button
+                          className="action-dot"
+                          style={{
+                            background: '#ef444420',
+                            color: '#ef4444',
+                            width: 'auto',
+                            padding: '0 12px',
+                            borderRadius: '6px',
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            textTransform: 'uppercase',
+                          }}
                           title="Rejeitar"
                           onClick={() => handleReject(item)}
                         >
@@ -638,20 +962,32 @@ export const ApprovalCenter: React.FC = () => {
                       </>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          color: item.status === 'approved' ? '#10b981' : '#ef4444', 
-                          fontWeight: 800, 
-                          fontSize: '11px', 
-                          textTransform: 'uppercase',
-                          background: item.status === 'approved' ? '#10b98120' : '#ef444420',
-                          padding: '4px 8px',
-                          borderRadius: '6px'
-                        }}>
+                        <span
+                          style={{
+                            color: item.status === 'approved' ? '#10b981' : '#ef4444',
+                            fontWeight: 800,
+                            fontSize: '11px',
+                            textTransform: 'uppercase',
+                            background: item.status === 'approved' ? '#10b98120' : '#ef444420',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           {item.status === 'approved' ? 'Aprovado' : 'Recusado'}
                         </span>
-                        <button 
-                          className="action-dot" 
-                          style={{ background: '#f59e0b20', color: '#f59e0b', width: '28px', height: '28px', padding: 0, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                        <button
+                          className="action-dot"
+                          style={{
+                            background: '#f59e0b20',
+                            color: '#f59e0b',
+                            width: '28px',
+                            height: '28px',
+                            padding: 0,
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                           title="Reverter Decisão"
                           onClick={() => handleRevert(item)}
                         >
@@ -664,19 +1000,19 @@ export const ApprovalCenter: React.FC = () => {
               />
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="rules-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
               {viewMode === 'list' ? (
-                <ModernTable 
+                <ModernTable
                   data={filteredRules}
-            totalCount={totalCount}
-            currentPage={page}
-            onPageChange={setPage}
-            itemsPerPage={pageSize}
+                  totalCount={totalCount}
+                  currentPage={page}
+                  onPageChange={setPage}
+                  itemsPerPage={pageSize}
                   columns={rulesColumns}
                   loading={loading}
                   hideHeader={true}
@@ -687,7 +1023,10 @@ export const ApprovalCenter: React.FC = () => {
                         title="Nenhuma regra cadastrada"
                         description="Você ainda não possui regras de aprovação cadastradas. Crie a primeira para gerenciar alçadas."
                         actionLabel="Nova Regra"
-                        onAction={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}
+                        onAction={() => {
+                          setSelectedRule(null);
+                          setIsRuleModalOpen(true);
+                        }}
                         icon={Shield}
                       />
                     ) : (
@@ -700,23 +1039,40 @@ export const ApprovalCenter: React.FC = () => {
                   }
                   actions={(item) => (
                     <div className="modern-actions">
-                      <button className="action-dot info" title="Visualizar"><Eye size={18} /></button>
-                      <button className="action-dot edit" onClick={() => { setSelectedRule(item); setIsRuleModalOpen(true); }} title="Editar"><Edit3 size={18} /></button>
-                      <button 
-                        className={`action-dot ${item.active ? 'warning' : 'success'}`} 
-                        onClick={() => handleToggleRule(item.id)} 
+                      <button className="action-dot info" title="Visualizar">
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        className="action-dot edit"
+                        onClick={() => {
+                          setSelectedRule(item);
+                          setIsRuleModalOpen(true);
+                        }}
+                        title="Editar"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button
+                        className={`action-dot ${item.active ? 'warning' : 'success'}`}
+                        onClick={() => handleToggleRule(item.id)}
                         title={item.active ? 'Desativar Regra' : 'Ativar Regra'}
                       >
                         {item.active ? <Archive size={18} /> : <RefreshCw size={18} />}
                       </button>
-                      <button className="action-dot delete" onClick={() => handleDeleteRule(item.id)} title="Excluir"><Trash2 size={18} /></button>
+                      <button
+                        className="action-dot delete"
+                        onClick={() => handleDeleteRule(item.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   )}
                 />
               ) : (
                 <div className="rule-cards-grid">
                   {filteredRules.length === 0 ? (
-                    <div 
+                    <div
                       className="rule-card-premium"
                       style={{
                         display: 'flex',
@@ -731,34 +1087,66 @@ export const ApprovalCenter: React.FC = () => {
                         gap: '6px',
                         minHeight: '180px',
                         height: '100%',
-                        boxShadow: 'none'
+                        boxShadow: 'none',
                       }}
                     >
-                      <div 
-                        style={{ 
-                          width: '40px', 
-                          height: '40px', 
-                          background: 'rgba(16, 185, 129, 0.1)', 
-                          color: '#10b981', 
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          color: '#10b981',
                           borderRadius: '12px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
                         }}
                       >
-                        {rules.length === 0 ? <Shield size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                        {rules.length === 0 ? (
+                          <Shield size={22} style={{ color: 'hsl(var(--brand))' }} />
+                        ) : (
+                          <Search size={22} />
+                        )}
                       </div>
-                      <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                        {rules.length === 0 ? 'Nenhuma regra cadastrada' : 'Nenhum registro encontrado'}
+                      <h3
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 800,
+                          color: 'hsl(var(--text-main))',
+                          margin: 0,
+                        }}
+                      >
+                        {rules.length === 0
+                          ? 'Nenhuma regra cadastrada'
+                          : 'Nenhum registro encontrado'}
                       </h3>
-                      <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                        {rules.length === 0 ? 'Você ainda não possui regras de aprovação cadastradas.' : 'Sua busca não retornou resultados.'}
+                      <p
+                        style={{
+                          fontSize: '10.5px',
+                          color: '#64748b',
+                          margin: 0,
+                          lineHeight: '1.3',
+                          maxWidth: '260px',
+                        }}
+                      >
+                        {rules.length === 0
+                          ? 'Você ainda não possui regras de aprovação cadastradas.'
+                          : 'Sua busca não retornou resultados.'}
                       </p>
                       {rules.length === 0 && (
-                        <button 
-                          className="primary-btn" 
-                          onClick={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}
-                          style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                        <button
+                          className="primary-btn"
+                          onClick={() => {
+                            setSelectedRule(null);
+                            setIsRuleModalOpen(true);
+                          }}
+                          style={{
+                            fontSize: '10.5px',
+                            padding: '6px 12px',
+                            height: '30px',
+                            marginTop: '4px',
+                            minHeight: 'auto',
+                          }}
                         >
                           <Plus size={12} />
                           <span>NOVA REGRA</span>
@@ -766,14 +1154,14 @@ export const ApprovalCenter: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    filteredRules.map(rule => {
+                    filteredRules.map((rule) => {
                       const badgeClass = rule.active ? 'active' : 'stopped';
                       const badgeText = rule.active ? 'ATIVA' : 'INATIVA';
                       const borderClass = rule.active ? 'active' : 'danger-badge';
 
                       return (
-                        <motion.div 
-                          key={rule.id} 
+                        <motion.div
+                          key={rule.id}
                           layout
                           className={`rule-card-premium ${borderClass}`}
                         >
@@ -782,25 +1170,61 @@ export const ApprovalCenter: React.FC = () => {
                               <Shield size={28} />
                             </div>
                             <div className="card-bottom-actions">
-                              <button className="action-icon-btn info" title="Visualizar"><Eye size={14} /></button>
-                              <button className="action-icon-btn edit" onClick={() => { setSelectedRule(rule); setIsRuleModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
-                              <button 
-                                className={`action-icon-btn ${rule.active ? 'warning' : 'success'}`} 
-                                onClick={() => handleToggleRule(rule.id)} 
+                              <button className="action-icon-btn info" title="Visualizar">
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                className="action-icon-btn edit"
+                                onClick={() => {
+                                  setSelectedRule(rule);
+                                  setIsRuleModalOpen(true);
+                                }}
+                                title="Editar"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                className={`action-icon-btn ${rule.active ? 'warning' : 'success'}`}
+                                onClick={() => handleToggleRule(rule.id)}
                                 title={rule.active ? 'Desativar Regra' : 'Ativar Regra'}
                               >
                                 {rule.active ? <Archive size={14} /> : <RefreshCw size={14} />}
                               </button>
-                              <button className="action-icon-btn delete" onClick={() => handleDeleteRule(rule.id)} title="Excluir"><Trash2 size={14} /></button>
+                              <button
+                                className="action-icon-btn delete"
+                                onClick={() => handleDeleteRule(rule.id)}
+                                title="Excluir"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
 
                           <div className="card-main-content">
-                            <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                            <div
+                              className="card-header-info"
+                              style={{
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                gap: '6px',
+                              }}
+                            >
                               <div className="title-row" style={{ width: '100%' }}>
-                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{rule.module}</h3>
+                                <h3
+                                  style={{
+                                    fontSize: '16px',
+                                    fontWeight: 800,
+                                    color: 'hsl(var(--text-main))',
+                                    width: '100%',
+                                  }}
+                                >
+                                  {rule.module}
+                                </h3>
                               </div>
-                              <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div
+                                className="meta-row"
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                              >
                                 <span className={`status-pill mini ${badgeClass}`}>
                                   {badgeText}
                                 </span>
@@ -816,8 +1240,8 @@ export const ApprovalCenter: React.FC = () => {
                                 </span>
                               </div>
                               <div className="occ-bar-container">
-                                <div 
-                                  className={`occ-bar-fill`}
+                                <div
+                                  className="occ-bar-fill"
                                   style={{ width: `${Math.min((rule.stages / 3) * 100, 100)}%` }}
                                 />
                               </div>
@@ -841,7 +1265,13 @@ export const ApprovalCenter: React.FC = () => {
                       );
                     })
                   )}
-                  <button className="add-rule-card-premium" onClick={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}>
+                  <button
+                    className="add-rule-card-premium"
+                    onClick={() => {
+                      setSelectedRule(null);
+                      setIsRuleModalOpen(true);
+                    }}
+                  >
                     <Plus size={32} />
                     <span>NOVA REGRA</span>
                   </button>
@@ -852,14 +1282,14 @@ export const ApprovalCenter: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      <RuleFormModal 
+      <RuleFormModal
         isOpen={isRuleModalOpen}
         onClose={() => setIsRuleModalOpen(false)}
         onSubmit={handleSaveRule}
         initialData={selectedRule}
       />
 
-      <ApprovalFilterModal 
+      <ApprovalFilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
         filters={filters}

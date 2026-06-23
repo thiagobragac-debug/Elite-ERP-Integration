@@ -33,9 +33,9 @@ describe('SearchableSelect', () => {
   it('opens dropdown and displays options on click', () => {
     render(<SearchableSelect {...defaultProps} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
-    
+
     // Portal renders options
     expect(screen.getByText('Option 1')).toBeInTheDocument();
     expect(screen.getByText('Option 2')).toBeInTheDocument();
@@ -45,10 +45,10 @@ describe('SearchableSelect', () => {
   it('filters options based on input', () => {
     render(<SearchableSelect {...defaultProps} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     fireEvent.change(input, { target: { value: 'app' } });
-    
+
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(screen.queryByText('Option 1')).not.toBeInTheDocument();
   });
@@ -56,24 +56,24 @@ describe('SearchableSelect', () => {
   it('calls onChange when an option is selected', () => {
     render(<SearchableSelect {...defaultProps} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     const option = screen.getByText('Option 1');
     fireEvent.click(option);
-    
+
     expect(defaultProps.onChange).toHaveBeenCalledWith('1');
   });
 
   it('shows creatable option and calls onChange with new value', () => {
     render(<SearchableSelect {...defaultProps} creatable={true} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     fireEvent.change(input, { target: { value: 'New Option' } });
-    
+
     const createOption = screen.getByText('+ Criar "New Option"');
     expect(createOption).toBeInTheDocument();
-    
+
     fireEvent.click(createOption);
     expect(defaultProps.onChange).toHaveBeenCalledWith('New Option');
   });
@@ -81,10 +81,10 @@ describe('SearchableSelect', () => {
   it('does not show creatable option if exact match exists', () => {
     render(<SearchableSelect {...defaultProps} creatable={true} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     fireEvent.change(input, { target: { value: 'Option 1' } });
-    
+
     expect(screen.queryByText('+ Criar "Option 1"')).not.toBeInTheDocument();
     expect(screen.getByText('Option 1')).toBeInTheDocument();
   });
@@ -92,19 +92,19 @@ describe('SearchableSelect', () => {
   it('shows no results found when filter matches nothing', () => {
     render(<SearchableSelect {...defaultProps} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     fireEvent.change(input, { target: { value: 'xyz' } });
-    
+
     expect(screen.getByText(/Nenhum resultado encontrado/i)).toBeInTheDocument();
   });
 
   it('is disabled and prevents interaction', () => {
     render(<SearchableSelect {...defaultProps} disabled={true} />);
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     expect(input).toBeDisabled();
-    
+
     fireEvent.click(input);
     // Portal shouldn't be open
     expect(screen.queryByText('Option 1')).not.toBeInTheDocument();
@@ -118,10 +118,10 @@ describe('SearchableSelect', () => {
       </div>
     );
     const input = screen.getByPlaceholderText('Selecione...');
-    
+
     fireEvent.click(input);
     expect(screen.getByText('Option 1')).toBeInTheDocument();
-    
+
     fireEvent.mouseDown(screen.getByTestId('outside'));
     expect(screen.queryByText('Option 1')).not.toBeInTheDocument();
   });

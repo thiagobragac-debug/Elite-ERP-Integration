@@ -19,9 +19,11 @@ export const DeleteDemoModal: React.FC<DeleteDemoModalProps> = ({
   tenantToDelete,
   deleteConfirmationInput,
   setDeleteConfirmationInput,
-  isDeleting
+  isDeleting,
 }) => {
-  if (!tenantToDelete) return null;
+  if (!tenantToDelete) {
+    return null;
+  }
 
   return (
     <SidePanel
@@ -41,21 +43,49 @@ export const DeleteDemoModal: React.FC<DeleteDemoModalProps> = ({
       loading={isDeleting}
     >
       <div style={{ padding: '24px 0' }}>
-        <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: 600, lineHeight: 1.5 }}>
-          Você está prestes a excluir definitivamente a base de demonstração <strong style={{ color: '#0f172a' }}>"{tenantToDelete.name}"</strong>. Todos os dados, fazendas, lançamentos e configurações vinculados serão completamente apagados.
+        <p
+          style={{
+            margin: '0 0 16px 0',
+            fontSize: '13px',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.5,
+          }}
+        >
+          Você está prestes a excluir definitivamente a base de demonstração{' '}
+          <strong style={{ color: '#0f172a' }}>"{tenantToDelete.name}"</strong>. Todos os dados,
+          fazendas, lançamentos e configurações vinculados serão completamente apagados.
         </p>
-        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+        <label
+          style={{
+            display: 'block',
+            fontSize: '11px',
+            fontWeight: 800,
+            color: '#475569',
+            textTransform: 'uppercase',
+            marginBottom: '8px',
+          }}
+        >
           Para confirmar, digite o nome exato da base abaixo:
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={deleteConfirmationInput}
           onChange={(e) => setDeleteConfirmationInput(e.target.value)}
           placeholder={tenantToDelete.name}
-          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, color: '#991b1b', outline: 'none' }}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1px solid #cbd5e1',
+            fontSize: '13px',
+            fontWeight: 700,
+            color: '#991b1b',
+            outline: 'none',
+          }}
           autoFocus
         />
-        
+
         {/* Adiciona um estilo inline temporário para sobrescrever a cor do botão primário do SidePanel caso esteja validado */}
         <style>{`
           .tauze-sidepanel-footer .primary-btn {

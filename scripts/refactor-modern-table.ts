@@ -19,7 +19,7 @@ for (const sourceFile of sourceFiles) {
     .filter(node => node.getTagNameNode().getText() === 'ModernTable');
 
   const allTables = [...modernTables, ...modernTablesOpening];
-  if (allTables.length === 0) continue;
+  if (allTables.length === 0) {continue;}
 
   let modified = false;
   const usesReportData = sourceFile.getText().includes('useReportData');

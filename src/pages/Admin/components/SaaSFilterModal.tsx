@@ -1,9 +1,17 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Filter, Globe, CreditCard, Activity, Calendar, DollarSign, HardDrive } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Globe,
+  CreditCard,
+  Activity,
+  Calendar,
+  DollarSign,
+  HardDrive,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface SaaSFilterModalProps {
   isOpen: boolean;
@@ -21,17 +29,19 @@ interface SaaSFilterModalProps {
     maxStorage?: number;
     minDiscount?: number;
     maxDiscount?: number;
+    addonType?: string;
+    addonBilling?: string;
   };
   setFilters: (filters: any) => void;
   activeTab: string;
 }
 
-export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  filters, 
+export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
+  isOpen,
+  onClose,
+  filters,
   setFilters,
-  activeTab
+  activeTab,
 }) => {
   const getButtonStyle = (isSelected: boolean, colorType: 'indigo' | 'amber' | 'emerald') => {
     let activeColor = '#6366f1';
@@ -58,7 +68,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
       boxShadow: isSelected ? `0 4px 12px ${shadowColor}` : 'none',
       outline: 'none',
       width: '100%',
-      textAlign: 'center' as const
+      textAlign: 'center' as const,
     };
   };
 
@@ -72,25 +82,27 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
     fontWeight: 700,
     color: '#334155',
     background: 'hsl(var(--bg-card))',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
   };
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 999999,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          pointerEvents: 'auto'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999999,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            pointerEvents: 'auto',
+          }}
+        >
           {/* Backdrop Blur */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -99,12 +111,12 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
               position: 'absolute',
               inset: 0,
               background: 'rgba(15, 23, 42, 0.4)',
-              backdropFilter: 'blur(4px)'
+              backdropFilter: 'blur(4px)',
             }}
           />
 
           {/* Sliding Drawer Content */}
-          <motion.div 
+          <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -121,41 +133,67 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
               zIndex: 1000000,
               borderTopLeftRadius: '24px',
               borderBottomLeftRadius: '24px',
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
           >
             {/* Header */}
-            <div style={{
-              padding: '28px 24px',
-              background: '#0b1329', // Dark Navy background
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid rgba(255,255,255,0.05)'
-            }}>
+            <div
+              style={{
+                padding: '28px 24px',
+                background: '#0b1329', // Dark Navy background
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#10b981'
-                }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#10b981',
+                  }}
+                >
                   <Filter size={18} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                    {activeTab === 'plans' ? 'Filtros de Planos' : activeTab === 'billing' ? 'Filtros de Cobrança' : activeTab === 'campaigns' ? 'Filtros de Campanhas' : 'Filtros de Tenants'}
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: '15px',
+                      fontWeight: '900',
+                      color: '#ffffff',
+                      letterSpacing: '-0.02em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {activeTab === 'plans'
+                      ? 'Filtros de Planos'
+                      : activeTab === 'billing'
+                        ? 'Filtros de Cobrança'
+                        : activeTab === 'campaigns'
+                          ? 'Filtros de Campanhas'
+                          : 'Filtros de Tenants'}
                   </h2>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '10px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>
+                  <p
+                    style={{
+                      margin: '2px 0 0 0',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      color: 'hsl(var(--text-muted))',
+                    }}
+                  >
                     Refine a busca por critérios de governança.
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 style={{
                   width: '36px',
@@ -168,7 +206,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   background: 'hsl(var(--bg-card))',
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                 }}
               >
                 <X size={18} />
@@ -176,23 +214,37 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
             </div>
 
             {/* Scrollable Form Content */}
-            <div style={{
-              flex: 1,
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '24px',
-              overflowY: 'auto'
-            }}>
-              
+            <div
+              style={{
+                flex: 1,
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+                overflowY: 'auto',
+              }}
+            >
               {/* 1. TAB TENANTS */}
               {activeTab === 'tenants' && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Status da Instância <span style={{ color: '#94a3b8' }}>⚡</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
                       {['all', 'Ativo', 'Suspenso'].map((s) => (
                         <button
                           type="button"
@@ -207,10 +259,23 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Plano Assinado <span style={{ color: '#94a3b8' }}>💎</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
                       {['all', 'Starter', 'Pro', 'Enterprise', 'DEMO'].map((p) => (
                         <button
                           type="button"
@@ -225,25 +290,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Volume de Usuários <span style={{ color: '#94a3b8' }}>👥</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minUsers}
-                          onChange={(e) => setFilters({ ...filters, minUsers: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minUsers: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxUsers}
-                          onChange={(e) => setFilters({ ...filters, maxUsers: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxUsers: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -251,23 +341,44 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Janela de Provisionamento <span style={{ color: '#94a3b8' }}>📅</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          INÍCIO
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          FIM
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
                           style={inputStyle}
@@ -283,25 +394,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                 <>
                   {/* Price Range */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       <DollarSign size={14} style={{ color: '#10b981' }} /> Faixa de Preço (Mensal)
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (R$)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO (R$)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minPrice ?? 0}
-                          onChange={(e) => setFilters({ ...filters, minPrice: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minPrice: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (R$)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO (R$)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxPrice ?? 10000}
-                          onChange={(e) => setFilters({ ...filters, maxPrice: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxPrice: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -310,25 +446,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
 
                   {/* Users limit */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       <Globe size={14} style={{ color: '#6366f1' }} /> Limite de Usuários do Plano
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minUsers}
-                          onChange={(e) => setFilters({ ...filters, minUsers: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minUsers: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxUsers}
-                          onChange={(e) => setFilters({ ...filters, maxUsers: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxUsers: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -337,25 +498,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
 
                   {/* Storage Limit */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       <HardDrive size={14} style={{ color: '#f59e0b' }} /> Limite de Storage (GB)
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (GB)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO (GB)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minStorage ?? 0}
-                          onChange={(e) => setFilters({ ...filters, minStorage: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minStorage: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (GB)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO (GB)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxStorage ?? 1000}
-                          onChange={(e) => setFilters({ ...filters, maxStorage: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxStorage: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -369,10 +555,23 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                 <>
                   {/* Invoice Status */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Status da Fatura <span style={{ color: '#94a3b8' }}>⚡</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
                       {['all', 'paga', 'pendente', 'atrasada'].map((s) => (
                         <button
                           type="button"
@@ -388,25 +587,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
 
                   {/* Invoice Amount Range */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       <DollarSign size={14} style={{ color: '#10b981' }} /> Valor da Cobrança (R$)
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minPrice ?? 0}
-                          onChange={(e) => setFilters({ ...filters, minPrice: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minPrice: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxPrice ?? 10000}
-                          onChange={(e) => setFilters({ ...filters, maxPrice: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxPrice: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -415,23 +639,44 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
 
                   {/* Invoice Due Date Window */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Janela de Vencimento <span style={{ color: '#94a3b8' }}>📅</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          INÍCIO
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          FIM
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
                           style={inputStyle}
@@ -445,10 +690,23 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
               {activeTab === 'campaigns' && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Status da Campanha <span style={{ color: '#94a3b8' }}>⚡</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
                       {['all', 'ativa', 'pausada', 'expirada'].map((s) => (
                         <button
                           type="button"
@@ -463,25 +721,50 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       <Activity size={14} style={{ color: '#f59e0b' }} /> Faixa de Desconto (%)
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (%)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO (%)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.minDiscount ?? 0}
-                          onChange={(e) => setFilters({ ...filters, minDiscount: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minDiscount: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (%)</span>
-                        <input 
-                          type="number" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO (%)
+                        </span>
+                        <input
+                          type="number"
                           value={filters.maxDiscount ?? 100}
-                          onChange={(e) => setFilters({ ...filters, maxDiscount: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxDiscount: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -489,25 +772,163 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
                       Período de Vigência <span style={{ color: '#94a3b8' }}>📅</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          INÍCIO
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
                           style={inputStyle}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <DateInput 
-                          type="date" 
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          FIM
+                        </span>
+                        <DateInput
+                          type="date"
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* 5. TAB ADDONS */}
+              {activeTab === 'addons' && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Tipo de Add-on <span style={{ color: '#94a3b8' }}>⚡</span>
+                    </label>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
+                      {['all', 'module', 'users', 'animals', 'storage_gb', 'service'].map((t) => (
+                        <button
+                          type="button"
+                          key={t}
+                          onClick={() => setFilters({ ...filters, addonType: t })}
+                          style={getButtonStyle(filters.addonType === t, 'indigo')}
+                        >
+                          {t === 'all' ? 'TODOS' : t === 'module' ? 'MÓDULO EXTRA' : t === 'users' ? 'USUÁRIOS' : t === 'animals' ? 'ANIMAIS' : t === 'storage_gb' ? 'ARMAZENAMENTO' : 'SERVIÇO'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Ciclo de Cobrança <span style={{ color: '#94a3b8' }}>📅</span>
+                    </label>
+                    <div
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+                    >
+                      {['all', 'monthly', 'yearly'].map((c) => (
+                        <button
+                          type="button"
+                          key={c}
+                          onClick={() => setFilters({ ...filters, addonBilling: c })}
+                          style={getButtonStyle(filters.addonBilling === c, 'amber')}
+                        >
+                          {c === 'all' ? 'AMBOS' : c === 'monthly' ? 'MENSAL' : 'ANUAL'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      <DollarSign size={14} style={{ color: '#10b981' }} /> Faixa de Preço (R$)
+                    </label>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÍNIMO
+                        </span>
+                        <input
+                          type="number"
+                          value={filters.minPrice ?? 0}
+                          onChange={(e) =>
+                            setFilters({ ...filters, minPrice: Number(e.target.value) })
+                          }
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>
+                          MÁXIMO
+                        </span>
+                        <input
+                          type="number"
+                          value={filters.maxPrice ?? 10000}
+                          onChange={(e) =>
+                            setFilters({ ...filters, maxPrice: Number(e.target.value) })
+                          }
                           style={inputStyle}
                         />
                       </div>
@@ -518,14 +939,16 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
             </div>
 
             {/* Bottom Actions */}
-            <div style={{
-              padding: '20px 24px',
-              background: 'hsl(var(--bg-main))',
-              borderTop: '1px solid hsl(var(--border))',
-              display: 'flex',
-              gap: '12px'
-            }}>
-              <button 
+            <div
+              style={{
+                padding: '20px 24px',
+                background: 'hsl(var(--bg-main))',
+                borderTop: '1px solid hsl(var(--border))',
+                display: 'flex',
+                gap: '12px',
+              }}
+            >
+              <button
                 type="button"
                 onClick={() => {
                   setFilters({
@@ -540,7 +963,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     minStorage: 0,
                     maxStorage: 1000,
                     minDiscount: 0,
-                    maxDiscount: 100
+                    maxDiscount: 100,
                   });
                 }}
                 style={{
@@ -555,12 +978,12 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   cursor: 'pointer',
                   letterSpacing: '0.05em',
                   transition: 'all 0.2s',
-                  outline: 'none'
+                  outline: 'none',
                 }}
               >
                 LIMPAR TUDO
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={onClose}
                 style={{
@@ -576,10 +999,16 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   letterSpacing: '0.05em',
                   boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
                   transition: 'all 0.2s',
-                  outline: 'none'
+                  outline: 'none',
                 }}
               >
-                {activeTab === 'plans' ? 'FILTRAR PLANOS' : activeTab === 'billing' ? 'FILTRAR COBRANÇAS' : activeTab === 'campaigns' ? 'FILTRAR CAMPANHAS' : 'FILTRAR TENANTS'}
+                {activeTab === 'plans'
+                  ? 'FILTRAR PLANOS'
+                  : activeTab === 'billing'
+                    ? 'FILTRAR COBRANÇAS'
+                    : activeTab === 'campaigns'
+                      ? 'FILTRAR CAMPANHAS'
+                      : 'FILTRAR TENANTS'}
               </button>
             </div>
           </motion.div>

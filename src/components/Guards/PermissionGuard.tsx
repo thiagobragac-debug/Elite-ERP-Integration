@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTenant } from '../../contexts/TenantContext';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useTenantCore } from '../../contexts/TenantContext';
+import { usePermissions } from '../../hooks/usePermissions';
+import { UpgradeRequired } from '../Feedback/UpgradeRequired';
+import toast from 'react-hot-toast';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -11,13 +12,14 @@ interface PermissionGuardProps {
   fallback?: React.ReactNode;
 }
 
-export const PermissionGuard: React.FC<PermissionGuardProps> = ({ 
-  children, 
+export const PermissionGuard: React.FC<PermissionGuardProps> = ({
+  children,
   permission,
-  fallback 
+  fallback,
 }) => {
   const { isAuthenticated } = useAuth();
-  const { userProfile, loading } = useTenant();
+  const { loading, tenant } = useTenantCore();
+  const { can } = usePermissions();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -25,77 +27,98 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
-        <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Verificando permissões...</span>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            border: '3px solid var(--border)',
+            borderTopColor: 'var(--brand)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>
+          Verificando permissões...
+        </span>
         <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // Admin bypass
-  if (userProfile?.role === 'ADMIN' || userProfile?.role === 'Administrador') {
-    return <>{children}</>;
+  // A "permission" props usually came as module_name (e.g., 'financeiro')
+  // We can treat it as module, action='read'
+  // Or handle specific legacy permissions mapping like 'pecuaria_animais' -> module='pecuaria', action='read'
+  const moduleName = permission.split('_')[0]; // ex: 'pecuaria_animais' -> 'pecuaria'
+  
+  // Converte nome de permissão legado para o formato da Sidebar/SaasModules para validação no plano
+  const planModuleMapping: Record<string, string> = {
+    'admin': 'Administração',
+    'compras': 'Compra & Cotação',
+    'estoque': 'Estoque',
+    'logistica': 'Estoque',
+    'financeiro': 'Financeiro & Banco',
+    'frota': 'Máquina & Frota',
+    'mercado': 'Mercado',
+    'pecuaria': 'Pecuária',
+    'comercial': 'Venda & CRM',
+    'vendas': 'Venda & CRM'
+  };
+
+  const planSubmoduleMapping: Record<string, string> = {
+    'pecuaria_dashboard': 'Pecuária:Intelligence Hub',
+    'pecuaria_animais': 'Pecuária:Animais',
+    'pecuaria_saude': 'Pecuária:Sanidade',
+    'frota_abastecimento': 'Máquina & Frota:Abastecimentos',
+    'frota_manutencao': 'Máquina & Frota:Manutenções',
+    'comercial_clientes': 'Venda & CRM:Clientes',
+    'comercial_pedidos': 'Venda & CRM:Pedidos de Venda',
+    'logistica_armazens': 'Estoque:Depósitos',
+    'compras_fornecedores': 'Compra & Cotação:Fornecedores',
+    'compras_pedidos': 'Compra & Cotação:Pedidos de Compra',
+    'financeiro_dashboard': 'Financeiro & Banco:Intelligence Hub',
+    'financeiro_bancos': 'Financeiro & Banco:Contas Bancárias',
+    'financeiro_operacoes': 'Financeiro & Banco:Contas a Pagar',
+  };
+
+  const mappedMainModule = planModuleMapping[moduleName] || moduleName;
+  const mappedSubModule = planSubmoduleMapping[permission];
+
+  const hasRolePermission = can(moduleName, 'read');
+  
+  // Checks if the Tenant's Plan has access to this module
+  let hasPlanPermission = true;
+  const planModules = tenant?.plan_details?.modules;
+  
+  if (tenant && tenant.plano !== 'BETA_FREE' && Array.isArray(planModules)) {
+    if (mappedSubModule) {
+      hasPlanPermission = planModules.includes(mappedSubModule);
+    } else {
+      hasPlanPermission = planModules.includes(mappedMainModule);
+    }
   }
 
-  // Check permissions
-  const permissions = userProfile?.permissoes || userProfile?.permissions || [];
-  
-  // if 'all' is granted or the specific permission is granted
-  const hasPermission = permissions.includes('all') || permissions.includes(permission);
+  if (!hasRolePermission || !hasPlanPermission) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
 
-  if (!hasPermission) {
-    if (fallback) return <>{fallback}</>;
-    
-    return (
-      <div style={{
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100%', 
-        minHeight: '60vh',
-        textAlign: 'center',
-        padding: '24px'
-      }}>
-        <div style={{
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          background: 'rgba(239, 68, 68, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '24px'
-        }}>
-          <ShieldAlert size={40} color="#ef4444" />
-        </div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-          Acesso Negado
-        </h2>
-        <p style={{ color: 'var(--text-muted)', maxWidth: '400px', marginBottom: '32px', lineHeight: 1.5 }}>
-          Você não possui permissão para acessar esta área. Contate o administrador do sistema para solicitar acesso.
-        </p>
-        <Link 
-          to="/" 
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            background: 'var(--primary)',
-            color: '#fff',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            transition: 'opacity 0.2s'
-          }}
-        >
-          <ArrowLeft size={16} /> Voltar ao Início
-        </Link>
-      </div>
-    );
+    if (!hasPlanPermission) {
+      return <UpgradeRequired moduleName={mappedMainModule} isRoleRestriction={false} />;
+    }
+
+    if (!hasRolePermission) {
+      return <UpgradeRequired moduleName={mappedMainModule} isRoleRestriction={true} />;
+    }
   }
 
   return <>{children}</>;

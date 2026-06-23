@@ -25,11 +25,11 @@ export const CepeaPanel: React.FC = () => {
         .order('date', { ascending: false })
         .limit(5);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       setRecentQuotes(data || []);
-      setLastUpdate(
-        new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      );
+      setLastUpdate(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     } catch (err) {
       console.error('Failed to fetch recent quotes:', err);
     } finally {
@@ -61,11 +61,7 @@ export const CepeaPanel: React.FC = () => {
               Atualizado às {lastUpdate}
             </span>
           )}
-          <button
-            className="cepea-link-btn"
-            onClick={fetchRecentQuotes}
-            title="Atualizar cotação"
-          >
+          <button className="cepea-link-btn" onClick={fetchRecentQuotes} title="Atualizar cotação">
             <RefreshCw size={13} className={!loaded ? 'spin' : ''} />
           </button>
           <a
@@ -82,13 +78,13 @@ export const CepeaPanel: React.FC = () => {
 
       {/* Abas de Navegação (Tabs) */}
       <div className="cepea-tabs">
-        <button 
+        <button
           className={`cepea-tab ${viewMode === 'today' ? 'active' : ''}`}
           onClick={() => setViewMode('today')}
         >
           Hoje
         </button>
-        <button 
+        <button
           className={`cepea-tab ${viewMode === 'history' ? 'active' : ''}`}
           onClick={() => setViewMode('history')}
         >
@@ -120,16 +116,21 @@ export const CepeaPanel: React.FC = () => {
                   {recentQuotes.map((quote, idx) => {
                     const prevQuote = recentQuotes[idx + 1];
                     const diff = prevQuote ? quote.value - prevQuote.value : 0;
-                    const diffPercent = prevQuote && prevQuote.value > 0 ? (diff / prevQuote.value) * 100 : 0;
+                    const diffPercent =
+                      prevQuote && prevQuote.value > 0 ? (diff / prevQuote.value) * 100 : 0;
                     const isPositive = diff > 0;
                     const isNegative = diff < 0;
-                    
+
                     return (
                       <tr key={quote.date}>
                         <td>{quote.date.split('T')[0].split('-').reverse().join('/')}</td>
-                        <td style={{ fontWeight: 800 }}>R$ {quote.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        <td style={{ fontWeight: 800 }}>
+                          R$ {quote.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
                         <td className={isPositive ? 'var-pos' : isNegative ? 'var-neg' : 'var-neu'}>
-                          {diffPercent === 0 ? '-' : `${isPositive ? '+' : ''}${diffPercent.toFixed(2)}%`}
+                          {diffPercent === 0
+                            ? '-'
+                            : `${isPositive ? '+' : ''}${diffPercent.toFixed(2)}%`}
                         </td>
                       </tr>
                     );

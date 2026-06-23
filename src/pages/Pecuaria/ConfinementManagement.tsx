@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Building2, 
-  Plus, 
-  Search, 
+import {
+  Building2,
+  Plus,
+  Search,
   Filter,
-  ChevronRight, 
+  ChevronRight,
   MoreVertical,
   Clock,
   TrendingUp,
@@ -24,7 +24,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   Tag,
-  Calendar
+  Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -45,25 +45,69 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
+interface ConfinementLot {
+  id: string;
+  nome_curral: string;
+  status: string;
+  capacidade_animais?: number;
+  data_inicio?: string;
+  dof?: number;
+  dof_alvo?: number;
+  progress?: number;
+  projectedWeight?: number;
+  cpd?: number;
+  lotes?: { nome: string };
+  tenant_id?: string;
+  fazenda_id?: string;
+  [key: string]: unknown;
+}
+
 export const ConfinementManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
+  const {
+    activeFarm,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+    isGlobalMode,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ATIVOS' | 'HISTORICO') || 'ATIVOS';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ConfinementManagement_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'ConfinementManagement_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('pecuaria-confinamento', 'grid');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('ConfinementManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState(
+    'ConfinementManagement_isModalOpen',
+    false
+  );
   const [formActionId, setFormActionId] = useState<number>(0);
-  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = usePersistentState('ConfinementManagement_isCheckOutModalOpen', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('ConfinementManagement_showAdvancedFilters', false);
+  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = usePersistentState(
+    'ConfinementManagement_isCheckOutModalOpen',
+    false
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'ConfinementManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minDOF: 0,
@@ -71,26 +115,28 @@ export const ConfinementManagement: React.FC = () => {
     minWeight: 0,
     maxWeight: 800,
     maxCPD: 30,
-    onlyActive: true
+    onlyActive: true,
   });
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  const { 
-    data: rawConfinements, 
-    stats, 
-    loading, 
-    error, 
+  const {
+    data: rawConfinements,
+    stats,
+    loading,
+    error,
     totalCount,
-    refresh 
+    refresh,
   } = useReportData('confinamento', { page, pageSize });
 
-  const confinements = rawConfinements || [];
+  const confinements = (rawConfinements || []) as unknown as ConfinementLot[];
 
   const addPenMutation = useMutation({
     mutationFn: async (payload: any) => {
       const { error } = await supabase.from('confinamento').insert([payload]);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -98,8 +144,8 @@ export const ConfinementManagement: React.FC = () => {
       toast.success('✅ Check-in realizado com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao realizar check-in: ' + err.message);
-    }
+      toast.error(`❌ Erro ao realizar check-in: ${err.message}`);
+    },
   });
 
   const handleAddPen = async (data: any) => {
@@ -107,7 +153,7 @@ export const ConfinementManagement: React.FC = () => {
       toast.error('⚠️ Selecione uma unidade específica para realizar o check-in.');
       return;
     }
-    
+
     const payload = {
       nome_curral: data.nome_curral,
       capacidade_animais: parseInt(data.capacidade_animais),
@@ -115,7 +161,7 @@ export const ConfinementManagement: React.FC = () => {
       peso_entrada: parseFloat(data.peso_entrada),
       data_inicio: data.data_inicio,
       lote_id: data.lote_id || null,
-      ...insertPayload
+      ...insertPayload,
     };
 
     addPenMutation.mutate(payload);
@@ -129,10 +175,12 @@ export const ConfinementManagement: React.FC = () => {
           data_fim: data.data_fim,
           peso_final: data.peso_final,
           destino: data.destino,
-          status: 'archived'
+          status: 'archived',
         })
         .eq('id', data.id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -140,8 +188,8 @@ export const ConfinementManagement: React.FC = () => {
       toast.success('✅ Check-out realizado com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao realizar check-out: ' + err.message);
-    }
+      toast.error(`❌ Erro ao realizar check-out: ${err.message}`);
+    },
   });
 
   const handleCheckOut = async (data: any) => {
@@ -151,63 +199,109 @@ export const ConfinementManagement: React.FC = () => {
   const handleViewDetails = (pen: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: pen.data_inicio, title: 'Início do Ciclo', subtitle: 'Check-in de lote', value: 'OK', status: 'success' },
-      { id: '2', date: pen.data_inicio, title: 'Lote Vinculado', subtitle: pen.lotes?.nome || 'N/A', value: pen.capacidade_animais + ' Cabeças', status: 'info' },
-      { id: '3', date: new Date().toISOString(), title: 'Status Nutricional', subtitle: 'Dieta de terminação', value: 'Em dia', status: 'success' },
+      {
+        id: '1',
+        date: pen.data_inicio,
+        title: 'Início do Ciclo',
+        subtitle: 'Check-in de lote',
+        value: 'OK',
+        status: 'success',
+      },
+      {
+        id: '2',
+        date: pen.data_inicio,
+        title: 'Lote Vinculado',
+        subtitle: pen.lotes?.nome || 'N/A',
+        value: `${pen.capacidade_animais} Cabeças`,
+        status: 'info',
+      },
+      {
+        id: '3',
+        date: new Date().toISOString(),
+        title: 'Status Nutricional',
+        subtitle: 'Dieta de terminação',
+        value: 'Em dia',
+        status: 'success',
+      },
     ]);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = confinements.map(item => ({
+    const exportData = confinements.map((item) => ({
       Curral: item.nome_curral,
       Lote: item.lotes?.nome || 'N/A',
       Data_Inicio: item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A',
       Animais: item.capacidade_animais || 0,
       DOF_Atual: item.dof || 0,
       DOF_Alvo: item.dof_alvo || 0,
-      Progresso: Math.round(item.progress || 0) + '%',
-      Peso_Projetado: (item.projectedWeight || 0).toFixed(1) + 'kg',
-      CPD: 'R$ ' + (item.cpd || 0).toFixed(2),
-      Status: item.progress > 90 ? 'Terminação' : 'Engorda'
+      Progresso: `${Math.round(item.progress || 0)}%`,
+      Peso_Projetado: `${(item.projectedWeight || 0).toFixed(1)}kg`,
+      CPD: `R$ ${(item.cpd || 0).toFixed(2)}`,
+      Status: (item.progress ?? 0) > 90 ? 'Terminação' : 'Engorda',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'confinamento_pecuaria');
-    else if (format === 'excel') exportToExcel(exportData, 'confinamento_pecuaria');
-    else if (format === 'pdf') exportToPDF(exportData, 'confinamento_pecuaria', 'Relatório de Performance - Confinamento');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'confinamento_pecuaria');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'confinamento_pecuaria');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'confinamento_pecuaria', 'Relatório de Performance - Confinamento');
+    }
   };
 
-  const filteredConfinements = confinements.filter(p => {
-    const matchesSearch = (p.nome_curral || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
-    
-    const matchesStatus = filterValues.status === 'all' || 
-                         (filterValues.status === 'ENGORDA' && p.progress <= 90) ||
-                         (filterValues.status === 'TERMINACAO' && p.progress > 90) ||
-                         (filterValues.status === 'CHECKOUT' && p.progress >= 98);
-    
-    const matchesDOF = filterValues.maxDOF >= 180 || (p.dof >= filterValues.minDOF && p.dof <= filterValues.maxDOF);
-    const matchesWeight = filterValues.maxWeight >= 800 || ((p.projectedWeight || 0) >= filterValues.minWeight && (p.projectedWeight || 0) <= filterValues.maxWeight);
-    const matchesCPD = filterValues.maxCPD >= 30 || ((p.cpd || 0) <= filterValues.maxCPD);
-    const matchesActive = activeTab === 'HISTORICO' ? true : (!filterValues.onlyActive || p.status !== 'archived');
-    
-    const lote = (p.lotes?.nome || '').toLowerCase();
-    const matchesLote = lote.includes(searchTerm.toLowerCase());
+  const filteredConfinements = useMemo(() => {
+    return confinements.filter((p) => {
+      const matchesSearch = (p.nome_curral || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
 
-    return (matchesSearch || matchesLote) && matchesTab && matchesStatus && matchesDOF && matchesWeight && matchesCPD && matchesActive;
-  });
+      const matchesStatus =
+        filterValues.status === 'all' ||
+        (filterValues.status === 'ENGORDA' && (p.progress ?? 0) <= 90) ||
+        (filterValues.status === 'TERMINACAO' && (p.progress ?? 0) > 90) ||
+        (filterValues.status === 'CHECKOUT' && (p.progress ?? 0) >= 98);
 
-  const tableColumns = [
+      const matchesDOF =
+        filterValues.maxDOF >= 180 || ((p.dof ?? 0) >= filterValues.minDOF && (p.dof ?? 0) <= filterValues.maxDOF);
+      const matchesWeight =
+        filterValues.maxWeight >= 800 ||
+        ((p.projectedWeight || 0) >= filterValues.minWeight &&
+          (p.projectedWeight || 0) <= filterValues.maxWeight);
+      const matchesCPD = filterValues.maxCPD >= 30 || (p.cpd || 0) <= filterValues.maxCPD;
+      const matchesActive =
+        activeTab === 'HISTORICO' ? true : !filterValues.onlyActive || p.status !== 'archived';
+
+      const lote = (p.lotes?.nome || '').toLowerCase();
+      const matchesLote = lote.includes(searchTerm.toLowerCase());
+
+      return (
+        (matchesSearch || matchesLote) &&
+        matchesTab &&
+        matchesStatus &&
+        matchesDOF &&
+        matchesWeight &&
+        matchesCPD &&
+        matchesActive
+      );
+    });
+  }, [confinements, searchTerm, activeTab, filterValues]);
+
+  const tableColumns = useMemo(() => [
     {
       header: 'Curral / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome_curral}</span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.nome_curral}
+          </span>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Lote Ativo',
@@ -216,54 +310,110 @@ export const ConfinementManagement: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
             {item.lotes?.nome || 'Sem Lote'}
           </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             Confinamento
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Início do Ciclo',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#64748b',
+            fontWeight: 600,
+            fontSize: '12px',
+          }}
+        >
           <Calendar size={14} />
           <span>{item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A'}</span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Ocupação Curral',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#1e293b', fontWeight: 800 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#1e293b',
+            fontWeight: 800,
+          }}
+        >
           <Beef size={14} color="#10b981" />
           <span>{item.capacidade_animais || 0} cab</span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Performance DOF',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '135px', textAlign: 'left' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
-            <span>DOF {item.dof} / {item.dof_alvo}</span>
-            <span style={{ color: item.progress > 90 ? '#f59e0b' : '#10b981' }}>{Math.round(item.progress)}%</span>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            minWidth: '135px',
+            textAlign: 'left',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '10px',
+              fontWeight: 900,
+              color: '#64748b',
+            }}
+          >
+            <span>
+              DOF {item.dof} / {item.dof_alvo}
+            </span>
+            <span style={{ color: item.progress > 90 ? '#f59e0b' : '#10b981' }}>
+              {Math.round(item.progress)}%
+            </span>
           </div>
-          <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                transition: 'width 0.5s', 
+          <div
+            style={{
+              height: '6px',
+              width: '100%',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '99px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                transition: 'width 0.5s',
                 backgroundColor: item.progress > 90 ? '#f59e0b' : '#10b981',
-                width: `${item.progress}%` 
+                width: `${item.progress}%`,
               }}
             />
           </div>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Status Operacional',
@@ -274,27 +424,37 @@ export const ConfinementManagement: React.FC = () => {
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
-  ];
+      align: 'center' as const,
+    },
+  ], []);
 
   const deleteConfinementMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('confinamento').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Curral excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir curral: ' + err.message);
-    }
+      toast.error(`❌ Erro ao excluir curral: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este curral?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este curral?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteConfinementMutation.mutate(id);
   };
 
@@ -302,9 +462,13 @@ export const ConfinementManagement: React.FC = () => {
     <div className="confinement-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Confinamento' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Confinamento' }]}
+          />
           <h1 className="page-title">Confinamento</h1>
-          <p className="page-subtitle">Terminação intensiva, controle de DOF e projeção de performance em tempo real.</p>
+          <p className="page-subtitle">
+            Terminação intensiva, controle de DOF e projeção de performance em tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsCheckOutModalOpen(true)}>
@@ -340,25 +504,22 @@ export const ConfinementManagement: React.FC = () => {
       `}</style>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats?.map((stat: any, idx: number) => (
-          <TauzeStatCard 
-            key={idx}
-            {...stat}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ATIVOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('ATIVOS')}
           >
             Currais Ativos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'HISTORICO' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORICO')}
           >
@@ -368,24 +529,24 @@ export const ConfinementManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar por curral ou lote..." 
+            placeholder="Buscar por curral ou lote..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -395,7 +556,7 @@ export const ConfinementManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -403,26 +564,49 @@ export const ConfinementManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-confinement');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-confinement" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-confinement')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-confinement')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-confinement')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <ConfinementFilterModal 
+      <ConfinementFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -431,7 +615,7 @@ export const ConfinementManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             emptyState={
               confinements.length === 0 ? (
                 <EmptyState
@@ -460,13 +644,21 @@ export const ConfinementManagement: React.FC = () => {
             searchPlaceholder="Filtrar base de currais..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes">
+                <button
+                  className="action-dot info"
+                  onClick={() => handleViewDetails(item)}
+                  title="Detalhes"
+                >
                   <History size={18} />
                 </button>
                 <button className="action-dot edit" onClick={() => {}} title="Editar">
                   <Edit3 size={18} />
                 </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -475,47 +667,72 @@ export const ConfinementManagement: React.FC = () => {
         ) : (
           <div className="confinement-cards-grid animate-fade-in">
             {filteredConfinements.length === 0 ? (
-              <div 
-                className="confinement-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="confinement-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   {confinements.length === 0 ? <Building2 size={22} /> : <Search size={22} />}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {confinements.length === 0 ? 'Nenhum ciclo de confinamento' : 'Nenhum registro encontrado'}
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {confinements.length === 0
+                    ? 'Nenhum ciclo de confinamento'
+                    : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {confinements.length === 0 ? 'Não há currais ativos para esta unidade.' : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {confinements.length === 0
+                    ? 'Não há currais ativos para esta unidade.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
                 {confinements.length === 0 && (
-                  <button 
-                    className="primary-btn" 
+                  <button
+                    className="primary-btn"
                     onClick={() => setIsModalOpen(true)}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO CHECK-IN</span>
@@ -523,12 +740,12 @@ export const ConfinementManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              filteredConfinements.map(p => {
+              filteredConfinements.map((p) => {
                 const progress = p.progress || 0;
                 let badgeClass = 'active'; // green
                 let badgeText = 'ENGORDA';
                 let borderClass = 'active';
-                
+
                 if (progress > 90) {
                   badgeClass = 'warning-badge';
                   badgeText = 'TERMINAÇÃO';
@@ -540,30 +757,54 @@ export const ConfinementManagement: React.FC = () => {
                 }
 
                 return (
-                  <div 
-                    key={p.id} 
-                    className={`confinement-card-premium ${borderClass}`}
-                  >
+                  <div key={p.id} className={`confinement-card-premium ${borderClass}`}>
                     <div className="card-left-section">
                       <div className="card-avatar">
                         <Building2 size={28} />
                       </div>
                       <div className="card-bottom-actions">
-                        <button className="action-icon-btn info" onClick={() => handleViewDetails(p)} title="Histórico"><History size={14} /></button>
-                        <button className="action-icon-btn edit" onClick={() => {}} title="Editar"><Edit3 size={14} /></button>
-                        <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={14} /></button>
+                        <button
+                          className="action-icon-btn info"
+                          onClick={() => handleViewDetails(p)}
+                          title="Histórico"
+                        >
+                          <History size={14} />
+                        </button>
+                        <button className="action-icon-btn edit" onClick={() => {}} title="Editar">
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className="action-icon-btn delete"
+                          onClick={() => handleDelete(p.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
 
                     <div className="card-main-content">
-                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div
+                        className="card-header-info"
+                        style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
+                      >
                         <div className="title-row" style={{ width: '100%' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome_curral}</h3>
+                          <h3
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--text-main))',
+                              width: '100%',
+                            }}
+                          >
+                            {p.nome_curral}
+                          </h3>
                         </div>
-                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`status-pill mini ${badgeClass}`}>
-                            {badgeText}
-                          </span>
+                        <div
+                          className="meta-row"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span className={`status-pill mini ${badgeClass}`}>{badgeText}</span>
                           <div className="card-type-meta">Lote: {p.lotes?.nome || 'Vazio'}</div>
                         </div>
                       </div>
@@ -576,7 +817,7 @@ export const ConfinementManagement: React.FC = () => {
                           </span>
                         </div>
                         <div className="occ-bar-container">
-                          <div 
+                          <div
                             className={`occ-bar-fill ${progress > 90 ? 'warning' : ''}`}
                             style={{ width: `${Math.min(progress, 100)}%` }}
                           />
@@ -593,7 +834,9 @@ export const ConfinementManagement: React.FC = () => {
                         </div>
                         <div className="meta-item">
                           <TrendingUp size={12} />
-                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                          <span className="card-farm-meta">
+                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -963,15 +1206,15 @@ export const ConfinementManagement: React.FC = () => {
         }
       `}</style>
 
-      <ConfinementForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ConfinementForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         actionId={formActionId}
-        onSubmit={handleAddPen} 
-        loading={(addPenMutation.isPending || checkOutMutation.isPending)}
+        onSubmit={handleAddPen}
+        loading={addPenMutation.isPending || checkOutMutation.isPending}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê do Confinamento"
@@ -980,10 +1223,10 @@ export const ConfinementManagement: React.FC = () => {
         loading={historyLoading}
       />
 
-      <CheckOutModal 
+      <CheckOutModal
         isOpen={isCheckOutModalOpen}
         onClose={() => setIsCheckOutModalOpen(false)}
-        activePens={confinements.filter(p => p.status !== 'archived' && p.lote_id)}
+        activePens={confinements.filter((p) => p.status !== 'archived' && p.lote_id)}
         onCheckOut={handleCheckOut}
       />
     </div>

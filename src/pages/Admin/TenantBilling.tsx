@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  Check, 
+import {
+  DollarSign,
+  TrendingUp,
+  Check,
   LayoutGrid,
   ShieldCheck,
   CreditCard,
@@ -14,7 +14,8 @@ import {
   Clock,
   Search,
   Filter,
-  X
+  X,
+  Receipt,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -24,9 +25,14 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { isValidUUID } from '../../utils/validation';
 import { BillingFilterModal } from './components/BillingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { LoadingSkeleton } from '../../components/Feedback/LoadingSkeleton';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { InvoiceReceiptModal } from './components/InvoiceReceiptModal';
+
+import { EmbeddedCheckoutModal } from './components/EmbeddedCheckoutModal';
+import { SAAS_MODULES } from '../../config/saasModules';
 
 export const TenantBilling: React.FC = () => {
   const { tenant } = useTenant();
@@ -34,32 +40,45 @@ export const TenantBilling: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = usePersistentState('TenantBilling_isPaymentModalOpen', false);
   const [isFilterOpen, setIsFilterOpen] = usePersistentState('TenantBilling_isFilterOpen', false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  
+  // Embedded Checkout State
+  const [isEmbeddedCheckoutOpen, setIsEmbeddedCheckoutOpen] = useState(false);
+  const [transparentData, setTransparentData] = useState<any>(null);
+  const [checkoutAmount, setCheckoutAmount] = useState(0);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     planType: 'all',
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
   });
-  
+
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'plan' | 'addons' | 'invoices') || 'plan';
+  const [addons, setAddons] = useState<any[]>([]);
+  const [tenantAddons, setTenantAddons] = useState<any[]>([]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as 'plan' | 'invoices') || 'plan';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit_card' | null>(null);
-  const [pixGenerating, setPixGenerating] = useState(false);
-  const [pixGenerated, setPixGenerated] = useState(false);
+
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
 
   const [billingStats, setBillingStats] = useState({
     usersCount: 0,
@@ -67,8 +86,64 @@ export const TenantBilling: React.FC = () => {
     storageGb: 0.5,
     storageLimit: 10,
     daysLeft: 30,
-    activeModules: '5/8'
+    activeModules: '5/8',
   });
+
+  const handlePayInvoice = async (item: any) => {
+    // Para simplificar a POC, chamamos o create-checkout de novo para obter o transparent_data
+    // Num cenário real, buscaríamos o intent gerado anteriormente.
+    try {
+      const { data, error } = await supabase.functions.invoke('saas-create-checkout', {
+        body: {
+          tenant_id: tenant?.id,
+          plan_name: item.plan_name,
+          amount: item.amount,
+          due_date: item.due_date,
+          gateway: item.gateway || 'Stripe',
+        },
+      });
+      
+      if (data?.transparent_data) {
+        setTransparentData(data.transparent_data);
+        setCheckoutAmount(item.amount);
+        setIsEmbeddedCheckoutOpen(true);
+      } else {
+        const url = item.payment_link || item.boleto_url;
+        if (url) window.open(url, '_blank');
+        else toast.error('Link não disponível');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao abrir pagamento.');
+    }
+  };
+
+  const handleUpgradePlan = async (plan: any) => {
+    if (!tenant?.id) return;
+    setIsChangingPlan(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('saas-change-plan', {
+        body: {
+          tenant_id: tenant.id,
+          new_plan_id: plan.id,
+        },
+      });
+      if (error) throw new Error(error.message || 'Erro ao alterar assinatura');
+      
+      if (data?.transparent_data) {
+        setTransparentData(data.transparent_data);
+        setCheckoutAmount(plan.price);
+        setIsEmbeddedCheckoutOpen(true);
+      } else if (data?.checkout_url) {
+        // Fallback for non-transparent
+        window.open(data.checkout_url, '_blank');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao alterar plano');
+    } finally {
+      setIsChangingPlan(false);
+    }
+  };
 
   useEffect(() => {
     const fetchBillingData = async () => {
@@ -80,7 +155,7 @@ export const TenantBilling: React.FC = () => {
 
       setLoading(true);
       setInvoicesLoading(true);
-      
+
       try {
         const fetchPromise = (async () => {
           const from = (page - 1) * pageSize;
@@ -88,9 +163,10 @@ export const TenantBilling: React.FC = () => {
 
           const { data: plansData, error: plansError } = await supabase
             .from('saas_plans')
-            .select('*').limit(500)
+            .select('*')
+            .limit(500)
             .order('price', { ascending: true });
-          
+
           let invoicesData = [];
           let count = 0;
           if (tenant?.id) {
@@ -104,7 +180,7 @@ export const TenantBilling: React.FC = () => {
             if (searchQuery) {
               query = query.ilike('plan_name', `%${searchQuery}%`);
             }
-            
+
             if (statusFilter !== 'all') {
               query = query.eq('status', statusFilter);
             }
@@ -133,55 +209,85 @@ export const TenantBilling: React.FC = () => {
             count = invCount || 0;
           }
 
-          if (plansError) throw plansError;
+          if (plansError) {
+            throw plansError;
+          }
           return { plansData, invoicesData, count };
         })();
 
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Timeout')), 3000)
         );
 
         const result: any = await Promise.race([fetchPromise, timeoutPromise]);
         const { plansData, invoicesData, count } = result;
-        
-        if (plansData) setPlans(plansData);
+
+        if (plansData) {
+          setPlans(plansData);
+        }
         if (invoicesData) {
           setInvoices(invoicesData);
           setTotalCount(count);
         }
+
+        // Addons fetching
+        const { data: addonsData } = await supabase.from('saas_addons').select('*').eq('is_active', true).order('price', { ascending: true });
+        if (addonsData) setAddons(addonsData);
+
+        const { data: tenantAddonsData } = await supabase.from('saas_tenant_addons').select('*, addon:saas_addons(*)').eq('tenant_id', tenant.id);
+        if (tenantAddonsData) setTenantAddons(tenantAddonsData);
 
         // Live stats calculations
         const { count: usersCount } = await supabase
           .from('profiles_view')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id);
-        
-        const uCount = usersCount || 0;
-        const currentPlanName = tenant.plano || 'Free';
-        const currentPlanObj = (plansData || []).find((p: any) => 
-          p.name?.toLowerCase() === currentPlanName.toLowerCase()
-        );
 
-        const uLimit = currentPlanObj?.users_limit || 15;
-        const sLimit = currentPlanObj?.storage_gb || 10;
+        const uCount = usersCount || 0;
+        const currentPlanObj = plansData?.find((p: any) => p.name === tenant.plano);
         
-        const pendingInvoice = (invoicesData || []).find((inv: any) => inv.status !== 'pago');
-        let days = 30;
-        if (pendingInvoice && pendingInvoice.due_date) {
-          const diffTime = new Date(pendingInvoice.due_date).getTime() - Date.now();
-          days = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        // Use os limites consolidados que já incluem Add-ons calculados no TenantContext
+        const uLimit = tenant?.plan_details?.users_limit || currentPlanObj?.users_limit || 15;
+        const sLimit = tenant?.plan_details?.storage_limit || currentPlanObj?.storage_limit || 10;
+
+        // Get actual storage from RPC
+        let actualStorageGb = 0;
+        try {
+          const { data: storageBytes } = await supabase.rpc('get_tenant_storage_usage', { p_tenant_id: tenant.id });
+          actualStorageGb = storageBytes ? Number((storageBytes / (1024 * 1024 * 1024)).toFixed(2)) : 0;
+        } catch (e) {
+          console.error('Error fetching storage:', e);
         }
+
+        // Calculate days left from settings
+        let days = 30;
+        const periodEnd = tenant.settings?.current_period_end || tenant.settings?.stripe_current_period_end;
+        if (periodEnd) {
+          const diffTime = new Date(periodEnd as string).getTime() - Date.now();
+          days = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        } else {
+          const pendingInvoice = (invoicesData || []).find((inv: any) => inv.status !== 'pago');
+          if (pendingInvoice && pendingInvoice.due_date) {
+            const diffTime = new Date(pendingInvoice.due_date).getTime() - Date.now();
+            days = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+          }
+        }
+
+        // Calculate active modules
+        const tenantModules = Array.isArray(tenant.plan_details?.modules) ? tenant.plan_details.modules : [];
+        const mainModulesCount = tenantModules.filter((m: string) => !m.includes(':')).length;
+        const totalModules = SAAS_MODULES.length;
 
         setBillingStats({
           usersCount: uCount,
           usersLimit: uLimit,
-          storageGb: Math.min(sLimit, Number((uCount * 0.15 + 0.1).toFixed(1))),
+          storageGb: actualStorageGb,
           storageLimit: sLimit,
           daysLeft: days,
-          activeModules: currentPlanObj ? '8/8' : '5/8'
+          activeModules: `${mainModulesCount}/${totalModules}`,
         });
       } catch (err) {
-        console.error("TenantBilling: Error fetching billing data from database:", err);
+        console.error('TenantBilling: Error fetching billing data from database:', err);
         setPlans([]);
         setInvoices([]);
         setTotalCount(0);
@@ -191,7 +297,7 @@ export const TenantBilling: React.FC = () => {
           storageGb: 0,
           storageLimit: 10,
           daysLeft: 0,
-          activeModules: '0/8'
+          activeModules: '0/8',
         });
       } finally {
         setLoading(false);
@@ -206,21 +312,48 @@ export const TenantBilling: React.FC = () => {
       header: 'Fatura / Descrição',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
-          <div style={{ background: 'hsl(var(--bg-main))', width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+          <div
+            style={{
+              background: 'hsl(var(--bg-main))',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              border: '1px solid #f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#94a3b8',
+            }}
+          >
             <CreditCard size={18} />
           </div>
-          <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))', fontSize: '13px', textTransform: 'uppercase' }}>Fatura - {item.plan_name}</span>
+          <span
+            style={{
+              fontWeight: 800,
+              color: 'hsl(var(--text-main))',
+              fontSize: '13px',
+              textTransform: 'uppercase',
+            }}
+          >
+            Fatura - {item.plan_name}
+          </span>
         </div>
-      )
+      ),
     },
     {
       header: 'Vencimento',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '12px' }}>{new Date(item.due_date).toLocaleDateString('pt-BR')}</span>
-          {item.paid_at && <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 600 }}>Pago em: {new Date(item.paid_at).toLocaleDateString('pt-BR')}</span>}
+          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '12px' }}>
+            {new Date(item.due_date).toLocaleDateString('pt-BR')}
+          </span>
+          {item.paid_at && (
+            <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 600 }}>
+              Pago em: {new Date(item.paid_at).toLocaleDateString('pt-BR')}
+            </span>
+          )}
         </div>
-      )
+      ),
     },
     {
       header: 'Valor',
@@ -228,55 +361,114 @@ export const TenantBilling: React.FC = () => {
         <span style={{ fontWeight: 900, color: 'hsl(var(--brand))', fontSize: '14px' }}>
           R$ {Number(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </span>
-      )
+      ),
     },
     {
       header: 'Status',
       accessor: (item: any) => (
-        <span style={{ 
-          padding: '4px 12px', 
-          borderRadius: '20px', 
-          fontSize: '10px', 
-          fontWeight: 800, 
-          textTransform: 'uppercase',
-          background: item.status === 'atrasado' ? '#fef2f2' : item.status === 'pendente' ? '#fffbeb' : '#f0fdf4',
-          color: item.status === 'atrasado' ? '#ef4444' : item.status === 'pendente' ? '#f59e0b' : '#10b981'
-        }}>
+        <span
+          style={{
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '10px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            background:
+              item.status === 'atrasado'
+                ? '#fef2f2'
+                : item.status === 'pendente'
+                  ? '#fffbeb'
+                  : '#f0fdf4',
+            color:
+              item.status === 'atrasado'
+                ? '#ef4444'
+                : item.status === 'pendente'
+                  ? '#f59e0b'
+                  : '#10b981',
+          }}
+        >
           {item.status}
         </span>
-      )
+      ),
     },
     {
       header: 'Ação',
-      accessor: (item: any) => (
-        (item.status === 'pendente' || item.status === 'atrasado') ? (
-          <button 
-            className="primary-btn" 
-            onClick={() => {
-              setSelectedInvoice(item);
-              setIsPaymentModalOpen(true);
+      accessor: (item: any) =>
+        item.status === 'pendente' || item.status === 'atrasado' ? (
+          <button
+            className="primary-btn"
+            onClick={() => handlePayInvoice(item)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: item.status === 'atrasado' ? '#ef4444' : 'hsl(var(--brand))',
+              border: 'none',
+              color: '#fff',
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontSize: '11px',
+              textTransform: 'uppercase',
             }}
-            style={{ padding: '8px 16px', borderRadius: '8px', background: item.status === 'atrasado' ? '#ef4444' : 'hsl(var(--brand))', border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer', fontSize: '11px', textTransform: 'uppercase' }}
           >
             Pagar Agora
           </button>
-        ) : <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 700, background: 'hsl(var(--bg-main))', padding: '6px 12px', borderRadius: '8px' }}>Finalizada</span>
-      )
-    }
+        ) : (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span
+              style={{
+                color: '#94a3b8',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: 'hsl(var(--bg-main))',
+                padding: '6px 12px',
+                borderRadius: '8px',
+              }}
+            >
+              Finalizada
+            </span>
+            <button
+              className="icon-btn-secondary"
+              title="Visualizar Recibo"
+              onClick={() => {
+                setSelectedInvoice(item);
+                setIsReceiptOpen(true);
+              }}
+              style={{ background: 'transparent', color: '#10b981', border: '1px solid #10b981', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              <Receipt size={14} />
+            </button>
+            {(item.receipt_url || item.invoice_pdf) && (
+              <button
+                className="icon-btn-secondary"
+                title="Baixar PDF"
+                onClick={() => window.open(item.receipt_url || item.invoice_pdf, '_blank')}
+                style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                <HardDrive size={14} />
+              </button>
+            )}
+          </div>
+        ),
+    },
   ];
 
   return (
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Assinatura & Planos' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Administração', href: '/admin/intelligence' },
+              { label: 'Assinatura & Planos' },
+            ]}
+          />
           <h1 className="page-title">Assinatura & Planos</h1>
           <p className="page-subtitle">Gerencie seu plano atual, faturas e opções de upgrade.</p>
         </div>
       </header>
 
       <div className="next-gen-kpi-grid" style={{ marginBottom: '32px' }}>
-        <TauzeStatCard 
+        <TauzeStatCard
           label="Usuários Ativos"
           value={`${billingStats.usersCount}/${billingStats.usersLimit}`}
           change={`${Math.round((billingStats.usersCount / billingStats.usersLimit) * 100)}% do Limite`}
@@ -284,10 +476,16 @@ export const TenantBilling: React.FC = () => {
           icon={Users}
           color={billingStats.usersCount > billingStats.usersLimit * 0.9 ? '#ef4444' : '#f59e0b'}
           periodLabel="Limite Atual"
-          progress={Math.min(100, Math.round((billingStats.usersCount / billingStats.usersLimit) * 100))}
-          sparkline={[{value: Math.max(0, billingStats.usersCount - 2), label: ''}, {value: billingStats.usersCount, label: ''}]}
+          progress={Math.min(
+            100,
+            Math.round((billingStats.usersCount / billingStats.usersLimit) * 100)
+          )}
+          sparkline={[
+            { value: Math.max(0, billingStats.usersCount - 2), label: '' },
+            { value: billingStats.usersCount, label: '' },
+          ]}
         />
-        <TauzeStatCard 
+        <TauzeStatCard
           label="Armazenamento"
           value={`${billingStats.storageGb} GB`}
           change={`${Math.round((billingStats.storageGb / billingStats.storageLimit) * 100)}% do Limite`}
@@ -295,10 +493,16 @@ export const TenantBilling: React.FC = () => {
           icon={HardDrive}
           color={billingStats.storageGb > billingStats.storageLimit * 0.9 ? '#ef4444' : '#10b981'}
           periodLabel="Limite Atual"
-          progress={Math.min(100, Math.round((billingStats.storageGb / billingStats.storageLimit) * 100))}
-          sparkline={[{value: Math.max(0.1, billingStats.storageGb - 0.2), label: ''}, {value: billingStats.storageGb, label: ''}]}
+          progress={Math.min(
+            100,
+            Math.round((billingStats.storageGb / billingStats.storageLimit) * 100)
+          )}
+          sparkline={[
+            { value: Math.max(0.1, billingStats.storageGb - 0.2), label: '' },
+            { value: billingStats.storageGb, label: '' },
+          ]}
         />
-        <TauzeStatCard 
+        <TauzeStatCard
           label="Vigência do Plano"
           value={`${billingStats.daysLeft} Dias`}
           change="Ciclo Mensal"
@@ -307,9 +511,12 @@ export const TenantBilling: React.FC = () => {
           color={billingStats.daysLeft < 5 ? '#ef4444' : '#10b981'}
           periodLabel="Renovação"
           progress={Math.min(100, Math.round((billingStats.daysLeft / 30) * 100))}
-          sparkline={[{value: 30, label: ''}, {value: billingStats.daysLeft, label: ''}]}
+          sparkline={[
+            { value: 30, label: '' },
+            { value: billingStats.daysLeft, label: '' },
+          ]}
         />
-        <TauzeStatCard 
+        <TauzeStatCard
           label="Módulos Ativos"
           value={billingStats.activeModules}
           change={billingStats.activeModules === '8/8' ? 'Acesso Completo' : '3 Restringidos'}
@@ -318,19 +525,28 @@ export const TenantBilling: React.FC = () => {
           color={billingStats.activeModules === '8/8' ? '#10b981' : '#3b82f6'}
           periodLabel={billingStats.activeModules === '8/8' ? 'Diamond Precision' : 'Plano Básico'}
           progress={billingStats.activeModules === '8/8' ? 100 : 62}
-          sparkline={[{value: 5, label: ''}, {value: billingStats.activeModules === '8/8' ? 8 : 5, label: ''}]}
+          sparkline={[
+            { value: 5, label: '' },
+            { value: billingStats.activeModules === '8/8' ? 8 : 5, label: '' },
+          ]}
         />
       </div>
 
-      <div className="tauze-controls-row" style={{ marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', marginBottom: '32px' }}>
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'plan' ? 'active' : ''}`}
             onClick={() => setActiveTab('plan')}
           >
             Plano & Upgrade
           </button>
-          <button 
+          <button
+            className={`tauze-tab-item ${activeTab === 'addons' ? 'active' : ''}`}
+            onClick={() => setActiveTab('addons')}
+          >
+            Módulos Extras
+          </button>
+          <button
             className={`tauze-tab-item ${activeTab === 'invoices' ? 'active' : ''}`}
             onClick={() => setActiveTab('invoices')}
           >
@@ -343,56 +559,134 @@ export const TenantBilling: React.FC = () => {
         {activeTab === 'plan' && (
           <>
             <div style={{ marginBottom: '40px' }}>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
-                borderRadius: '24px', 
-                padding: '40px', 
-                color: 'white', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                boxShadow: '0 20px 40px -12px rgba(0,0,0,0.3)', 
-                position: 'relative', 
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}>
-                <div style={{ position: 'absolute', right: '-50px', top: '-50px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '32px', position: 'relative', zIndex: 1 }}>
-                  <div style={{ 
-                    width: '100px', 
-                    height: '100px', 
-                    background: 'rgba(16, 185, 129, 0.1)', 
-                    borderRadius: '28px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                    boxShadow: 'inset 0 0 20px rgba(16, 185, 129, 0.1)'
-                  }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                  borderRadius: '24px',
+                  padding: '40px',
+                  color: 'white',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 20px 40px -12px rgba(0,0,0,0.3)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-50px',
+                    top: '-50px',
+                    width: '300px',
+                    height: '300px',
+                    background:
+                      'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '32px',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      borderRadius: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      boxShadow: 'inset 0 0 20px rgba(16, 185, 129, 0.1)',
+                    }}
+                  >
                     <ShieldCheck size={50} color="#10b981" />
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px' }}>{tenant?.plano || tenant?.settings?.plan?.name || 'Plano Free (Licença Concedida)'}</h2>
-                      <span style={{ padding: '6px 14px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>ATIVA EM DIA</span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <h2
+                        style={{
+                          margin: 0,
+                          fontSize: '28px',
+                          fontWeight: 900,
+                          letterSpacing: '-0.5px',
+                        }}
+                      >
+                        {tenant?.plano ||
+                          (tenant?.settings?.plan as { name?: string } | undefined)?.name ||
+                          'Plano Free (Licença Concedida)'}
+                      </h2>
+                      <span
+                        style={{
+                          padding: '6px 14px',
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          color: '#10b981',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: 900,
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                        }}
+                      >
+                        ATIVA EM DIA
+                      </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '15px', color: '#94a3b8', fontWeight: 500 }}>
-                      Faturamento Mensal • <span style={{ color: '#10b981', fontWeight: 700 }}>Licença Vitalícia Administrativa</span>
+                      Faturamento Mensal •{' '}
+                      <span style={{ color: '#10b981', fontWeight: 700 }}>
+                        Licença Vitalícia Administrativa
+                      </span>
                     </p>
                   </div>
                 </div>
-                
+
                 <div style={{ textAlign: 'right', position: 'relative', zIndex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '12px' }}>KPIs DE CONSUMO</p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '12px',
+                      color: '#64748b',
+                      textTransform: 'uppercase',
+                      fontWeight: 800,
+                      letterSpacing: '1.5px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    KPIs DE CONSUMO
+                  </p>
                   <div style={{ display: 'flex', gap: '40px', justifyContent: 'flex-end' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>{billingStats.usersCount}/{billingStats.usersLimit}</h4>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Usuários</p>
+                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>
+                        {billingStats.usersCount}/{billingStats.usersLimit}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
+                        Usuários
+                      </p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>{billingStats.storageGb}GB</h4>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Storage</p>
+                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>
+                        {billingStats.storageGb}GB
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
+                        Storage
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -400,70 +694,111 @@ export const TenantBilling: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '48px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', textTransform: 'uppercase', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '1px' }}>
-                <TrendingUp size={18} color="hsl(var(--brand))" /> OPÇÕES DE ESCALABILIDADE DISPONÍVEIS
-              </h3>
-              
+
               {loading ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-                  {[1, 2].map(i => <div key={i} className="tauze-card-skeleton" style={{ height: '400px' }} />)}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                    gap: '24px',
+                  }}
+                >
+                  {[1, 2].map((i) => (
+                    <div key={i} className="tauze-card-skeleton" style={{ height: '400px' }} />
+                  ))}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-                  {plans.filter(p => p.price > 0).map((plan) => (
-                    <motion.div 
-                      key={plan.id}
-                      whileHover={{ y: -12, scale: 1.02 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                      className={`pricing-card-premium ${plan.isPopular ? 'popular' : 'standard'}`}
-                    >
-                      {/* Decorative background blur */}
-                      {plan.isPopular && (
-                        <div className="popular-blur-bg" />
-                      )}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                    gap: '32px',
+                  }}
+                >
+                  {plans
+                    .filter((p) => p.price > 0 && p.is_public !== false)
+                    .map((plan) => (
+                      <motion.div
+                        key={plan.id}
+                        whileHover={{ y: -12, scale: 1.02 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        className={`pricing-card-premium ${plan.isPopular ? 'popular' : 'standard'}`}
+                      >
+                        {/* Decorative background blur */}
+                        {plan.isPopular && <div className="popular-blur-bg" />}
 
-                      {plan.isPopular && (
-                        <div className="popular-badge">
-                          MAIS ESCOLHIDO
+                        {plan.isPopular && <div className="popular-badge">MAIS ESCOLHIDO</div>}
+
+                        <div className="plan-header-content">
+                          <div className="plan-icon-wrapper">
+                            {plan.isPopular ? (
+                              <TrendingUp size={24} color="#10b981" />
+                            ) : (
+                              <LayoutGrid size={24} className="standard-icon" />
+                            )}
+                          </div>
+                          <h4 className="plan-name">{plan.name}</h4>
+                          <div className="plan-price-wrapper">
+                            <span className="price-currency">R$</span>
+                            <h3 className="price-amount">
+                              {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                            </h3>
+                            <span className="price-period">/mês</span>
+                          </div>
+                          <p className="plan-desc">
+                            {plan.description ||
+                              `Infraestrutura sob medida para suportar operações de até ${plan.users_limit} usuários simultâneos.`}
+                          </p>
                         </div>
-                      )}
-                      
-                      <div className="plan-header-content">
-                        <div className="plan-icon-wrapper">
-                          {plan.isPopular ? <TrendingUp size={24} color="#10b981" /> : <LayoutGrid size={24} className="standard-icon" />}
+
+                        <div className="plan-features-wrapper">
+                          <div className="plan-divider" />
+                          <div className="features-list">
+                            {(Array.isArray(plan.features) ? plan.features : []).map(
+                              (f: string, i: number) => (
+                                <div key={i} className="feature-item">
+                                  <div className="feature-check-wrapper">
+                                    <Check
+                                      size={14}
+                                      className="feature-check-icon"
+                                      strokeWidth={3}
+                                    />
+                                  </div>
+                                  <span className="feature-text">{f}</span>
+                                </div>
+                              )
+                            )}
+                          </div>
                         </div>
-                        <h4 className="plan-name">{plan.name}</h4>
-                        <div className="plan-price-wrapper">
-                          <span className="price-currency">R$</span>
-                          <h3 className="price-amount">
-                            {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                          </h3>
-                          <span className="price-period">/mês</span>
-                        </div>
-                        <p className="plan-desc">
-                          {plan.description || `Infraestrutura sob medida para suportar operações de até ${plan.users_limit} usuários simultâneos.`}
-                        </p>
-                      </div>
-                      
-                      <div className="plan-features-wrapper">
-                        <div className="plan-divider" />
-                        <div className="features-list">
-                          {(Array.isArray(plan.features) ? plan.features : []).map((f: string, i: number) => (
-                            <div key={i} className="feature-item">
-                              <div className="feature-check-wrapper">
-                                <Check size={14} className="feature-check-icon" strokeWidth={3} />
-                              </div>
-                              <span className="feature-text">{f}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <button className={plan.isPopular ? "premium-action-btn popular-btn" : "glass-btn standard-action-btn"}>
-                        MUDAR PARA {plan.name}
-                      </button>
-                    </motion.div>
-                  ))}
+
+                        <button
+                          className={
+                            plan.name?.toLowerCase() === (tenant?.plano || 'free').toLowerCase()
+                              ? 'glass-btn standard-action-btn'
+                              : plan.isPopular
+                                ? 'premium-action-btn popular-btn'
+                                : 'glass-btn standard-action-btn'
+                          }
+                          style={{
+                            ...(plan.name?.toLowerCase() === (tenant?.plano || 'free').toLowerCase()
+                              ? { opacity: 0.6, cursor: 'not-allowed' }
+                              : {})
+                          }}
+                          onClick={() => {
+                            if (plan.name?.toLowerCase() !== (tenant?.plano || 'free').toLowerCase()) {
+                              handleUpgradePlan(plan);
+                            }
+                          }}
+                          disabled={isChangingPlan || plan.name?.toLowerCase() === (tenant?.plano || 'free').toLowerCase()}
+                        >
+                          {plan.name?.toLowerCase() === (tenant?.plano || 'free').toLowerCase()
+                            ? 'PLANO ATUAL'
+                            : isChangingPlan
+                              ? 'AGUARDE...'
+                              : `MUDAR PARA ${plan.name}`}
+                        </button>
+                      </motion.div>
+                    ))}
                 </div>
               )}
             </div>
@@ -472,187 +807,181 @@ export const TenantBilling: React.FC = () => {
 
         {activeTab === 'invoices' && (
           <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <History size={16} color="hsl(var(--brand))" />
-              Histórico de Faturas
-            </h3>
-            
+
             {invoicesLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Carregando faturas...</div>
+              <LoadingSkeleton variant="table" rows={5} columns={5} fullScreen={false} />
             ) : (
               <>
-                <div className="tauze-controls-row" style={{ marginBottom: '24px' }}>
-                <div className="tauze-tab-group">
-                  <button 
-                    className={`tauze-tab-item ${statusFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => setStatusFilter('all')}
-                  >
-                    Todas Faturas
-                  </button>
-                  <button 
-                    className={`tauze-tab-item ${statusFilter === 'pendente' ? 'active' : ''}`}
-                    onClick={() => setStatusFilter('pendente')}
-                  >
-                    Pendentes
-                  </button>
-                  <button 
-                    className={`tauze-tab-item ${statusFilter === 'pago' ? 'active' : ''}`}
-                    onClick={() => setStatusFilter('pago')}
-                  >
-                    Pagas
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', marginBottom: '24px' }}>
+                  <div className="tauze-tab-group">
+                    <button
+                      className={`tauze-tab-item ${statusFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setStatusFilter('all')}
+                    >
+                      Todas Faturas
+                    </button>
+                    <button
+                      className={`tauze-tab-item ${statusFilter === 'pendente' ? 'active' : ''}`}
+                      onClick={() => setStatusFilter('pendente')}
+                    >
+                      Pendentes
+                    </button>
+                    <button
+                      className={`tauze-tab-item ${statusFilter === 'pago' ? 'active' : ''}`}
+                      onClick={() => setStatusFilter('pago')}
+                    >
+                      Pagas
+                    </button>
+                  </div>
+
+                  <div className="tauze-search-wrapper">
+                    <Search size={18} className="s-icon" />
+                    <input
+                      type="text"
+                      className="tauze-search-input"
+                      placeholder="Buscar por descrição..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="tauze-filter-group">
+                    <button
+                      type="button"
+                      className={`icon-btn-secondary ${isFilterOpen ? 'active' : ''}`}
+                      title="Filtros Avançados"
+                      onClick={() => setIsFilterOpen(!isFilterOpen)}
+                      style={{
+                        background: isFilterOpen ? 'hsl(var(--brand) / 0.1)' : 'transparent',
+                        color: isFilterOpen ? 'hsl(var(--brand))' : 'inherit',
+                      }}
+                    >
+                      <Filter size={20} />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="tauze-search-wrapper">
-                  <Search size={18} className="s-icon" />
-                  <input 
-                    type="text" 
-                    className="tauze-search-input"
-                    placeholder="Buscar por descrição..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+                <BillingFilterModal
+                  isOpen={isFilterOpen}
+                  onClose={() => setIsFilterOpen(false)}
+                  filters={filterValues}
+                  setFilters={setFilterValues}
+                />
 
-                <div className="tauze-filter-group">
-                  <button 
-                    type="button"
-                    className={`icon-btn-secondary ${isFilterOpen ? 'active' : ''}`} 
-                    title="Filtros Avançados"
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    style={{ background: isFilterOpen ? 'hsl(var(--brand) / 0.1)' : 'transparent', color: isFilterOpen ? 'hsl(var(--brand))' : 'inherit' }}
-                  >
-                    <Filter size={20} />
-                  </button>
-                </div>
-              </div>
-
-              <BillingFilterModal 
-                isOpen={isFilterOpen}
-                onClose={() => setIsFilterOpen(false)}
-                filters={filterValues}
-                setFilters={setFilterValues}
-              />
-
-              <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
-                data={invoices}
-                columns={invoiceColumns}
-                loading={invoicesLoading}
-                hideHeader={true}
-                totalCount={totalCount}
-                currentPage={page}
-                onPageChange={setPage}
-                itemsPerPage={pageSize}
-              />
+                <ModernTable
+                  emptyState={
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  }
+                  data={invoices}
+                  columns={invoiceColumns}
+                  loading={invoicesLoading}
+                  hideHeader={true}
+                  totalCount={totalCount}
+                  currentPage={page}
+                  onPageChange={setPage}
+                  itemsPerPage={pageSize}
+                />
               </>
             )}
           </div>
         )}
 
+        {activeTab === 'addons' && (
+          <div className="animate-slide-up">
+            <div style={{ marginBottom: '40px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '8px' }}>Módulos e Recursos Extras</h3>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '32px' }}>
+                Escale sua operação adquirindo recursos avulsos sem precisar mudar de plano.
+              </p>
+              
+              {addons.length === 0 ? (
+                <EmptyState title="Nenhum módulo extra" description="Ainda não existem add-ons disponíveis para contratação." icon={LayoutGrid} />
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                  {addons.filter(addon => {
+                    // 1. Ocultar addons inelegíveis (se eligible_plans existir e não for vazio)
+                    if (addon.metadata?.eligible_plans && Array.isArray(addon.metadata.eligible_plans) && addon.metadata.eligible_plans.length > 0) {
+                      const currentPlan = tenant?.plano || 'Free';
+                      if (!addon.metadata.eligible_plans.includes(currentPlan)) {
+                        return false;
+                      }
+                    }
+
+                    // 2. Ocultar Módulos que já estão inclusos no plano do cliente
+                    if (addon.type === 'module' && addon.metadata?.module_id) {
+                      const planModules = tenant?.plan_details?.modules;
+                      if (planModules === null) {
+                        // Plano irrestrito/legado -> Tem acesso a tudo. Não vende módulo extra.
+                        return false;
+                      } else if (Array.isArray(planModules)) {
+                        const moduleId = addon.metadata.module_id;
+                        const parentModule = moduleId.includes(':') ? moduleId.split(':')[0] : null;
+                        const isAlreadyInPlan = planModules.includes(moduleId) || (parentModule ? planModules.includes(parentModule) : false);
+                        if (isAlreadyInPlan) {
+                          return false; // Esconde se já possui
+                        }
+                      }
+                    }
+
+                    return true;
+                  }).map(addon => {
+                    const isSubscribed = tenantAddons.some(ta => ta.addon_id === addon.id && ta.status === 'active');
+                    const isButtonDisabled = isSubscribed;
+
+                    return (
+                      <div key={addon.id} style={{
+                        background: 'hsl(var(--bg-card))', border: `1px solid ${isButtonDisabled ? '#10b981' : 'var(--border)'}`, 
+                        borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden'
+                      }}>
+                        {isSubscribed && <div style={{ position: 'absolute', top: 16, right: 16, background: '#10b981', color: '#fff', padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 800 }}>ATIVO</div>}
+                        <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '8px', paddingRight: '100px' }}>{addon.name}</h4>
+                        <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '24px', minHeight: '40px' }}>{addon.description}</p>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                          <div>
+                            <span style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px' }}>/{addon.billing_cycle === 'monthly' ? 'mês' : 'ano'}</span>
+                          </div>
+                          <button
+                            className={isButtonDisabled ? "icon-btn-secondary" : "primary-btn"}
+                            disabled={isButtonDisabled}
+                            style={{ 
+                              padding: '8px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '12px',
+                              ...(isButtonDisabled 
+                                ? { background: '#f0fdf4', color: '#10b981', border: 'none' } 
+                                : { background: 'hsl(var(--brand))', color: '#fff', border: 'none' })
+                            }}
+                          >
+                            {isSubscribed ? 'Adquirido' : 'Adicionar'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Transparent Checkout Modal */}
-      {isPaymentModalOpen && selectedInvoice && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{ background: 'hsl(var(--bg-card))', width: '100%', maxWidth: '480px', borderRadius: '24px', overflow: 'hidden', border: '1px solid hsl(var(--border))', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
-          >
-            <div style={{ padding: '24px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>Pagamento Fatura #{selectedInvoice.id.substring(0,6).toUpperCase()}</h3>
-              <button 
-                onClick={() => { setIsPaymentModalOpen(false); setPaymentMethod(null); setPixGenerated(false); }} 
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <p style={{ margin: '0 0 8px', color: '#64748b', fontSize: '13px', fontWeight: 600 }}>Valor total a pagar</p>
-              <h2 style={{ margin: '0 0 32px', fontSize: '36px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-                R$ {Number(selectedInvoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '100%', marginBottom: '24px' }}>
-                <button 
-                  onClick={() => setPaymentMethod('pix')}
-                  style={{ padding: '16px', borderRadius: '16px', border: `2px solid ${paymentMethod === 'pix' ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`, background: paymentMethod === 'pix' ? 'hsl(var(--brand) / 0.05)' : 'transparent', color: paymentMethod === 'pix' ? 'hsl(var(--brand))' : '#94a3b8', fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
-                >
-                  <LayoutGrid size={24} />
-                  PIX (Imediato)
-                </button>
-                <button 
-                  onClick={() => setPaymentMethod('credit_card')}
-                  style={{ padding: '16px', borderRadius: '16px', border: `2px solid ${paymentMethod === 'credit_card' ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`, background: paymentMethod === 'credit_card' ? 'hsl(var(--brand) / 0.05)' : 'transparent', color: paymentMethod === 'credit_card' ? 'hsl(var(--brand))' : '#94a3b8', fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
-                >
-                  <CreditCard size={24} />
-                  Cartão Crédito
-                </button>
-              </div>
 
-              {paymentMethod === 'pix' && (
-                <div style={{ width: '100%', background: 'hsl(var(--bg-main))', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px dashed #cbd5e1' }}>
-                  {!pixGenerated ? (
-                    <button 
-                      onClick={() => {
-                        setPixGenerating(true);
-                        setTimeout(() => { setPixGenerating(false); setPixGenerated(true); }, 1500);
-                      }}
-                      className="primary-btn" 
-                      style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'hsl(var(--brand))', color: '#fff', border: 'none', fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      {pixGenerating ? 'Comunicando com Gateway...' : 'Gerar Chave PIX'}
-                    </button>
-                  ) : (
-                    <>
-                      <div style={{ width: '160px', height: '160px', background: 'hsl(var(--bg-card))', borderRadius: '12px', padding: '8px', marginBottom: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ width: '100%', height: '100%', background: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%230f172a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>')`, backgroundSize: '100% 100%', opacity: 0.8 }} />
-                      </div>
-                      <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                        Escaneie o QR Code ou copie a chave PIX abaixo
-                      </p>
-                      <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
-                        <input readOnly value="00020126580014br.gov.bcb.pix0136..." style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'hsl(var(--bg-card))', fontSize: '12px', color: '#64748b' }} />
-                        <button onClick={() => toast.error('Chave PIX copiada!')} style={{ padding: '0 16px', background: '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}>Copiar</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+      <InvoiceReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={() => setIsReceiptOpen(false)}
+        invoice={selectedInvoice}
+      />
 
-              {paymentMethod === 'credit_card' && (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <input type="text" placeholder="Número do Cartão" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', fontSize: '14px', color: 'hsl(var(--text-main))' }} />
-                  <input type="text" placeholder="Nome como está no Cartão" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', fontSize: '14px', color: 'hsl(var(--text-main))' }} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <input type="text" placeholder="Validade (MM/AA)" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', fontSize: '14px', color: 'hsl(var(--text-main))' }} />
-                    <input type="text" placeholder="CVC" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', fontSize: '14px', color: 'hsl(var(--text-main))' }} />
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setPixGenerating(true);
-                      setTimeout(() => { toast.success('Pagamento Aprovado com Sucesso!'); setIsPaymentModalOpen(false); setPaymentMethod(null); setPixGenerating(false); }, 2000);
-                    }}
-                    style={{ width: '100%', padding: '14px', borderRadius: '12px', background: '#10b981', border: 'none', color: '#fff', fontWeight: 800, fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
-                  >
-                    {pixGenerating ? 'Processando...' : 'Autorizar Pagamento Seguro'}
-                  </button>
-                </div>
-              )}
-
-            </div>
-          </motion.div>
-        </div>
-      , document.body)}
+      <EmbeddedCheckoutModal
+        isOpen={isEmbeddedCheckoutOpen}
+        onClose={() => setIsEmbeddedCheckoutOpen(false)}
+        transparentData={transparentData}
+        amount={checkoutAmount}
+      />
 
       <style>{`
         .pricing-card-premium {

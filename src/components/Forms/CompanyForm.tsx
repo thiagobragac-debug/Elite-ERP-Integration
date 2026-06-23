@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
@@ -38,7 +38,13 @@ const maskCPF = (v: string) => {
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 };
 
-export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
+export const CompanyForm: React.FC<CompanyFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  actionId,
+}) => {
   const [formData, setFormData] = React.useState({
     name: '',
     document: '',
@@ -76,12 +82,19 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
   const isMatriz = formData.type === 'matriz';
 
   React.useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
+    if (!actionId) {
+      return;
+    } // Ignore on initial mount / refresh
 
-    if (initialData) { setFormData({
+    if (initialData) {
+      setFormData({
         name: initialData.razao_social || initialData.nome || initialData.name || '',
         document: initialData.cnpj || initialData.documento || initialData.document || '',
-        tipo_documento: initialData.tipo_documento || ((initialData.cnpj || initialData.documento || '').replace(/\D/g, '').length === 14 ? 'CNPJ' : 'CPF'),
+        tipo_documento:
+          initialData.tipo_documento ||
+          ((initialData.cnpj || initialData.documento || '').replace(/\D/g, '').length === 14
+            ? 'CNPJ'
+            : 'CPF'),
         type: initialData.tipo || initialData.type || 'matriz',
         email: initialData.email || '',
         phone: initialData.telefone || initialData.phone || '',
@@ -106,24 +119,44 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
       });
     } else {
       setFormData({
-        name: '', document: '', tipo_documento: 'CNPJ', type: 'matriz',
-        email: '', phone: '', cep: '', tipo_logradouro: '', logradouro: '',
-        numero: '', complemento: '', bairro: '', cidade: '', estado: '',
-        pais: 'Brasil', inscricao_estadual: '', cnae: '', situacao_cadastral: '',
-        socio_cpf: '', socio_nome: '', socio_ind_sit_esp: 0,
-        contador_cpf: '', contador_nome: '', contador_crc: '',
+        name: '',
+        document: '',
+        tipo_documento: 'CNPJ',
+        type: 'matriz',
+        email: '',
+        phone: '',
+        cep: '',
+        tipo_logradouro: '',
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        estado: '',
+        pais: 'Brasil',
+        inscricao_estadual: '',
+        cnae: '',
+        situacao_cadastral: '',
+        socio_cpf: '',
+        socio_nome: '',
+        socio_ind_sit_esp: 0,
+        contador_cpf: '',
+        contador_nome: '',
+        contador_crc: '',
       });
     }
   }, [initialData, isOpen, actionId]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.document.replace(/\D/g, '');
-    if (cleanCNPJ.length !== 14) return;
+    if (cleanCNPJ.length !== 14) {
+      return;
+    }
     setLoading(true);
     setSyncMsg('Sincronizando com a Receita Federal...');
     try {
       const data = await fetchCNPJData(cleanCNPJ);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         name: data.razao_social,
         email: data.email || prev.email,
@@ -138,7 +171,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
         estado: data.uf,
         pais: 'Brasil',
         cnae: (data as any).cnae_fiscal_descricao || '01.11-3-02 - Cultivo de Milho',
-        situacao_cadastral: (data as any).descricao_situacao_cadastral || 'ATIVA'
+        situacao_cadastral: (data as any).descricao_situacao_cadastral || 'ATIVA',
       }));
     } catch {
       alert('Não foi possível localizar este CNPJ. Verifique os dados ou preencha manualmente.');
@@ -150,20 +183,22 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
 
   const handleCEPSearch = async () => {
     const cleanCEP = formData.cep.replace(/\D/g, '');
-    if (cleanCEP.length !== 8) return;
-    
+    if (cleanCEP.length !== 8) {
+      return;
+    }
+
     setLoading(true);
     setSyncMsg('Consultando Correios...');
     try {
       const data = await fetchCEPData(cleanCEP);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         tipo_logradouro: data.tipo_logradouro || prev.tipo_logradouro,
         logradouro: data.street || prev.logradouro,
         bairro: data.neighborhood || prev.bairro,
         cidade: data.city || prev.cidade,
         estado: data.state || prev.estado,
-        pais: 'BRASIL'
+        pais: 'BRASIL',
       }));
     } catch (err) {
       alert('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
@@ -191,7 +226,11 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
-      subtitle={initialData ? 'Atualize os dados cadastrais da unidade.' : 'Adicione uma matriz ou filial ao seu grupo agropecuário.'}
+      subtitle={
+        initialData
+          ? 'Atualize os dados cadastrais da unidade.'
+          : 'Adicione uma matriz ou filial ao seu grupo agropecuário.'
+      }
       icon={Building2}
       loading={loading}
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Empresa'}
@@ -204,11 +243,15 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
         </div>
         <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group span-1">
-            <label className="tauze-label"><FileText size={14} /> Tipo de Documento</label>
-            <select 
+            <label className="tauze-label">
+              <FileText size={14} /> Tipo de Documento
+            </label>
+            <select
               className="tauze-input"
               value={formData.tipo_documento}
-              onChange={(e) => setFormData({...formData, tipo_documento: e.target.value, document: ''})}
+              onChange={(e) =>
+                setFormData({ ...formData, tipo_documento: e.target.value, document: '' })
+              }
             >
               <option value="CNPJ">CNPJ (Pessoa Jurídica)</option>
               <option value="CPF">CPF (Pessoa Física / Produtor Rural)</option>
@@ -216,28 +259,53 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
           </div>
 
           <div className="tauze-field-group span-1">
-            <label className="tauze-label"><FileText size={14} /> {formData.tipo_documento}</label>
+            <label className="tauze-label">
+              <FileText size={14} /> {formData.tipo_documento}
+            </label>
             <div className="tauze-input-with-action">
-              <input 
+              <input
                 type="text"
                 className="tauze-input flex-1"
-                placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+                placeholder={
+                  formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'
+                }
                 value={formData.document}
-                onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
+                onChange={(e) =>
+                  setFormData({ ...formData, document: maskCPFCNPJ(e.target.value) })
+                }
                 onBlur={handleCNPJSearch}
-                required 
+                required
               />
               {formData.tipo_documento === 'CNPJ' && (
-                <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
-                  title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
-                  {loading && syncMsg.includes('Receita') ? <div className="spinner-tiny" /> : <Search size={18} />}
+                <button
+                  type="button"
+                  className="action-trigger-btn"
+                  onClick={handleCNPJSearch}
+                  title="Buscar dados na Receita"
+                  disabled={docDigits.length !== 14 || loading}
+                >
+                  {loading && syncMsg.includes('Receita') ? (
+                    <div className="spinner-tiny" />
+                  ) : (
+                    <Search size={18} />
+                  )}
                 </button>
               )}
             </div>
             {formData.situacao_cadastral && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                {formData.situacao_cadastral === 'ATIVA' ? <CheckCircle2 size={12} color="#10b981" /> : <AlertTriangle size={12} color="#ef4444" />}
-                <span style={{ fontSize: '10px', fontWeight: 800, color: formData.situacao_cadastral === 'ATIVA' ? '#10b981' : '#ef4444' }}>
+                {formData.situacao_cadastral === 'ATIVA' ? (
+                  <CheckCircle2 size={12} color="#10b981" />
+                ) : (
+                  <AlertTriangle size={12} color="#ef4444" />
+                )}
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: formData.situacao_cadastral === 'ATIVA' ? '#10b981' : '#ef4444',
+                  }}
+                >
                   SITUAÇÃO: {formData.situacao_cadastral}
                 </span>
               </div>
@@ -245,14 +313,16 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
           </div>
 
           <div className="tauze-field-group span-1">
-            <label className="tauze-label"><Building2 size={14} /> Razão Social / Nome</label>
-            <input 
-              type="text" 
+            <label className="tauze-label">
+              <Building2 size={14} /> Razão Social / Nome
+            </label>
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Ex: Agropecuária Matriz Ltda" 
+              placeholder="Ex: Agropecuária Matriz Ltda"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})} 
-              required 
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
             />
           </div>
         </div>
@@ -260,47 +330,51 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
         <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group span-1">
             <label className="tauze-label">Inscrição Estadual (IE)</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="000.000.000.000" 
+              placeholder="000.000.000.000"
               value={formData.inscricao_estadual}
-              onChange={(e) => setFormData({...formData, inscricao_estadual: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-2">
             <label className="tauze-label">CNAE Principal</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Código e Descrição da Atividade Econômica" 
+              placeholder="Código e Descrição da Atividade Econômica"
               value={formData.cnae}
-              onChange={(e) => setFormData({...formData, cnae: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, cnae: e.target.value })}
             />
           </div>
         </div>
 
         <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Mail size={14} /> E-mail de Contato</label>
-            <input 
-              type="email" 
+            <label className="tauze-label">
+              <Mail size={14} /> E-mail de Contato
+            </label>
+            <input
+              type="email"
               className="tauze-input"
-              placeholder="contato@empresa.com.br" 
+              placeholder="contato@empresa.com.br"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Phone size={14} /> Telefone Principal</label>
-            <input 
-              type="text" 
+            <label className="tauze-label">
+              <Phone size={14} /> Telefone Principal
+            </label>
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="(00) 0000-0000" 
+              placeholder="(00) 0000-0000"
               value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
           </div>
         </div>
@@ -311,24 +385,24 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
           <div className="tauze-section-badge">PASSO 02</div>
           <h4 className="tauze-section-title">Endereço da Unidade</h4>
         </div>
-        
+
         <div className="tauze-input-grid grid-col-4">
           <div className="tauze-field-group span-1">
             <label className="tauze-label">CEP</label>
             <div className="tauze-input-with-action">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="tauze-input flex-1"
-                placeholder="00000-000" 
+                placeholder="00000-000"
                 value={formData.cep}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '');
                   const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-                  setFormData({...formData, cep: masked});
+                  setFormData({ ...formData, cep: masked });
                 }}
                 onBlur={handleCEPSearch}
               />
-              <button 
+              <button
                 type="button"
                 className="action-trigger-btn"
                 onClick={handleCEPSearch}
@@ -342,89 +416,89 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
 
           <div className="tauze-field-group span-1">
             <label className="tauze-label">Tipo</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Rua, Av..." 
+              placeholder="Rua, Av..."
               value={formData.tipo_logradouro}
-              onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, tipo_logradouro: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-2">
             <label className="tauze-label">Logradouro</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Nome da rua ou avenida" 
+              placeholder="Nome da rua ou avenida"
               value={formData.logradouro}
-              onChange={(e) => setFormData({...formData, logradouro: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, logradouro: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-1">
             <label className="tauze-label">Número</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="123" 
+              placeholder="123"
               value={formData.numero}
-              onChange={(e) => setFormData({...formData, numero: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-1">
             <label className="tauze-label">Complemento</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Sala, Andar" 
+              placeholder="Sala, Andar"
               value={formData.complemento}
-              onChange={(e) => setFormData({...formData, complemento: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-2">
             <label className="tauze-label">Bairro</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Nome do bairro" 
+              placeholder="Nome do bairro"
               value={formData.bairro}
-              onChange={(e) => setFormData({...formData, bairro: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-2">
             <label className="tauze-label">Cidade</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="Nome da cidade" 
+              placeholder="Nome da cidade"
               value={formData.cidade}
-              onChange={(e) => setFormData({...formData, cidade: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
             />
           </div>
 
           <div className="tauze-field-group span-1">
             <label className="tauze-label">Estado (UF)</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
-              placeholder="MT" 
-              maxLength={2} 
+              placeholder="MT"
+              maxLength={2}
               value={formData.estado}
-              onChange={(e) => setFormData({...formData, estado: e.target.value.toUpperCase()})} 
+              onChange={(e) => setFormData({ ...formData, estado: e.target.value.toUpperCase() })}
             />
           </div>
 
           <div className="tauze-field-group span-1">
             <label className="tauze-label">País</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="tauze-input"
               value={formData.pais}
-              onChange={(e) => setFormData({...formData, pais: e.target.value})} 
+              onChange={(e) => setFormData({ ...formData, pais: e.target.value })}
             />
           </div>
         </div>
@@ -435,15 +509,26 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
           <div className="tauze-section-badge">PASSO 03</div>
           <h4 className="tauze-section-title">Classificação Estratégica</h4>
         </div>
-        
+
         <div className="tauze-field-group full-width">
-          <label className="tauze-label"><ShieldCheck size={14} /> Tipo de Unidade</label>
+          <label className="tauze-label">
+            <ShieldCheck size={14} /> Tipo de Unidade
+          </label>
           <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            {['matriz', 'filial', 'parceiro'].map(t => (
-              <div key={t} className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, type: t})}>
-                {t === 'matriz' ? <Building2 size={16} /> : t === 'filial' ? <Map size={16} /> : <Users size={16} />}
-                <span style={{textTransform: 'capitalize'}}>{t}</span>
+            {['matriz', 'filial', 'parceiro'].map((t) => (
+              <div
+                key={t}
+                className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
+                onClick={() => setFormData({ ...formData, type: t })}
+              >
+                {t === 'matriz' ? (
+                  <Building2 size={16} />
+                ) : t === 'filial' ? (
+                  <Map size={16} />
+                ) : (
+                  <Users size={16} />
+                )}
+                <span style={{ textTransform: 'capitalize' }}>{t}</span>
               </div>
             ))}
           </div>
@@ -453,56 +538,78 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
       {/* Sócio Responsável — somente quando CNPJ */}
       {isCNPJ && (
         <section className="tauze-form-section" style={{ padding: '0' }}>
-          <div 
-            className="tauze-section-header" 
-            style={{ padding: '24px', cursor: 'pointer', borderBottom: lcdprOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: lcdprOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          <div
+            className="tauze-section-header"
+            style={{
+              padding: '24px',
+              cursor: 'pointer',
+              borderBottom: lcdprOpen ? '1px solid hsl(var(--border))' : 'none',
+              margin: 0,
+              background: lcdprOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent',
+            }}
             onClick={() => setLcdprOpen(!lcdprOpen)}
           >
             <div className="tauze-section-badge">LCDPR</div>
-            <h4 className="tauze-section-title" style={{ flex: 1 }}>Sócio / Responsável Legal</h4>
+            <h4 className="tauze-section-title" style={{ flex: 1 }}>
+              Sócio / Responsável Legal
+            </h4>
             <div style={{ color: 'hsl(var(--text-muted))' }}>
               {lcdprOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
           </div>
-          
+
           {lcdprOpen && (
             <div style={{ padding: '24px' }}>
               <div className="tauze-field-group full-width" style={{ marginBottom: '16px' }}>
                 <div className="tauze-form-info-box">
-                  <p>Quando a empresa possui <strong>CNPJ</strong>, o Livro Caixa Digital do Produtor Rural (LCDPR) é declarado em nome do <strong>sócio produtor rural</strong> (pessoa física).</p>
+                  <p>
+                    Quando a empresa possui <strong>CNPJ</strong>, o Livro Caixa Digital do Produtor
+                    Rural (LCDPR) é declarado em nome do <strong>sócio produtor rural</strong>{' '}
+                    (pessoa física).
+                  </p>
                 </div>
               </div>
 
               <div className="tauze-input-grid grid-col-3">
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><UserCheck size={14} /> CPF do Sócio</label>
-                  <input 
-                    type="text" 
+                  <label className="tauze-label">
+                    <UserCheck size={14} /> CPF do Sócio
+                  </label>
+                  <input
+                    type="text"
                     className="tauze-input"
-                    placeholder="000.000.000-00" 
+                    placeholder="000.000.000-00"
                     maxLength={14}
                     value={formData.socio_cpf}
-                    onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} 
+                    onChange={(e) =>
+                      setFormData({ ...formData, socio_cpf: maskCPF(e.target.value) })
+                    }
                   />
                 </div>
-                
+
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><UserCheck size={14} /> Nome Completo do Sócio</label>
-                  <input 
-                    type="text" 
+                  <label className="tauze-label">
+                    <UserCheck size={14} /> Nome Completo do Sócio
+                  </label>
+                  <input
+                    type="text"
                     className="tauze-input"
-                    placeholder="Nome como consta no CPF" 
+                    placeholder="Nome como consta no CPF"
                     value={formData.socio_nome}
-                    onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} 
+                    onChange={(e) => setFormData({ ...formData, socio_nome: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><ShieldCheck size={14} /> Situação Especial</label>
-                  <select 
+                  <label className="tauze-label">
+                    <ShieldCheck size={14} /> Situação Especial
+                  </label>
+                  <select
                     className="tauze-input"
                     value={formData.socio_ind_sit_esp}
-                    onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, socio_ind_sit_esp: Number(e.target.value) })
+                    }
                   >
                     <option value={0}>0 — Normal</option>
                     <option value={1}>1 — Falecimento</option>
@@ -519,58 +626,77 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
       {/* Contador — somente na Matriz */}
       {isMatriz && (
         <section className="tauze-form-section" style={{ padding: '0' }}>
-          <div 
-            className="tauze-section-header" 
-            style={{ padding: '24px', cursor: 'pointer', borderBottom: contadorOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: contadorOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          <div
+            className="tauze-section-header"
+            style={{
+              padding: '24px',
+              cursor: 'pointer',
+              borderBottom: contadorOpen ? '1px solid hsl(var(--border))' : 'none',
+              margin: 0,
+              background: contadorOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent',
+            }}
             onClick={() => setContadorOpen(!contadorOpen)}
           >
             <div className="tauze-section-badge">CONTABILIDADE</div>
-            <h4 className="tauze-section-title" style={{ flex: 1 }}>Contador Responsável</h4>
+            <h4 className="tauze-section-title" style={{ flex: 1 }}>
+              Contador Responsável
+            </h4>
             <div style={{ color: 'hsl(var(--text-muted))' }}>
               {contadorOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
           </div>
-          
+
           {contadorOpen && (
             <div style={{ padding: '24px' }}>
               <div className="tauze-field-group full-width" style={{ marginBottom: '16px' }}>
                 <div className="tauze-form-info-box">
-                  <p>Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).</p>
+                  <p>
+                    Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados
+                    automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).
+                  </p>
                 </div>
               </div>
 
               <div className="tauze-input-grid grid-col-3">
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><BookOpen size={14} /> CPF do Contador</label>
-                  <input 
-                    type="text" 
+                  <label className="tauze-label">
+                    <BookOpen size={14} /> CPF do Contador
+                  </label>
+                  <input
+                    type="text"
                     className="tauze-input"
-                    placeholder="000.000.000-00" 
+                    placeholder="000.000.000-00"
                     maxLength={14}
                     value={formData.contador_cpf}
-                    onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} 
+                    onChange={(e) =>
+                      setFormData({ ...formData, contador_cpf: maskCPF(e.target.value) })
+                    }
                   />
                 </div>
-                
+
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><BookOpen size={14} /> Nome do Contador</label>
-                  <input 
-                    type="text" 
+                  <label className="tauze-label">
+                    <BookOpen size={14} /> Nome do Contador
+                  </label>
+                  <input
+                    type="text"
                     className="tauze-input"
-                    placeholder="Nome completo do contador" 
+                    placeholder="Nome completo do contador"
                     value={formData.contador_nome}
-                    onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} 
+                    onChange={(e) => setFormData({ ...formData, contador_nome: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="tauze-field-group span-1">
-                  <label className="tauze-label"><CreditCard size={14} /> Número do CRC</label>
-                  <input 
-                    type="text" 
+                  <label className="tauze-label">
+                    <CreditCard size={14} /> Número do CRC
+                  </label>
+                  <input
+                    type="text"
                     className="tauze-input"
-                    placeholder="Ex: CRC-MT/123456-O" 
+                    placeholder="Ex: CRC-MT/123456-O"
                     value={formData.contador_crc}
-                    onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} 
+                    onChange={(e) => setFormData({ ...formData, contador_crc: e.target.value })}
                   />
                 </div>
               </div>
@@ -581,13 +707,29 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubm
 
       {/* SYNC NOTIFICATION OVERLAY MOCK (Optional UX detail) */}
       {loading && syncMsg && (
-        <div style={{
-          position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
-          background: 'hsl(var(--brand))', color: 'white', padding: '8px 16px', borderRadius: '24px',
-          fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}>
-          <div className="spinner-tiny" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'hsl(var(--brand))',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '24px',
+            fontSize: '12px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 100,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+        >
+          <div
+            className="spinner-tiny"
+            style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }}
+          />
           {syncMsg}
         </div>
       )}

@@ -1,6 +1,5 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { beforeAll, afterEach, afterAll } from 'vitest';
 
 // Define default mock handlers for Supabase client endpoints
 export const handlers = [
@@ -25,8 +24,3 @@ export const handlers = [
 ];
 
 export const server = setupServer(...handlers);
-
-// Connect MSW server in global testhooks
-beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());

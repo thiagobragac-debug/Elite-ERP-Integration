@@ -1,6 +1,6 @@
-# Diretrizes de UI/UX - Elite ERP Integration
+# Diretrizes de UI/UX - Tauze ERP Integration
 
-Este documento define as regras de negócio e padrões de interface (Design System) aplicados no **Elite ERP Integration**. O objetivo é manter a consistência, previsibilidade e escalabilidade do sistema.
+Este documento define as regras de negócio e padrões de interface (Design System) aplicados no **Tauze ERP Integration**. O objetivo é manter a consistência, previsibilidade e escalabilidade do sistema.
 
 ## 1. Regra de Negócio para Componentes de Formulário e Cadastro
 

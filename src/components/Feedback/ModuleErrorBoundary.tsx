@@ -3,7 +3,7 @@
  * Previne que erros em um módulo derrubem todo o app
  */
 
-import { Component, ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface Props {
@@ -22,10 +22,10 @@ interface State {
 export class ModuleErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { 
-      hasError: false, 
+    this.state = {
+      hasError: false,
       error: null,
-      errorInfo: null 
+      errorInfo: null,
     };
   }
 
@@ -36,10 +36,10 @@ export class ModuleErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: any) {
     // Log to console in development
     console.error(`[${this.props.moduleName}] Error caught:`, error, errorInfo);
-    
+
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
-    
+
     // TODO: Send to Sentry/monitoring service
     // Sentry.captureException(error, {
     //   tags: { module: this.props.moduleName },
@@ -66,97 +66,115 @@ export class ModuleErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '400px',
-          padding: '48px 24px',
-          background: 'hsl(var(--bg-card))',
-          borderRadius: '12px',
-          margin: '24px',
-          border: '1px solid hsl(var(--border))',
-        }}>
-          {/* Icon */}
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'hsl(var(--error) / 0.1)',
+        <div
+          style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '24px',
-          }}>
+            minHeight: '400px',
+            padding: '48px 24px',
+            background: 'hsl(var(--bg-card))',
+            borderRadius: '12px',
+            margin: '24px',
+            border: '1px solid hsl(var(--border))',
+          }}
+        >
+          {/* Icon */}
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'hsl(var(--error) / 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '24px',
+            }}
+          >
             <AlertTriangle size={40} color="hsl(var(--error))" />
           </div>
 
           {/* Title */}
-          <h2 style={{ 
-            margin: 0,
-            marginBottom: '8px',
-            color: 'hsl(var(--text-main))',
-            fontSize: '24px',
-            fontWeight: 700,
-          }}>
+          <h2
+            style={{
+              margin: 0,
+              marginBottom: '8px',
+              color: 'hsl(var(--text-main))',
+              fontSize: '24px',
+              fontWeight: 700,
+            }}
+          >
             Erro no módulo {this.props.moduleName}
           </h2>
 
           {/* Description */}
-          <p style={{ 
-            color: 'hsl(var(--text-muted))',
-            margin: '0 0 24px 0',
-            textAlign: 'center',
-            maxWidth: '500px',
-          }}>
-            Algo deu errado ao carregar este módulo. Você pode tentar recarregar 
-            ou voltar para o painel principal.
+          <p
+            style={{
+              color: 'hsl(var(--text-muted))',
+              margin: '0 0 24px 0',
+              textAlign: 'center',
+              maxWidth: '500px',
+            }}
+          >
+            Algo deu errado ao carregar este módulo. Você pode tentar recarregar ou voltar para o
+            painel principal.
           </p>
 
           {/* Error details (development only) */}
           {import.meta.env.DEV && this.state.error && (
-            <details style={{ 
-              marginBottom: '24px',
-              maxWidth: '600px',
-              width: '100%',
-            }}>
-              <summary style={{
-                cursor: 'pointer',
-                padding: '8px 12px',
-                background: 'hsl(var(--bg-main))',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'hsl(var(--text-main))',
-              }}>
+            <details
+              style={{
+                marginBottom: '24px',
+                maxWidth: '600px',
+                width: '100%',
+              }}
+            >
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  padding: '8px 12px',
+                  background: 'hsl(var(--bg-main))',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'hsl(var(--text-main))',
+                }}
+              >
                 Detalhes técnicos (apenas em desenvolvimento)
               </summary>
-              <div style={{
-                marginTop: '12px',
-                padding: '16px',
-                background: '#000',
-                borderRadius: '8px',
-                overflow: 'auto',
-              }}>
-                <div style={{
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                  color: '#ff6b6b',
-                  marginBottom: '8px',
-                  fontWeight: 'bold',
-                }}>
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '16px',
+                  background: '#000',
+                  borderRadius: '8px',
+                  overflow: 'auto',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    color: '#ff6b6b',
+                    marginBottom: '8px',
+                    fontWeight: 'bold',
+                  }}
+                >
                   {this.state.error.name}: {this.state.error.message}
                 </div>
                 {this.state.error.stack && (
-                  <pre style={{
-                    margin: 0,
-                    fontSize: '11px',
-                    fontFamily: 'monospace',
-                    color: '#94a3b8',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}>
+                  <pre
+                    style={{
+                      margin: 0,
+                      fontSize: '11px',
+                      fontFamily: 'monospace',
+                      color: '#94a3b8',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
                     {this.state.error.stack}
                   </pre>
                 )}
@@ -165,12 +183,14 @@ export class ModuleErrorBoundary extends Component<Props, State> {
           )}
 
           {/* Actions */}
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            }}
+          >
             <button
               onClick={this.handleReset}
               style={{

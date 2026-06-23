@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Heart, 
-  Plus, 
-  Search, 
+import {
+  Heart,
+  Plus,
+  Search,
   Filter,
-  Calendar, 
-  Activity, 
-  ChevronRight, 
+  Calendar,
+  Activity,
+  ChevronRight,
   MoreVertical,
   Baby,
   Thermometer,
@@ -19,7 +19,7 @@ import {
   Edit3,
   History,
   TrendingUp,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -39,25 +39,73 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
+interface ReproductionRecord {
+  id: string;
+  brinco?: string;
+  animal_id?: string;
+  tipo_evento?: string;
+  status?: string;
+  resultado?: string;
+  ecc?: number;
+  touro?: string;
+  observacoes?: string;
+  previsaoParto?: string | Date;
+  diasGestacao?: number;
+  progressoGestacao?: number;
+  data_evento?: string;
+  data_cobertura?: string;
+  data_parto_previsto?: string;
+  data_parto?: string;
+  animais?: { brinco?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
 export const ReproductionManagement: React.FC = () => {
   const { confirm } = useConfirm();
-  const { activeFarm, activeTenantId, activeFarmId, isGlobalMode, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    activeTenantId,
+    activeFarmId,
+    isGlobalMode,
+    applyFarmFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ESTACAO' | 'PARTOS') || 'ESTACAO';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
-  
-  const [isModalOpen, setIsModalOpen] = usePersistentState('ReproductionManagement_isModalOpen', false);
+
+  const [isModalOpen, setIsModalOpen] = usePersistentState(
+    'ReproductionManagement_isModalOpen',
+    false
+  );
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ReproductionManagement_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
+    'ReproductionManagement_isHistoryModalOpen',
+    false
+  );
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('ReproductionManagement_isBatchModalOpen', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('ReproductionManagement_showAdvancedFilters', false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState(
+    'ReproductionManagement_isBatchModalOpen',
+    false
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'ReproductionManagement_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     tipo_evento: 'all',
     results: [] as string[],
@@ -65,22 +113,22 @@ export const ReproductionManagement: React.FC = () => {
     maxECC: 5,
     dateStart: '',
     dateEnd: '',
-    nearParto: false
+    nearParto: false,
   });
 
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
-  const { 
-    data: rawEvents, 
-    stats, 
-    loading, 
-    error, 
+  const {
+    data: rawEvents,
+    stats,
+    loading,
+    error,
     totalCount,
-    refresh 
+    refresh,
   } = useReportData('reproducao', { page, pageSize });
 
-  const events = rawEvents || [];
+  const events = (rawEvents || []) as unknown as ReproductionRecord[];
 
   const handleOpenCreate = () => {
     setSelectedEvent(null);
@@ -109,11 +157,21 @@ export const ReproductionManagement: React.FC = () => {
       let eventId = selectedEvent?.id || '';
 
       if (selectedEvent) {
-        const { error } = await supabase.from('eventos_reprodutivos').update(reproPayload).eq('id', selectedEvent.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('eventos_reprodutivos')
+          .update(reproPayload)
+          .eq('id', selectedEvent.id);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { data: insertedEvent, error } = await supabase.from('eventos_reprodutivos').insert([{ ...reproPayload, ...insertPayload }]).select();
-        if (error) throw error;
+        const { data: insertedEvent, error } = await supabase
+          .from('eventos_reprodutivos')
+          .insert([{ ...reproPayload, ...insertPayload }])
+          .select();
+        if (error) {
+          throw error;
+        }
         if (insertedEvent && insertedEvent[0]) {
           eventId = insertedEvent[0].id;
         }
@@ -131,65 +189,90 @@ export const ReproductionManagement: React.FC = () => {
       // Efeito Cascata: Salvar produtos no dossiê de sanidade e dar baixa no estoque
       if (produtos && produtos.length > 0) {
         for (const prod of produtos) {
-          const { data: pData } = await supabase.from('produtos').select('is_storable, nome').eq('id', prod.produto_id).maybeSingle();
-          
-          const custoCalculado = Number(prod.quantidade) * Number(prod.custo_medio || prod.valor_unitario || 0);
+          const { data: pData } = await supabase
+            .from('produtos')
+            .select('is_storable, nome')
+            .eq('id', prod.produto_id)
+            .maybeSingle();
+
+          const custoCalculado =
+            Number(prod.quantidade) * Number(prod.custo_medio || prod.valor_unitario || 0);
 
           // 1. Inserir em sanidade
-          const { data: sanData, error: sanErr } = await supabase.from('sanidade').insert([{
-            produto: pData?.nome || 'Produto ID ' + prod.produto_id,
-            dose: prod.quantidade + ' un',
-            data_manejo: reproPayload.data_evento,
-            animal_id: animalId,
-            status: 'REALIZADO',
-            observacao: `Fármaco aplicado em manejo reprodutivo [REF:${eventId}]`,
-            ...insertPayload
-          }]).select();
-          if (sanErr) throw sanErr;
+          const { data: sanData, error: sanErr } = await supabase
+            .from('sanidade')
+            .insert([
+              {
+                produto: pData?.nome || `Produto ID ${prod.produto_id}`,
+                dose: `${prod.quantidade} un`,
+                data_manejo: reproPayload.data_evento,
+                animal_id: animalId,
+                status: 'REALIZADO',
+                observacao: `Fármaco aplicado em manejo reprodutivo [REF:${eventId}]`,
+                ...insertPayload,
+              },
+            ])
+            .select();
+          if (sanErr) {
+            throw sanErr;
+          }
 
           // 2. Inserir em sanidade_animais para o taxímetro
           if (sanData && sanData[0]) {
-             await supabase.from('sanidade_animais').insert([{
-               sanidade_id: sanData[0].id,
-               animal_id: animalId,
-               data_aplicacao: reproPayload.data_evento,
-               valor_total_aplicado: custoCalculado,
-               status: 'REALIZADO',
-               ...insertPayload
-             }]);
+            await supabase.from('sanidade_animais').insert([
+              {
+                sanidade_id: sanData[0].id,
+                animal_id: animalId,
+                data_aplicacao: reproPayload.data_evento,
+                valor_total_aplicado: custoCalculado,
+                status: 'REALIZADO',
+                ...insertPayload,
+              },
+            ]);
           }
 
           // 3. Dar baixa no estoque se for controlável
           if (pData?.is_storable && prod.deposito_id) {
-            const { error: stockErr } = await supabase.from('movimentacoes_estoque').insert([{
-              produto_id: prod.produto_id,
-              deposito_id: prod.deposito_id,
-              tipo: 'SAIDA',
-              origem_destino: `Manejo Reprodutivo [REF:${eventId}]`,
-              quantidade: Number(prod.quantidade),
-              valor_unitario: Number(prod.custo_medio || prod.valor_unitario || 0),
-              data_movimentacao: new Date().toISOString(),
-              ...insertPayload
-            }]);
-            
+            const { error: stockErr } = await supabase.from('movimentacoes_estoque').insert([
+              {
+                produto_id: prod.produto_id,
+                deposito_id: prod.deposito_id,
+                tipo: 'SAIDA',
+                origem_destino: `Manejo Reprodutivo [REF:${eventId}]`,
+                quantidade: Number(prod.quantidade),
+                valor_unitario: Number(prod.custo_medio || prod.valor_unitario || 0),
+                data_movimentacao: new Date().toISOString(),
+                ...insertPayload,
+              },
+            ]);
+
             if (stockErr) {
               console.error('Erro na movimentação de estoque:', stockErr);
             }
-            
-            const { data: currentStock } = await supabase.from('saldos_estoque')
-              .select('quantidade, id').eq('produto_id', prod.produto_id).eq('deposito_id', prod.deposito_id).maybeSingle();
+
+            const { data: currentStock } = await supabase
+              .from('saldos_estoque')
+              .select('quantidade, id')
+              .eq('produto_id', prod.produto_id)
+              .eq('deposito_id', prod.deposito_id)
+              .maybeSingle();
 
             if (currentStock) {
-              await supabase.from('saldos_estoque').update({
-                quantidade: Number(currentStock.quantidade) - Number(prod.quantidade)
-              }).eq('id', currentStock.id);
+              await supabase
+                .from('saldos_estoque')
+                .update({
+                  quantidade: Number(currentStock.quantidade) - Number(prod.quantidade),
+                })
+                .eq('id', currentStock.id);
             } else {
-              await supabase.from('saldos_estoque').insert([{
-                produto_id: prod.produto_id,
-                deposito_id: prod.deposito_id,
-                quantidade: -Number(prod.quantidade),
-                ...insertPayload
-              }]);
+              await supabase.from('saldos_estoque').insert([
+                {
+                  produto_id: prod.produto_id,
+                  deposito_id: prod.deposito_id,
+                  quantidade: -Number(prod.quantidade),
+                  ...insertPayload,
+                },
+              ]);
             }
           }
         }
@@ -198,11 +281,13 @@ export const ReproductionManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      toast.success(selectedEvent ? '✅ Evento reprodutivo atualizado!' : '✅ Evento reprodutivo cadastrado!');
+      toast.success(
+        selectedEvent ? '✅ Evento reprodutivo atualizado!' : '✅ Evento reprodutivo cadastrado!'
+      );
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar evento reprodutivo: ' + err.message);
-    }
+      toast.error(`❌ Erro ao salvar evento reprodutivo: ${err.message}`);
+    },
   });
 
   const handleSubmit = async (data: any) => {
@@ -211,14 +296,28 @@ export const ReproductionManagement: React.FC = () => {
       return;
     }
 
-    let obsParts = [];
-    if (data.ecc) obsParts.push(`ECC: ${data.ecc}`);
-    if (data.touro) obsParts.push(`Touro/Sêmen: ${data.touro}`);
-    if (data.resultado_diagnostico) obsParts.push(`Diagnóstico: ${data.resultado_diagnostico}`);
-    if (data.dias_gestacao) obsParts.push(`Dias Gestação: ${data.dias_gestacao}`);
-    if (data.sexo_cria) obsParts.push(`Sexo da Cria: ${data.sexo_cria}`);
-    if (data.id_cria) obsParts.push(`ID da Cria: ${data.id_cria}`);
-    if (data.observacoes) obsParts.push(data.observacoes);
+    const obsParts = [];
+    if (data.ecc) {
+      obsParts.push(`ECC: ${data.ecc}`);
+    }
+    if (data.touro) {
+      obsParts.push(`Touro/Sêmen: ${data.touro}`);
+    }
+    if (data.resultado_diagnostico) {
+      obsParts.push(`Diagnóstico: ${data.resultado_diagnostico}`);
+    }
+    if (data.dias_gestacao) {
+      obsParts.push(`Dias Gestação: ${data.dias_gestacao}`);
+    }
+    if (data.sexo_cria) {
+      obsParts.push(`Sexo da Cria: ${data.sexo_cria}`);
+    }
+    if (data.id_cria) {
+      obsParts.push(`ID da Cria: ${data.id_cria}`);
+    }
+    if (data.observacoes) {
+      obsParts.push(data.observacoes);
+    }
 
     const payload = {
       animal_id: data.animal_id,
@@ -226,21 +325,25 @@ export const ReproductionManagement: React.FC = () => {
       data_evento: data.data_evento,
       resultado: data.resultado || data.resultado_diagnostico,
       observacoes: obsParts.join(' | '),
-      status: data.status
+      status: data.status,
     };
 
     saveReproMutation.mutate({
       reproPayload: payload,
       animalId: data.animal_id,
       resultado: data.resultado || data.resultado_diagnostico,
-      produtos: data.produtos || []
+      produtos: data.produtos || [],
     });
   };
 
   const batchSaveReproMutation = useMutation({
     mutationFn: async (batchData: any[]) => {
-      const { error } = await supabase.from('eventos_reprodutivos').insert(batchData.map(d => ({ ...d, ...insertPayload })));
-      if (error) throw error;
+      const { error } = await supabase
+        .from('eventos_reprodutivos')
+        .insert(batchData.map((d) => ({ ...d, ...insertPayload })));
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -248,8 +351,8 @@ export const ReproductionManagement: React.FC = () => {
       toast.success('✅ Lançamento em lote salvo!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar lote reprodutivo: ' + err.message);
-    }
+      toast.error(`❌ Erro ao salvar lote reprodutivo: ${err.message}`);
+    },
   });
 
   const handleBatchSubmit = async (batchData: any[]) => {
@@ -264,24 +367,32 @@ export const ReproductionManagement: React.FC = () => {
       await supabase.from('movimentacoes_estoque').delete().like('origem_destino', `%[REF:${id}]%`);
       // 3. Por fim apaga o evento
       const { error } = await supabase.from('eventos_reprodutivos').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Evento reprodutivo excluído!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir evento: ' + err.message);
-    }
+      toast.error(`❌ Erro ao excluir evento: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este evento?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este evento?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
     deleteReproMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = events.map(item => ({
+    const exportData = events.map((item) => ({
       Animal: item.animais?.brinco || 'N/A',
       Evento: item.tipo_evento,
       Data: item.data_evento ? new Date(item.data_evento).toLocaleDateString() : 'N/A',
@@ -290,45 +401,89 @@ export const ReproductionManagement: React.FC = () => {
       Touro: item.touro || '-',
       Prev_Parto: item.previsaoParto ? new Date(item.previsaoParto).toLocaleDateString() : '-',
       Gestacao_Dias: item.diasGestacao || 0,
-      Observacoes: item.observacoes || ''
+      Observacoes: item.observacoes || '',
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'log_reproducao');
-    else if (format === 'excel') exportToExcel(exportData, 'log_reproducao');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_reproducao', 'Relatório de Reprodução');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'log_reproducao');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'log_reproducao');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'log_reproducao', 'Relatório de Reprodução');
+    }
   };
 
   const handleViewDetails = (event: any) => {
-    const nextStep = event.tipo_evento === 'IATF' 
-      ? 'Palpação em 60 dias' 
-      : (event.tipo_evento === 'Palpação' && event.resultado === 'Prenha') 
-        ? `Monitorar Parição em ${event.previsaoParto instanceof Date ? event.previsaoParto.toLocaleDateString() : '---'}` 
-        : 'Novo Ciclo';
+    const nextStep =
+      event.tipo_evento === 'IATF'
+        ? 'Palpação em 60 dias'
+        : event.tipo_evento === 'Palpação' && event.resultado === 'Prenha'
+          ? `Monitorar Parição em ${event.previsaoParto instanceof Date ? event.previsaoParto.toLocaleDateString() : '---'}`
+          : 'Novo Ciclo';
 
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: event.data_evento, title: 'Tipo de Evento: ' + event.tipo_evento, subtitle: 'Identificação: ' + (event.animais?.brinco || event.animal_id), value: event.resultado || 'Pendente', status: event.status === 'completed' ? 'success' : 'pending' },
-      { id: '2', date: event.data_evento, title: 'Observações', subtitle: event.observacoes || 'Nenhuma observação registrada', value: 'Info', status: 'info' },
-      { id: '3', date: event.data_evento, title: 'Próximo Passo', subtitle: nextStep, value: 'Agendado', status: 'warning' },
+      {
+        id: '1',
+        date: event.data_evento,
+        title: `Tipo de Evento: ${event.tipo_evento}`,
+        subtitle: `Identificação: ${event.animais?.brinco || event.animal_id}`,
+        value: event.resultado || 'Pendente',
+        status: event.status === 'completed' ? 'success' : 'pending',
+      },
+      {
+        id: '2',
+        date: event.data_evento,
+        title: 'Observações',
+        subtitle: event.observacoes || 'Nenhuma observação registrada',
+        value: 'Info',
+        status: 'info',
+      },
+      {
+        id: '3',
+        date: event.data_evento,
+        title: 'Próximo Passo',
+        subtitle: nextStep,
+        value: 'Agendado',
+        status: 'warning',
+      },
     ]);
   };
 
-  const filteredEvents = events.filter(e => {
-    const matchesSearch = (e.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.tipo_evento || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.tipo_evento === 'Parto';
-    
-    const matchesTipo = filterValues.tipo_evento === 'all' || e.tipo_evento === filterValues.tipo_evento;
-    const matchesResults = filterValues.results.length === 0 || filterValues.results.includes(e.resultado);
-    
+  const filteredEvents = events.filter((e) => {
+    const matchesSearch =
+      (e.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.tipo_evento || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab =
+      activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.tipo_evento === 'Parto';
+
+    const matchesTipo =
+      filterValues.tipo_evento === 'all' || e.tipo_evento === filterValues.tipo_evento;
+    const matchesResults =
+      filterValues.results.length === 0 || filterValues.results.includes(e.resultado ?? '');
+
     const ecc = Number(e.ecc || 0);
-    const matchesECC = filterValues.maxECC >= 5 || (!e.ecc || (ecc >= filterValues.minECC && ecc <= filterValues.maxECC));
-    
-    const matchesNearParto = !filterValues.nearParto || (e.progressoGestacao > 80 && e.progressoGestacao < 100);
+    const matchesECC =
+      filterValues.maxECC >= 5 ||
+      !e.ecc ||
+      (ecc >= filterValues.minECC && ecc <= filterValues.maxECC);
 
-    const matchesDate = (!filterValues.dateStart || new Date(e.data_evento) >= new Date(filterValues.dateStart)) &&
-                       (!filterValues.dateEnd || new Date(e.data_evento) <= new Date(filterValues.dateEnd));
+    const matchesNearParto =
+      !filterValues.nearParto || ((e.progressoGestacao ?? 0) > 80 && (e.progressoGestacao ?? 0) < 100);
 
-    return matchesSearch && matchesTab && matchesTipo && matchesResults && matchesECC && matchesNearParto && matchesDate;
+    const matchesDate =
+      (!filterValues.dateStart || new Date(e.data_evento ?? '') >= new Date(filterValues.dateStart)) &&
+      (!filterValues.dateEnd || new Date(e.data_evento ?? '') <= new Date(filterValues.dateEnd));
+
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesTipo &&
+      matchesResults &&
+      matchesECC &&
+      matchesNearParto &&
+      matchesDate
+    );
   });
 
   const columns = [
@@ -339,80 +494,150 @@ export const ReproductionManagement: React.FC = () => {
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
             #{item.animais?.brinco || 'N/A'}
           </span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
-            ID: {item.animal_id?.slice(0,8).toUpperCase() || item.id?.slice(0,8).toUpperCase()}
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
+            ID: {item.animal_id?.slice(0, 8).toUpperCase() || item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Evento / Protocolo',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {item.tipo_evento === 'Parto' ? <Baby size={14} color="#ec4899" /> : <Thermometer size={14} color="#3b82f6" />}
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>{item.tipo_evento}</span>
+            {item.tipo_evento === 'Parto' ? (
+              <Baby size={14} color="#ec4899" />
+            ) : (
+              <Thermometer size={14} color="#3b82f6" />
+            )}
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+              {item.tipo_evento}
+            </span>
           </div>
           {item.touro && (
-            <span style={{ fontSize: '9px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span
+              style={{
+                fontSize: '9px',
+                fontWeight: 800,
+                color: '#475569',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
               Touro: {item.touro}
             </span>
           )}
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'E.C.C',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span style={{ 
-            padding: '2px 8px', 
-            borderRadius: '6px', 
-            fontSize: '11px', 
-            fontWeight: 800,
-            background: item.ecc >= 3 && item.ecc <= 4 ? '#ecfdf5' : item.ecc && item.ecc < 2.5 ? '#fef2f2' : '#f8fafc',
-            color: item.ecc >= 3 && item.ecc <= 4 ? '#10b981' : item.ecc && item.ecc < 2.5 ? '#ef4444' : '#64748b',
-            border: `1px solid ${item.ecc >= 3 && item.ecc <= 4 ? '#a7f3d0' : item.ecc && item.ecc < 2.5 ? '#fecaca' : '#e2e8f0'}`
-          }}>
+          <span
+            style={{
+              padding: '2px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 800,
+              background:
+                item.ecc >= 3 && item.ecc <= 4
+                  ? '#ecfdf5'
+                  : item.ecc && item.ecc < 2.5
+                    ? '#fef2f2'
+                    : '#f8fafc',
+              color:
+                item.ecc >= 3 && item.ecc <= 4
+                  ? '#10b981'
+                  : item.ecc && item.ecc < 2.5
+                    ? '#ef4444'
+                    : '#64748b',
+              border: `1px solid ${item.ecc >= 3 && item.ecc <= 4 ? '#a7f3d0' : item.ecc && item.ecc < 2.5 ? '#fecaca' : '#e2e8f0'}`,
+            }}
+          >
             {item.ecc ? Number(item.ecc).toFixed(1) : '-'}
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Data do Evento',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#64748b',
+            fontWeight: 600,
+            fontSize: '12px',
+          }}
+        >
           <Calendar size={14} />
           <span>{item.data_evento ? new Date(item.data_evento).toLocaleDateString() : 'N/A'}</span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Resultado / Gestação',
       accessor: (item: any) => {
         if (item.resultado === 'Prenha') {
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '140px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 800, color: '#475569' }}>
-                <span>{item.previsaoParto instanceof Date ? item.previsaoParto.toLocaleDateString() : 'Prev. Parto'}</span>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '140px' }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: '#475569',
+                }}
+              >
+                <span>
+                  {item.previsaoParto instanceof Date
+                    ? item.previsaoParto.toLocaleDateString()
+                    : 'Prev. Parto'}
+                </span>
                 <span>{Math.round(item.progressoGestacao || 0)}%</span>
               </div>
-              <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-                <div 
-                  style={{ 
-                    height: '100%', 
-                    transition: 'width 0.7s', 
+              <div
+                style={{
+                  height: '6px',
+                  width: '100%',
+                  backgroundColor: '#f1f5f9',
+                  borderRadius: '99px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    height: '100%',
+                    transition: 'width 0.7s',
                     backgroundColor: (item.progressoGestacao || 0) > 80 ? '#f59e0b' : '#ec4899',
-                    width: `${item.progressoGestacao || 0}%` 
+                    width: `${item.progressoGestacao || 0}%`,
                   }}
                 />
               </div>
-              <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{(item.diasGestacao || 0)} dias</span>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {item.diasGestacao || 0} dias
+              </span>
             </div>
           );
         }
@@ -424,33 +649,40 @@ export const ReproductionManagement: React.FC = () => {
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span style={{
-            fontSize: '10px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            color: item.status === 'completed' ? '#10b981' : '#f59e0b'
-          }}>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              color: item.status === 'completed' ? '#10b981' : '#f59e0b',
+            }}
+          >
             {item.status === 'completed' ? 'Concluído' : 'Pendente'}
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="repro-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Reprodução' }]} />
+          <Breadcrumb
+            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Reprodução' }]}
+          />
           <h1 className="page-title">Reprodução</h1>
-          <p className="page-subtitle">Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo real.</p>
+          <p className="page-subtitle">
+            Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo
+            real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsBatchModalOpen(true)}>
@@ -465,25 +697,22 @@ export const ReproductionManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats?.map((stat: any, idx: number) => (
-          <TauzeStatCard 
-            key={idx}
-            {...stat}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'ESTACAO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ESTACAO')}
           >
             Estação de Monta
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'PARTOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('PARTOS')}
           >
@@ -493,17 +722,17 @@ export const ReproductionManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar por animal ou tipo de evento..." 
+            placeholder="Buscar por animal ou tipo de evento..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -511,26 +740,49 @@ export const ReproductionManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-repro');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-repro" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-repro')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-repro')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-repro')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <ReproductionFilterModal 
+      <ReproductionFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -538,49 +790,63 @@ export const ReproductionManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        <ModernTable 
-          emptyState={<EmptyState
-            title="Nenhum evento reprodutivo"
-            description="Não há registros reprodutivos para esta unidade. Inicie o controle registrando a primeira inseminação ou diagnóstico."
-            actionLabel="Novo Evento"
-            onAction={handleOpenCreate}
-            icon={Heart}
-          />}
+        <ModernTable
+          emptyState={
+            <EmptyState
+              title="Nenhum evento reprodutivo"
+              description="Não há registros reprodutivos para esta unidade. Inicie o controle registrando a primeira inseminação ou diagnóstico."
+              actionLabel="Novo Evento"
+              onAction={handleOpenCreate}
+              icon={Heart}
+            />
+          }
           data={filteredEvents}
-            columns={columns}
-            loading={loading}
-            hideHeader={true}
-            totalCount={totalCount}
-            currentPage={page}
-            onPageChange={setPage}
-            itemsPerPage={pageSize}
-            searchPlaceholder="Pesquisar por animal ou tipo de evento..."
-            actions={(item) => (
-              <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
-                  <History size={18} />
-                </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                  <Edit3 size={18} />
-                </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            )}
-          />
+          columns={columns}
+          loading={loading}
+          hideHeader={true}
+          totalCount={totalCount}
+          currentPage={page}
+          onPageChange={setPage}
+          itemsPerPage={pageSize}
+          searchPlaceholder="Pesquisar por animal ou tipo de evento..."
+          actions={(item) => (
+            <div className="modern-actions">
+              <button
+                className="action-dot info"
+                onClick={() => handleViewDetails(item)}
+                title="Dossiê"
+              >
+                <History size={18} />
+              </button>
+              <button
+                className="action-dot edit"
+                onClick={() => handleOpenEdit(item)}
+                title="Editar"
+              >
+                <Edit3 size={18} />
+              </button>
+              <button
+                className="action-dot delete"
+                onClick={() => handleDelete(item.id)}
+                title="Excluir"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          )}
+        />
       </div>
 
-      <ReproductionForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ReproductionForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedEvent}
-        loading={(saveReproMutation.isPending || batchSaveReproMutation.isPending)}
+        loading={saveReproMutation.isPending || batchSaveReproMutation.isPending}
       />
 
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Dossiê Reprodutivo"
@@ -589,14 +855,13 @@ export const ReproductionManagement: React.FC = () => {
         loading={historyLoading}
       />
 
-      <BatchReproModal 
+      <BatchReproModal
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
         onBatchSubmit={handleBatchSubmit}
         activeFarmId={activeFarmId || ''}
         tenantId={activeTenantId || ''}
       />
-
     </div>
   );
 };

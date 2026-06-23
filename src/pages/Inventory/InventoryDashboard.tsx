@@ -1,9 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -11,17 +22,31 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { 
-  Package, 
-  TrendingUp, 
-  AlertTriangle, 
-  DollarSign, 
-  Boxes, 
+import {
+  Package,
+  TrendingUp,
+  AlertTriangle,
+  DollarSign,
+  Boxes,
   ArrowRightLeft,
   ChevronRight,
   Activity,
@@ -30,7 +55,7 @@ import {
   FlaskConical,
   Zap,
   ArrowDownLeft,
-  ArrowUpRight
+  ArrowUpRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -42,36 +67,52 @@ import { useQuery } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const InventoryDashboard: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, applyTenantFilter, activeTenantId } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    applyFarmFilter,
+    applyTenantFilter,
+    activeTenantId,
+  } = useFarmFilter();
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
   // Query 1: Products data
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['inventory_products', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let query = supabase.from('produtos').select('id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria, created_at');
+      let query = supabase
+        .from('produtos')
+        .select(
+          'id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria, created_at'
+        );
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []) as any[];
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
   // Query 2: Recent Movements
   const { data: movements = [], isLoading: movementsLoading } = useQuery({
     queryKey: ['inventory_recent_movements', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let query = supabase.from('movimentacoes_estoque')
+      let query = supabase
+        .from('movimentacoes_estoque')
         .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)')
         .order('created_at', { ascending: false })
         .limit(6);
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []) as any[];
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
   // Query 3: Outgoing Movements of last 30 days
@@ -80,16 +121,19 @@ export const InventoryDashboard: React.FC = () => {
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      let query = supabase.from('movimentacoes_estoque')
+      let query = supabase
+        .from('movimentacoes_estoque')
         .select('quantidade, valor_unitario, tipo, data_movimentacao')
         .in('tipo', ['out', 'SAIDA'])
         .gte('data_movimentacao', thirtyDaysAgo.toISOString());
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []) as any[];
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
   const loading = productsLoading || movementsLoading || outMovementsLoading;
@@ -98,19 +142,65 @@ export const InventoryDashboard: React.FC = () => {
   const stats = useMemo(() => {
     if (loading || !products.length) {
       return [
-        { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, trend: 'none' as const, change: 'Calculando...', sparkline: [] },
-        { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'none' as const, change: 'Verificando...', sparkline: [] },
-        { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'none' as const, change: 'Auditando...', sparkline: [] },
-        { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'none' as const, change: 'Sincronizando...', sparkline: [] }
+        {
+          label: 'Patrimônio em Insumos',
+          value: '---',
+          icon: DollarSign,
+          color: '#10b981',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Calculando...',
+          sparkline: [],
+        },
+        {
+          label: 'Ruptura de Estoque',
+          value: '---',
+          icon: AlertTriangle,
+          color: '#ef4444',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Verificando...',
+          sparkline: [],
+        },
+        {
+          label: 'Maturidade (30d)',
+          value: '---',
+          icon: FlaskConical,
+          color: '#f59e0b',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Auditando...',
+          sparkline: [],
+        },
+        {
+          label: 'Giro de Estoque',
+          value: '---',
+          icon: Zap,
+          color: '#3b82f6',
+          progress: 0,
+          trend: 'none' as const,
+          change: 'Sincronizando...',
+          sparkline: [],
+        },
       ];
     }
 
-    const totalValue = products.reduce((acc: number, p: any) => acc + (Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0)), 0);
-    const criticalCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)).length;
-    const maturityCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < (Number(p?.estoque_minimo || 0) * 0.5)).length;
+    const totalValue = products.reduce(
+      (acc: number, p: any) => acc + Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0),
+      0
+    );
+    const criticalCount = products.filter(
+      (p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)
+    ).length;
+    const maturityCount = products.filter(
+      (p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0) * 0.5
+    ).length;
 
-    const totalOutgoingValue = outMovements.reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
-    const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
+    const totalOutgoingValue = outMovements.reduce(
+      (acc: number, m: any) => acc + Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0),
+      0
+    );
+    const calculatedTurnover = totalValue > 0 ? totalOutgoingValue / totalValue : 0;
     const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
 
     const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
@@ -119,50 +209,57 @@ export const InventoryDashboard: React.FC = () => {
       const dayStr = d.toISOString().split('T')[0];
       const dayTotal = outMovements
         .filter((m: any) => m.data_movimentacao?.startsWith(dayStr))
-        .reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
-      return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+        .reduce(
+          (acc: number, m: any) =>
+            acc + Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0),
+          0
+        );
+      return {
+        value: dayTotal || 0,
+        label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      };
     });
 
     return [
-      { 
-        label: 'Patrimônio em Insumos', 
-        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---', 
-        icon: DollarSign, 
-        color: '#10b981', 
+      {
+        label: 'Patrimônio em Insumos',
+        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---',
+        icon: DollarSign,
+        color: '#10b981',
         progress: totalValue > 0 ? 85 : 0,
         trend: 'none' as const,
         change: 'Capital Imobilizado',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
       },
-      { 
-        label: 'Ruptura de Estoque', 
-        value: String(criticalCount), 
-        icon: AlertTriangle, 
-        color: '#ef4444', 
+      {
+        label: 'Ruptura de Estoque',
+        value: String(criticalCount),
+        icon: AlertTriangle,
+        color: '#ef4444',
         progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
         trend: criticalCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Itens p/ Reposição',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
       },
-      { 
-        label: 'Maturidade (30d)', 
-        value: `${maturityCount} itens`, 
-        icon: FlaskConical, 
-        color: '#f59e0b', 
+      {
+        label: 'Maturidade (30d)',
+        value: `${maturityCount} itens`,
+        icon: FlaskConical,
+        color: '#f59e0b',
         progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
         trend: maturityCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Risco de Perda',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
       },
-      { 
-        label: 'Giro de Estoque', 
-        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---', 
-        icon: Zap, 
-        color: '#3b82f6', 
+      {
+        label: 'Giro de Estoque',
+        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---',
+        icon: Zap,
+        color: '#3b82f6',
         progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
         trend: turnover > 1.0 ? ('up' as const) : ('none' as const),
         change: 'Eficiência Logística',
-        sparkline: turnover > 0 ? sparklineGiro : []
+        sparkline: turnover > 0 ? sparklineGiro : [],
       },
     ];
   }, [loading, products, outMovements]);
@@ -175,11 +272,11 @@ export const InventoryDashboard: React.FC = () => {
 
   const recentMovements = useMemo(() => {
     return movements.map((m: any) => ({
-      type: (m?.tipo === 'ENTRADA' || m?.tipo === 'in') ? 'in' : 'out',
+      type: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'in' : 'out',
       date: m?.data_movimentacao || new Date().toISOString(),
       title: m?.produtos?.nome || 'Item',
       subtitle: `${m?.quantidade || 0} ${m?.produtos?.unidade || ''} • ${m?.responsavel || 'N/A'}`,
-      value: (m?.tipo === 'ENTRADA' || m?.tipo === 'in') ? 'Entrada' : 'Saída'
+      value: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'Entrada' : 'Saída',
     }));
   }, [movements]);
 
@@ -188,9 +285,16 @@ export const InventoryDashboard: React.FC = () => {
     <div className="inventory-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Intelligence Hub' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Estoque & Insumos', href: '/estoque/dashboard' },
+              { label: 'Intelligence Hub' },
+            ]}
+          />
           <h1 className="page-title">Intelligence Hub</h1>
-          <p className="page-subtitle">Visão executiva de patrimônio, ruptura de estoque e rastreabilidade de insumos.</p>
+          <p className="page-subtitle">
+            Visão executiva de patrimônio, ruptura de estoque e rastreabilidade de insumos.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn primary">
@@ -222,21 +326,23 @@ export const InventoryDashboard: React.FC = () => {
       `}</style>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            trend={stat.trend === 'up' ? 'up' : undefined}
-            sparkline={stat.sparkline}
-          />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <KPISkeleton key={i} />)
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                trend={stat.trend === 'up' ? 'up' : undefined}
+                sparkline={stat.sparkline}
+              />
+            ))}
       </div>
 
       <div className="inventory-hub-grid">
@@ -250,50 +356,59 @@ export const InventoryDashboard: React.FC = () => {
           </div>
 
           <div className="critical-assets-grid">
-            {criticalItems && criticalItems.length > 0 ? criticalItems.map(item => (
-              <div key={item?.id} className="asset-health-card">
-                <div className="asset-header">
-                  <div className="asset-icon" style={{ background: '#ef444415', color: '#ef4444' }}>
-                    <Package size={24} />
+            {criticalItems && criticalItems.length > 0 ? (
+              criticalItems.map((item) => (
+                <div key={item?.id} className="asset-health-card">
+                  <div className="asset-header">
+                    <div
+                      className="asset-icon"
+                      style={{ background: '#ef444415', color: '#ef4444' }}
+                    >
+                      <Package size={24} />
+                    </div>
+                    <div className="asset-name-group">
+                      <h4>{item?.nome || 'Sem nome'}</h4>
+                      <span>{item?.categoria || 'Geral'}</span>
+                    </div>
                   </div>
-                  <div className="asset-name-group">
-                    <h4>{item?.nome || 'Sem nome'}</h4>
-                    <span>{item?.categoria || 'Geral'}</span>
-                  </div>
-                </div>
-                
-                <div className="health-status-bar">
-                  <div className="bar-label">
-                    <span>Estoque Mínimo: {item?.estoque_minimo || 0} {item?.unidade || ''}</span>
-                    <span className="urgent">Crítico</span>
-                  </div>
-                  <div className="bar-progress-bg">
-                    {(() => {
-                      const current = Number(item?.estoque_atual || 0);
-                      const min = Number(item?.estoque_minimo || 1);
-                      const progress = Math.min((current / min) * 100, 100);
-                      const healthScore = progress;
-                      return (
-                        <motion.div 
-                          className="bar-progress-fill" 
-                          initial={{ width: 0 }}
-                          animate={{ strokeDashoffset: 283 - (283 * (healthScore || 0) / 100) }}
-                          style={{ backgroundColor: '#ef4444', width: `${progress}%` }}
-                        />
-                      );
-                    })()}
-                  </div>
-                  <div className="bar-footer">
-                    <span>{item.estoque_atual} {item.unidade} atuais</span>
-                    <span className="remaining-text">Abaixo do Limite</span>
-                  </div>
-                </div>
 
-                <div className="asset-card-actions">
-                  <button className="asset-btn">GERAR COTAÇÃO</button>
+                  <div className="health-status-bar">
+                    <div className="bar-label">
+                      <span>
+                        Estoque Mínimo: {item?.estoque_minimo || 0} {item?.unidade || ''}
+                      </span>
+                      <span className="urgent">Crítico</span>
+                    </div>
+                    <div className="bar-progress-bg">
+                      {(() => {
+                        const current = Number(item?.estoque_atual || 0);
+                        const min = Number(item?.estoque_minimo || 1);
+                        const progress = Math.min((current / min) * 100, 100);
+                        const healthScore = progress;
+                        return (
+                          <motion.div
+                            className="bar-progress-fill"
+                            initial={{ width: 0 }}
+                            animate={{ strokeDashoffset: 283 - (283 * (healthScore || 0)) / 100 }}
+                            style={{ backgroundColor: '#ef4444', width: `${progress}%` }}
+                          />
+                        );
+                      })()}
+                    </div>
+                    <div className="bar-footer">
+                      <span>
+                        {item.estoque_atual} {item.unidade} atuais
+                      </span>
+                      <span className="remaining-text">Abaixo do Limite</span>
+                    </div>
+                  </div>
+
+                  <div className="asset-card-actions">
+                    <button className="asset-btn">GERAR COTAÇÃO</button>
+                  </div>
                 </div>
-              </div>
-            )) : (
+              ))
+            ) : (
               <div className="empty-health">
                 <Boxes size={32} />
                 <p>Nenhum item abaixo do estoque mínimo de segurança.</p>
@@ -313,7 +428,9 @@ export const InventoryDashboard: React.FC = () => {
 
           <div className="activity-list">
             {recentMovements.length === 0 && (
-              <div className="text-center py-4 text-xs font-bold text-slate-400">Nenhuma movimentação recente</div>
+              <div className="text-center py-4 text-xs font-bold text-slate-400">
+                Nenhuma movimentação recente
+              </div>
             )}
             {recentMovements.map((act, i) => (
               <div key={i} className="activity-item-tauze">
@@ -323,7 +440,10 @@ export const InventoryDashboard: React.FC = () => {
                 <div className="act-content">
                   <div className="act-main-row">
                     <span className="act-title">{act.title}</span>
-                    <span className="act-value" style={{ color: act.type === 'in' ? '#10b981' : '#ef4444' }}>
+                    <span
+                      className="act-value"
+                      style={{ color: act.type === 'in' ? '#10b981' : '#ef4444' }}
+                    >
                       {act.value}
                     </span>
                   </div>
@@ -336,7 +456,7 @@ export const InventoryDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-          
+
           <button className="view-all-btn">
             VER LOG DE MOVIMENTOS
             <ChevronRight size={16} />

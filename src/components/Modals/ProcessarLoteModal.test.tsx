@@ -64,7 +64,7 @@ describe('ProcessarLoteModal', () => {
 
     // Remove first animal
     const removeBtns = screen.getAllByRole('button');
-    const removeBtn = removeBtns.find(btn => btn.style.color === 'rgb(239, 68, 68)');
+    const removeBtn = removeBtns.find((btn) => btn.style.color === 'rgb(239, 68, 68)');
     if (removeBtn) {
       fireEvent.click(removeBtn);
     }

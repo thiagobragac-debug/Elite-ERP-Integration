@@ -13,20 +13,18 @@ interface AuditLogOptions {
 
 export const logAudit = async (options: AuditLogOptions) => {
   try {
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert([
-        {
-          tenant_id: options.tenant_id,
-          user_id: options.user_id,
-          action: options.action,
-          entity: options.entity,
-          entity_id: options.entity_id,
-          description: options.description,
-          old_data: options.old_data,
-          new_data: options.new_data
-        }
-      ]);
+    const { error } = await supabase.from('audit_logs').insert([
+      {
+        tenant_id: options.tenant_id,
+        user_id: options.user_id,
+        action: options.action,
+        entity: options.entity,
+        entity_id: options.entity_id,
+        description: options.description,
+        old_data: options.old_data,
+        new_data: options.new_data,
+      },
+    ]);
 
     if (error) {
       console.error('Error logging audit:', error);
@@ -38,4 +36,3 @@ export const logAudit = async (options: AuditLogOptions) => {
     return false;
   }
 };
-

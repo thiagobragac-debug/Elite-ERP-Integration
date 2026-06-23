@@ -1,4 +1,3 @@
-import { AlertCircle } from 'lucide-react';
 import type { ReportData } from '../types/reports';
 
 /**
@@ -11,12 +10,12 @@ export const withTimeoutResilience = async (
   mockFallback: ReportData,
   timeoutMs: number = 30000
 ): Promise<ReportData> => {
-  const timeoutPromise = new Promise<ReportData>((_, reject) =>
+  const timeoutPromise = new Promise<ReportData>((_, reject) => {
     setTimeout(() => {
       console.warn(`[Resilience] Timeout de ${timeoutMs}ms atingido.`);
       reject(new Error('TIMEOUT'));
-    }, timeoutMs)
-  );
+    }, timeoutMs);
+  });
 
   try {
     return await Promise.race([fetchPromise, timeoutPromise]);
@@ -24,7 +23,7 @@ export const withTimeoutResilience = async (
     if (err.message === 'TIMEOUT') {
       return {
         ...mockFallback,
-        error: 'O servidor demorou muito para responder. Por favor, tente novamente.'
+        error: 'O servidor demorou muito para responder. Por favor, tente novamente.',
       };
     }
     throw err;
@@ -37,6 +36,6 @@ export const getGenericMockData = (_reportId: string): ReportData => {
     stats: [],
     columns: [],
     loading: false,
-    error: 'Não foi possível carregar os dados no tempo hábil.'
+    error: 'Não foi possível carregar os dados no tempo hábil.',
   };
 };

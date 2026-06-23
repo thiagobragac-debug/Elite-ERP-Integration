@@ -1,9 +1,19 @@
 import React from 'react';
-import { X, Filter, Check, Tag, TrendingUp, AlertTriangle, User, Calendar, DollarSign, Zap } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Check,
+  Tag,
+  TrendingUp,
+  AlertTriangle,
+  User,
+  Calendar,
+  DollarSign,
+  Zap,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface SalesFilterModalProps {
   isOpen: boolean;
@@ -16,15 +26,17 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'pending', label: 'Pendentes', icon: Clock },
     { id: 'shipped', label: 'Em Trânsito', icon: Truck },
-    { id: 'delivered', label: 'Entregues', icon: Check }
+    { id: 'delivered', label: 'Entregues', icon: Check },
   ];
 
   const clientTypes = ['Premium (A)', 'Regular (B)', 'Novo (C)', 'Risco'];
@@ -45,23 +57,41 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
       dateStart: '',
       dateEnd: '',
       onlyHighRisk: false,
-      missingGta: false
+      missingGta: false,
     });
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(16, 163, 74, 0.1)', padding: '10px', borderRadius: '12px', color: '#10a34a' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(16, 163, 74, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#10a34a',
+              }}
+            >
               <TrendingUp size={20} />
             </div>
             <div>
@@ -69,8 +99,15 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
               <p>Analise conversão e saúde das vendas.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -79,24 +116,26 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Fluxo de Faturamento <Tag size={14} /></label>
+            <label className="tauze-filter-label">
+              Fluxo de Faturamento <Tag size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {statusOptions.map(s => (
-                <button 
+              {statusOptions.map((s) => (
+                <button
                   key={s.id}
-                  style={{ 
-                    padding: '12px 8px', 
-                    fontSize: '10px', 
-                    fontWeight: 800, 
-                    color: filters.status === s.id ? '#10a34a' : 'hsl(var(--text-muted))', 
-                    background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px 8px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: filters.status === s.id ? '#10a34a' : 'hsl(var(--text-muted))',
+                    background: filters.status === s.id ? '#f0fdf4' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.status === s.id ? '#10a34a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
                   }}
                   onClick={() => setFilters({ ...filters, status: s.id })}
                 >
@@ -108,17 +147,23 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Perfil de Carteira <User size={14} /></label>
+            <label className="tauze-filter-label">
+              Perfil de Carteira <User size={14} />
+            </label>
             <div className="tauze-tag-cloud">
-              {clientTypes.map(type => (
-                <button 
+              {clientTypes.map((type) => (
+                <button
                   key={type}
                   className={`tauze-tag-chip ${filters.clientTypes?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleClientType(type)}
-                  style={{ 
-                    borderColor: filters.clientTypes?.includes(type) ? '#10a34a' : 'hsl(var(--border))', 
-                    background: filters.clientTypes?.includes(type) ? '#10a34a' : 'hsl(var(--bg-card))',
-                    color: filters.clientTypes?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
+                  style={{
+                    borderColor: filters.clientTypes?.includes(type)
+                      ? '#10a34a'
+                      : 'hsl(var(--border))',
+                    background: filters.clientTypes?.includes(type)
+                      ? '#10a34a'
+                      : 'hsl(var(--bg-card))',
+                    color: filters.clientTypes?.includes(type) ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {type}
@@ -128,50 +173,75 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Margem Operacional (%) <Zap size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minMargin}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Margem Mínima</span>
+            <label className="tauze-filter-label">
+              Margem Operacional (%) <Zap size={14} />
+            </label>
+            <div
+              className="integrity-slider-container"
+              style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>
+                  {filters.minMargin}%
+                </span>
+                <span
+                  style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}
+                >
+                  Margem Mínima
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="50" 
+              <input
+                type="range"
+                min="0"
+                max="50"
                 step="1"
                 value={filters.minMargin}
-                onChange={e => setFilters({ ...filters, minMargin: parseInt(e.target.value) })}
+                onChange={(e) => setFilters({ ...filters, minMargin: parseInt(e.target.value) })}
                 style={{ width: '100%', accentColor: '#10a34a', height: '6px', cursor: 'pointer' }}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Período de Venda <Calendar size={14} /></label>
+            <label className="tauze-filter-label">
+              Período de Venda <Calendar size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateStart}
-                onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <DateInput 
-                type="date" 
-                className="tauze-input" 
+              <DateInput
+                type="date"
+                className="tauze-input"
                 value={filters.dateEnd}
-                onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="tauze-filter-section" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-            <button 
-              style={{ 
-                padding: '12px', 
-                borderRadius: '12px', 
-                border: '1px solid', 
+          <div
+            className="tauze-filter-section"
+            style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}
+          >
+            <button
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                border: '1px solid',
                 borderColor: filters.onlyHighRisk ? '#ef4444' : 'hsl(var(--border))',
-                background: filters.onlyHighRisk ? 'rgba(239, 68, 68, 0.05)' : 'hsl(var(--bg-card))',
+                background: filters.onlyHighRisk
+                  ? 'rgba(239, 68, 68, 0.05)'
+                  : 'hsl(var(--bg-card))',
                 color: filters.onlyHighRisk ? '#ef4444' : 'hsl(var(--text-muted))',
                 fontSize: '11px',
                 fontWeight: 800,
@@ -179,17 +249,17 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                cursor: 'pointer'
+                cursor: 'pointer',
               }}
               onClick={() => setFilters({ ...filters, onlyHighRisk: !filters.onlyHighRisk })}
             >
               <AlertTriangle size={14} /> EXPOSIÇÃO DE RISCO ATIVA
             </button>
-            <button 
-              style={{ 
-                padding: '12px', 
-                borderRadius: '12px', 
-                border: '1px solid', 
+            <button
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                border: '1px solid',
                 borderColor: filters.missingGta ? '#f59e0b' : 'hsl(var(--border))',
                 background: filters.missingGta ? 'rgba(245, 158, 11, 0.05)' : 'hsl(var(--bg-card))',
                 color: filters.missingGta ? '#f59e0b' : 'hsl(var(--text-muted))',
@@ -199,7 +269,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                cursor: 'pointer'
+                cursor: 'pointer',
               }}
               onClick={() => setFilters({ ...filters, missingGta: !filters.missingGta })}
             >
@@ -209,8 +279,16 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#10a34a' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#10a34a' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,
@@ -219,9 +297,37 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
 };
 
 const Clock = ({ size }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
 );
 
 const Truck = ({ size }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="1" y="3" width="15" height="13" />
+    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
 );

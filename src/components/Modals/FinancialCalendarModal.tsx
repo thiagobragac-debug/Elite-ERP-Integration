@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
   Calendar as CalendarIcon,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
   Clock,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../Layout/SidePanel';
@@ -25,24 +25,38 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
   isOpen,
   onClose,
   data,
-  type
+  type,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const isSuccess = (status: string) => status === 'PAGO' || status === 'RECEBIDO';
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const prevMonth = () =>
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () =>
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
   const monthNames = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
   const year = currentDate.getFullYear();
@@ -52,29 +66,33 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
 
   const getDayData = (day: number) => {
     const dateStr = new Date(year, month, day).toDateString();
-    return data.filter(item => new Date(item.data_vencimento).toDateString() === dateStr);
+    return data.filter((item) => new Date(item.data_vencimento).toDateString() === dateStr);
   };
 
   // Month stats
-  const currentMonthData = data.filter(item => {
+  const currentMonthData = data.filter((item) => {
     const d = new Date(item.data_vencimento);
     return d.getFullYear() === year && d.getMonth() === month;
   });
 
   const totalMes = currentMonthData.reduce((sum, item) => sum + (Number(item.valor) || 0), 0);
-  const totalPago = currentMonthData.filter(item => isSuccess(item.status)).reduce((sum, item) => sum + (Number(item.valor) || 0), 0);
+  const totalPago = currentMonthData
+    .filter((item) => isSuccess(item.status))
+    .reduce((sum, item) => sum + (Number(item.valor) || 0), 0);
   const totalPendente = totalMes - totalPago;
 
   // For heatmap
   let maxDailyValue = 0;
   for (let d = 1; d <= totalDays; d++) {
     const dailyTotal = getDayData(d).reduce((sum, item) => sum + (Number(item.valor) || 0), 0);
-    if (dailyTotal > maxDailyValue) maxDailyValue = dailyTotal;
+    if (dailyTotal > maxDailyValue) {
+      maxDailyValue = dailyTotal;
+    }
   }
 
   const days = [];
   for (let i = 0; i < startDay; i++) {
-    days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+    days.push(<div key={`empty-${i}`} className="calendar-day empty" />);
   }
 
   for (let d = 1; d <= totalDays; d++) {
@@ -82,38 +100,52 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
     const isToday = new Date().toDateString() === new Date(year, month, d).toDateString();
     const isSelected = selectedDate === d;
     const dailyTotal = dayData.reduce((sum, item) => sum + (Number(item.valor) || 0), 0);
-    
+
     // Heatmap calculation
     let bgColor = 'hsl(var(--bg-card))';
     if (dailyTotal > 0 && maxDailyValue > 0) {
       const intensity = dailyTotal / maxDailyValue;
       if (type === 'payable') {
-        bgColor = `rgba(239, 68, 68, ${0.05 + (intensity * 0.25)})`; // Red heatmap
+        bgColor = `rgba(239, 68, 68, ${0.05 + intensity * 0.25})`; // Red heatmap
       } else {
-        bgColor = `rgba(16, 185, 129, ${0.05 + (intensity * 0.25)})`; // Green heatmap
+        bgColor = `rgba(16, 185, 129, ${0.05 + intensity * 0.25})`; // Green heatmap
       }
     }
 
     days.push(
-      <div 
-        key={d} 
+      <div
+        key={d}
         className={`calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${dayData.length > 0 ? 'clickable' : ''}`}
         style={{ backgroundColor: isSelected ? 'hsl(var(--bg-main))' : bgColor }}
         onClick={() => dayData.length > 0 && setSelectedDate(isSelected ? null : d)}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '4px',
+          }}
+        >
           <span className="day-number">{d}</span>
           {dailyTotal > 0 && (
-            <span className={`daily-total-badge ${type === 'payable' ? 'deficit' : 'surplus'}`} title={type === 'payable' ? 'Saída (Deficitário)' : 'Entrada (Superavitário)'}>
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(dailyTotal)}
+            <span
+              className={`daily-total-badge ${type === 'payable' ? 'deficit' : 'surplus'}`}
+              title={type === 'payable' ? 'Saída (Deficitário)' : 'Entrada (Superavitário)'}
+            >
+              {new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                maximumFractionDigits: 0,
+              }).format(dailyTotal)}
             </span>
           )}
         </div>
         <div className="day-events">
           {dayData.slice(0, 2).map((item, idx) => (
-            <div 
-              key={idx} 
-              className={`event-tag ${isSuccess(item.status) ? 'success' : (new Date(item.data_vencimento) < new Date() ? 'danger' : 'warning')}`}
+            <div
+              key={idx}
+              className={`event-tag ${isSuccess(item.status) ? 'success' : new Date(item.data_vencimento) < new Date() ? 'danger' : 'warning'}`}
             >
               {item.descricao}
             </div>
@@ -130,9 +162,11 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
       onClose={onClose}
       onSubmit={(e) => e.preventDefault()}
       title={type === 'payable' ? 'Calendário de Pagamentos' : 'Projeção de Recebimentos'}
-      subtitle={type === 'payable' 
-        ? 'Acompanhamento mensal de obrigações e vencimentos' 
-        : 'Previsão mensal de faturas e entradas de capital'}
+      subtitle={
+        type === 'payable'
+          ? 'Acompanhamento mensal de obrigações e vencimentos'
+          : 'Previsão mensal de faturas e entradas de capital'
+      }
       icon={CalendarIcon}
       size="xlarge"
       hideSubmit={true}
@@ -141,42 +175,74 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
       <div className="calendar-portal-body" style={{ padding: 0 }}>
         <div className="calendar-nav-row" style={{ padding: '24px 24px 0 24px' }}>
           <div className="nav-controls">
-            <button type="button" className="nav-arrow" onClick={() => { prevMonth(); setSelectedDate(null); }}><ChevronLeft size={20} /></button>
-            <h2 className="nav-title">{monthNames[month]} {year}</h2>
-            <button type="button" className="nav-arrow" onClick={() => { nextMonth(); setSelectedDate(null); }}><ChevronRight size={20} /></button>
+            <button
+              type="button"
+              className="nav-arrow"
+              onClick={() => {
+                prevMonth();
+                setSelectedDate(null);
+              }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <h2 className="nav-title">
+              {monthNames[month]} {year}
+            </h2>
+            <button
+              type="button"
+              className="nav-arrow"
+              onClick={() => {
+                nextMonth();
+                setSelectedDate(null);
+              }}
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
-          
+
           <div className="month-dashboard">
             <div className="dashboard-card">
               <span className="label">Total {type === 'payable' ? 'a Pagar' : 'a Receber'}</span>
-              <span className="value">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}</span>
+              <span className="value">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  totalMes
+                )}
+              </span>
             </div>
             <div className="dashboard-card success">
               <span className="label">Já {type === 'payable' ? 'Pago' : 'Recebido'}</span>
-              <span className="value">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPago)}</span>
+              <span className="value">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  totalPago
+                )}
+              </span>
             </div>
             <div className="dashboard-card pending">
               <span className="label">Saldo Pendente</span>
-              <span className="value">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPendente)}</span>
+              <span className="value">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  totalPendente
+                )}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="calendar-layout" style={{ padding: '24px' }}>
           <div className="tauze-calendar-grid" style={{ flex: 1 }}>
-          <div className="grid-header">DOM</div>
-          <div className="grid-header">SEG</div>
-          <div className="grid-header">TER</div>
-          <div className="grid-header">QUA</div>
-          <div className="grid-header">QUI</div>
-          <div className="grid-header">SEX</div>
-          <div className="grid-header">SÁB</div>
-          {days}
+            <div className="grid-header">DOM</div>
+            <div className="grid-header">SEG</div>
+            <div className="grid-header">TER</div>
+            <div className="grid-header">QUA</div>
+            <div className="grid-header">QUI</div>
+            <div className="grid-header">SEX</div>
+            <div className="grid-header">SÁB</div>
+            {days}
           </div>
 
           <AnimatePresence>
             {selectedDate && (
-              <motion.div 
+              <motion.div
                 className="calendar-side-panel"
                 initial={{ width: 0, opacity: 0, marginLeft: 0 }}
                 animate={{ width: 340, opacity: 1, marginLeft: 24 }}
@@ -184,7 +250,9 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
                 transition={{ duration: 0.2 }}
               >
                 <div className="side-panel-header">
-                  <h3>{selectedDate} de {monthNames[month]}</h3>
+                  <h3>
+                    {selectedDate} de {monthNames[month]}
+                  </h3>
                   <button className="close-btn" onClick={() => setSelectedDate(null)}>
                     <X size={18} />
                   </button>
@@ -193,11 +261,16 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
                   {getDayData(selectedDate).map((item, idx) => (
                     <div key={idx} className="transaction-detail-card">
                       <div className="card-header">
-                        <span className={`status-badge ${isSuccess(item.status) ? 'success' : (new Date(item.data_vencimento) < new Date() ? 'danger' : 'warning')}`}>
+                        <span
+                          className={`status-badge ${isSuccess(item.status) ? 'success' : new Date(item.data_vencimento) < new Date() ? 'danger' : 'warning'}`}
+                        >
                           {item.status}
                         </span>
                         <span className="value">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(item.valor)}
                         </span>
                       </div>
                       <div className="card-body">

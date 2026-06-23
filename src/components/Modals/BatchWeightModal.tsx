@@ -1,28 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SidePanel } from '../Layout/SidePanel';
-import { 
-  Scale, 
-  X, 
-  Layers, 
-  Calendar, 
-  ChevronDown, 
-  CheckCircle2, 
-  AlertTriangle, 
-  TrendingUp, 
-  Activity, 
+import {
+  Scale,
+  X,
+  Layers,
+  Calendar,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  TrendingUp,
+  Activity,
   Loader2,
   Award,
   Download,
   Upload,
   ArrowDown,
-  BarChart2
+  BarChart2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
 import { useConfirm } from '../../contexts/ConfirmContext';
-
 
 interface BatchWeightModalProps {
   isOpen: boolean;
@@ -45,21 +44,27 @@ interface WeightRow {
   isAbate: boolean;
 }
 
-export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onClose, onSaveSuccess }) => {
+export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
+  isOpen,
+  onClose,
+  onSaveSuccess,
+}) => {
   const { confirm } = useConfirm();
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
-  const [defaultDate, setDefaultDate] = useState<string>(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
+  const [defaultDate, setDefaultDate] = useState<string>(
+    new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+  );
   const [defaultObservation, setDefaultObservation] = useState<string>('');
-  
+
   const [rows, setRows] = useState<WeightRow[]>([]);
   const [loadingLots, setLoadingLots] = useState(false);
   const [loadingAnimals, setLoadingAnimals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'manual' | 'planilha' | 'smart'>('manual');
   const [showSummary, setShowSummary] = useState(false);
-  
+
   // Agricultural Smart Corral States
   const [scaleConnected, setScaleConnected] = useState(false);
   const [scaleBrand, setScaleBrand] = useState<string>('TRUTEST');
@@ -74,7 +79,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     if (isOpen && activeTenantId) {
       fetchLots();
       fetchAnimals('');
-      
+
       const globalConnected = localStorage.getItem('tauze_scale_connected') === 'true';
       if (globalConnected) {
         setScaleConnected(true);
@@ -106,7 +111,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       setLots(data || []);
     } catch (err) {
       console.error('Error fetching lots for batch modal:', err);
@@ -123,41 +130,49 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         .select('id, brinco, peso_atual, peso_inicial, lote_id')
         .eq('tenant_id', activeTenantId)
         .ilike('status', 'ativo');
-      
+
       if (!isGlobalMode && activeFarm?.id) {
         q = q.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
       }
-      
+
       if (loteId) {
         q = q.eq('lote_id', loteId);
       }
-      
+
       const { data: animData, error: animErr } = await q;
-      if (animErr) throw animErr;
-      
+      if (animErr) {
+        throw animErr;
+      }
+
       if (animData && animData.length > 0) {
-        const animIds = animData.map(a => a.id);
-        
+        const animIds = animData.map((a) => a.id);
+
         const { data: weighData, error: weighErr } = await supabase
           .from('pesagens')
           .select('animal_id, peso, data_pesagem')
           .in('animal_id', animIds)
           .order('data_pesagem', { ascending: false });
-        
-        if (weighErr) throw weighErr;
-        
+
+        if (weighErr) {
+          throw weighErr;
+        }
+
         const lastWeighingsMap: Record<string, any> = {};
-        weighData?.forEach(w => {
+        weighData?.forEach((w) => {
           if (!lastWeighingsMap[w.animal_id]) {
             lastWeighingsMap[w.animal_id] = w;
           }
         });
-        
-        const initialRows: WeightRow[] = animData.map(a => {
+
+        const initialRows: WeightRow[] = animData.map((a) => {
           const lastW = lastWeighingsMap[a.id];
-          const lastWeight = lastW ? Number(lastW.peso) : (a.peso_atual ? Number(a.peso_atual) : Number(a.peso_inicial || 0));
+          const lastWeight = lastW
+            ? Number(lastW.peso)
+            : a.peso_atual
+              ? Number(a.peso_atual)
+              : Number(a.peso_inicial || 0);
           const lastDate = lastW ? lastW.data_pesagem : null;
-          
+
           return {
             animal_id: a.id,
             brinco: a.brinco,
@@ -170,10 +185,10 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             isTimeTravelWarning: false,
             arrobas: 0,
             diasParaAbate: null,
-            isAbate: false
+            isAbate: false,
           };
         });
-        
+
         initialRows.sort((a, b) => a.brinco.localeCompare(b.brinco, undefined, { numeric: true }));
         setRows(initialRows);
       } else {
@@ -195,32 +210,32 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     const newRows = [...rows];
     const row = newRows[index];
     row.newWeight = val;
-    
+
     const newWeightVal = parseFloat(val);
     if (!isNaN(newWeightVal) && newWeightVal > 0) {
       row.arrobas = (newWeightVal * 0.5) / 15;
-      
+
       const lastDate = row.lastDate ? new Date(row.lastDate) : null;
       const currDate = new Date(defaultDate);
-      
+
       if (lastDate && currDate < lastDate) {
         row.isTimeTravelWarning = true;
       } else {
         row.isTimeTravelWarning = false;
       }
-      
+
       if (row.lastWeight > 0) {
         const diff = newWeightVal - row.lastWeight;
         row.evolucao = diff;
-        
+
         let diffDays = 1;
         if (lastDate && !row.isTimeTravelWarning) {
           const diffTime = currDate.getTime() - lastDate.getTime();
           diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
         }
-        
+
         row.gmd = diff / diffDays;
-        
+
         const percentChange = (diff / row.lastWeight) * 100;
         row.isTypoWarning = Math.abs(percentChange) > 15;
       }
@@ -237,7 +252,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         row.isAbate = false;
         row.diasParaAbate = null;
       }
-
     } else {
       row.evolucao = 0;
       row.gmd = 0;
@@ -247,7 +261,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       row.diasParaAbate = null;
       row.isAbate = false;
     }
-    
+
     setRows(newRows);
   };
 
@@ -255,7 +269,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Enter' || e.key === 'ArrowDown') {
       e.preventDefault();
-      const nextInput = document.getElementById(`weight-input-${index + 1}`) as HTMLInputElement | null;
+      const nextInput = document.getElementById(
+        `weight-input-${index + 1}`
+      ) as HTMLInputElement | null;
       if (nextInput) {
         nextInput.focus();
         nextInput.select();
@@ -263,7 +279,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      const prevInput = document.getElementById(`weight-input-${index - 1}`) as HTMLInputElement | null;
+      const prevInput = document.getElementById(
+        `weight-input-${index - 1}`
+      ) as HTMLInputElement | null;
       if (prevInput) {
         prevInput.focus();
         prevInput.select();
@@ -271,7 +289,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       }
     }
   };
-  
+
   const handleConnectScale = async () => {
     if (scaleConnected) {
       setScaleConnected(false);
@@ -290,9 +308,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
         alert(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`);
       } else {
-        alert(`💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`);
+        alert(
+          `💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`
+        );
       }
-      
+
       setScaleConnected(true);
       setScaleBrand(activeBrand);
       setScaleType(activeType);
@@ -300,7 +320,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       localStorage.setItem('tauze_scale_brand', activeBrand);
       localStorage.setItem('tauze_scale_type', activeType);
     } catch (err: any) {
-      alert('❌ Falha ao conectar balança: ' + err.message);
+      alert(`❌ Falha ao conectar balança: ${err.message}`);
     }
   };
 
@@ -309,22 +329,27 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       alert('⚠️ Conecte a Balança Eletrônica primeiro!');
       return;
     }
-    
+
     if (activeFocusedIndex === null) {
-      alert('⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!');
+      alert(
+        '⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!'
+      );
       return;
     }
 
-    const baseWeight = rows[activeFocusedIndex].lastWeight > 0 ? rows[activeFocusedIndex].lastWeight : 380;
+    const baseWeight =
+      rows[activeFocusedIndex].lastWeight > 0 ? rows[activeFocusedIndex].lastWeight : 380;
     const gain = 10 + Math.floor(Math.random() * 25);
     const simulatedWeight = baseWeight + gain;
-    
+
     handleWeightChange(activeFocusedIndex, simulatedWeight.toString());
 
     setTimeout(() => {
       const nextIndex = activeFocusedIndex + 1;
       if (nextIndex < rows.length) {
-        const nextInput = document.getElementById(`weight-input-${nextIndex}`) as HTMLInputElement | null;
+        const nextInput = document.getElementById(
+          `weight-input-${nextIndex}`
+        ) as HTMLInputElement | null;
         if (nextInput) {
           nextInput.focus();
           nextInput.select();
@@ -335,15 +360,21 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
   const handleRfidScan = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rfidSearch.trim()) return;
+    if (!rfidSearch.trim()) {
+      return;
+    }
 
     const query = rfidSearch.trim().toLowerCase();
-    const foundIndex = rows.findIndex(r => r.brinco.toLowerCase() === query || r.brinco.toLowerCase().includes(query));
+    const foundIndex = rows.findIndex(
+      (r) => r.brinco.toLowerCase() === query || r.brinco.toLowerCase().includes(query)
+    );
 
     if (foundIndex !== -1) {
       setActiveFocusedIndex(foundIndex);
       setTimeout(() => {
-        const targetInput = document.getElementById(`weight-input-${foundIndex}`) as HTMLInputElement | null;
+        const targetInput = document.getElementById(
+          `weight-input-${foundIndex}`
+        ) as HTMLInputElement | null;
         if (targetInput) {
           targetInput.focus();
           targetInput.select();
@@ -357,16 +388,26 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   };
 
   const handleClearWeights = async () => {
-    if (filledCount === 0) return;
-    const confirmClear = await confirm({ title: 'Atenção', description: '⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!confirmClear) return;
-    
-    const cleared = rows.map(r => ({
+    if (filledCount === 0) {
+      return;
+    }
+    const confirmClear = await confirm({
+      title: 'Atenção',
+      description: '⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!confirmClear) {
+      return;
+    }
+
+    const cleared = rows.map((r) => ({
       ...r,
       newWeight: '',
       evolucao: 0,
       gmd: 0,
-      isTypoWarning: false
+      isTypoWarning: false,
     }));
     setRows(cleared);
   };
@@ -377,12 +418,15 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       return;
     }
 
-    let csvContent = 'ID do Animal;Brinco;Peso Anterior (kg);Novo Peso (kg);Data da Pesagem (AAAA-MM-DD)\n';
-    rows.forEach(r => {
+    let csvContent =
+      'ID do Animal;Brinco;Peso Anterior (kg);Novo Peso (kg);Data da Pesagem (AAAA-MM-DD)\n';
+    rows.forEach((r) => {
       csvContent += `"${r.animal_id}";"${r.brinco}";"${r.lastWeight.toFixed(2)}";"";\"${defaultDate}\"\n`;
     });
 
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
@@ -394,20 +438,26 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
   const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        if (!text) return;
+        if (!text) {
+          return;
+        }
 
         const lines = text.split('\n');
-        const parsedMap: Record<string, { weight: string, date: string }> = {};
+        const parsedMap: Record<string, { weight: string; date: string }> = {};
 
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
-          if (!line) continue;
+          if (!line) {
+            continue;
+          }
 
           let delimiter = ';';
           if (line.includes(',') && !line.includes(';')) {
@@ -426,7 +476,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           }
         }
 
-        const newRows = rows.map(r => {
+        const newRows = rows.map((r) => {
           const match = parsedMap[r.animal_id];
           if (match) {
             const newWeightVal = parseFloat(match.weight);
@@ -436,7 +486,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
             if (!isNaN(newWeightVal) && r.lastWeight > 0) {
               diff = newWeightVal - r.lastWeight;
-              
+
               const lastDate = r.lastDate ? new Date(r.lastDate) : null;
               const currDate = new Date(match.date || defaultDate);
               let diffDays = 1;
@@ -455,16 +505,18 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
               newWeight: match.weight,
               evolucao: diff,
               gmd: gmdVal,
-              isTypoWarning: typo
+              isTypoWarning: typo,
             };
           }
           return r;
         });
 
         setRows(newRows);
-        alert(`✅ Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`);
+        alert(
+          `✅ Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`
+        );
       } catch (err: any) {
-        alert('❌ Erro ao ler planilha CSV: ' + err.message);
+        alert(`❌ Erro ao ler planilha CSV: ${err.message}`);
       }
     };
     reader.readAsText(file);
@@ -475,20 +527,32 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const handleSaveClick = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const typedRows = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
-    
+    const typedRows = rows.filter(
+      (r) => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight))
+    );
+
     // Check Time Travel
-    const hasTimeTravel = typedRows.some(r => r.isTimeTravelWarning);
+    const hasTimeTravel = typedRows.some((r) => r.isTimeTravelWarning);
     if (hasTimeTravel) {
-      alert('❌ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.');
+      alert(
+        '❌ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.'
+      );
       return;
     }
 
     // Check Nutrition Warning (Safra)
-    const loosingWeightCount = typedRows.filter(r => r.gmd < 0).length;
+    const loosingWeightCount = typedRows.filter((r) => r.gmd < 0).length;
     if (typedRows.length > 0 && loosingWeightCount / typedRows.length >= 0.3) {
-      const confirmNutrition = await confirm({ title: 'Atenção', description: `⚠️ ALERTA AGRONÔMICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-      if (!confirmNutrition) return;
+      const confirmNutrition = await confirm({
+        title: 'Atenção',
+        description: `⚠️ ALERTA AGRONÔMICO: ${((loosingWeightCount / typedRows.length) * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`,
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+      });
+      if (!confirmNutrition) {
+        return;
+      }
     }
 
     const pending = rows.length - filledCount;
@@ -501,38 +565,49 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   };
 
   const handleSubmit = async () => {
-    const rowsToInsert = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
-    
+    const rowsToInsert = rows.filter(
+      (r) => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight))
+    );
+
     if (rowsToInsert.length === 0) {
       alert('⚠️ Digite o peso de pelo menos 1 animal.');
       return;
     }
 
-    const hasWarnings = rowsToInsert.some(r => r.isTypoWarning);
+    const hasWarnings = rowsToInsert.some((r) => r.isTypoWarning);
     if (hasWarnings) {
-      const confirmSave = await confirm({ title: 'Atenção', description: '⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-      if (!confirmSave) return;
+      const confirmSave = await confirm({
+        title: 'Atenção',
+        description:
+          '⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?',
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+      });
+      if (!confirmSave) {
+        return;
+      }
     }
 
     setIsSubmitting(true);
     setShowSummary(false);
     try {
-      const payloads = rowsToInsert.map(r => ({
+      const payloads = rowsToInsert.map((r) => ({
         tenant_id: activeTenantId,
         fazenda_id: activeFarm?.id || null,
         animal_id: r.animal_id,
         peso: parseFloat(r.newWeight),
         data_pesagem: defaultDate,
-        observacao: defaultObservation || null
+        observacao: defaultObservation || null,
       }));
 
-      const { error: insertErr } = await supabase
-        .from('pesagens')
-        .insert(payloads);
+      const { error: insertErr } = await supabase.from('pesagens').insert(payloads);
 
-      if (insertErr) throw insertErr;
+      if (insertErr) {
+        throw insertErr;
+      }
 
-      const updatePromises = rowsToInsert.map(r => 
+      const updatePromises = rowsToInsert.map((r) =>
         supabase
           .from('animais')
           .update({ peso_atual: parseFloat(r.newWeight) })
@@ -544,27 +619,38 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       onSaveSuccess();
       onClose();
     } catch (err: any) {
-      alert('❌ Erro ao salvar pesagens em lote: ' + err.message);
+      alert(`❌ Erro ao salvar pesagens em lote: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
-  const filledCount = rows.filter(r => r.newWeight.trim() !== '').length;
+  const filledCount = rows.filter((r) => r.newWeight.trim() !== '').length;
   const pendingCount = rows.length - filledCount;
   const progressPct = rows.length > 0 ? (filledCount / rows.length) * 100 : 0;
-  
-  const typedRows = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
-  const avgNewWeight = typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + parseFloat(r.newWeight), 0) / typedRows.length : 0;
-  const avgGmd = typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + r.gmd, 0) / typedRows.length : 0;
+
+  const typedRows = rows.filter(
+    (r) => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight))
+  );
+  const avgNewWeight =
+    typedRows.length > 0
+      ? typedRows.reduce((sum, r) => sum + parseFloat(r.newWeight), 0) / typedRows.length
+      : 0;
+  const avgGmd =
+    typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + r.gmd, 0) / typedRows.length : 0;
   const totalGain = typedRows.reduce((sum, r) => sum + r.evolucao, 0);
-  const warningCount = typedRows.filter(r => r.isTypoWarning).length;
-  const abateCount = typedRows.filter(r => parseFloat(r.newWeight) >= (activeFarm?.pesoAbateKg || 450)).length;
+  const warningCount = typedRows.filter((r) => r.isTypoWarning).length;
+  const abateCount = typedRows.filter(
+    (r) => parseFloat(r.newWeight) >= (activeFarm?.pesoAbateKg || 450)
+  ).length;
 
   // #1 â€” progress bar color
-  const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? 'hsl(var(--brand))' : 'hsl(38 92% 50%)';
+  const progressColor =
+    progressPct === 100 ? '#10b981' : progressPct >= 50 ? 'hsl(var(--brand))' : 'hsl(38 92% 50%)';
 
   return (
     <SidePanel
@@ -577,69 +663,211 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       hideSubmit={true}
       contentPadding={0}
       customFooter={
-        <div style={{ padding: '0px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+        <div
+          style={{
+            padding: '0px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'nowrap',
+              overflow: 'hidden',
+            }}
+          >
             {rows.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}
+              >
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   Progresso:
                 </span>
-                <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 900,
+                    color: progressColor,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {filledCount}/{rows.length}
                 </span>
-                <div style={{ width: '80px', height: '6px', background: 'hsl(var(--bg-main))', borderRadius: '3px', overflow: 'hidden', display: 'inline-block' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${progressPct}%`,
-                    background: progressPct === 100
-                      ? 'linear-gradient(90deg, #10b981, #059669)'
-                      : progressPct >= 50
-                      ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
-                      : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
+                <div
+                  style={{
+                    width: '80px',
+                    height: '6px',
+                    background: 'hsl(var(--bg-main))',
                     borderRadius: '3px',
-                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }} />
+                    overflow: 'hidden',
+                    display: 'inline-block',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${progressPct}%`,
+                      background:
+                        progressPct === 100
+                          ? 'linear-gradient(90deg, #10b981, #059669)'
+                          : progressPct >= 50
+                            ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
+                            : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
+                      borderRadius: '3px',
+                      transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
                 </div>
-                <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 900,
+                    color: progressColor,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {progressPct.toFixed(0)}%
                 </span>
                 {warningCount > 0 && (
-                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(38 92% 50% / 0.2)', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: '9.5px',
+                      fontWeight: 800,
+                      color: 'hsl(38 92% 50%)',
+                      background: 'hsl(38 92% 50% / 0.1)',
+                      padding: '1px 5px',
+                      borderRadius: '6px',
+                      border: '1px solid hsl(38 92% 50% / 0.2)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     ⚠️ {warningCount}
                   </span>
                 )}
                 {abateCount > 0 && (
-                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(142 71% 45% / 0.2)', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: '9.5px',
+                      fontWeight: 800,
+                      color: '#10b981',
+                      background: 'hsl(142 71% 45% / 0.1)',
+                      padding: '1px 5px',
+                      borderRadius: '6px',
+                      border: '1px solid hsl(142 71% 45% / 0.2)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     🏆 {abateCount}
                   </span>
                 )}
-                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', marginLeft: '4px' }} />
+                <span
+                  style={{
+                    width: '1.5px',
+                    height: '12px',
+                    background: 'hsl(var(--border) / 0.6)',
+                    marginLeft: '4px',
+                  }}
+                />
               </div>
             )}
 
             {filledCount > 0 ? (
               <>
-                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  Média: <strong style={{ color: 'hsl(var(--text-main))' }}>{avgNewWeight.toFixed(1)} kg</strong>
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'hsl(var(--text-muted))',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Média:{' '}
+                  <strong style={{ color: 'hsl(var(--text-main))' }}>
+                    {avgNewWeight.toFixed(1)} kg
+                  </strong>
                 </span>
-                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
-                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  GMD: <strong style={{ color: avgGmd >= 0 ? '#10b981' : '#ef4444' }}>{avgGmd.toFixed(2)} kg/dia</strong>
+                <span
+                  style={{
+                    width: '1.5px',
+                    height: '12px',
+                    background: 'hsl(var(--border) / 0.6)',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'hsl(var(--text-muted))',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  GMD:{' '}
+                  <strong style={{ color: avgGmd >= 0 ? '#10b981' : '#ef4444' }}>
+                    {avgGmd.toFixed(2)} kg/dia
+                  </strong>
                 </span>
-                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
-                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  Ganho total: <strong style={{ color: totalGain >= 0 ? '#10b981' : '#ef4444' }}>{totalGain >= 0 ? `+${totalGain.toFixed(1)}` : totalGain.toFixed(1)} kg</strong>
+                <span
+                  style={{
+                    width: '1.5px',
+                    height: '12px',
+                    background: 'hsl(var(--border) / 0.6)',
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'hsl(var(--text-muted))',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Ganho total:{' '}
+                  <strong style={{ color: totalGain >= 0 ? '#10b981' : '#ef4444' }}>
+                    {totalGain >= 0 ? `+${totalGain.toFixed(1)}` : totalGain.toFixed(1)} kg
+                  </strong>
                 </span>
               </>
             ) : (
-              <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted) / 0.5)', fontWeight: 600 }}>
+              <span
+                style={{
+                  fontSize: '11.5px',
+                  color: 'hsl(var(--text-muted) / 0.5)',
+                  fontWeight: 600,
+                }}
+              >
                 Preencha os pesos para ver as estatísticas
               </span>
             )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button type="button" onClick={onClose} className="glass-btn secondary" style={{ padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="glass-btn secondary"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
               Cancelar
             </button>
             <button
@@ -648,20 +876,34 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
               disabled={isSubmitting || filledCount === 0}
               className="primary-btn"
               style={{
-                padding: '10px 24px', borderRadius: '12px', fontSize: '13px', fontWeight: 900,
+                padding: '10px 24px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 900,
                 cursor: isSubmitting || filledCount === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 opacity: filledCount === 0 ? 0.5 : 1,
-                background: pendingCount > 0 && filledCount > 0 ? 'linear-gradient(135deg, hsl(38 92% 45%), hsl(38 92% 55%))' : undefined,
-                boxShadow: filledCount > 0 ? '0 4px 14px hsl(var(--brand) / 0.3)' : 'none'
+                background:
+                  pendingCount > 0 && filledCount > 0
+                    ? 'linear-gradient(135deg, hsl(38 92% 45%), hsl(38 92% 55%))'
+                    : undefined,
+                boxShadow: filledCount > 0 ? '0 4px 14px hsl(var(--brand) / 0.3)' : 'none',
               }}
             >
               {isSubmitting ? (
-                <><Loader2 size={16} className="spin" /> Salvando...</>
+                <>
+                  <Loader2 size={16} className="spin" /> Salvando...
+                </>
               ) : pendingCount > 0 && filledCount > 0 ? (
-                <><AlertTriangle size={16} /> Salvar {filledCount} de {rows.length}</>
+                <>
+                  <AlertTriangle size={16} /> Salvar {filledCount} de {rows.length}
+                </>
               ) : (
-                <><CheckCircle2 size={16} /> Salvar {filledCount} Pesagens</>
+                <>
+                  <CheckCircle2 size={16} /> Salvar {filledCount} Pesagens
+                </>
               )}
             </button>
           </div>
@@ -670,20 +912,41 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
         {/* â”€â”€ Filters Row â”€â”€ */}
-        <div style={{
-          padding: '20px',
-          background: 'hsl(var(--bg-main) / 0.2)',
-          borderBottom: '1px solid hsl(var(--border) / 0.4)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '20px',
-          alignItems: 'flex-end'
-        }}>
+        <div
+          style={{
+            padding: '20px',
+            background: 'hsl(var(--bg-main) / 0.2)',
+            borderBottom: '1px solid hsl(var(--border) / 0.4)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '20px',
+            alignItems: 'flex-end',
+          }}
+        >
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
               <Layers size={11} style={{ marginRight: '4px' }} /> Filtrar Origem
               {rows.length > 0 && (
-                <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--brand))', background: 'hsl(var(--brand) / 0.1)', padding: '1px 6px', borderRadius: '8px' }}>
+                <span
+                  style={{
+                    marginLeft: '6px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: 'hsl(var(--brand))',
+                    background: 'hsl(var(--brand) / 0.1)',
+                    padding: '1px 6px',
+                    borderRadius: '8px',
+                  }}
+                >
                   {rows.length} animais
                 </span>
               )}
@@ -696,44 +959,101 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 placeholder="Todos os Animais Ativos"
                 options={[
                   { value: '', label: 'Todos os Animais Ativos' },
-                  ...lots.map(l => ({ value: l.id, label: `Lote: ${l.nome}` }))
+                  ...lots.map((l) => ({ value: l.id, label: `Lote: ${l.nome}` })),
                 ]}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
               <TrendingUp size={11} style={{ marginRight: '4px' }} /> Método de Lançamento
             </label>
             <div style={{ position: 'relative' }}>
               <select
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value as any)}
-                style={{ width: '100%', padding: '10px 14px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--text-main))', fontSize: '13px', fontWeight: 700, appearance: 'none', cursor: 'pointer' }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '12px',
+                  color: 'hsl(var(--text-main))',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  appearance: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 <option value="manual">⌨️ Digitação Manual (Teclado)</option>
                 <option value="planilha">📊 Planilha de Manejo (CSV)</option>
                 <option value="smart">🔌 Curral Smart (Balança / RFID)</option>
               </select>
-              <ChevronDown size={14} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
+              <ChevronDown
+                size={14}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'hsl(var(--text-muted))',
+                  pointerEvents: 'none',
+                }}
+              />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
               <Calendar size={11} style={{ marginRight: '4px' }} /> Data da Pesagem Padrão
             </label>
             <DateInput
               type="date"
               value={defaultDate}
               onChange={(e) => setDefaultDate(e.target.value)}
-              style={{ width: '100%', padding: '9px 14px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--text-main))', fontSize: '13px', fontWeight: 700 }}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: 'hsl(var(--bg-card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                color: 'hsl(var(--text-main))',
+                fontSize: '13px',
+                fontWeight: 700,
+              }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
               Observação Padrão (Opcional)
             </label>
             <input
@@ -741,45 +1061,111 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
               placeholder="Ex: Pesagem geral, vacinação de aftosa..."
               value={defaultObservation}
               onChange={(e) => setDefaultObservation(e.target.value)}
-              style={{ width: '100%', padding: '9px 14px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--text-main))', fontSize: '13px', fontWeight: 600 }}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: 'hsl(var(--bg-card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                color: 'hsl(var(--text-main))',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
             />
           </div>
         </div>
 
         {/* Smart Corral Bar */}
         {activeTab === 'smart' && (
-          <div style={{
-            padding: '12px 20px',
-            background: 'hsl(var(--bg-main) / 0.3)',
-            borderBottom: '1px solid hsl(var(--border) / 0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px'
-          }}>
+          <div
+            style={{
+              padding: '12px 20px',
+              background: 'hsl(var(--bg-main) / 0.3)',
+              borderBottom: '1px solid hsl(var(--border) / 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '15px',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: 'hsl(var(--text-muted))',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
                 <Scale size={12} /> Integração Balança:
               </span>
-              <button type="button" onClick={handleConnectScale} className="glass-btn" style={{
-                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, cursor: 'pointer',
-                border: scaleConnected ? '1px solid #10b981' : '1px solid hsl(var(--border))',
-                background: scaleConnected ? 'rgba(16, 185, 129, 0.1)' : 'hsl(var(--bg-card))',
-                color: scaleConnected ? '#10b981' : 'hsl(var(--text-main))',
-                display: 'inline-flex', alignItems: 'center', gap: '6px'
-              }}>
-                {scaleConnected ? `ðŸŸ¢ Balança ${scaleBrand} - ${scaleType} Ativa` : 'ðŸ”Œ Conectar Balança Bluetooth'}
+              <button
+                type="button"
+                onClick={handleConnectScale}
+                className="glass-btn"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  border: scaleConnected ? '1px solid #10b981' : '1px solid hsl(var(--border))',
+                  background: scaleConnected ? 'rgba(16, 185, 129, 0.1)' : 'hsl(var(--bg-card))',
+                  color: scaleConnected ? '#10b981' : 'hsl(var(--text-main))',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {scaleConnected
+                  ? `ðŸŸ¢ Balança ${scaleBrand} - ${scaleType} Ativa`
+                  : 'ðŸ”Œ Conectar Balança Bluetooth'}
               </button>
               {scaleConnected && (
-                <button type="button" onClick={handleScaleTriggerWeight} className="primary-btn animate-pulse" style={{
-                  padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 900, cursor: 'pointer',
-                  background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
-                  color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  boxShadow: '0 0 10px hsl(var(--brand) / 0.3)'
-                }}>
-                  âš–ï¸ Pesar Animal {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
+                <button
+                  type="button"
+                  onClick={handleScaleTriggerWeight}
+                  className="primary-btn animate-pulse"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    background:
+                      'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 0 10px hsl(var(--brand) / 0.3)',
+                  }}
+                >
+                  âš–ï¸ Pesar Animal{' '}
+                  {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
                 </button>
               )}
             </div>
-            <form onSubmit={handleRfidScan} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <form
+              onSubmit={handleRfidScan}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: 'hsl(var(--text-muted))',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
                 <Award size={12} /> Bastão RFID:
               </span>
               <input
@@ -787,7 +1173,17 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 placeholder="Digite Brinco e dê Enter"
                 value={rfidSearch}
                 onChange={(e) => setRfidSearch(e.target.value)}
-                style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, width: '200px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--text-main))', outline: 'none' }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  width: '200px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--text-main))',
+                  outline: 'none',
+                }}
               />
             </form>
           </div>
@@ -795,49 +1191,174 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
         {/* Planilha Bar */}
         {activeTab === 'planilha' && (
-          <div style={{
-            padding: '12px 20px',
-            background: 'hsl(var(--bg-main) / 0.4)',
-            borderBottom: '1px solid hsl(var(--border) / 0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '20px'
-          }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+          <div
+            style={{
+              padding: '12px 20px',
+              background: 'hsl(var(--bg-main) / 0.4)',
+              borderBottom: '1px solid hsl(var(--border) / 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'nowrap',
+              gap: '20px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
               Manejo por Planilha: exporte para Excel, preencha e reimporte!
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               {filledCount > 0 && (
-                <button type="button" onClick={handleClearWeights} className="glass-btn secondary" style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderColor: 'hsl(340 70% 50% / 0.3)', background: 'hsl(340 70% 50% / 0.05)', color: 'hsl(340 70% 50%)', transition: 'all 0.2s' }}>
+                <button
+                  type="button"
+                  onClick={handleClearWeights}
+                  className="glass-btn secondary"
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    borderColor: 'hsl(340 70% 50% / 0.3)',
+                    background: 'hsl(340 70% 50% / 0.05)',
+                    color: 'hsl(340 70% 50%)',
+                    transition: 'all 0.2s',
+                  }}
+                >
                   Limpar Lançamentos
                 </button>
               )}
-              <button type="button" onClick={handleCsvExport} className="glass-btn secondary" style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <button
+                type="button"
+                onClick={handleCsvExport}
+                className="glass-btn secondary"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
                 <Download size={14} /> Exportar Modelo (CSV)
               </button>
-              <button type="button" onClick={() => document.getElementById('batch-csv-upload')?.click()} className="glass-btn secondary" style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderColor: 'hsl(var(--brand) / 0.4)', background: 'hsl(var(--brand) / 0.08)', color: 'hsl(var(--brand))' }}>
+              <button
+                type="button"
+                onClick={() => document.getElementById('batch-csv-upload')?.click()}
+                className="glass-btn secondary"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  borderColor: 'hsl(var(--brand) / 0.4)',
+                  background: 'hsl(var(--brand) / 0.08)',
+                  color: 'hsl(var(--brand))',
+                }}
+              >
                 <Upload size={14} /> Importar Planilha (CSV)
               </button>
-              <input type="file" id="batch-csv-upload" accept=".csv" style={{ display: 'none' }} onChange={handleCsvImport} />
+              <input
+                type="file"
+                id="batch-csv-upload"
+                accept=".csv"
+                style={{ display: 'none' }}
+                onChange={handleCsvImport}
+              />
             </div>
           </div>
         )}
 
         {/* #3 â€” keyboard hint bar */}
         {activeTab === 'manual' && rows.length > 0 && !loadingAnimals && (
-          <div style={{
-            padding: '6px 20px',
-            background: 'hsl(var(--brand) / 0.04)',
-            borderBottom: '1px solid hsl(var(--border) / 0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px'
-          }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div
+            style={{
+              padding: '6px 20px',
+              background: 'hsl(var(--brand) / 0.04)',
+              borderBottom: '1px solid hsl(var(--border) / 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '16px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: 'hsl(var(--text-muted))',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
               <ArrowDown size={10} />
-              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>Enter</span>
+              <span
+                style={{
+                  background: 'hsl(var(--bg-main))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '3px',
+                  padding: '0px 4px',
+                  fontFamily: 'monospace',
+                  fontSize: '10px',
+                }}
+              >
+                Enter
+              </span>
               ou
-              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>â†“</span>
+              <span
+                style={{
+                  background: 'hsl(var(--bg-main))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '3px',
+                  padding: '0px 4px',
+                  fontFamily: 'monospace',
+                  fontSize: '10px',
+                }}
+              >
+                â†“
+              </span>
               avança para o próximo animal
             </span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>â†‘</span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: 'hsl(var(--text-muted))',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span
+                style={{
+                  background: 'hsl(var(--bg-main))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '3px',
+                  padding: '0px 4px',
+                  fontFamily: 'monospace',
+                  fontSize: '10px',
+                }}
+              >
+                â†‘
+              </span>
               volta ao anterior
             </span>
           </div>
@@ -846,25 +1367,121 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         {/* â”€â”€ Animals Grid â”€â”€ */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0', minHeight: '300px' }}>
           {loadingAnimals ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '240px',
+                gap: '12px',
+              }}
+            >
               <Loader2 size={32} className="spin" color="hsl(var(--brand))" />
-              <span style={{ fontSize: '13px', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>Buscando animais da fazenda...</span>
+              <span style={{ fontSize: '13px', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>
+                Buscando animais da fazenda...
+              </span>
             </div>
           ) : rows.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: 'hsl(var(--text-muted))', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '240px',
+                color: 'hsl(var(--text-muted))',
+                gap: '8px',
+              }}
+            >
               <Scale size={36} style={{ opacity: 0.4 }} />
-              <span style={{ fontSize: '13px', fontWeight: 700 }}>Nenhum animal ativo encontrado nesta seleção.</span>
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>
+                Nenhum animal ativo encontrado nesta seleção.
+              </span>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-                <tr style={{ background: 'hsl(var(--bg-card))', borderBottom: '2px solid hsl(var(--border))' }}>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', width: '260px' }}>Animal / Brinco</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Peso Anterior (kg)</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '160px' }}>Novo Peso (kg | @)</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Evolução (kg)</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>GMD Projetado</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '200px' }}>Status / Predição</th>
+                <tr
+                  style={{
+                    background: 'hsl(var(--bg-card))',
+                    borderBottom: '2px solid hsl(var(--border))',
+                  }}
+                >
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      width: '260px',
+                    }}
+                  >
+                    Animal / Brinco
+                  </th>
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Peso Anterior (kg)
+                  </th>
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                      width: '160px',
+                    }}
+                  >
+                    Novo Peso (kg | @)
+                  </th>
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Evolução (kg)
+                  </th>
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                    }}
+                  >
+                    GMD Projetado
+                  </th>
+                  <th
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '11px',
+                      fontWeight: 900,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                      width: '200px',
+                    }}
+                  >
+                    Status / Predição
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -876,43 +1493,109 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
                   let rowBg = 'transparent';
                   let rowBorder = '1px solid hsl(var(--border) / 0.4)';
-                  if (isFocused) { rowBg = 'hsl(var(--brand) / 0.04)'; rowBorder = '1px solid hsl(var(--brand) / 0.15)'; }
-                  else if (row.isTypoWarning) { rowBg = 'hsl(38 92% 50% / 0.04)'; }
-                  else if (isPesado) { rowBg = 'hsl(142 71% 45% / 0.03)'; }
+                  if (isFocused) {
+                    rowBg = 'hsl(var(--brand) / 0.04)';
+                    rowBorder = '1px solid hsl(var(--brand) / 0.15)';
+                  } else if (row.isTypoWarning) {
+                    rowBg = 'hsl(38 92% 50% / 0.04)';
+                  } else if (isPesado) {
+                    rowBg = 'hsl(142 71% 45% / 0.03)';
+                  }
 
                   return (
-                    <tr key={row.animal_id} style={{ borderBottom: rowBorder, background: rowBg, transition: 'all 0.15s' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
+                    <tr
+                      key={row.animal_id}
+                      style={{
+                        borderBottom: rowBorder,
+                        background: rowBg,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 800,
+                          color: 'hsl(var(--text-main))',
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{
-                            width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
-                            background: isFocused ? 'hsl(var(--brand))' :
-                              row.isTypoWarning ? 'hsl(38 92% 50%)' :
-                              isPesado ? '#10b981' : 'hsl(var(--border))',
-                            boxShadow: isFocused ? '0 0 6px hsl(var(--brand) / 0.5)' :
-                              isPesado && !row.isTypoWarning ? '0 0 4px hsl(142 71% 45% / 0.4)' : 'none',
-                            transition: 'all 0.2s'
-                          }} />
-                          <span style={{ fontSize: '12px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', padding: '4px 10px', borderRadius: '8px', fontWeight: 800 }}>
+                          <span
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              flexShrink: 0,
+                              background: isFocused
+                                ? 'hsl(var(--brand))'
+                                : row.isTypoWarning
+                                  ? 'hsl(38 92% 50%)'
+                                  : isPesado
+                                    ? '#10b981'
+                                    : 'hsl(var(--border))',
+                              boxShadow: isFocused
+                                ? '0 0 6px hsl(var(--brand) / 0.5)'
+                                : isPesado && !row.isTypoWarning
+                                  ? '0 0 4px hsl(142 71% 45% / 0.4)'
+                                  : 'none',
+                              transition: 'all 0.2s',
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              background: 'hsl(var(--brand) / 0.1)',
+                              color: 'hsl(var(--brand))',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontWeight: 800,
+                            }}
+                          >
                             #{row.brinco}
                           </span>
                           {isPesado && (
-                            <CheckCircle2 size={14} style={{ color: row.isTypoWarning ? 'hsl(38 92% 50%)' : '#10b981', flexShrink: 0 }} />
+                            <CheckCircle2
+                              size={14}
+                              style={{
+                                color: row.isTypoWarning ? 'hsl(38 92% 50%)' : '#10b981',
+                                flexShrink: 0,
+                              }}
+                            />
                           )}
                         </div>
                       </td>
 
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'hsl(var(--text-muted))',
+                          textAlign: 'center',
+                        }}
+                      >
                         {row.lastWeight ? `${row.lastWeight.toFixed(2)} kg` : 'N/A'}
                         {row.lastDate && (
-                          <div style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted) / 0.6)', marginTop: '2px' }}>
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              color: 'hsl(var(--text-muted) / 0.6)',
+                              marginTop: '2px',
+                            }}
+                          >
                             {new Date(row.lastDate).toLocaleDateString('pt-BR')}
                           </div>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           <div style={{ position: 'relative', width: '100%' }}>
                             <input
                               type="number"
@@ -923,31 +1606,58 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                               value={row.newWeight}
                               onChange={(e) => handleWeightChange(index, e.target.value)}
                               onKeyDown={(e) => handleKeyDown(e, index)}
-                              onFocus={() => { setActiveFocusedIndex(index); setFocusedIndex(index); }}
+                              onFocus={() => {
+                                setActiveFocusedIndex(index);
+                                setFocusedIndex(index);
+                              }}
                               onBlur={() => setFocusedIndex(null)}
                               style={{
-                                width: '100%', padding: '8px 45px 8px 12px',
-                                background: isFocused ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
+                                width: '100%',
+                                padding: '8px 45px 8px 12px',
+                                background: isFocused
+                                  ? 'hsl(var(--brand) / 0.05)'
+                                  : 'hsl(var(--bg-card))',
                                 border: row.isTimeTravelWarning
                                   ? '1.5px solid #ef4444'
                                   : row.isTypoWarning
-                                  ? '1.5px solid hsl(38 92% 50%)'
-                                  : isFocused
-                                  ? '1.5px solid hsl(var(--brand))'
-                                  : isPesado
-                                  ? '1.5px solid hsl(142 71% 45% / 0.4)'
-                                  : '1px solid hsl(var(--border))',
+                                    ? '1.5px solid hsl(38 92% 50%)'
+                                    : isFocused
+                                      ? '1.5px solid hsl(var(--brand))'
+                                      : isPesado
+                                        ? '1.5px solid hsl(142 71% 45% / 0.4)'
+                                        : '1px solid hsl(var(--border))',
                                 borderRadius: '8px',
                                 color: 'hsl(var(--text-main))',
-                                fontSize: '14px', fontWeight: 800, textAlign: 'center', outline: 'none',
-                                boxShadow: row.isTimeTravelWarning ? '0 0 0 3px rgba(239, 68, 68, 0.15)' :
-                                  row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' :
-                                  isFocused ? '0 0 0 3px hsl(var(--brand) / 0.12)' : 'none',
-                                transition: 'all 0.15s'
+                                fontSize: '14px',
+                                fontWeight: 800,
+                                textAlign: 'center',
+                                outline: 'none',
+                                boxShadow: row.isTimeTravelWarning
+                                  ? '0 0 0 3px rgba(239, 68, 68, 0.15)'
+                                  : row.isTypoWarning
+                                    ? '0 0 0 3px hsl(38 92% 50% / 0.15)'
+                                    : isFocused
+                                      ? '0 0 0 3px hsl(var(--brand) / 0.12)'
+                                      : 'none',
+                                transition: 'all 0.15s',
                               }}
                             />
                             {row.arrobas > 0 && !row.isTimeTravelWarning && (
-                              <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand) / 0.1)', padding: '3px 6px', borderRadius: '4px', pointerEvents: 'none' }}>
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  right: '6px',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  color: 'hsl(var(--brand))',
+                                  background: 'hsl(var(--brand) / 0.1)',
+                                  padding: '3px 6px',
+                                  borderRadius: '4px',
+                                  pointerEvents: 'none',
+                                }}
+                              >
                                 {row.arrobas.toFixed(1)} @
                               </div>
                             )}
@@ -962,62 +1672,172 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
                         {row.newWeight && !row.isTimeTravelWarning ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <span style={{
-                              fontSize: '13px', fontWeight: 900,
-                              color: row.evolucao > 0 ? '#10b981' : row.evolucao < 0 ? '#ef4444' : 'hsl(var(--text-muted))'
-                            }}>
-                              {row.evolucao > 0 ? '+' : ''}{row.evolucao.toFixed(2)} kg
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: 900,
+                                color:
+                                  row.evolucao > 0
+                                    ? '#10b981'
+                                    : row.evolucao < 0
+                                      ? '#ef4444'
+                                      : 'hsl(var(--text-muted))',
+                              }}
+                            >
+                              {row.evolucao > 0 ? '+' : ''}
+                              {row.evolucao.toFixed(2)} kg
                             </span>
                           </div>
                         ) : (
-                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>--</span>
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>
+                            --
+                          </span>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
                         {row.newWeight && !row.isTimeTravelWarning ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <span style={{
-                              fontSize: '13px', fontWeight: 900,
-                              color: row.gmd > 0 ? '#10b981' : row.gmd < 0 ? '#ef4444' : 'hsl(var(--text-muted))'
-                            }}>
-                              {row.gmd > 0 ? '+' : ''}{row.gmd.toFixed(3)} kg/d
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: 900,
+                                color:
+                                  row.gmd > 0
+                                    ? '#10b981'
+                                    : row.gmd < 0
+                                      ? '#ef4444'
+                                      : 'hsl(var(--text-muted))',
+                              }}
+                            >
+                              {row.gmd > 0 ? '+' : ''}
+                              {row.gmd.toFixed(3)} kg/d
                             </span>
                           </div>
                         ) : (
-                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>--</span>
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>
+                            --
+                          </span>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         {!isPesado ? (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', padding: '4px 10px', background: 'hsl(var(--bg-main))', borderRadius: '12px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: 'hsl(var(--text-muted))',
+                              padding: '4px 10px',
+                              background: 'hsl(var(--bg-main))',
+                              borderRadius: '12px',
+                            }}
+                          >
                             Pendente
                           </span>
                         ) : row.isTimeTravelWarning ? (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#ef4444', padding: '4px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: '#ef4444',
+                              padding: '4px 10px',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              borderRadius: '12px',
+                            }}
+                          >
                             Bloqueado (Data)
                           </span>
                         ) : row.isTypoWarning ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(38 92% 50%)', padding: '4px 10px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: 'hsl(38 92% 50%)',
+                                padding: '4px 10px',
+                                background: 'hsl(38 92% 50% / 0.1)',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                justifyContent: 'center',
+                              }}
+                            >
                               <AlertTriangle size={12} /> Divergência
                             </span>
-                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'hsl(38 92% 50%)', textTransform: 'uppercase' }}>
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                color: 'hsl(38 92% 50%)',
+                                textTransform: 'uppercase',
+                              }}
+                            >
                               {row.evolucao > 0 ? 'Ganho > 30%' : 'Perda > 30%'}
                             </span>
                           </div>
                         ) : row.isAbate ? (
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              color: '#10b981',
+                              padding: '4px 10px',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              justifyContent: 'center',
+                            }}
+                          >
                             🏆 Ponto de Abate
                           </span>
                         ) : row.diasParaAbate !== null ? (
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', padding: '4px 10px', background: 'hsl(var(--brand) / 0.1)', borderRadius: '12px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              color: 'hsl(var(--brand))',
+                              padding: '4px 10px',
+                              background: 'hsl(var(--brand) / 0.1)',
+                              borderRadius: '12px',
+                            }}
+                          >
                             ⏳ Faltam {row.diasParaAbate}d
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: '#10b981',
+                              padding: '4px 10px',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              borderRadius: '12px',
+                            }}
+                          >
                             Pesado
                           </span>
                         )}
@@ -1032,51 +1852,138 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
         {/* #7 â€” Summary panel before save */}
         {showSummary && filledCount > 0 && (
-          <div style={{
-            padding: '16px 20px',
-            background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, hsl(var(--brand) / 0.02) 100%)',
-            borderTop: '1.5px dashed hsl(var(--brand) / 0.3)',
-            borderBottom: '1px solid hsl(var(--border) / 0.5)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          <div
+            style={{
+              padding: '16px 20px',
+              background:
+                'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, hsl(var(--brand) / 0.02) 100%)',
+              borderTop: '1.5px dashed hsl(var(--brand) / 0.3)',
+              borderBottom: '1px solid hsl(var(--border) / 0.5)',
+            }}
+          >
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}
+            >
               <BarChart2 size={16} style={{ color: 'hsl(var(--brand))' }} />
-              <span style={{ fontSize: '12px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase' }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 900,
+                  color: 'hsl(var(--brand))',
+                  textTransform: 'uppercase',
+                }}
+              >
                 Resumo da Sessão — Confirme antes de salvar
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '12px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '16px',
+                marginBottom: '12px',
+              }}
+            >
               {[
-                { label: 'Pesados', value: `${filledCount}/${rows.length}`, color: 'hsl(var(--brand))' },
-                { label: 'Pendentes', value: `${pendingCount} animais`, color: pendingCount > 0 ? 'hsl(38 92% 50%)' : '#10b981' },
-                { label: 'Peso Médio', value: `${avgNewWeight.toFixed(1)} kg`, color: 'hsl(var(--text-main))' },
-                { label: 'GMD Médio', value: `${avgGmd.toFixed(2)} kg/dia`, color: avgGmd >= 0.8 ? '#10b981' : avgGmd >= 0.4 ? 'hsl(38 92% 50%)' : '#ef4444' },
-                { label: 'Ganho Total', value: `${totalGain >= 0 ? '+' : ''}${totalGain.toFixed(1)} kg`, color: totalGain >= 0 ? '#10b981' : '#ef4444' },
+                {
+                  label: 'Pesados',
+                  value: `${filledCount}/${rows.length}`,
+                  color: 'hsl(var(--brand))',
+                },
+                {
+                  label: 'Pendentes',
+                  value: `${pendingCount} animais`,
+                  color: pendingCount > 0 ? 'hsl(38 92% 50%)' : '#10b981',
+                },
+                {
+                  label: 'Peso Médio',
+                  value: `${avgNewWeight.toFixed(1)} kg`,
+                  color: 'hsl(var(--text-main))',
+                },
+                {
+                  label: 'GMD Médio',
+                  value: `${avgGmd.toFixed(2)} kg/dia`,
+                  color: avgGmd >= 0.8 ? '#10b981' : avgGmd >= 0.4 ? 'hsl(38 92% 50%)' : '#ef4444',
+                },
+                {
+                  label: 'Ganho Total',
+                  value: `${totalGain >= 0 ? '+' : ''}${totalGain.toFixed(1)} kg`,
+                  color: totalGain >= 0 ? '#10b981' : '#ef4444',
+                },
               ].map((s, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '4px' }}>{s.label}</div>
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    {s.label}
+                  </div>
                   <div style={{ fontSize: '16px', fontWeight: 900, color: s.color }}>{s.value}</div>
                 </div>
               ))}
             </div>
             {pendingCount > 0 && (
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(38 92% 50%)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'hsl(38 92% 50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
                 <AlertTriangle size={12} />
-                {pendingCount} animal{pendingCount > 1 ? 'is' : ''} sem peso serão ignorados. Somente {filledCount} pesagens serão salvas.
+                {pendingCount} animal{pendingCount > 1 ? 'is' : ''} sem peso serão ignorados.
+                Somente {filledCount} pesagens serão salvas.
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-              <button type="button" onClick={() => setShowSummary(false)} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid hsl(var(--border))', background: 'transparent', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+              <button
+                type="button"
+                onClick={() => setShowSummary(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid hsl(var(--border))',
+                  background: 'transparent',
+                  color: 'hsl(var(--text-muted))',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
                 Voltar e Corrigir
               </button>
-              <button type="button" onClick={handleSubmit} disabled={isSubmitting} style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', background: 'hsl(var(--brand))', color: '#fff', fontSize: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'hsl(var(--brand))',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
                 {isSubmitting ? <Loader2 size={13} className="spin" /> : <CheckCircle2 size={13} />}
                 Confirmar e Salvar {filledCount} Pesagens
               </button>
             </div>
           </div>
         )}
-
-
 
         <style>{`
           .batch-row-hover:hover { background: hsl(var(--brand) / 0.02) !important; }

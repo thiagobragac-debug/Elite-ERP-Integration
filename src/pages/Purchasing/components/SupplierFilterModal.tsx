@@ -1,5 +1,15 @@
 import React from 'react';
-import { X, Filter, Check, Star, Building2, Briefcase, DollarSign, MapPin, Calendar } from 'lucide-react';
+import {
+  X,
+  Filter,
+  Check,
+  Star,
+  Building2,
+  Briefcase,
+  DollarSign,
+  MapPin,
+  Calendar,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -14,9 +24,11 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
   isOpen,
   onClose,
   filters,
-  setFilters
+  setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const categories = ['Peças', 'Insumos', 'Combustíveis', 'Serviços', 'Maquinário', 'Logística'];
   const ratingOptions = [1, 2, 3, 4, 5];
@@ -39,18 +51,36 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div 
+    <div
+      className="tauze-sidebar-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="tauze-sidebar-modal"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="tauze-sidebar-header">
-          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
+          <div
+            className="header-content"
+            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+          >
+            <div
+              className="icon-wrapper primary"
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#3b82f6',
+              }}
+            >
               <Building2 size={20} />
             </div>
             <div>
@@ -58,8 +88,15 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
               <p>Auditoria de performance e homologação.</p>
             </div>
           </div>
-          <button 
-            style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
+          <button
+            style={{
+              color: '#94a3b8',
+              background: 'rgba(255,255,255,0.05)',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px',
+              cursor: 'pointer',
+            }}
             onClick={onClose}
           >
             <X size={20} />
@@ -68,26 +105,28 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Rating Mínimo <Star size={14} /></label>
+            <label className="tauze-filter-label">
+              Rating Mínimo <Star size={14} />
+            </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {ratingOptions.map(r => (
-                <button 
+              {ratingOptions.map((r) => (
+                <button
                   key={r}
-                  style={{ 
+                  style={{
                     flex: 1,
-                    padding: '12px 8px', 
-                    fontSize: '12px', 
-                    fontWeight: 800, 
-                    color: filters.minRating >= r ? '#f59e0b' : 'hsl(var(--text-muted))', 
-                    background: filters.minRating >= r ? '#fffbeb' : 'transparent', 
-                    borderRadius: '10px', 
+                    padding: '12px 8px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    color: filters.minRating >= r ? '#f59e0b' : 'hsl(var(--text-muted))',
+                    background: filters.minRating >= r ? '#fffbeb' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.minRating >= r ? '#f59e0b' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: '4px',
                   }}
                   onClick={() => setFilters({ ...filters, minRating: r })}
                 >
@@ -99,17 +138,23 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Categorias de Serviço <Briefcase size={14} /></label>
+            <label className="tauze-filter-label">
+              Categorias de Serviço <Briefcase size={14} />
+            </label>
             <div className="tauze-tag-cloud">
-              {categories.map(cat => (
-                <button 
+              {categories.map((cat) => (
+                <button
                   key={cat}
                   className={`tauze-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategory(cat)}
-                  style={{ 
-                    borderColor: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--border))', 
-                    background: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--bg-card))',
-                    color: filters.categories?.includes(cat) ? 'white' : 'hsl(var(--text-muted))'
+                  style={{
+                    borderColor: filters.categories?.includes(cat)
+                      ? '#3b82f6'
+                      : 'hsl(var(--border))',
+                    background: filters.categories?.includes(cat)
+                      ? '#3b82f6'
+                      : 'hsl(var(--bg-card))',
+                    color: filters.categories?.includes(cat) ? 'white' : 'hsl(var(--text-muted))',
                   }}
                 >
                   {cat}
@@ -119,40 +164,60 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Volume de Transação (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxSpend.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Gasto Acumulado</span>
+            <label className="tauze-filter-label">
+              Volume de Transação (R$) <DollarSign size={14} />
+            </label>
+            <div
+              className="integrity-slider-container"
+              style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>
+                  {filters.maxSpend.toLocaleString('pt-BR')}
+                </span>
+                <span
+                  style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}
+                >
+                  Gasto Acumulado
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="1000000" 
+              <input
+                type="range"
+                min="0"
+                max="1000000"
                 step="50000"
                 value={filters.maxSpend}
-                onChange={e => setFilters({ ...filters, maxSpend: parseInt(e.target.value) })}
+                onChange={(e) => setFilters({ ...filters, maxSpend: parseInt(e.target.value) })}
                 style={{ width: '100%', accentColor: '#3b82f6', height: '6px', cursor: 'pointer' }}
               />
             </div>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status do Parceiro <Check size={14} /></label>
+            <label className="tauze-filter-label">
+              Status do Parceiro <Check size={14} />
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {['ATIVO', 'INATIVO'].map(s => (
-                <button 
+              {['ATIVO', 'INATIVO'].map((s) => (
+                <button
                   key={s}
-                  style={{ 
-                    padding: '12px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    color: filters.status === s ? '#10b981' : 'hsl(var(--text-muted))', 
-                    background: filters.status === s ? '#f0fdf4' : 'transparent', 
-                    borderRadius: '10px', 
+                  style={{
+                    padding: '12px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: filters.status === s ? '#10b981' : 'hsl(var(--text-muted))',
+                    background: filters.status === s ? '#f0fdf4' : 'transparent',
+                    borderRadius: '10px',
                     border: '1px solid',
                     borderColor: filters.status === s ? '#10b981' : 'hsl(var(--border))',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                   onClick={() => setFilters({ ...filters, status: s })}
                 >
@@ -164,8 +229,16 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
         </div>
 
         <div className="tauze-sidebar-footer">
-          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
-          <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
+          <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>
+            LIMPAR
+          </button>
+          <button
+            className="primary-btn"
+            style={{ flex: 1, background: '#3b82f6' }}
+            onClick={onClose}
+          >
+            APLICAR
+          </button>
         </div>
       </motion.div>
     </div>,

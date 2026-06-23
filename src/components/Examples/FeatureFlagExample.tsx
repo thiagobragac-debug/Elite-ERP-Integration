@@ -10,16 +10,8 @@ import { useFeatureFlag, FeatureFlag, useFeatureFlags } from '../../lib/featureF
  */
 export function DashboardExample() {
   const hasNewDashboard = useFeatureFlag('newDashboard');
-  
-  return (
-    <div>
-      {hasNewDashboard ? (
-        <NewDashboard />
-      ) : (
-        <OldDashboard />
-      )}
-    </div>
-  );
+
+  return <div>{hasNewDashboard ? <NewDashboard /> : <OldDashboard />}</div>;
 }
 
 /**
@@ -29,12 +21,9 @@ export function AIExample() {
   return (
     <div>
       <h2>Análise de Dados</h2>
-      
+
       {/* Feature flag com fallback */}
-      <FeatureFlag 
-        flag="aiRecommendations"
-        fallback={<p>Recomendações em breve...</p>}
-      >
+      <FeatureFlag flag="aiRecommendations" fallback={<p>Recomendações em breve...</p>}>
         <AIRecommendations />
       </FeatureFlag>
     </div>
@@ -46,7 +35,7 @@ export function AIExample() {
  */
 export function AdvancedExample() {
   const flags = useFeatureFlags();
-  
+
   return (
     <div>
       {flags.bulkImport && <BulkImportButton />}
@@ -62,11 +51,11 @@ export function AdvancedExample() {
 export function SettingsExample() {
   const hasWhatsApp = useFeatureFlag('whatsappIntegration');
   const hasBeta = useFeatureFlag('betaFeatures');
-  
+
   return (
     <div className="settings-panel">
       <h3>Integrações</h3>
-      
+
       {hasWhatsApp && (
         <div className="integration-card">
           <h4>WhatsApp Business</h4>
@@ -74,7 +63,7 @@ export function SettingsExample() {
           <button>Configurar</button>
         </div>
       )}
-      
+
       {hasBeta && (
         <div className="beta-section">
           <h4>🧪 Features Beta</h4>
@@ -86,9 +75,21 @@ export function SettingsExample() {
 }
 
 // Componentes de exemplo (substituir pelos reais)
-function NewDashboard() { return <div>Dashboard v2 🎉</div>; }
-function OldDashboard() { return <div>Dashboard v1</div>; }
-function AIRecommendations() { return <div>🤖 Recomendações IA</div>; }
-function BulkImportButton() { return <button>Importação em Massa</button>; }
-function AdvancedExportButton() { return <button>Exportação Avançada</button>; }
-function CustomReportsLink() { return <a href="/relatorios/custom">Relatórios Customizados</a>; }
+function NewDashboard() {
+  return <div>Dashboard v2 🎉</div>;
+}
+function OldDashboard() {
+  return <div>Dashboard v1</div>;
+}
+function AIRecommendations() {
+  return <div>🤖 Recomendações IA</div>;
+}
+function BulkImportButton() {
+  return <button>Importação em Massa</button>;
+}
+function AdvancedExportButton() {
+  return <button>Exportação Avançada</button>;
+}
+function CustomReportsLink() {
+  return <a href="/relatorios/custom">Relatórios Customizados</a>;
+}

@@ -7,20 +7,20 @@ import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../../contexts/TenantContext', () => ({
-  useTenant: () => ({ tenant: { id: 'tenant-1' } })
+  useTenant: () => ({ tenant: { id: 'tenant-1' } }),
 }));
 
 vi.mock('../../hooks/usePersistentState', () => ({
   usePersistentState: (key: string, initialValue: any) => {
     const [state, setState] = React.useState(initialValue);
     return [state, setState];
-  }
+  },
 }));
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
-    ...actual as any,
+    ...(actual as any),
     useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
     useMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
     useQuery: vi.fn((options: any) => {
@@ -28,14 +28,19 @@ vi.mock('@tanstack/react-query', async () => {
       if (key === 'ncms') {
         return {
           data: [
-            { id: '1', codigo: '3105.20.00', descricao: 'Adubos (fertilizantes) minerais ou químicos', is_active: true },
-            { id: '2', codigo: '1005.90.10', descricao: 'Milho em grão', is_active: false }
+            {
+              id: '1',
+              codigo: '3105.20.00',
+              descricao: 'Adubos (fertilizantes) minerais ou químicos',
+              is_active: true,
+            },
+            { id: '2', codigo: '1005.90.10', descricao: 'Milho em grão', is_active: false },
           ],
-          isLoading: false
+          isLoading: false,
         };
       }
       return { data: [], isLoading: false };
-    })
+    }),
   };
 });
 
@@ -60,7 +65,7 @@ describe('InventorySettings (NcmSettingsTab)', () => {
     renderComponent();
     expect(screen.getAllByText('3105.20.00').length).toBeGreaterThan(0);
     expect(screen.getAllByText('1005.90.10').length).toBeGreaterThan(0);
-    
+
     // Status
     expect(screen.getByText('ATIVO')).toBeInTheDocument();
     expect(screen.getByText('INATIVO')).toBeInTheDocument();
@@ -74,7 +79,7 @@ describe('InventorySettings (NcmSettingsTab)', () => {
         </MemoryRouter>
       </QueryClientProvider>
     );
-    
+
     // Rerender with triggerImport > 0
     rerender(
       <QueryClientProvider client={queryClient}>
@@ -83,7 +88,7 @@ describe('InventorySettings (NcmSettingsTab)', () => {
         </MemoryRouter>
       </QueryClientProvider>
     );
-    
+
     expect(screen.getAllByText('Importador da Receita').length).toBeGreaterThan(0);
   });
 });

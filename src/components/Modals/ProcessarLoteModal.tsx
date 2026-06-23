@@ -146,9 +146,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
       return;
     }
 
-    const savePromise = new Promise<void>((resolve) =>
-      setTimeout(() => resolve(), 2000)
-    );
+    const savePromise = new Promise<void>((resolve) => setTimeout(() => resolve(), 2000));
 
     toast.promise(savePromise, {
       loading: 'Finalizando lote…',
@@ -163,7 +161,9 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
   };
 
   /* ── Early return ── */
-  if (!lote) return null;
+  if (!lote) {
+    return null;
+  }
 
   /* ── Inline styles ── */
   const styles = {
@@ -205,8 +205,8 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           processados >= quantidadeNota
             ? 'linear-gradient(90deg, #10b981, #059669)'
             : processados > 0
-            ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.7))'
-            : 'transparent',
+              ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.7))'
+              : 'transparent',
         borderRadius: '99px',
         transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       } as React.CSSProperties,
@@ -233,13 +233,11 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           background: highlight
             ? 'linear-gradient(135deg, hsl(142 71% 45% / 0.12), hsl(142 71% 45% / 0.06))'
             : 'hsl(var(--bg-main))',
-          border: highlight
-            ? '1px solid hsl(142 71% 45% / 0.35)'
-            : '1px solid hsl(var(--border))',
+          border: highlight ? '1px solid hsl(142 71% 45% / 0.35)' : '1px solid hsl(var(--border))',
           display: 'flex',
           flexDirection: 'column' as const,
           gap: '6px',
-        } as React.CSSProperties),
+        }) as React.CSSProperties,
       icon: (highlight: boolean) =>
         ({
           display: 'flex',
@@ -250,14 +248,14 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           color: highlight ? '#10b981' : 'hsl(var(--text-muted))',
           textTransform: 'uppercase' as const,
           letterSpacing: '0.05em',
-        } as React.CSSProperties),
+        }) as React.CSSProperties,
       value: (highlight: boolean) =>
         ({
           fontSize: highlight ? '22px' : '18px',
           fontWeight: 900,
           color: highlight ? '#10b981' : 'hsl(var(--text-main))',
           lineHeight: 1.1,
-        } as React.CSSProperties),
+        }) as React.CSSProperties,
       sub: {
         fontSize: '11px',
         color: 'hsl(var(--text-muted))',
@@ -404,7 +402,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           padding: '2px 8px',
           borderRadius: '6px',
           whiteSpace: 'nowrap' as const,
-        } as React.CSSProperties),
+        }) as React.CSSProperties,
       removeBtn: {
         marginLeft: 'auto',
         background: 'transparent',
@@ -473,9 +471,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           alignItems: 'center',
           gap: '8px',
           padding: '12px 28px',
-          background: enabled
-            ? 'linear-gradient(135deg, #10b981, #059669)'
-            : 'hsl(var(--border))',
+          background: enabled ? 'linear-gradient(135deg, #10b981, #059669)' : 'hsl(var(--border))',
           color: enabled ? '#fff' : 'hsl(var(--text-muted))',
           border: 'none',
           borderRadius: '12px',
@@ -485,7 +481,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           boxShadow: enabled ? '0 6px 20px rgba(16, 185, 129, 0.35)' : 'none',
           transition: 'all 0.2s',
           opacity: enabled ? 1 : 0.6,
-        } as React.CSSProperties),
+        }) as React.CSSProperties,
     },
   };
 
@@ -496,7 +492,9 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
       onClose={onClose}
       onSubmit={(e) => e.preventDefault()}
       title={`Processar Lote — ${lote.nome}`}
-      subtitle={lote.fornecedor ? `Fornecedor: ${lote.fornecedor}` : 'Cadastro de brincos na chegada'}
+      subtitle={
+        lote.fornecedor ? `Fornecedor: ${lote.fornecedor}` : 'Cadastro de brincos na chegada'
+      }
       icon={Beef}
       size="xlarge"
       hideSubmit
@@ -507,10 +505,8 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
           <div style={styles.footer.counter}>
             <Beef size={15} />
             <span>
-              <strong style={{ color: progressColor }}>{processados}</strong>
-              {' '}de{' '}
-              <strong>{quantidadeNota}</strong>
-              {' '}animais cadastrados
+              <strong style={{ color: progressColor }}>{processados}</strong> de{' '}
+              <strong>{quantidadeNota}</strong> animais cadastrados
             </span>
           </div>
 
@@ -520,7 +516,12 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
               type="button"
               className="glass-btn secondary"
               onClick={onClose}
-              style={{ padding: '11px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
+              style={{
+                padding: '11px 20px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 700,
+              }}
             >
               Cancelar
             </button>
@@ -558,7 +559,6 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
       `}</style>
 
       <div data-procl style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-
         {/* ── Progress bar strip ── */}
         <div style={styles.progressBar.wrapper}>
           <span style={styles.progressBar.label}>Progresso</span>
@@ -575,8 +575,16 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
         </div>
 
         {/* ── Main content ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+          }}
+        >
           {/* ── Cost cards ── */}
           <div style={styles.costCards.wrapper}>
             <div style={styles.costCards.card(false)}>
@@ -584,12 +592,8 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                 <DollarSign size={13} />
                 Custo Total da NF
               </div>
-              <div style={styles.costCards.value(false)}>
-                {fmtBRL(lote.custo_total_aquisicao)}
-              </div>
-              <div style={styles.costCards.sub}>
-                {quantidadeNota} cabeças na nota fiscal
-              </div>
+              <div style={styles.costCards.value(false)}>{fmtBRL(lote.custo_total_aquisicao)}</div>
+              <div style={styles.costCards.sub}>{quantidadeNota} cabeças na nota fiscal</div>
             </div>
 
             <div style={styles.costCards.card(true)}>
@@ -597,12 +601,8 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                 <TrendingDown size={13} />
                 Custo / Cabeça Calculado
               </div>
-              <div style={styles.costCards.value(true)}>
-                {fmtBRL(lote.custo_por_cabeca)}
-              </div>
-              <div style={{ ...styles.costCards.sub, color: '#10b981' }}>
-                por cabeça adquirida
-              </div>
+              <div style={styles.costCards.value(true)}>{fmtBRL(lote.custo_por_cabeca)}</div>
+              <div style={{ ...styles.costCards.sub, color: '#10b981' }}>por cabeça adquirida</div>
             </div>
           </div>
 
@@ -633,7 +633,10 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
               </div>
               <div>
                 <label style={styles.form.label} htmlFor="procl-sisbov">
-                  Brinco SISBOV <span style={{ textTransform: 'none', fontWeight: 500, fontSize: '10px' }}>(opcional)</span>
+                  Brinco SISBOV{' '}
+                  <span style={{ textTransform: 'none', fontWeight: 500, fontSize: '10px' }}>
+                    (opcional)
+                  </span>
                 </label>
                 <input
                   id="procl-sisbov"
@@ -660,7 +663,12 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                   ref={sexoRef}
                   value={form.sexo}
                   onChange={(e) => setForm((f) => ({ ...f, sexo: e.target.value as SexoOption }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); pesoRef.current?.focus(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      pesoRef.current?.focus();
+                    }
+                  }}
                   style={styles.form.select}
                 >
                   <option value="M">Macho</option>
@@ -697,11 +705,18 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                   ref={racaRef}
                   value={form.raca}
                   onChange={(e) => setForm((f) => ({ ...f, raca: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddAnimal(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAnimal();
+                    }
+                  }}
                   style={styles.form.select}
                 >
                   {RACA_OPTIONS.map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -728,19 +743,24 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                 Atenção: Divergência de Quantidade
               </div>
               <p style={styles.warning.msg}>
-                A nota fiscal indica <strong>{quantidadeNota} animais</strong>, mas foram cadastrados{' '}
-                <strong>{processados} animais</strong>.
+                A nota fiscal indica <strong>{quantidadeNota} animais</strong>, mas foram
+                cadastrados <strong>{processados} animais</strong>.
                 {processados < quantidadeNota
                   ? ` Faltam ${quantidadeNota - processados} animais para fechar a NF.`
-                  : ` Foram cadastrados ${processados - quantidadeNota} animais a mais que a NF.`}
-                {' '}Deseja confirmar mesmo assim?
+                  : ` Foram cadastrados ${processados - quantidadeNota} animais a mais que a NF.`}{' '}
+                Deseja confirmar mesmo assim?
               </p>
               <div style={styles.warning.actions}>
                 <button
                   type="button"
                   className="glass-btn secondary"
                   onClick={() => setShowDivergenciaWarning(false)}
-                  style={{ padding: '9px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                  }}
                 >
                   Voltar e corrigir
                 </button>
@@ -790,47 +810,62 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                     style={{
                       ...styles.list.item,
                       borderBottom:
-                        idx < animais.length - 1
-                          ? '1px solid hsl(var(--border) / 0.4)'
-                          : 'none',
+                        idx < animais.length - 1 ? '1px solid hsl(var(--border) / 0.4)' : 'none',
                     }}
                   >
                     {/* Index */}
-                    <span style={{
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      color: 'hsl(var(--text-muted))',
-                      minWidth: '24px',
-                    }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        color: 'hsl(var(--text-muted))',
+                        minWidth: '24px',
+                      }}
+                    >
                       #{idx + 1}
                     </span>
 
                     {/* Brinco */}
                     <span style={styles.list.brinco}>
-                      <Tag size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                      <Tag
+                        size={12}
+                        style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}
+                      />
                       {animal.brinco}
                     </span>
 
                     {/* SISBOV */}
                     {animal.brinco_sisbov && (
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: 'hsl(var(--text-muted))',
-                        maxWidth: '140px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: 'hsl(var(--text-muted))',
+                          maxWidth: '140px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         SISBOV: {animal.brinco_sisbov}
                       </span>
                     )}
 
                     {/* Sexo chip */}
-                    <span style={styles.list.chip(
-                      animal.sexo === 'F' ? '#ec4899' : animal.sexo === 'C' ? 'hsl(var(--brand))' : '#60a5fa',
-                      animal.sexo === 'F' ? 'rgba(236,72,153,0.1)' : animal.sexo === 'C' ? 'hsl(var(--brand)/0.1)' : 'rgba(96,165,250,0.1)'
-                    )}>
+                    <span
+                      style={styles.list.chip(
+                        animal.sexo === 'F'
+                          ? '#ec4899'
+                          : animal.sexo === 'C'
+                            ? 'hsl(var(--brand))'
+                            : '#60a5fa',
+                        animal.sexo === 'F'
+                          ? 'rgba(236,72,153,0.1)'
+                          : animal.sexo === 'C'
+                            ? 'hsl(var(--brand)/0.1)'
+                            : 'rgba(96,165,250,0.1)'
+                      )}
+                    >
                       {SEXO_LABELS[animal.sexo]}
                     </span>
 
@@ -841,8 +876,17 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
 
                     {/* Peso */}
                     {animal.peso_inicial && (
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-main))' }}>
-                        <Scale size={11} style={{ display: 'inline', marginRight: '3px', verticalAlign: 'middle' }} />
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: 'hsl(var(--text-main))',
+                        }}
+                      >
+                        <Scale
+                          size={11}
+                          style={{ display: 'inline', marginRight: '3px', verticalAlign: 'middle' }}
+                        />
                         {animal.peso_inicial} kg
                       </span>
                     )}
@@ -865,13 +909,15 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
 
           {/* Empty state */}
           {animais.length === 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: '32px 24px',
-              borderRadius: '14px',
-              border: '2px dashed hsl(var(--border))',
-              color: 'hsl(var(--text-muted))',
-            }}>
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '32px 24px',
+                borderRadius: '14px',
+                border: '2px dashed hsl(var(--border))',
+                color: 'hsl(var(--text-muted))',
+              }}
+            >
               <Beef size={36} style={{ opacity: 0.2, marginBottom: '12px' }} />
               <p style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
                 Nenhum animal cadastrado ainda.

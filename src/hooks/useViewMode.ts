@@ -33,21 +33,23 @@ export function useViewMode(moduleKey: string, defaultMode: 'list' | 'grid' = 'g
     return defaultMode;
   });
 
-  const setViewModeWithPersistence = useCallback((mode: 'list' | 'grid') => {
-    // Update in-memory cache immediately
-    viewModeCache[moduleKey] = mode;
+  const setViewModeWithPersistence = useCallback(
+    (mode: 'list' | 'grid') => {
+      // Update in-memory cache immediately
+      viewModeCache[moduleKey] = mode;
 
-    // Persist to localStorage for next session
-    try {
-      localStorage.setItem(`tauze_view_mode_${moduleKey}`, mode);
-    } catch (e) {
-      console.warn('[useViewMode] Failed to save to localStorage:', e);
-    }
+      // Persist to localStorage for next session
+      try {
+        localStorage.setItem(`tauze_view_mode_${moduleKey}`, mode);
+      } catch (e) {
+        console.warn('[useViewMode] Failed to save to localStorage:', e);
+      }
 
-    // Update React state
-    setViewMode(mode);
-  }, [moduleKey]);
+      // Update React state
+      setViewMode(mode);
+    },
+    [moduleKey]
+  );
 
   return [viewMode, setViewModeWithPersistence] as const;
 }
-

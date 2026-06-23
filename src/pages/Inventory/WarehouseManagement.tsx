@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Plus, 
-  Search, 
-  Layout, 
-  Boxes, 
-  CheckCircle2, 
+import {
+  Plus,
+  Search,
+  Layout,
+  Boxes,
+  CheckCircle2,
   X,
   Edit3,
   Trash2,
@@ -23,7 +23,7 @@ import {
   ShieldAlert,
   Thermometer,
   Zap,
-  UserCheck
+  UserCheck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -45,30 +45,53 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 export const WarehouseManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
+  const {
+    activeFarm,
+    isGlobalMode,
+    activeFarmId,
+    activeTenantId,
+    applyFarmFilter,
+    applyTenantFilter,
+    canCreate,
+    insertPayload,
+  } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('WarehouseManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState(
+    'WarehouseManagement_isModalOpen',
+    false
+  );
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [viewMode, setViewMode] = useViewMode('inventory-warehouse-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('WarehouseManagement_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'WarehouseManagement_showAdvancedFilters',
+    false
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'Todos';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     occupation: 'all',
-    types: [] as string[]
+    types: [] as string[],
   });
 
-  const [isStockModalOpen, setIsStockModalOpen] = usePersistentState('WarehouseManagement_isStockModalOpen', false);
+  const [isStockModalOpen, setIsStockModalOpen] = usePersistentState(
+    'WarehouseManagement_isStockModalOpen',
+    false
+  );
   const [stockModalWarehouseId, setStockModalWarehouseId] = useState<string | null>(null);
   const [stockModalWarehouseName, setStockModalWarehouseName] = useState<string | null>(null);
 
-
-  
   // Track selected structure type to show dynamic fields
   const [selectedType, setSelectedType] = useState<string>('Galpão');
 
@@ -86,7 +109,10 @@ export const WarehouseManagement: React.FC = () => {
   const { data: warehouses = [], isLoading: loading } = useQuery({
     queryKey: ['warehouses', activeFarmId, activeTenantId, isGlobalMode, page],
     queryFn: async () => {
-      let query = supabase.from('depositos').select(`
+      let query = supabase
+        .from('depositos')
+        .select(
+          `
           *,
           movimentacoes_estoque (
             quantidade,
@@ -96,38 +122,45 @@ export const WarehouseManagement: React.FC = () => {
               custo_medio
             )
           )
-        `, { count: 'exact' }).order('nome', { ascending: true });
+        `,
+          { count: 'exact' }
+        )
+        .order('nome', { ascending: true });
       query = applyFarmFilter(query);
       const range = getRange();
       const { data, count, error } = await query.range(range.from, range.to);
-      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
-      if (error) throw error;
+      if (count !== null && count !== totalCount) {
+        setTimeout(() => setTotalCount(count), 0);
+      }
+      if (error) {
+        throw error;
+      }
 
-      return ((data || []).map((w: any) => {
+      return (data || []).map((w: any) => {
         let valorTotal = 0;
-        const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
-          const qty = Number(curr.quantidade);
-          const tipoUpper = (curr.tipo || '').toUpperCase();
-          const isEntry = tipoUpper === 'IN' || tipoUpper === 'ENTRADA';
-          const prodValue = (curr.produtos?.custo_medio || 0) * qty;
-          
-          if (isEntry) {
-            valorTotal += prodValue;
-            return acc + qty;
-          } else {
+        const saldo =
+          w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
+            const qty = Number(curr.quantidade);
+            const tipoUpper = (curr.tipo || '').toUpperCase();
+            const isEntry = tipoUpper === 'IN' || tipoUpper === 'ENTRADA';
+            const prodValue = (curr.produtos?.custo_medio || 0) * qty;
+
+            if (isEntry) {
+              valorTotal += prodValue;
+              return acc + qty;
+            }
             valorTotal -= prodValue;
             return acc - qty;
-          }
-        }, 0) || 0;
+          }, 0) || 0;
 
-        return { 
-          ...w, 
+        return {
+          ...w,
           saldo_atual: saldo,
-          valor_total: Math.max(0, valorTotal)
+          valor_total: Math.max(0, valorTotal),
         };
-      })) as any[];
+      }) as any[];
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
   // Query 2: Farms
@@ -138,34 +171,52 @@ export const WarehouseManagement: React.FC = () => {
       query = applyTenantFilter(query);
       const range = getRange();
       const { data, error } = await query.range(range.from, range.to);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []) as any[];
     },
-    enabled: !!activeTenantId
+    enabled: !!activeTenantId,
   });
 
   // Query 3: Unidades
   const { data: unidades = [] } = useQuery({
     queryKey: ['warehouse_unidades', activeTenantId],
     queryFn: async () => {
-      let query = supabase.from('categorias_sistema').select('*').eq('modulo', 'unidades').eq('is_active', true).order('nome');
+      let query = supabase
+        .from('categorias_sistema')
+        .select('*')
+        .eq('modulo', 'unidades')
+        .eq('is_active', true)
+        .order('nome');
       query = applyTenantFilter(query);
       const range = getRange();
       const { data, error } = await query.range(range.from, range.to);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []) as any[];
     },
-    enabled: !!activeTenantId
+    enabled: !!activeTenantId,
   });
 
   const saveWarehouseMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedWarehouse) {
-        const { error } = await supabase.from('depositos').update(payload).eq('id', selectedWarehouse.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('depositos')
+          .update(payload)
+          .eq('id', selectedWarehouse.id);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase.from('depositos').insert([{ ...payload, ...insertPayload }]);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('depositos')
+          .insert([{ ...payload, ...insertPayload }]);
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -174,28 +225,32 @@ export const WarehouseManagement: React.FC = () => {
       toast.success(selectedWarehouse ? 'Depósito atualizado!' : 'Depósito cadastrado!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao salvar depósito: ' + err.message);
-    }
+      toast.error(`Erro ao salvar depósito: ${err.message}`);
+    },
   });
 
   const deleteWarehouseMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('depositos').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
       toast.success('Depósito excluído!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao excluir depósito: ' + err.message);
-    }
+      toast.error(`Erro ao excluir depósito: ${err.message}`);
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate && !selectedWarehouse) {
-      toast.error('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      toast.error(
+        '⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.'
+      );
       return;
     }
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -220,11 +275,18 @@ export const WarehouseManagement: React.FC = () => {
 
       if (!balanceError && balanceData) {
         const totalBalance = balanceData.reduce((acc, curr) => {
-          return acc + (curr.tipo === 'IN' || curr.tipo === 'in' ? Number(curr.quantidade) : -Number(curr.quantidade));
+          return (
+            acc +
+            (curr.tipo === 'IN' || curr.tipo === 'in'
+              ? Number(curr.quantidade)
+              : -Number(curr.quantidade))
+          );
         }, 0);
 
         if (totalBalance > 0) {
-          toast.error(`Não é possível inativar o depósito "${selectedWarehouse.nome}" pois ele possui um saldo atual de ${totalBalance} itens em estoque. Zere o estoque antes de inativar.`);
+          toast.error(
+            `Não é possível inativar o depósito "${selectedWarehouse.nome}" pois ele possui um saldo atual de ${totalBalance} itens em estoque. Zere o estoque antes de inativar.`
+          );
           return;
         }
       }
@@ -234,13 +296,21 @@ export const WarehouseManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir este depósito?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Tem certeza que deseja excluir este depósito?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteWarehouseMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = filteredWarehouses.map(item => ({
+    const exportData = filteredWarehouses.map((item) => ({
       Nome: item.nome,
       Tipo: item.tipo,
       Status: item.status,
@@ -248,26 +318,35 @@ export const WarehouseManagement: React.FC = () => {
       Saldo_Atual: item.saldo_atual,
       Unidade: item.unidade_capacidade,
       Valor_Total: item.valor_total,
-      Localizacao: item.localizacao_tecnica
+      Localizacao: item.localizacao_tecnica,
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'log_depositos');
-    else if (format === 'excel') exportToExcel(exportData, 'log_depositos');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_depositos', 'Relatório de Depósitos');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'log_depositos');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'log_depositos');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'log_depositos', 'Relatório de Depósitos');
+    }
   };
 
-  const filteredWarehouses = warehouses.filter(w => {
-    const matchesSearch = (w.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'Todos' || (w.tipo === activeTab);
-    
+  const filteredWarehouses = warehouses.filter((w) => {
+    const matchesSearch =
+      (w.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'Todos' || w.tipo === activeTab;
+
     const matchesStatus = filterValues.status === 'all' || w.status === filterValues.status;
-    
+
     const perc = w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) * 100 : 0;
     let matchesOccupation = true;
-    if (filterValues.occupation === 'critical') matchesOccupation = perc > 90;
-    else if (filterValues.occupation === 'high') matchesOccupation = perc > 70;
-    else if (filterValues.occupation === 'low') matchesOccupation = perc < 20;
+    if (filterValues.occupation === 'critical') {
+      matchesOccupation = perc > 90;
+    } else if (filterValues.occupation === 'high') {
+      matchesOccupation = perc > 70;
+    } else if (filterValues.occupation === 'low') {
+      matchesOccupation = perc < 20;
+    }
 
     const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(w.tipo);
 
@@ -279,27 +358,38 @@ export const WarehouseManagement: React.FC = () => {
       header: 'Depósito / Estrutura',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.nome}
+          </span>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Tipo & Localização',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-            {item.tipo}
-          </span>
-          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{item.tipo}</span>
+          <span
+            className="sub-meta"
+            style={{
+              color: '#94a3b8',
+              fontSize: '9px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
             Local: {item.localizacao_tecnica || 'Sede'}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Capacidade Máxima',
@@ -310,46 +400,83 @@ export const WarehouseManagement: React.FC = () => {
           </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Ocupação Real',
       accessor: (item: any) => {
-        const perc = item.capacidade_maxima > 0 ? (item.saldo_atual / item.capacidade_maxima) * 100 : 0;
+        const perc =
+          item.capacidade_maxima > 0 ? (item.saldo_atual / item.capacidade_maxima) * 100 : 0;
         const isOvercrowded = perc > 90;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '130px',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '10px',
+                fontWeight: 900,
+                color: '#64748b',
+              }}
+            >
               <span>OCUPAÇÃO</span>
-              <span style={{ color: isOvercrowded ? '#f43f5e' : '#6366f1' }}>{Math.round(perc)}%</span>
+              <span style={{ color: isOvercrowded ? '#f43f5e' : '#6366f1' }}>
+                {Math.round(perc)}%
+              </span>
             </div>
-            <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  borderRadius: '99px', 
+            <div
+              style={{
+                height: '6px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '99px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: '99px',
                   backgroundColor: isOvercrowded ? '#f43f5e' : perc > 70 ? '#f59e0b' : '#6366f1',
-                  width: `${Math.min(perc, 100)}%` 
-                }} 
+                  width: `${Math.min(perc, 100)}%`,
+                }}
               />
             </div>
             <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', marginTop: '2px' }}>
-              Saldo: {Number(item.saldo_atual || 0).toLocaleString('pt-BR')} {item.unidade_capacidade}
+              Saldo: {Number(item.saldo_atual || 0).toLocaleString('pt-BR')}{' '}
+              {item.unidade_capacidade}
             </span>
           </div>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Patrimônio Armazenado',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 800, color: '#0f172a' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            fontWeight: 800,
+            color: '#0f172a',
+          }}
+        >
           <DollarSign size={14} className="text-emerald-500" />
           <span>R$ {Number(item.valor_total || 0).toLocaleString('pt-BR')}</span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Status Operacional',
@@ -360,8 +487,8 @@ export const WarehouseManagement: React.FC = () => {
           </span>
         </div>
       ),
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   const totalStockValue = warehouses.reduce((acc, w) => acc + (w.valor_total || 0), 0);
@@ -370,15 +497,25 @@ export const WarehouseManagement: React.FC = () => {
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Depósitos' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Estoque & Insumos', href: '/estoque/dashboard' },
+              { label: 'Depósitos' },
+            ]}
+          />
           <h1 className="page-title">Depósitos</h1>
-          <p className="page-subtitle">Configuração de almoxarifados, silos e centros de distribuição vinculados à unidade.</p>
+          <p className="page-subtitle">
+            Configuração de almoxarifados, silos e centros de distribuição vinculados à unidade.
+          </p>
         </div>
         <div className="page-actions">
-          <button className="primary-btn" onClick={() => {
-            setSelectedWarehouse(null);
-            setIsModalOpen(true);
-          }}>
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setSelectedWarehouse(null);
+              setIsModalOpen(true);
+            }}
+          >
             <Plus size={18} />
             NOVO DEPÓSITO
           </button>
@@ -386,39 +523,60 @@ export const WarehouseManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        <TauzeStatCard 
-          label="Depósitos Ativos" 
-          value={warehouses.length} 
-          icon={Layout} 
+        <TauzeStatCard
+          label="Depósitos Ativos"
+          value={warehouses.length}
+          icon={Layout}
           color="hsl(var(--brand))"
           progress={100}
           change="Unidades de Armazenagem"
           periodLabel="Estrutura Atual"
           sparkline={[]}
         />
-        <TauzeStatCard 
-          label="Capacidade Utilizada" 
-          value={`${warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100 > 0 ? Math.round(warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100) : 0}%`} 
-          icon={Boxes} 
+        <TauzeStatCard
+          label="Capacidade Utilizada"
+          value={`${(warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? w.saldo_atual / w.capacidade_maxima : 0), 0) / (warehouses.filter((w) => w.capacidade_maxima > 0).length || 1)) * 100 > 0 ? Math.round((warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? w.saldo_atual / w.capacidade_maxima : 0), 0) / (warehouses.filter((w) => w.capacidade_maxima > 0).length || 1)) * 100) : 0}%`}
+          icon={Boxes}
           color="#3b82f6"
-          progress={warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100}
+          progress={
+            (warehouses.reduce(
+              (acc, w) => acc + (w.capacidade_maxima > 0 ? w.saldo_atual / w.capacidade_maxima : 0),
+              0
+            ) /
+              (warehouses.filter((w) => w.capacidade_maxima > 0).length || 1)) *
+            100
+          }
           change="Média Global"
           periodLabel="Ocupação Real"
         />
-        <TauzeStatCard 
-          label="Alertas de Manutenção" 
-          value={warehouses.filter(w => w.status !== 'ativo').length > 0 ? warehouses.filter(w => w.status !== 'ativo').length : (warehouses.length === 0 ? '---' : '0')} 
-          icon={AlertTriangle} 
+        <TauzeStatCard
+          label="Alertas de Manutenção"
+          value={
+            warehouses.filter((w) => w.status !== 'ativo').length > 0
+              ? warehouses.filter((w) => w.status !== 'ativo').length
+              : warehouses.length === 0
+                ? '---'
+                : '0'
+          }
+          icon={AlertTriangle}
           color="#f59e0b"
-          progress={warehouses.length > 0 ? (warehouses.filter(w => w.status !== 'ativo').length / warehouses.length) * 100 : 0}
-          change={warehouses.filter(w => w.status !== 'ativo').length > 0 ? 'Depósitos Inativos' : 'Todos Operacionais'}
+          progress={
+            warehouses.length > 0
+              ? (warehouses.filter((w) => w.status !== 'ativo').length / warehouses.length) * 100
+              : 0
+          }
+          change={
+            warehouses.filter((w) => w.status !== 'ativo').length > 0
+              ? 'Depósitos Inativos'
+              : 'Todos Operacionais'
+          }
           periodLabel="Pendentes"
           sparkline={[]}
         />
-        <TauzeStatCard 
-          label="Valor Total em Estoque" 
-          value={`R$ ${Number(totalStockValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          icon={Package} 
+        <TauzeStatCard
+          label="Valor Total em Estoque"
+          value={`R$ ${Number(totalStockValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={Package}
           color="#10b981"
           progress={totalStockValue > 0 ? 100 : 0}
           change="Patrimônio Armazenado"
@@ -430,9 +588,9 @@ export const WarehouseManagement: React.FC = () => {
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
           {['Todos', 'Galpão', 'Silo', 'Tanque', 'Outros'].map((type) => (
-            <button 
+            <button
               key={type}
-              className={`tauze-tab-item ${activeTab === type ? 'active' : ''}`} 
+              className={`tauze-tab-item ${activeTab === type ? 'active' : ''}`}
               onClick={() => setActiveTab(type)}
             >
               {type === 'Todos' ? 'Consolidado' : type}
@@ -442,24 +600,24 @@ export const WarehouseManagement: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Pesquisar depósitos por nome ou descrição..." 
+            placeholder="Pesquisar depósitos por nome ou descrição..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="view-mode-toggle">
-          <button 
+          <button
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
             title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
-          <button 
+          <button
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
             title="Visualização em Cards"
@@ -469,7 +627,7 @@ export const WarehouseManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -477,23 +635,46 @@ export const WarehouseManagement: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-warehouse');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-warehouse" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-warehouse')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-warehouse')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-warehouse')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
-          <WarehouseFilterModal 
+          <WarehouseFilterModal
             isOpen={showAdvancedFilters}
             onClose={() => setShowAdvancedFilters(false)}
             filters={filterValues}
@@ -504,7 +685,7 @@ export const WarehouseManagement: React.FC = () => {
 
       <div className="management-content">
         {viewMode === 'list' ? (
-          <ModernTable 
+          <ModernTable
             emptyState={
               warehouses.length === 0 ? (
                 <EmptyState
@@ -531,10 +712,13 @@ export const WarehouseManagement: React.FC = () => {
             hideHeader={true}
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot edit" onClick={() => {
-                  setSelectedWarehouse(item);
-                  setIsModalOpen(true);
-                }}>
+                <button
+                  className="action-dot edit"
+                  onClick={() => {
+                    setSelectedWarehouse(item);
+                    setIsModalOpen(true);
+                  }}
+                >
                   <Edit3 size={18} />
                 </button>
                 <button className="action-dot delete" onClick={() => handleDelete(item.id)}>
@@ -546,50 +730,75 @@ export const WarehouseManagement: React.FC = () => {
         ) : (
           <div className="warehouse-cards-grid animate-fade-in">
             {filteredWarehouses.length === 0 ? (
-              <div 
-                className="warehouse-card-premium" 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '20px', 
-                  textAlign: 'center', 
+              <div
+                className="warehouse-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
                   gap: '6px',
                   minHeight: '180px',
                   height: '100%',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
                 }}
               >
-                <div 
-                  style={{ 
-                    margin: 0, 
-                    width: '40px', 
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
                     height: '40px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     color: '#10b981',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   {warehouses.length === 0 ? <Boxes size={22} /> : <Search size={22} />}
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {warehouses.length === 0 ? 'Nenhum depósito cadastrado' : 'Nenhum registro encontrado'}
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {warehouses.length === 0
+                    ? 'Nenhum depósito cadastrado'
+                    : 'Nenhum registro encontrado'}
                 </h3>
-                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {warehouses.length === 0 ? 'Não há áreas de armazenagem registradas nesta unidade.' : 'Sua busca não retornou resultados.'}
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {warehouses.length === 0
+                    ? 'Não há áreas de armazenagem registradas nesta unidade.'
+                    : 'Sua busca não retornou resultados.'}
                 </p>
                 {warehouses.length === 0 && (
-                  <button 
-                    className="primary-btn" 
+                  <button
+                    className="primary-btn"
                     onClick={() => {
                       setSelectedWarehouse(null);
                       setIsModalOpen(true);
                     }}
-                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
                   >
                     <Plus size={12} />
                     <span>NOVO DEPÓSITO</span>
@@ -597,81 +806,149 @@ export const WarehouseManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              filteredWarehouses.map(w => (
-                <div key={w.id} className={`warehouse-card-premium ${w.status === 'ativo' ? 'active' : ''}`}>
+              filteredWarehouses.map((w) => (
+                <div
+                  key={w.id}
+                  className={`warehouse-card-premium ${w.status === 'ativo' ? 'active' : ''}`}
+                >
                   <div className="card-left-section">
                     <div className="card-avatar">
                       {w.tipo?.includes('Silo') ? <Boxes size={28} /> : <Layout size={28} />}
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn edit" onClick={() => {
-                        setStockModalWarehouseId(w.id);
-                        setStockModalWarehouseName(w.nome || w.name);
-                        setIsStockModalOpen(true);
-                      }} title="Ver Detalhes"><ListIcon size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => {
-                        setSelectedWarehouse(w);
-                        setIsModalOpen(true);
-                      }} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={14} /></button>
+                      <button
+                        className="action-icon-btn edit"
+                        onClick={() => {
+                          setStockModalWarehouseId(w.id);
+                          setStockModalWarehouseName(w.nome || w.name);
+                          setIsStockModalOpen(true);
+                        }}
+                        title="Ver Detalhes"
+                      >
+                        <ListIcon size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn edit"
+                        onClick={() => {
+                          setSelectedWarehouse(w);
+                          setIsModalOpen(true);
+                        }}
+                        title="Editar"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        className="action-icon-btn delete"
+                        onClick={() => handleDelete(w.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
 
                   <div className="card-main-content">
-                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                      <div className="title-row" style={{ width: '100%', cursor: 'pointer' }} onClick={() => {
-                        setStockModalWarehouseId(w.id);
-                        setStockModalWarehouseName(w.nome || w.name);
-                        setIsStockModalOpen(true);
-                      }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#3b82f6', width: '100%' }}>{w.name || w.nome}</h3>
+                    <div
+                      className="card-header-info"
+                      style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
+                    >
+                      <div
+                        className="title-row"
+                        style={{ width: '100%', cursor: 'pointer' }}
+                        onClick={() => {
+                          setStockModalWarehouseId(w.id);
+                          setStockModalWarehouseName(w.nome || w.name);
+                          setIsStockModalOpen(true);
+                        }}
+                      >
+                        <h3
+                          style={{
+                            fontSize: '16px',
+                            fontWeight: 800,
+                            color: '#3b82f6',
+                            width: '100%',
+                          }}
+                        >
+                          {w.name || w.nome}
+                        </h3>
                       </div>
-                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
+                      <div
+                        className="meta-row"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <span
+                          className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}
+                        >
                           {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
                         </span>
                         <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
                       </div>
                     </div>
 
-                  <div className="card-occupation-section">
-                    <div className="occ-header">
-                      <span>OCUPAÇÃO ATUAL</span>
-                      <span className={w.capacidade_maxima > 0 && (w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'critical' : ''}>
-                        {w.capacidade_maxima > 0 ? Math.round((w.saldo_atual / w.capacidade_maxima) * 100) : 0}%
-                      </span>
-                    </div>
-                    <div className="occ-bar-container">
-                      <div 
-                        className={`occ-bar-fill ${w.capacidade_maxima > 0 && (w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'critical' : (w.saldo_atual / w.capacidade_maxima) > 0.7 ? 'warning' : ''}`}
-                        style={{ width: `${Math.min(w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) * 100 : 0, 100)}%` }}
-                      />
-                    </div>
-                    <div className="occ-footer">
-                      <span className="balance-text">{w.saldo_atual} / {w.capacidade_maxima || '∞'} {w.unidade_capacidade || 'un'}</span>
-                    </div>
-                  </div>
-
-                  <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div className="meta-item">
-                        <Boxes size={12} />
-                        <span>{w.localizacao_tecnica || 'Sede'}</span>
+                    <div className="card-occupation-section">
+                      <div className="occ-header">
+                        <span>OCUPAÇÃO ATUAL</span>
+                        <span
+                          className={
+                            w.capacidade_maxima > 0 && w.saldo_atual / w.capacidade_maxima > 0.9
+                              ? 'critical'
+                              : ''
+                          }
+                        >
+                          {w.capacidade_maxima > 0
+                            ? Math.round((w.saldo_atual / w.capacidade_maxima) * 100)
+                            : 0}
+                          %
+                        </span>
                       </div>
-                      <div className="meta-item">
-                        <Activity size={12} />
-                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Unidade')}</span>
+                      <div className="occ-bar-container">
+                        <div
+                          className={`occ-bar-fill ${w.capacidade_maxima > 0 && w.saldo_atual / w.capacidade_maxima > 0.9 ? 'critical' : w.saldo_atual / w.capacidade_maxima > 0.7 ? 'warning' : ''}`}
+                          style={{
+                            width: `${Math.min(w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) * 100 : 0, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="occ-footer">
+                        <span className="balance-text">
+                          {w.saldo_atual} / {w.capacidade_maxima || '∞'}{' '}
+                          {w.unidade_capacidade || 'un'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="card-footer-meta"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div className="meta-item">
+                          <Boxes size={12} />
+                          <span>{w.localizacao_tecnica || 'Sede'}</span>
+                        </div>
+                        <div className="meta-item">
+                          <Activity size={12} />
+                          <span className="card-farm-meta">
+                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Unidade'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
               ))
             )}
-            <button className="add-warehouse-card-premium" onClick={() => {
-              setSelectedWarehouse(null);
-              setIsModalOpen(true);
-            }}>
+            <button
+              className="add-warehouse-card-premium"
+              onClick={() => {
+                setSelectedWarehouse(null);
+                setIsModalOpen(true);
+              }}
+            >
               <Plus size={32} />
               <span>NOVO DEPÓSITO</span>
             </button>
@@ -679,7 +956,7 @@ export const WarehouseManagement: React.FC = () => {
         )}
       </div>
 
-      <WarehouseStockModal 
+      <WarehouseStockModal
         isOpen={isStockModalOpen}
         onClose={() => setIsStockModalOpen(false)}
         warehouseId={stockModalWarehouseId}
@@ -962,10 +1239,10 @@ export const WarehouseManagement: React.FC = () => {
           setSelectedWarehouse(null);
         }}
         onSubmit={handleSubmit}
-        title={selectedWarehouse ? "Editar Depósito" : "Novo Depósito"}
+        title={selectedWarehouse ? 'Editar Depósito' : 'Novo Depósito'}
         subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.name || 'ativa'}`}
         icon={Package}
-        submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
+        submitLabel={selectedWarehouse ? 'Salvar Alterações' : 'Confirmar Cadastro'}
         size="medium"
       >
         <div className="form-grid">
@@ -973,16 +1250,23 @@ export const WarehouseManagement: React.FC = () => {
             <label className="tauze-label">
               <Plus size={14} /> NOME DO DEPÓSITO
             </label>
-            <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+            <input
+              name="nome"
+              type="text"
+              className="tauze-input"
+              placeholder="Ex: Almoxarifado Central"
+              defaultValue={selectedWarehouse?.nome}
+              required
+            />
           </div>
 
           <div className="tauze-field-group">
             <label className="tauze-label">
               <Layout size={14} /> TIPO DE ESTRUTURA
             </label>
-            <select 
-              name="tipo" 
-              className="tauze-input" 
+            <select
+              name="tipo"
+              className="tauze-input"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
             >
@@ -995,18 +1279,42 @@ export const WarehouseManagement: React.FC = () => {
           </div>
 
           {selectedType === 'Defensivos' && (
-            <div style={{ gridColumn: 'span 2', padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+            <div
+              style={{
+                gridColumn: 'span 2',
+                padding: '16px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#991b1b',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                }}
+              >
                 <ShieldAlert size={16} /> Compliance Agrícola (NR-31)
               </div>
               <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.4' }}>
-                Atenção: Áreas de armazenamento de defensivos exigem distanciamento de alojamentos, ventilação cruzada, piso impermeável e bacia de contenção.
+                Atenção: Áreas de armazenamento de defensivos exigem distanciamento de alojamentos,
+                ventilação cruzada, piso impermeável e bacia de contenção.
               </p>
               <div className="tauze-field-group">
-                <label className="tauze-label" style={{ color: '#991b1b' }}><UserCheck size={14} /> Responsável Técnico (CREA)</label>
-                <input 
+                <label className="tauze-label" style={{ color: '#991b1b' }}>
+                  <UserCheck size={14} /> Responsável Técnico (CREA)
+                </label>
+                <input
                   name="responsavel_tecnico"
-                  type="text" 
+                  type="text"
                   className="tauze-input"
                   placeholder="Nome do Agrônomo / CREA..."
                   style={{ borderColor: '#fca5a5' }}
@@ -1017,27 +1325,78 @@ export const WarehouseManagement: React.FC = () => {
           )}
 
           {(selectedType === 'Silo' || selectedType === 'Câmara Fria') && (
-            <div style={{ gridColumn: 'span 2', padding: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--brand))', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+            <div
+              style={{
+                gridColumn: 'span 2',
+                padding: '16px',
+                background: 'hsl(var(--bg-main))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'hsl(var(--brand))',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                }}
+              >
                 <Zap size={16} /> Infraestrutura Ativa
               </div>
-              <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', margin: 0, lineHeight: '1.4' }}>
+              <p
+                style={{
+                  fontSize: '11px',
+                  color: 'hsl(var(--text-muted))',
+                  margin: 0,
+                  lineHeight: '1.4',
+                }}
+              >
                 Estruturas termorreguladas geram custo contábil de armazenagem para a fazenda.
               </p>
-              
+
               <div className="tauze-input-grid grid-col-2">
-                <div className="tauze-field-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-                  <input type="checkbox" name="possui_termometria" id="termometria" style={{ width: '20px', height: '20px', accentColor: 'hsl(var(--brand))' }} />
-                  <label htmlFor="termometria" style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>
+                <div
+                  className="tauze-field-group"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    name="possui_termometria"
+                    id="termometria"
+                    style={{ width: '20px', height: '20px', accentColor: 'hsl(var(--brand))' }}
+                  />
+                  <label
+                    htmlFor="termometria"
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'hsl(var(--text-main))',
+                      cursor: 'pointer',
+                    }}
+                  >
                     Possui Termometria / Aeração?
                   </label>
                 </div>
 
                 <div className="tauze-field-group">
-                  <label className="tauze-label"><DollarSign size={14} /> Custo Operacional (R$/mês)</label>
-                  <input 
+                  <label className="tauze-label">
+                    <DollarSign size={14} /> Custo Operacional (R$/mês)
+                  </label>
+                  <input
                     name="custo_operacional"
-                    type="number" 
+                    type="number"
                     step="0.01"
                     className="tauze-input"
                     placeholder="Estimativa de gasto energético/manutenção..."
@@ -1052,10 +1411,26 @@ export const WarehouseManagement: React.FC = () => {
               <Scale size={14} /> CAPACIDADE MÁXIMA
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input name="capacidade_maxima" type="number" className="tauze-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
-              <select name="unidade_capacidade" className="tauze-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
+              <input
+                name="capacidade_maxima"
+                type="number"
+                className="tauze-input"
+                style={{ flex: 1 }}
+                placeholder="0.00"
+                defaultValue={selectedWarehouse?.capacidade_maxima}
+              />
+              <select
+                name="unidade_capacidade"
+                className="tauze-input"
+                style={{ width: '75px' }}
+                defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}
+              >
                 {unidades.length > 0 ? (
-                  unidades.map(u => <option key={u.id} value={u.nome}>{u.nome}</option>)
+                  unidades.map((u) => (
+                    <option key={u.id} value={u.nome}>
+                      {u.nome}
+                    </option>
+                  ))
                 ) : (
                   <>
                     <option value="un">un</option>
@@ -1073,10 +1448,17 @@ export const WarehouseManagement: React.FC = () => {
             <label className="tauze-label">
               <Layout size={14} /> FAZENDA VINCULADA
             </label>
-            <select name="fazenda_id" className="tauze-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
+            <select
+              name="fazenda_id"
+              className="tauze-input"
+              defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id}
+              required
+            >
               <option value="">Selecione...</option>
-              {farms.map(f => (
-                <option key={f.id} value={f.id}>{f.nome}</option>
+              {farms.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
               ))}
             </select>
           </div>
@@ -1085,7 +1467,12 @@ export const WarehouseManagement: React.FC = () => {
             <label className="tauze-label">
               <Activity size={14} /> STATUS DO ATIVO
             </label>
-            <select name="status" className="tauze-input tauze-select" defaultValue={selectedWarehouse?.status || 'ativo'} required>
+            <select
+              name="status"
+              className="tauze-input tauze-select"
+              defaultValue={selectedWarehouse?.status || 'ativo'}
+              required
+            >
               <option value="ativo">Ativo (Operacional)</option>
               <option value="inativo">Inativo (Bloqueado)</option>
             </select>
@@ -1095,7 +1482,13 @@ export const WarehouseManagement: React.FC = () => {
             <label className="tauze-label">
               <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
             </label>
-            <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+            <input
+              name="localizacao_tecnica"
+              type="text"
+              className="tauze-input"
+              placeholder="Ex: Setor Norte, Lote 14..."
+              defaultValue={selectedWarehouse?.localizacao_tecnica}
+            />
           </div>
         </div>
       </SidePanel>

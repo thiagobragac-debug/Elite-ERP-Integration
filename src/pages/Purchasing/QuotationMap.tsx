@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-
-function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
-  if (!records || records.length === 0) return [];
-  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  if (sorted.length === 0) return [];
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) {
+    return [];
+  }
+  const sorted = [...records]
+    .filter((r) => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) {
+    return [];
+  }
   const first = new Date(sorted[0][dateField]).getTime();
   const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
   const totalMs = Math.max(last - first, 1);
@@ -13,21 +23,35 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
   return Array.from({ length: buckets }, (_, i) => {
     const bStart = first + i * bucketMs;
     const bEnd = bStart + bucketMs;
-    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
-    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const inBucket = sorted.filter((r) => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v =
+      inBucket.length === 0
+        ? 0
+        : valueField
+          ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+          : inBucket.length;
+    return {
+      value: Number(v.toFixed(2)),
+      label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    };
   });
 }
-import { useNavigate , useSearchParams } from 'react-router-dom';
-import { 
-  BarChart2, 
-  Plus, 
-  Search, 
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  BarChart2,
+  Plus,
+  Search,
   Filter,
-  TrendingDown, 
+  TrendingDown,
   TrendingUp,
-  CheckCircle2, 
-  ChevronRight, 
+  CheckCircle2,
+  ChevronRight,
   MoreVertical,
   Building2,
   DollarSign,
@@ -38,7 +62,7 @@ import {
   Edit3,
   History,
   Target,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -59,7 +83,8 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
   const { confirm } = useConfirm();
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } =
+    useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,18 +92,28 @@ export const QuotationMap: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', tab);
+        return n;
+      },
+      { replace: true }
+    );
   };
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedMatrixQuotation, setSelectedMatrixQuotation] = useState<any>(null);
   const [isMatrixOpen, setIsMatrixOpen] = usePersistentState('QuotationMap_isMatrixOpen', false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('QuotationMap_showAdvancedFilters', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
+    'QuotationMap_showAdvancedFilters',
+    false
+  );
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minSaving: 0,
     minBids: 0,
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
   });
 
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -87,64 +122,88 @@ export const QuotationMap: React.FC = () => {
   const { data: quotations = [], isLoading: loading } = useQuery({
     queryKey: ['purchasing_quotations', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
+      let query = supabase
+        .from('mapas_cotacao')
+        .select(
+          'id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at'
+        )
+        .limit(500)
+        .order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return (data || []).map((q: any) => ({
         ...q,
         titulo: q.produto_id,
-        suppliers: q.dados_fornecedores || []
+        suppliers: q.dados_fornecedores || [],
       }));
     },
-    enabled: isReady
+    enabled: isReady,
   });
 
   // Calculate real saving metrics dynamically
-  const abertas = quotations.filter(q => q.status === 'analyzing').length;
+  const abertas = quotations.filter((q) => q.status === 'analyzing').length;
   let totalSaving = 0;
   let totalBids = 0;
-  quotations.forEach(q => {
+  quotations.forEach((q) => {
     const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
     totalBids += bids.length;
     if (bids.length > 1) {
-      const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
+      const prices = bids
+        .map((b: any) => Number(b.price || b.preco || 0))
+        .filter((p: number) => p > 0);
       const max = Math.max(...prices);
       const min = Math.min(...prices);
-      totalSaving += (max - min);
+      totalSaving += max - min;
     }
   });
   const avgBids = quotations.length > 0 ? (totalBids / quotations.length).toFixed(1) : 0;
 
   const stats = [
-    { label: 'Mapas em Análise', 
-      value: abertas > 0 ? abertas : '---', 
-      icon: BarChart2, color: '#10b981', 
-      progress: quotations.length > 0 ? (abertas / quotations.length) * 100 : 0, 
+    {
+      label: 'Mapas em Análise',
+      value: abertas > 0 ? abertas : '---',
+      icon: BarChart2,
+      color: '#10b981',
+      progress: quotations.length > 0 ? (abertas / quotations.length) * 100 : 0,
       change: abertas > 0 ? 'Processos Ativos' : 'Nenhum ativo',
-      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco'),
     },
-    { label: 'Saving Acumulado', 
-      value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', 
-      icon: TrendingDown, color: '#3b82f6', 
-      progress: totalSaving > 0 ? Math.min(100, Math.log10(totalSaving + 1) * 20) : 0, 
-      trend: totalSaving > 0 ? 'down' as const : undefined, 
+    {
+      label: 'Saving Acumulado',
+      value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---',
+      icon: TrendingDown,
+      color: '#3b82f6',
+      progress: totalSaving > 0 ? Math.min(100, Math.log10(totalSaving + 1) * 20) : 0,
+      trend: totalSaving > 0 ? ('down' as const) : undefined,
       change: totalSaving > 0 ? 'Economia Real' : 'Sem saving',
-      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco'),
     },
-    { label: 'Densidade de Rede', 
-      value: quotations.length > 0 && totalBids > 0 ? `${avgBids} propostas` : '---', 
-      icon: Building2, color: '#f59e0b', 
-      progress: quotations.length > 0 ? Math.min(100, Number(avgBids) * 20) : 0, 
+    {
+      label: 'Densidade de Rede',
+      value: quotations.length > 0 && totalBids > 0 ? `${avgBids} propostas` : '---',
+      icon: Building2,
+      color: '#f59e0b',
+      progress: quotations.length > 0 ? Math.min(100, Number(avgBids) * 20) : 0,
       change: quotations.length > 0 ? 'Média por Mapa' : 'Sem cotações',
-      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco'),
     },
-    { label: 'Cotações Fechadas', 
-      value: (() => { const fechadas = quotations.filter(q => q.status === 'closed').length; return fechadas > 0 ? fechadas : '---'; })(),
-      icon: Target, color: '#166534', 
-      progress: quotations.length > 0 ? (quotations.filter(q => q.status === 'closed').length / quotations.length) * 100 : 0, 
+    {
+      label: 'Cotações Fechadas',
+      value: (() => {
+        const fechadas = quotations.filter((q) => q.status === 'closed').length;
+        return fechadas > 0 ? fechadas : '---';
+      })(),
+      icon: Target,
+      color: '#166534',
+      progress:
+        quotations.length > 0
+          ? (quotations.filter((q) => q.status === 'closed').length / quotations.length) * 100
+          : 0,
       change: quotations.length > 0 ? 'Contratos firmados' : 'Sem dados',
-      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco'),
     },
   ];
 
@@ -165,15 +224,24 @@ export const QuotationMap: React.FC = () => {
         quantidade: parseFloat(formData.quantity),
         unidade: formData.unit,
         dados_fornecedores: formData.suppliers,
-        status: selectedQuotation?.status || 'analyzing'
+        status: selectedQuotation?.status || 'analyzing',
       };
 
       if (selectedQuotation) {
-        const { error } = await supabase.from('mapas_cotacao').update(payload).eq('id', selectedQuotation.id);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('mapas_cotacao')
+          .update(payload)
+          .eq('id', selectedQuotation.id);
+        if (error) {
+          throw error;
+        }
       } else {
-        const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, ...insertPayload }]);
-        if (error) throw error;
+        const { error } = await supabase
+          .from('mapas_cotacao')
+          .insert([{ ...payload, ...insertPayload }]);
+        if (error) {
+          throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -182,13 +250,15 @@ export const QuotationMap: React.FC = () => {
       toast.success(selectedQuotation ? 'Mapa de cotação atualizado!' : 'Mapa de cotação criado!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao salvar cotação: ' + err.message);
-    }
+      toast.error(`Erro ao salvar cotação: ${err.message}`);
+    },
   });
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate) {
-      toast.error('⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.');
+      toast.error(
+        '⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.'
+      );
       return;
     }
     saveQuotationMutation.mutate(formData);
@@ -197,20 +267,30 @@ export const QuotationMap: React.FC = () => {
   const deleteQuotationMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing_quotations'] });
       toast.success('Mapa de cotação excluído!');
     },
     onError: (err: any) => {
-      toast.error('Erro ao excluir cotação: ' + err.message);
-    }
+      toast.error(`Erro ao excluir cotação: ${err.message}`);
+    },
   });
 
   const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este mapa de cotação?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
+    const isConfirmed = await confirm({
+      title: 'Atenção',
+      description: 'Deseja excluir este mapa de cotação?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) {
+      return;
+    }
     deleteQuotationMutation.mutate(id);
   };
 
@@ -220,22 +300,36 @@ export const QuotationMap: React.FC = () => {
   };
 
   const approveSupplierMutation = useMutation({
-    mutationFn: async ({ quotationId, chosenSupplier }: { quotationId: string; chosenSupplier: any }) => {
-      const quot = quotations.find(q => q.id === quotationId);
-      if (!quot) throw new Error('Cotação não localizada');
+    mutationFn: async ({
+      quotationId,
+      chosenSupplier,
+    }: {
+      quotationId: string;
+      chosenSupplier: any;
+    }) => {
+      const quot = quotations.find((q) => q.id === quotationId);
+      if (!quot) {
+        throw new Error('Cotação não localizada');
+      }
 
       const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
       const updatedSuppliers = rawSuppliers.map((s: any) => {
-        const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
-                        (s.name && s.name === chosenSupplier.name) ||
-                        (s.parceiro_nome && s.parceiro_nome === chosenSupplier.parceiro_nome) ||
-                        (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
-                         Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) === Number(chosenSupplier.delivery_days || chosenSupplier.deliveryDays || chosenSupplier.prazo_entrega));
-        
+        const isMatch =
+          (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
+          (s.name && s.name === chosenSupplier.name) ||
+          (s.parceiro_nome && s.parceiro_nome === chosenSupplier.parceiro_nome) ||
+          (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
+            Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) ===
+              Number(
+                chosenSupplier.delivery_days ||
+                  chosenSupplier.deliveryDays ||
+                  chosenSupplier.prazo_entrega
+              ));
+
         return {
           ...s,
           isWinner: isMatch,
-          vencedor: isMatch
+          vencedor: isMatch,
         };
       });
 
@@ -243,11 +337,13 @@ export const QuotationMap: React.FC = () => {
         .from('mapas_cotacao')
         .update({
           status: 'closed',
-          dados_fornecedores: updatedSuppliers
+          dados_fornecedores: updatedSuppliers,
         })
         .eq('id', quotationId);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return { quotationId, updatedSuppliers };
     },
     onSuccess: () => {
@@ -257,8 +353,8 @@ export const QuotationMap: React.FC = () => {
     },
     onError: (err: any) => {
       console.error('[QuotationMap] Error approving supplier:', err);
-      toast.error('❌ Erro ao aprovar parceiro: ' + (err.message || 'Erro desconhecido'));
-    }
+      toast.error(`❌ Erro ao aprovar parceiro: ${err.message || 'Erro desconhecido'}`);
+    },
   });
 
   const handleApproveSupplier = async (quotationId: string, chosenSupplier: any) => {
@@ -266,14 +362,16 @@ export const QuotationMap: React.FC = () => {
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = quotations.filter(q => {
+    const filteredData = quotations.filter((q) => {
       const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
       const suppliers = q.suppliers || q.dados_fornecedores || [];
       const matchesBids = suppliers.length >= filterValues.minBids;
-      
+
       let savingPercent = 0;
-      const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+      const prices = suppliers
+        .map((s: any) => Number(s.price || s.preco || 0))
+        .filter((p: number) => p > 0);
       if (prices.length >= 2) {
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
@@ -281,34 +379,44 @@ export const QuotationMap: React.FC = () => {
       }
       const matchesSaving = savingPercent >= filterValues.minSaving;
       const matchesStatus = filterValues.status === 'all' || q.status === filterValues.status;
-      const matchesDate = (!filterValues.dateStart || new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
-                         (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
+      const matchesDate =
+        (!filterValues.dateStart || new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
+        (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
 
-      return matchesSearch && matchesTab && matchesBids && matchesSaving && matchesStatus && matchesDate;
+      return (
+        matchesSearch && matchesTab && matchesBids && matchesSaving && matchesStatus && matchesDate
+      );
     });
 
-    const exportData = filteredData.map(item => {
+    const exportData = filteredData.map((item) => {
       const suppliers = item.suppliers || item.dados_fornecedores || [];
       const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
-      const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+      const prices = suppliers
+        .map((s: any) => Number(s.price || s.preco || 0))
+        .filter((p: number) => p > 0);
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
       const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-      const saving = maxPrice > 0 ? (((maxPrice - minPrice) / maxPrice) * 100).toFixed(1) + '%' : '0%';
+      const saving =
+        maxPrice > 0 ? `${(((maxPrice - minPrice) / maxPrice) * 100).toFixed(1)}%` : '0%';
 
       return {
         Item: item.produto_id || 'N/A',
-        Quantidade: item.quantidade + ' ' + item.unidade,
+        Quantidade: `${item.quantidade} ${item.unidade}`,
         Propostas: suppliers.length,
-        Melhor_Preco: 'R$ ' + minPrice.toLocaleString(),
+        Melhor_Preco: `R$ ${minPrice.toLocaleString()}`,
         Saving: saving,
-        Parceiro_Vencedor: winner ? (winner.name || winner.parceiro_nome) : '---',
-        Status: item.status === 'closed' ? 'Contratado' : 'Em Análise'
+        Parceiro_Vencedor: winner ? winner.name || winner.parceiro_nome : '---',
+        Status: item.status === 'closed' ? 'Contratado' : 'Em Análise',
       };
     });
 
-    if (format === 'csv') exportToCSV(exportData, 'mapas_cotacao');
-    else if (format === 'excel') exportToExcel(exportData, 'mapas_cotacao');
-    else if (format === 'pdf') exportToPDF(exportData, 'mapas_cotacao', 'Relatório de Mapas de Cotação e Saving');
+    if (format === 'csv') {
+      exportToCSV(exportData, 'mapas_cotacao');
+    } else if (format === 'excel') {
+      exportToExcel(exportData, 'mapas_cotacao');
+    } else if (format === 'pdf') {
+      exportToPDF(exportData, 'mapas_cotacao', 'Relatório de Mapas de Cotação e Saving');
+    }
   };
 
   const tableColumns = [
@@ -319,35 +427,55 @@ export const QuotationMap: React.FC = () => {
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
             {item.produto_id || 'N/A'}
           </span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+          <span
+            className="sub-meta"
+            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
+          >
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
       ),
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Quantidade Demandada',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#475569', fontWeight: 700, fontSize: '12px' }}>
-          <span>{item.quantidade} {item.unidade}</span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: '#475569',
+            fontWeight: 700,
+            fontSize: '12px',
+          }}
+        >
+          <span>
+            {item.quantidade} {item.unidade}
+          </span>
         </div>
       ),
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Participantes',
       accessor: (item: any) => {
         const bids = item.suppliers || item.dados_fornecedores || [];
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <span className="status-pill info" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 800 }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            <span
+              className="status-pill info"
+              style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 800 }}
+            >
               {bids.length} Propostas
             </span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Sugestão Vencedora',
@@ -356,10 +484,27 @@ export const QuotationMap: React.FC = () => {
         const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
         return winner ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle2 size={12} color="#059669"/> {winner.name || winner.parceiro_nome}
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <CheckCircle2 size={12} color="#059669" /> {winner.name || winner.parceiro_nome}
             </span>
-            <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span
+              className="sub-meta"
+              style={{
+                color: '#94a3b8',
+                fontSize: '9px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}
+            >
               Prazo: {winner.deliveryDays || winner.prazo_entrega || 0} dias
             </span>
           </div>
@@ -367,55 +512,96 @@ export const QuotationMap: React.FC = () => {
           <span className="sub-meta italic text-amber-600">Aguardando definição</span>
         );
       },
-      align: 'left' as const
+      align: 'left' as const,
     },
     {
       header: 'Saving Real (%)',
       accessor: (item: any) => {
         const suppliers = item.suppliers || item.dados_fornecedores || [];
-        const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
-        if (prices.length < 2) return <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Sem Histórico</span>;
+        const prices = suppliers
+          .map((s: any) => Number(s.price || s.preco || 0))
+          .filter((p: number) => p > 0);
+        if (prices.length < 2) {
+          return (
+            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
+              Sem Histórico
+            </span>
+          );
+        }
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <span className="status-pill active" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
+            <span
+              className="status-pill active"
+              style={{
+                fontSize: '10px',
+                padding: '2px 8px',
+                fontWeight: 900,
+                background: '#ecfdf5',
+                color: '#059669',
+                border: '1px solid #a7f3d0',
+              }}
+            >
               SAVING: {savingPercent.toFixed(1)}%
             </span>
           </div>
         );
       },
-      align: 'center' as const
+      align: 'center' as const,
     },
     {
       header: 'Melhor Preço / Status',
       accessor: (item: any) => {
         const suppliers = item.suppliers || item.dados_fornecedores || [];
-        const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+        const prices = suppliers
+          .map((s: any) => Number(s.price || s.preco || 0))
+          .filter((p: number) => p > 0);
         const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+            }}
+          >
             <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a' }}>
-              {minPrice > 0 ? minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '--'}
+              {minPrice > 0
+                ? minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : '--'}
             </span>
-            <span className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`} style={{ fontSize: '8px', padding: '1px 5px' }}>
+            <span
+              className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`}
+              style={{ fontSize: '8px', padding: '1px 5px' }}
+            >
               {item.status === 'closed' ? 'Contratado' : 'Em Análise'}
             </span>
           </div>
         );
       },
-      align: 'center' as const
-    }
+      align: 'center' as const,
+    },
   ];
 
   return (
     <div className="quotation-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Mapas de Cotação' }]} />
+          <Breadcrumb
+            paths={[
+              { label: 'Compras', href: '/compras/dashboard' },
+              { label: 'Mapas de Cotação' },
+            ]}
+          />
           <h1 className="page-title">Mapas de Cotação</h1>
-          <p className="page-subtitle">Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em tempo real.</p>
+          <p className="page-subtitle">
+            Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em
+            tempo real.
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => navigate('/compras/mapa')}>
@@ -430,32 +616,45 @@ export const QuotationMap: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color=""  periodLabel="Mês Atual" />)
-        ) : stats.map((stat, idx) => (
-          <TauzeStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            trend={stat.trend}
-            sparkline={stat.sparkline}
-           periodLabel="Mês Atual" />
-        ))}
+        {loading
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <TauzeStatCard
+                  key={i}
+                  loading={true}
+                  label=""
+                  value=""
+                  icon={BarChart2}
+                  color=""
+                  periodLabel="Mês Atual"
+                />
+              ))
+          : stats.map((stat, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                progress={stat.progress}
+                change={stat.change}
+                trend={stat.trend}
+                sparkline={stat.sparkline}
+                periodLabel="Mês Atual"
+              />
+            ))}
       </div>
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
             onClick={() => setActiveTab('OPEN')}
           >
             Mapas Ativos
           </button>
-          <button 
+          <button
             className={`tauze-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
             onClick={() => setActiveTab('CLOSED')}
           >
@@ -465,17 +664,17 @@ export const QuotationMap: React.FC = () => {
 
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="tauze-search-input"
-            placeholder="Buscar por item ou parceiro..." 
+            placeholder="Buscar por item ou parceiro..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         <div className="tauze-filter-group">
-          <button 
+          <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -483,26 +682,49 @@ export const QuotationMap: React.FC = () => {
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
-            <button 
-              className="icon-btn-secondary" 
+            <button
+              className="icon-btn-secondary"
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-quotation');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {
+                  menu.classList.toggle('active');
+                }
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-quotation" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>PDF</button>
+              <button
+                onClick={() => {
+                  handleExport('csv');
+                  document.getElementById('export-menu-quotation')?.classList.remove('active');
+                }}
+              >
+                Excel (.CSV)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('excel');
+                  document.getElementById('export-menu-quotation')?.classList.remove('active');
+                }}
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => {
+                  handleExport('pdf');
+                  document.getElementById('export-menu-quotation')?.classList.remove('active');
+                }}
+              >
+                PDF
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <QuotationFilterModal 
+      <QuotationFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
@@ -510,12 +732,22 @@ export const QuotationMap: React.FC = () => {
       />
 
       <div className="management-content">
-        <ModernTable 
+        <ModernTable
           emptyState={
-            quotations.filter(q => (activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed')).length === 0 ? (
+            quotations.filter((q) =>
+              activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed'
+            ).length === 0 ? (
               <EmptyState
-                title={activeTab === 'OPEN' ? "Nenhum mapa de cotação ativo" : "Nenhum mapa de cotação encerrado"}
-                description={activeTab === 'OPEN' ? "Não há processos de cotação de mercado ativos no momento." : "Não há históricos de cotações encerradas nesta unidade."}
+                title={
+                  activeTab === 'OPEN'
+                    ? 'Nenhum mapa de cotação ativo'
+                    : 'Nenhum mapa de cotação encerrado'
+                }
+                description={
+                  activeTab === 'OPEN'
+                    ? 'Não há processos de cotação de mercado ativos no momento.'
+                    : 'Não há históricos de cotações encerradas nesta unidade.'
+                }
                 actionLabel="Nova Cotação"
                 onAction={handleOpenCreate}
                 icon={BarChart2}
@@ -528,40 +760,63 @@ export const QuotationMap: React.FC = () => {
               />
             )
           }
-          data={quotations.filter(q => {
+          data={quotations.filter((q) => {
             const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
-            
+
             const suppliers = q.suppliers || q.dados_fornecedores || [];
             const matchesBids = suppliers.length >= filterValues.minBids;
-            
+
             let savingPercent = 0;
-            const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+            const prices = suppliers
+              .map((s: any) => Number(s.price || s.preco || 0))
+              .filter((p: number) => p > 0);
             if (prices.length >= 2) {
               const minPrice = Math.min(...prices);
               const maxPrice = Math.max(...prices);
               savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
             }
             const matchesSaving = savingPercent >= filterValues.minSaving;
-            
-            const matchesStatus = filterValues.status === 'all' || q.status === filterValues.status;
-            const matchesDate = (!filterValues.dateStart || new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
-                               (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
 
-            return matchesSearch && matchesTab && matchesBids && matchesSaving && matchesStatus && matchesDate;
+            const matchesStatus = filterValues.status === 'all' || q.status === filterValues.status;
+            const matchesDate =
+              (!filterValues.dateStart ||
+                new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
+              (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
+
+            return (
+              matchesSearch &&
+              matchesTab &&
+              matchesBids &&
+              matchesSaving &&
+              matchesStatus &&
+              matchesDate
+            );
           })}
           columns={tableColumns}
           loading={loading}
           hideHeader={true}
           actions={(item) => (
             <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Comparativo">
+              <button
+                className="action-dot info"
+                onClick={() => handleViewDetails(item)}
+                title="Comparativo"
+              >
                 <History size={18} />
               </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+              <button
+                className="action-dot edit"
+                onClick={() => handleOpenEdit(item)}
+                title="Editar"
+              >
                 <Edit3 size={18} />
               </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+              <button
+                className="action-dot delete"
+                onClick={() => handleDelete(item.id)}
+                title="Excluir"
+              >
                 <Trash2 size={18} />
               </button>
             </div>
@@ -569,20 +824,19 @@ export const QuotationMap: React.FC = () => {
         />
       </div>
 
-      <QuotationForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <QuotationForm
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         initialData={selectedQuotation}
       />
 
-      <QuotationMatrixModal 
+      <QuotationMatrixModal
         isOpen={isMatrixOpen}
         onClose={() => setIsMatrixOpen(false)}
         quotation={selectedMatrixQuotation}
         onApprove={handleApproveSupplier}
       />
-
     </div>
   );
 };
