@@ -275,6 +275,19 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
       {/* Controles de Busca e Filtros */}
       <div className="tauze-controls-row">
+        {/* Abas Rápidas de Filtro de Status */}
+        <div className="tauze-tab-group">
+          {(['all', 'Pendente', 'Contatado', 'Convertido', 'Arquivado'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`tauze-tab-item ${statusFilter === status ? 'active' : ''}`}
+            >
+              {status === 'all' ? 'TODOS' : status.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
         <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input
@@ -286,25 +299,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           />
         </div>
 
-        {/* Abas Rápidas de Filtro de Status */}
-        <div className="tauze-tab-group">
-          {(['all', 'Pendente', 'Contatado', 'Convertido', 'Arquivado'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`tauze-tab-item ${statusFilter === status ? 'active' : ''}`}
-            >
-              {status === 'all' ? 'Todos' : status}
-            </button>
-          ))}
-        </div>
-
-        <div className="tauze-filter-group">
-          <ExportDropdown onExport={handleExport} />
-        </div>
-
         {/* Alternador de Visualização Tabela / Kanban */}
-        <div className="view-mode-toggle" style={{ marginLeft: 'auto' }}>
+        <div className="view-mode-toggle">
           <button
             onClick={() => setViewMode('table')}
             className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
@@ -319,6 +315,10 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           >
             <LayoutGrid size={18} />
           </button>
+        </div>
+
+        <div className="tauze-filter-group">
+          <ExportDropdown onExport={handleExport} />
         </div>
       </div>
 
