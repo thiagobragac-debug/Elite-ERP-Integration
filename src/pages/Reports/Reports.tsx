@@ -556,9 +556,9 @@ export const Reports: React.FC = () => {
     };
   };
 
-  const filteredReports = React.useMemo(() => {
+  const accessibleReports = React.useMemo(() => {
     const planModules = tenant?.plan_details?.modules || [];
-    const hasPlanRestriction = tenant && tenant.plan !== 'BETA_FREE' && planModules.length > 0;
+    const hasPlanRestriction = tenant && tenant.plano !== 'BETA_FREE' && planModules.length > 0;
 
     const categoryToModuleMap: Record<string, string[]> = {
       'livestock': ['Pecuária'],
@@ -569,20 +569,23 @@ export const Reports: React.FC = () => {
       'gov': ['Financeiro & Banco', 'Administração'],
     };
 
-    return reportTypes
+    return reportTypes.filter((r) => {
+      // Plan restriction
+      if (hasPlanRestriction) {
+        const requiredModules = categoryToModuleMap[r.category] || [];
+        if (requiredModules.length > 0) {
+          const hasAccess = requiredModules.some(mod => planModules.includes(mod));
+          if (!hasAccess) return false;
+        }
+      }
+      return true;
+    });
+  }, [reportTypes, tenant]);
+
+  const filteredReports = React.useMemo(() => {
+    return accessibleReports
       .filter((r) => activeCategory === 'all' || r.category === activeCategory)
       .filter((r) => r.title.toLowerCase().includes(searchTerm.toLowerCase()))
-      .filter((r) => {
-        // Plan restriction
-        if (hasPlanRestriction) {
-          const requiredModules = categoryToModuleMap[r.category] || [];
-          if (requiredModules.length > 0) {
-            const hasAccess = requiredModules.some(mod => planModules.includes(mod));
-            if (!hasAccess) return false;
-          }
-        }
-        return true;
-      })
       .filter((r) => {
         // Advanced Filters
         const matchesTags =
@@ -600,7 +603,7 @@ export const Reports: React.FC = () => {
 
         return matchesTags && matchesComplexity && matchesFavorites && matchesIntegrity;
       });
-  }, [reportTypes, activeCategory, searchTerm, advancedFilters, favorites, tenant]);
+  }, [accessibleReports, activeCategory, searchTerm, advancedFilters, favorites]);
 
   return (
     <div className="admin-page animate-slide-up">
@@ -700,68 +703,80 @@ export const Reports: React.FC = () => {
                 >
                   <Layers size={16} />
                   <span>Todos os Relatórios</span>
-                  <span className="count">{reportTypes.length}</span>
+                  <span className="count">{accessibleReports.length}</span>
                 </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'livestock' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('livestock')}
-                >
-                  <Activity size={16} />
-                  <span>Pecuária & Manejo</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'livestock').length}
-                  </span>
-                </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'finance' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('finance')}
-                >
-                  <DollarSign size={16} />
-                  <span>Financeiro & DRE</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'finance').length}
-                  </span>
-                </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'fleet' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('fleet')}
-                >
-                  <Truck size={16} />
-                  <span>Frota & Logística</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'fleet').length}
-                  </span>
-                </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'supply' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('supply')}
-                >
-                  <Package size={16} />
-                  <span>Suprimentos & Estoque</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'supply').length}
-                  </span>
-                </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'sales' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('sales')}
-                >
-                  <ShoppingCart size={16} />
-                  <span>Vendas & CRM</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'sales').length}
-                  </span>
-                </button>
-                <button
-                  className={`nav-item-btn ${activeCategory === 'gov' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('gov')}
-                >
-                  <Shield size={16} />
-                  <span>Governança & ESG</span>
-                  <span className="count">
-                    {reportTypes.filter((r) => r.category === 'gov').length}
-                  </span>
-                </button>
+                {accessibleReports.some((r) => r.category === 'livestock') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'livestock' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('livestock')}
+                  >
+                    <Activity size={16} />
+                    <span>Pecuária & Manejo</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'livestock').length}
+                    </span>
+                  </button>
+                )}
+                {accessibleReports.some((r) => r.category === 'finance') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'finance' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('finance')}
+                  >
+                    <DollarSign size={16} />
+                    <span>Financeiro & DRE</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'finance').length}
+                    </span>
+                  </button>
+                )}
+                {accessibleReports.some((r) => r.category === 'fleet') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'fleet' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('fleet')}
+                  >
+                    <Truck size={16} />
+                    <span>Frota & Logística</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'fleet').length}
+                    </span>
+                  </button>
+                )}
+                {accessibleReports.some((r) => r.category === 'supply') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'supply' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('supply')}
+                  >
+                    <Package size={16} />
+                    <span>Suprimentos & Estoque</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'supply').length}
+                    </span>
+                  </button>
+                )}
+                {accessibleReports.some((r) => r.category === 'sales') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'sales' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('sales')}
+                  >
+                    <ShoppingCart size={16} />
+                    <span>Vendas & CRM</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'sales').length}
+                    </span>
+                  </button>
+                )}
+                {accessibleReports.some((r) => r.category === 'gov') && (
+                  <button
+                    className={`nav-item-btn ${activeCategory === 'gov' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('gov')}
+                  >
+                    <Shield size={16} />
+                    <span>Governança & ESG</span>
+                    <span className="count">
+                      {accessibleReports.filter((r) => r.category === 'gov').length}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 

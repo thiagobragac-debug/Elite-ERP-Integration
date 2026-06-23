@@ -801,8 +801,53 @@ export const ExecutiveDashboard: React.FC = () => {
     selectedIds = ['gmd', 'lotacao', 'caixa', 'estoque'];
   }
 
+  const accessibleStats = React.useMemo(() => {
+    const planModules = tenant?.plan_details?.modules || [];
+    const hasPlanRestriction = tenant && tenant.plano !== 'BETA_FREE' && planModules.length > 0;
+
+    const kpiToModuleMap: Record<string, string[]> = {
+      'caixa': ['Financeiro & Banco'],
+      'ebitda': ['Financeiro & Banco'],
+      'receitas': ['Financeiro & Banco'],
+      'inadimplencia': ['Financeiro & Banco'],
+      'despesas': ['Financeiro & Banco'],
+      'margem': ['Financeiro & Banco'],
+      'saving_compras': ['Compra & Cotação', 'Estoque'],
+      'lead_time': ['Compra & Cotação', 'Estoque'],
+      'acuracidade_est': ['Estoque'],
+      'ruptura_est': ['Estoque'],
+      'estoque': ['Estoque', 'Compra & Cotação'],
+      'rebanho': ['Pecuária'],
+      'gmd': ['Pecuária'],
+      'lotacao': ['Pecuária'],
+      'prenhez': ['Pecuária'],
+      'ims': ['Pecuária'],
+      'conversao_alim': ['Pecuária'],
+      'produtividade_ha': ['Pecuária'],
+      'ciclo_engorda': ['Pecuária'],
+      'taxa_mortalidade': ['Pecuária'],
+      'custo_arroba': ['Pecuária', 'Financeiro & Banco'],
+      'diesel': ['Máquina & Frota'],
+      'manutencao_hora': ['Máquina & Frota'],
+      'disponibilidade_frota': ['Máquina & Frota'],
+      'mtbf': ['Máquina & Frota'],
+      'cocho': ['Pecuária', 'Máquina & Frota'],
+      'preco_arroba': ['Mercado'],
+      'carbono': ['Administração'],
+      'compliance': ['Administração'],
+      'seguranca_trab': ['Administração'],
+    };
+
+    return allStats.filter((stat) => {
+      if (!hasPlanRestriction) return true;
+      const requiredModules = kpiToModuleMap[stat.id] || [];
+      if (requiredModules.length === 0) return true;
+      return requiredModules.some((mod) => planModules.includes(mod));
+    });
+  }, [allStats, tenant]);
+
   const kpiData = selectedIds
-    .map((id: string) => allStats.find((s) => s.id === id))
+    .map((id: string) => accessibleStats.find((s) => s.id === id))
     .filter(Boolean);
 
   let chartData: any[] = [];
