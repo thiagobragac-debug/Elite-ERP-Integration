@@ -105,6 +105,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         else initialType = 'users';
       }
 
+      let initialValue = '';
       let initialComboModules: string[] = [];
       let initialOriginalPrice = '';
 
@@ -589,6 +590,59 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
                   </optgroup>
                 ))}
               </select>
+            </div>
+          )}
+
+          {formData.type === 'combo' && (
+            <div className="tauze-field-group animate-slide-up" style={{ padding: '16px', background: 'hsl(var(--brand) / 0.05)', borderRadius: '8px', border: '1px solid hsl(var(--brand) / 0.1)' }}>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <LayoutGrid size={12} /> CONFIGURAÇÃO DO COMBO
+              </label>
+              <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '12px' }}>
+                Selecione os módulos e submódulos que farão parte deste combo.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-main)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', maxHeight: '300px', overflowY: 'auto' }}>
+                {SAAS_MODULES.map(module => (
+                  <div key={module.id}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={formData.combo_modules.includes(module.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData(prev => ({
+                            ...prev,
+                            combo_modules: checked 
+                              ? [...prev.combo_modules, module.id]
+                              : prev.combo_modules.filter(m => m !== module.id)
+                          }));
+                        }}
+                      />
+                      Módulo Completo: {module.label}
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginLeft: '24px' }}>
+                      {module.submodules.map(sub => (
+                        <label key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={formData.combo_modules.includes(sub.id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setFormData(prev => ({
+                                ...prev,
+                                combo_modules: checked 
+                                  ? [...prev.combo_modules, sub.id]
+                                  : prev.combo_modules.filter(m => m !== sub.id)
+                              }));
+                            }}
+                          />
+                          {sub.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

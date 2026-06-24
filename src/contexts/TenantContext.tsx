@@ -286,6 +286,20 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                   }
                 }
               }
+
+              if (Array.isArray(metadata.combo_modules)) {
+                metadata.combo_modules.forEach((modId: string) => {
+                  if (!activatedAddonModules.includes(modId)) {
+                    activatedAddonModules.push(modId);
+                  }
+                  if (modId.includes(':')) {
+                    const parent = modId.split(':')[0];
+                    if (!activatedAddonModules.includes(parent)) {
+                      activatedAddonModules.push(parent);
+                    }
+                  }
+                });
+              }
             });
           }
         const baseModules = Array.isArray(safePlanData.modules) ? safePlanData.modules : (safePlanData.modules === null ? null : []);

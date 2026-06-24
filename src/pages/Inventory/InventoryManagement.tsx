@@ -252,6 +252,7 @@ export const InventoryManagement: React.FC = () => {
         codigo_tributacao_nacional:
           data.tipo === 'servico' ? data.codigo_tributacao_nacional : null,
         cnae_associado: data.tipo === 'servico' ? data.cnae_associado : null,
+        carencia_dias: data.tipo === 'servico' ? null : (parseInt(data.carencia_dias) || 0),
         ...insertPayload,
       };
 

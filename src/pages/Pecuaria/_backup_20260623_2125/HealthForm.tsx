@@ -147,7 +147,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       // 3. Fetch Products from inventory (medicamento/vacina/insumo) including custo_medio from saldos_estoque
       let productQuery = supabase
         .from('produtos')
-        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_dias')
+        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id')
         .eq('tenant_id', activeTenantId)
         .eq('is_storable', true);
 
@@ -382,22 +382,9 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         }
       }
     }
+
     return { bloqueioAbate, dataReforco };
   }, [formData.data_manejo, formData.carencia_dias, formData.reforco_dias, formData.tipo]);
-
-  const limitingProductInfo = useMemo(() => {
-    if (produtosAplicados.length === 0) return null;
-    let max = -1;
-    let limitProduct = null;
-    for (const p of produtosAplicados) {
-      const pCarencia = parseInt(p.carencia_dias) || 0;
-      if (pCarencia > max) {
-        max = pCarencia;
-        limitProduct = p;
-      }
-    }
-    return max > 0 ? { dias: max, nome: limitProduct?.produto || limitProduct?.nome } : null;
-  }, [produtosAplicados]);
 
   const handleAnimalChange = (animal: any) => {
     setFormData((prev) => ({ ...prev, animal_id: animal.id, lote_id: '' }));
@@ -446,7 +433,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 
   return (
     <SidePanel
-      size="xlarge"
+      size="large"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -646,7 +633,6 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         <div
           style={{
             flex: 1,
-            minWidth: 0,
             background: 'hsl(var(--bg-card))',
             border: '1px solid hsl(var(--border))',
             borderRadius: '16px',
@@ -681,22 +667,22 @@ export const HealthForm: React.FC<HealthFormProps> = ({
           </div>
 
           {activeEtapa === 'contexto' && (
-            <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="tauze-field-group">
-                <label className="tauze-label">
-                  <FileText size={14} /> Título / Descrição
-                </label>
-                <input
-                  className="tauze-input"
-                  type="text"
-                  placeholder="Ex: Vacinação contra Aftosa"
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  required
-                />
-              </div>
+            <div className="animate-slide-up">
+              <div className="tauze-input-grid grid-col-2">
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label">
+                    <FileText size={14} /> Título / Descrição
+                  </label>
+                  <input
+                    className="tauze-input"
+                    type="text"
+                    placeholder="Ex: Vacinação contra Aftosa"
+                    value={formData.titulo}
+                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div className="tauze-input-grid grid-col-3">
                 <div className="tauze-field-group">
                   <label className="tauze-label">
                     <Stethoscope size={14} /> Tipo de Manejo
@@ -724,23 +710,6 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                     required
                   />
                 </div>
-
-                <div className="tauze-field-group">
-                  <label className="tauze-label">
-                    <Activity size={14} /> Status
-                  </label>
-                  <SearchableSelect
-                    value={formData.status}
-                    onChange={(val: any) => setFormData({ ...formData, status: val })}
-                    options={[
-                      { value: `REALIZADO`, label: `Realizado` },
-                      { value: `PENDENTE`, label: `Pendente` },
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="tauze-input-grid grid-col-2">
 
                 {/* Animal Selection Autocomplete */}
                 <div className="tauze-field-group" style={{ position: 'relative' }}>
@@ -1485,7 +1454,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                   </div>
                 )}
 
-                {formData.tipo !== 'cirurgia' && (
+                {formData.tipo === 'medicamento' && (
                   <div className="tauze-field-group">
                     <label className="tauze-label">
                       <AlertCircle size={14} /> Carência Abate/Leite (Dias)
@@ -1497,23 +1466,30 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                       value={formData.carencia_dias}
                       onChange={(e) => setFormData({ ...formData, carencia_dias: e.target.value })}
                     />
-                    {limitingProductInfo && (
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          color: 'hsl(var(--text-muted))',
-                          marginTop: '4px',
-                          display: 'block',
-                        }}
-                      >
-                        Carência sugerida pelo maior produto:{' '}
-                        <strong style={{ color: 'hsl(var(--brand))' }}>{limitingProductInfo.dias} dias</strong>{' '}
-                        (limitado por: <strong>{limitingProductInfo.nome}</strong>)
-                      </span>
-                    )}
                   </div>
                 )}
 
+                <div
+                  className="tauze-field-group"
+                  style={{
+                    gridColumn:
+                      formData.tipo === 'vacina' || formData.tipo === 'medicamento'
+                        ? 'span 1'
+                        : 'span 2',
+                  }}
+                >
+                  <label className="tauze-label">
+                    <Activity size={14} /> Status
+                  </label>
+                  <SearchableSelect
+                    value={formData.status}
+                    onChange={(val: any) => setFormData({ ...formData, status: val })}
+                    options={[
+                      { value: `REALIZADO`, label: `Realizado` },
+                      { value: `PENDENTE`, label: `Pendente` },
+                    ]}
+                  />
+                </div>
 
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                   <label className="tauze-label">

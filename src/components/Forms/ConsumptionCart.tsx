@@ -82,7 +82,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .from('produtos')
         .select(
           `
-          id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id,
+          id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id, carencia_dias,
           categorias_sistema(nome)
         `
         )
@@ -173,6 +173,8 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       unidade: product.unidade || 'UN',
       custo_medio: custoRef,
       custo_padrao: product.custo_padrao || 0,
+      // Carência preenchida automaticamente do cadastro do insumo
+      ...(showHealthFields && { carencia_dias: product.carencia_dias || 0 }),
     });
   };
 
@@ -235,13 +237,13 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         </button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'hidden' }}>
         <table
           style={{
             width: '100%',
             borderCollapse: 'collapse',
             tableLayout: 'fixed',
-            minWidth: showHealthFields ? '900px' : mode === 'formulation' ? '100%' : '600px',
+            minWidth: mode === 'formulation' ? '100%' : '0',
           }}
         >
           <thead>
@@ -255,7 +257,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                   color: 'hsl(var(--text-muted))',
                   textTransform: 'uppercase',
                   borderBottom: '1px solid hsl(var(--border))',
-                  width: '250px',
+                  width: '200px',
                 }}
               >
                 Insumo / Produto
@@ -270,7 +272,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                     color: 'hsl(var(--text-muted))',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid hsl(var(--border))',
-                    width: '200px',
+                    width: '130px',
                   }}
                 >
                   {mode === 'movement' && isEntry
@@ -282,64 +284,34 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
               )}
               <th
                 style={{
-                  textAlign: 'center',
+                  textAlign: 'left',
                   padding: '12px 8px',
                   fontSize: '10px',
                   fontWeight: 800,
                   color: 'hsl(var(--text-muted))',
                   textTransform: 'uppercase',
                   borderBottom: '1px solid hsl(var(--border))',
-                  width: mode === 'formulation' ? '80px' : '120px',
+                  width: mode === 'formulation' ? '70px' : '80px',
                 }}
               >
                 Qtd
               </th>
 
               {showHealthFields && (
-                <>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      padding: '12px 8px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      color: 'hsl(var(--text-muted))',
-                      textTransform: 'uppercase',
-                      borderBottom: '1px solid hsl(var(--border))',
-                      width: '120px',
-                    }}
-                  >
-                    Via
-                  </th>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      padding: '12px 8px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      color: 'hsl(var(--text-muted))',
-                      textTransform: 'uppercase',
-                      borderBottom: '1px solid hsl(var(--border))',
-                      width: '120px',
-                    }}
-                  >
-                    Local
-                  </th>
-                  <th
-                    style={{
-                      textAlign: 'center',
-                      padding: '12px 8px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      color: 'hsl(var(--text-muted))',
-                      textTransform: 'uppercase',
-                      borderBottom: '1px solid hsl(var(--border))',
-                      width: '90px',
-                    }}
-                  >
-                    Carência
-                  </th>
-                </>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '12px 8px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid hsl(var(--border))',
+                    width: '100px',
+                  }}
+                >
+                  Via
+                </th>
               )}
 
               {mode === 'movement' && (
@@ -347,7 +319,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                   {isEntry && (
                     <th
                       style={{
-                        textAlign: 'center',
+                        textAlign: 'left',
                         padding: '12px 8px',
                         fontSize: '10px',
                         fontWeight: 800,
@@ -394,14 +366,14 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
               {mode !== 'movement' && (
                 <th
                   style={{
-                    textAlign: 'right',
+                    textAlign: 'left',
                     padding: '12px 8px',
                     fontSize: '10px',
                     fontWeight: 800,
                     color: 'hsl(var(--text-muted))',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid hsl(var(--border))',
-                    width: '100px',
+                    width: '80px',
                   }}
                 >
                   Custo (Est)
@@ -454,7 +426,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                       style={{
                         padding: '0 8px',
                         height: '36px',
-                        textAlign: 'center',
+                        textAlign: 'left',
                         width: '100%',
                       }}
                       value={item.quantidade || ''}
@@ -478,65 +450,27 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 </td>
 
                 {showHealthFields && (
-                  <>
-                    <td
-                      style={{
-                        padding: '8px 8px',
-                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                      }}
+                  <td
+                    style={{
+                      padding: '8px 8px',
+                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                    }}
+                  >
+                    <select
+                      className="tauze-input"
+                      style={{ height: '36px', fontSize: '12px' }}
+                      value={item.via_aplicacao || ''}
+                      onChange={(e) =>
+                        handleUpdateItem(item.id, { via_aplicacao: e.target.value })
+                      }
                     >
-                      <select
-                        className="tauze-input"
-                        style={{ height: '36px' }}
-                        value={item.via_aplicacao || ''}
-                        onChange={(e) =>
-                          handleUpdateItem(item.id, { via_aplicacao: e.target.value })
-                        }
-                      >
-                        <option value="IM">Intramuscular (IM)</option>
-                        <option value="SC">Subcutânea (SC)</option>
-                        <option value="IV">Intravenosa (IV)</option>
-                        <option value="ORAL">Via Oral</option>
-                        <option value="TOPICO">Tópico/Pour-on</option>
-                      </select>
-                    </td>
-                    <td
-                      style={{
-                        padding: '8px 8px',
-                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                      }}
-                    >
-                      <input
-                        type="text"
-                        className="tauze-input"
-                        style={{ height: '36px' }}
-                        value={item.local_aplicacao || ''}
-                        onChange={(e) =>
-                          handleUpdateItem(item.id, { local_aplicacao: e.target.value })
-                        }
-                        placeholder="Ex: Tábua pescoço"
-                      />
-                    </td>
-                    <td
-                      style={{
-                        padding: '8px 8px',
-                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                      }}
-                    >
-                      <input
-                        type="number"
-                        className="tauze-input"
-                        style={{ height: '36px', textAlign: 'center' }}
-                        value={item.carencia_dias || ''}
-                        onChange={(e) =>
-                          handleUpdateItem(item.id, {
-                            carencia_dias: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        placeholder="Dias"
-                      />
-                    </td>
-                  </>
+                      <option value="IM">IM</option>
+                      <option value="SC">SC</option>
+                      <option value="IV">IV</option>
+                      <option value="ORAL">Oral</option>
+                      <option value="TOPICO">Tópico</option>
+                    </select>
+                  </td>
                 )}
 
                 {mode === 'movement' && (
@@ -569,7 +503,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                             style={{
                               padding: '0 8px 0 24px',
                               height: '36px',
-                              textAlign: 'center',
+                              textAlign: 'left',
                               width: '100%',
                             }}
                             value={item.valor_unitario || ''}
@@ -651,7 +585,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                           style={{
                             padding: '0 8px 0 26px',
                             height: '36px',
-                            textAlign: 'right',
+                            textAlign: 'left',
                             width: '100%',
                             fontSize: '12px',
                             fontWeight: 700,

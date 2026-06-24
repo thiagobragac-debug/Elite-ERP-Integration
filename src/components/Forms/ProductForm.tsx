@@ -61,6 +61,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     estoque_atual: '0',
     custo_medio: '0',
     custo_padrao: '0',
+    carencia_dias: '0',
     descricao: '',
     ean: '',
     ncm: '',
@@ -253,6 +254,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         custo_medio: initialData.custo_medio?.toString() || '0',
         custo_padrao:
           initialData.custo_padrao?.toString() || initialData.preco_custo?.toString() || '0',
+        carencia_dias: initialData.carencia_dias?.toString() || '0',
         descricao: initialData.descricao || '',
         ean: initialData.ean || '',
         ncm: initialData.ncm || '',
@@ -280,6 +282,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         estoque_atual: '0',
         custo_medio: '0',
         custo_padrao: '0',
+        carencia_dias: '0',
         descricao: '',
         ean: '',
         ncm: '',
@@ -595,7 +598,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <div className="tauze-section-badge">PASSO 03</div>
               <h4 className="tauze-section-title">Controle de Estoque</h4>
             </div>
-            <div className="tauze-input-grid grid-col-3">
+            <div className="tauze-input-grid grid-col-4">
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <AlertCircle size={14} /> Carência de Abate
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    className="tauze-input"
+                    type="number"
+                    placeholder="Ex: 0"
+                    style={{ paddingRight: '42px' }}
+                    value={formData.carencia_dias}
+                    onChange={(e) => setFormData({ ...formData, carencia_dias: e.target.value })}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      fontSize: '11px',
+                      color: 'hsl(var(--text-muted))',
+                      fontWeight: 600,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    dias
+                  </span>
+                </div>
+              </div>
+
               <div className="tauze-field-group">
                 <div
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
@@ -1088,6 +1119,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           )}
         </div>
+
+
       </section>
 
       <section className="tauze-form-section">

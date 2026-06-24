@@ -940,10 +940,32 @@ export const TenantBilling: React.FC = () => {
                       }
                     }
 
+                    if (typeLower === 'combo') {
+                      const planModules = tenant?.plan_details?.modules;
+                      if (planModules === null) {
+                        return false;
+                      } else if (Array.isArray(planModules) && addon.metadata?.combo_modules) {
+                        const comboModules = addon.metadata.combo_modules;
+                        if (comboModules.length > 0) {
+                          const alreadyHasAll = comboModules.every((m: string) => {
+                            const parentModule = m.includes(':') ? m.split(':')[0] : null;
+                            return planModules.includes(m) || (parentModule ? planModules.includes(parentModule) : false);
+                          });
+                          if (alreadyHasAll) {
+                            return false;
+                          }
+                        }
+                      }
+                    }
+
                     return true;
                   }).map(addon => {
                     const isSubscribed = tenantAddons.some(ta => ta.addon_id === addon.id && ta.status === 'active');
                     const isButtonDisabled = isSubscribed;
+                    const originalPrice = addon.metadata?.original_price;
+                    const discountPercent = originalPrice && originalPrice > Number(addon.price)
+                      ? Math.round((1 - Number(addon.price) / originalPrice) * 100)
+                      : null;
 
                     return (
                       <div key={addon.id} style={{
@@ -954,9 +976,23 @@ export const TenantBilling: React.FC = () => {
                         <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '8px', paddingRight: '100px' }}>{addon.name}</h4>
                         <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '24px', minHeight: '40px' }}>{addon.description}</p>
                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                          <div>
-                            <span style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px' }}>/{addon.billing_cycle === 'monthly' ? 'mês' : 'ano'}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {originalPrice && originalPrice > Number(addon.price) && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <del style={{ color: '#94a3b8', fontSize: '12px', textDecoration: 'line-through' }}>
+                                  R$ {Number(originalPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </del>
+                                {discountPercent && (
+                                  <span style={{ background: '#22c55e', color: '#fff', borderRadius: '4px', padding: '2px 6px', fontSize: '10px', fontWeight: 800 }}>
+                                    {discountPercent}% OFF
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <div>
+                              <span style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px' }}>/{addon.billing_cycle === 'monthly' ? 'mês' : 'ano'}</span>
+                            </div>
                           </div>
                           <button
                             className={isButtonDisabled ? "icon-btn-secondary" : "primary-btn"}
