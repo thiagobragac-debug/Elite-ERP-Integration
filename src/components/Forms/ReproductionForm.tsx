@@ -236,7 +236,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
 
   return (
     <SidePanel
-      size="850px"
+      size="xlarge"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -454,20 +454,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
             </div>
 
             {activeEtapa === 'dados' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="tauze-input-grid grid-col-2">
-                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="tauze-label">
-                      <Beef size={14} /> Animal / Matriz
-                    </label>
-                    <SearchableSelect
-                      value={formData.animal_id}
-                      onChange={(val: any) => setFormData({ ...formData, animal_id: val })}
-                      options={animais}
-                      placeholder="Busque pelo brinco ou ID..."
-                    />
-                  </div>
-
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="tauze-input-grid grid-col-3">
                   <div className="tauze-field-group">
                     <label className="tauze-label">
                       <Activity size={14} /> Tipo de Evento
@@ -498,26 +486,32 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                     />
                   </div>
 
-                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <div className="tauze-field-group">
                     <label className="tauze-label">
                       <Activity size={14} /> Status
                     </label>
-                    <div className="tauze-form-radio-group">
-                      <div
-                        className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
-                        onClick={() => setFormData({ ...formData, status: 'pending' })}
-                      >
-                        <Calendar size={16} />
-                        <span>Agendado</span>
-                      </div>
-                      <div
-                        className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
-                        onClick={() => setFormData({ ...formData, status: 'completed' })}
-                      >
-                        <Activity size={16} />
-                        <span>Concluído</span>
-                      </div>
-                    </div>
+                    <SearchableSelect
+                      value={formData.status}
+                      onChange={(val: any) => setFormData({ ...formData, status: val })}
+                      options={[
+                        { value: `completed`, label: `Concluído` },
+                        { value: `pending`, label: `Agendado` },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="tauze-input-grid grid-col-2">
+                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="tauze-label">
+                      <Beef size={14} /> Animal / Matriz
+                    </label>
+                    <SearchableSelect
+                      value={formData.animal_id}
+                      onChange={(val: any) => setFormData({ ...formData, animal_id: val })}
+                      options={animais}
+                      placeholder="Busque pelo brinco ou ID..."
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -740,6 +734,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                   subtitle="Itens serão deduzidos do estoque selecionado."
                   filterModule="pecuaria_sanidade"
                   hideDeposit={false}
+                  showHealthFields={true}
                 />
               </motion.div>
             )}
