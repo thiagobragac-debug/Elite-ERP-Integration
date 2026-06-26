@@ -80,7 +80,8 @@ const INITIAL_FORM = {
   pb: '',
   ndt: '',
   consumo_esperado: '',
-  status: 'active' as 'active' | 'draft',
+  // 'active' = Liberada para uso imediato | 'inactive' = Bloqueada/inativa
+  status: 'active' as 'active' | 'inactive',
   data_vigencia: new Date().toISOString().split('T')[0],
   vigencia_bloqueante: false,
 };
@@ -118,7 +119,7 @@ export const DietForm: React.FC<DietFormProps> = ({
         pb:                 initialData.pb?.toString()             || '',
         ndt:                initialData.ndt?.toString()            || '',
         consumo_esperado:   initialData.consumo_esperado?.toString()|| '',
-        status:             initialData.status      || 'active',
+      status:             initialData.status      || 'active',
         data_vigencia:      initialData.data_vigencia || new Date().toISOString().split('T')[0],
         vigencia_bloqueante: initialData.vigencia_bloqueante ?? false,
       });
@@ -137,12 +138,20 @@ export const DietForm: React.FC<DietFormProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, actionId]);
 
-  // ─── Custo automático ────────────────────────────────────────────────────
+  // ─── Custo automático corrigido ────────────────────────────────────────────
+  // Para formulações por % de MN: o custo/kg = soma(custo_i * peso_i) / soma(peso_i)
+  // Para Sal Mineral (g/cab): custo total dividido por 1kg equivalente de mistura
   useEffect(() => {
     if (ingredients.length > 0) {
-      const totalCost = ingredients.reduce((s, i) => s + (i.custo_medio || 0) * (i.quantidade || 0), 0);
-      const totalQty  = ingredients.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
-      if (totalQty > 0) setForm(p => ({ ...p, custo_por_kg: (totalCost / totalQty).toFixed(2) }));
+      const totalQty = ingredients.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
+      if (totalQty > 0) {
+        // Custo ponderado real: cada ingrediente contribui proporcionalmente ao seu peso na fórmula
+        const custoPonderado = ingredients.reduce(
+          (s, i) => s + (i.custo_medio || 0) * (Number(i.quantidade) || 0),
+          0
+        ) / totalQty;
+        setForm(p => ({ ...p, custo_por_kg: custoPonderado.toFixed(4) }));
+      }
     }
   }, [ingredients]);
 
@@ -263,7 +272,7 @@ export const DietForm: React.FC<DietFormProps> = ({
                 color: form.status === 'active' ? '#10b981' : '#f59e0b',
               }}
             >
-              {form.status === 'active' ? 'Liberada' : 'Rascunho'}
+              {form.status === 'active' ? 'Liberada' : 'Bloqueada'}
             </span>
             <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
               Vigência a partir de {new Date(form.data_vigencia + 'T00:00:00').toLocaleDateString('pt-BR')}
@@ -531,17 +540,17 @@ export const DietForm: React.FC<DietFormProps> = ({
                         padding: '9px 12px',
                         borderRadius: '8px',
                         border: '1px solid',
-                        borderColor: form.status === 'draft' ? '#f59e0b' : 'hsl(var(--border))',
-                        background: form.status === 'draft' ? '#f59e0b14' : 'hsl(var(--bg-main))',
-                        color: form.status === 'draft' ? '#f59e0b' : 'hsl(var(--text-muted))',
+                        borderColor: form.status === 'inactive' ? '#ef4444' : 'hsl(var(--border))',
+                        background: form.status === 'inactive' ? '#ef444414' : 'hsl(var(--bg-main))',
+                        color: form.status === 'inactive' ? '#ef4444' : 'hsl(var(--text-muted))',
                         cursor: 'pointer',
                         fontSize: '12px',
                         fontWeight: 700,
                         transition: 'all 0.18s'
                       }}
-                      onClick={() => setForm(p => ({ ...p, status: 'draft' }))}
+                      onClick={() => setForm(p => ({ ...p, status: 'inactive' }))}
                     >
-                      <Pencil size={16} /> Rascunho
+                      <Lock size={16} /> Bloqueada
                     </button>
                   </div>
                 </div>

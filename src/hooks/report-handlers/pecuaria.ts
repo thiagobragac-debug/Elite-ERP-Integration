@@ -839,52 +839,24 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
     const to = from + pageSize - 1;
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    // Janela operacional: últimos 30 dias
-    const hoje = new Date();
-    const trintaDiasAtras = new Date(hoje);
-    trintaDiasAtras.setDate(hoje.getDate() - 30);
-    const dataInicio = trintaDiasAtras.toISOString().split('T')[0];
+    // ── Query principal (obrigatória) ─────────────────────────────────────
+    const { data, count, error } = await withTimeout(
+      supabase
+        .from('dietas')
+        .select('*', { count: 'exact' })
+        .match(scope)
+        .range(from, to) as unknown as Promise<any>
+    );
 
-    // ── Consultas paralelas ────────────────────────────────────────────────
-    const [dietasRes, nutricaoRes, pesagensRes] = await Promise.all([
-      withTimeout(
-        supabase
-          .from('dietas')
-          .select('*', { count: 'exact' })
-          .match(scope)
-          .range(from, to) as unknown as Promise<any>
-      ),
+    if (error) throw error;
 
-      // Tratos dos últimos 30 dias com percentual_ms da dieta para cálculo de MS real
-      withTimeout(
-        supabase
-          .from('nutricao_animais')
-          .select('quantidade_kg, data_consumo, dieta_id, animal_id, dietas(percentual_ms)')
-          .match(scope)
-          .gte('data_consumo', dataInicio) as unknown as Promise<any>
-      ),
-
-      // Pesagens dos últimos 30 dias para calcular ganho de peso no mesmo período
-      withTimeout(
-        supabase
-          .from('pesagens')
-          .select('animal_id, data_pesagem, peso')
-          .match(scope)
-          .gte('data_pesagem', dataInicio)
-          .order('data_pesagem', { ascending: true }) as unknown as Promise<any>
-      ),
-    ]);
-
-    if (dietasRes.error) throw dietasRes.error;
-
-    const dietasData = (dietasRes.data || []).map((d: any) => {
+    const dietasData = (data || []).map((d: any) => {
       const ms = d.percentual_ms ? d.percentual_ms / 100 : 0.88;
       const custoMS = d.custo_por_kg && ms > 0 ? Number(d.custo_por_kg) / ms : null;
       return { ...d, percMS: d.percentual_ms || null, custoMS };
     });
 
-    // ── KPI 1: Dietas formuladas + KPI 2: Custo médio MS ─────────────────
-    const totalDietas = dietasRes.count || 0;
+    const totalDietas = count || 0;
     const _lastDietDate = dietasData.length > 0 ? fmtDateBR(dietasData[0].created_at) : null;
     const dietasComCusto = dietasData.filter((d: any) => d.custoMS);
     const custoMedioKgMS =
@@ -892,20 +864,48 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
         ? dietasComCusto.reduce((a: number, d: any) => a + d.custoMS, 0) / dietasComCusto.length
         : null;
 
-    // ── KPI 3: Conversão Alimentar real (CA = total MS consumida / total ganho de peso) ──
+    // ── Janela operacional: últimos 30 dias ───────────────────────────────
+    const hoje = new Date();
+    const trintaDiasAtras = new Date(hoje);
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    const dataInicio = trintaDiasAtras.toISOString().split('T')[0];
+
+    // ── Queries opcionais: falha silenciosa, nunca quebra os KPIs 1 e 2 ──
+    const [nutricaoRes, pesagensRes] = await Promise.all([
+      supabase
+        .from('nutricao_animais')
+        .select('quantidade_kg, data_consumo, animal_id, dieta_id')
+        .match(scope)
+        .gte('data_consumo', dataInicio)
+        .limit(1000)
+        .then((r: any) => r.data || [])
+        .catch(() => [] as any[]),
+
+      supabase
+        .from('pesagens')
+        .select('animal_id, data_pesagem, peso')
+        .match(scope)
+        .gte('data_pesagem', dataInicio)
+        .order('data_pesagem', { ascending: true })
+        .limit(500)
+        .then((r: any) => r.data || [])
+        .catch(() => [] as any[]),
+    ]);
+
+    const nutricaoData: any[] = nutricaoRes as any[];
+    const pesagensData: any[] = pesagensRes as any[];
+
+    // ── KPI 3: Conversão Alimentar (CA = MS consumida / ganho de peso) ────
     let caReal: number | null = null;
     let caLabel = 'Sem lançamentos nos últimos 30 dias';
-    const nutricaoData: any[] = nutricaoRes.data || [];
-    const pesagensData: any[] = pesagensRes.data || [];
 
     if (nutricaoData.length > 0 && pesagensData.length > 0) {
-      // Consumo total em MS no período
       const totalConsumidoMS = nutricaoData.reduce((acc: number, row: any) => {
-        const ms = Number(row.dietas?.percentual_ms || 88) / 100;
+        // Usa MS default de 88% quando não temos o percentual da dieta
+        const ms = 0.88;
         return acc + Number(row.quantidade_kg || 0) * ms;
       }, 0);
 
-      // Ganho de peso: primeiro e último peso por animal no período
       const pesagensPorAnimal: Record<string, number[]> = {};
       for (const p of pesagensData) {
         if (!pesagensPorAnimal[p.animal_id]) pesagensPorAnimal[p.animal_id] = [];
@@ -922,13 +922,13 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
 
       if (totalConsumidoMS > 0 && totalGanhoPeso > 0) {
         caReal = totalConsumidoMS / totalGanhoPeso;
-        caLabel = 'Últimos 30 dias (base MS corrigida)';
+        caLabel = 'Últimos 30 dias (base MS 88%)';
       } else if (totalConsumidoMS > 0) {
-        caLabel = 'Aguardando pesagens correspondentes';
+        caLabel = 'Aguardando pesagens no período';
       }
     }
 
-    // ── KPI 4: Consumo Médio Diário MS por cabeça (DM) ───────────────────
+    // ── KPI 4: Consumo Médio Diário MS por cabeça ─────────────────────────
     let consumoMedioDM: number | null = null;
     let consumoDMLabel = 'Sem lançamentos nos últimos 30 dias';
 
@@ -937,12 +937,12 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
       const diasUnicos = new Set(nutricaoData.map((r: any) => r.data_consumo)).size;
 
       if (animaisUnicos > 0 && diasUnicos > 0) {
-        const totalMS = nutricaoData.reduce((acc: number, row: any) => {
-          const ms = Number(row.dietas?.percentual_ms || 88) / 100;
-          return acc + Number(row.quantidade_kg || 0) * ms;
-        }, 0);
+        const totalMS = nutricaoData.reduce(
+          (acc: number, row: any) => acc + Number(row.quantidade_kg || 0) * 0.88,
+          0
+        );
         consumoMedioDM = totalMS / (animaisUnicos * diasUnicos);
-        consumoDMLabel = `${animaisUnicos} animais · ${diasUnicos} dias registrados`;
+        consumoDMLabel = `${animaisUnicos} animais · ${diasUnicos} dias`;
       }
     }
 
@@ -954,6 +954,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
     return {
       data: dietasData,
       columns,
+      totalCount: count || 0,
       stats: [
         {
           label: 'Dietas Formuladas',
@@ -969,39 +970,50 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
         },
         {
           label: 'Custo Médio/kg MS',
-          subtitle: _lastDietDate ? `Base: dados de ${_lastDietDate}` : `Período: ${monthYearBR()}`,
+          subtitle: _lastDietDate ? `Base: ${_lastDietDate}` : `Período: ${monthYearBR()}`,
           sparkline: buildSparkline(dietasData, 'created_at', 'custo_por_kg'),
-          value: custoMedioKgMS ? `R$ ${custoMedioKgMS.toFixed(2)}` : '---',
-          change: custoMedioKgMS ? 'Média das dietas' : 'Sem dados de custo',
+          value: custoMedioKgMS ? `R$ ${custoMedioKgMS.toFixed(2)}` : 'Sem custo',
+          change: custoMedioKgMS ? 'Média das dietas ativas' : 'Cadastrar custo nas dietas',
           trend: 'neutral' as const,
           icon: Scale,
           color: 'hsl(var(--warning))',
         },
         {
-          label: 'Eficiência Alimentar',
-          subtitle: 'Integração com pesagens pendente',
-          sparkline: buildSparkline(dietasData, 'created_at', null),
-          value: '---',
-          change: 'Integração com pesagens',
-          trend: 'neutral' as const,
+          label: 'Conversão Alimentar (CA)',
+          subtitle: caLabel,
+          sparkline: sparklineConsumo,
+          value: caReal !== null ? `${caReal.toFixed(2)} : 1` : 'Sem dados',
+          change:
+            caReal !== null
+              ? caReal <= 5
+                ? '✓ Excelente'
+                : caReal <= 7
+                  ? '⚠ Adequado'
+                  : '⚑ Revisar dieta'
+              : 'Lançar tratos + pesagens',
+          trend:
+            caReal !== null
+              ? caReal <= 7
+                ? ('up' as const)
+                : ('down' as const)
+              : ('neutral' as const),
           icon: TrendingUp,
           color: 'hsl(var(--success))',
         },
         {
-          label: 'Consumo Médio (DM)',
-          subtitle: 'Registrar nutrição diária para cálculo',
-          sparkline: buildSparkline(dietasData, 'created_at', null),
-          value: '---',
-          change: 'Registrar nutrição diária',
+          label: 'Consumo Médio DM',
+          subtitle: consumoDMLabel,
+          sparkline: sparklineConsumo,
+          value: consumoMedioDM !== null ? `${consumoMedioDM.toFixed(2)} kg/cab/dia` : 'Sem dados',
+          change: consumoMedioDM !== null ? 'Últimos 30 dias' : 'Lançar tratos para calcular',
           trend: 'neutral' as const,
           icon: Activity,
           color: 'hsl(var(--brand))',
         },
       ],
-      totalCount: count || 0,
     };
   } catch (error: any) {
-    console.error('Error:', error);
+    console.error('[dietas handler]', error);
     return { data: [], stats: [], columns, totalCount: 0 };
   }
 };

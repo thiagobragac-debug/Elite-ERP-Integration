@@ -41,6 +41,9 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
   const [isEditingId, setIsEditingId] = useState<string | null>(null);
   const [targetType, setTargetType] = useState<'ANIMAL' | 'LOTE'>('ANIMAL');
   const [targetId, setTargetId] = useState('');
+  const [animalOptions, setAnimalOptions] = useState<{value: string, label: string}[]>([]);
+  const [loteOptions, setLoteOptions] = useState<{value: string, label: string}[]>([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
   const [startDate, setStartDate] = useState(
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
@@ -72,7 +75,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
         ? catData
             .filter((c: any) => {
               const name = c.nome?.toLowerCase() || '';
-              return name.includes('medicamento');
+              return name.includes('medicamento') || name.includes('vacina');
             })
             .map((c: any) => c.id)
         : [];
@@ -81,7 +84,8 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
         .from('produtos')
         .select('id, nome')
         .eq('tenant_id', tenantId)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('is_storable', true);
 
       if (targetCatIds.length > 0) {
         query = query.in('categoria_id', targetCatIds);
@@ -94,15 +98,9 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
       const { data: prodData } = await query;
 
       if (prodData && prodData.length > 0) {
-        // Usa map com ID como value e nome como label
         const mapped = prodData.map((p: any) => ({ value: p.id, label: p.nome }));
-
-        console.log('[HealthProtocolsModal] Insumos de Medicamentos carregados:', mapped);
         setAvailableProducts(mapped);
       } else {
-        console.log(
-          '[HealthProtocolsModal] Nenhum produto do banco retornado. Lista de insumos vazia.'
-        );
         setAvailableProducts([]);
       }
     } catch (err) {
@@ -110,67 +108,90 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchProtocols();
-      fetchProducts();
-    }
-  }, [isOpen, activeFarm, activeTenantId]);
-
   const fetchProtocols = async () => {
     try {
+      // Build query for system OR tenant protocols
       const { data, error } = await supabase
-        .from('protocolos')
-        .select('*')
-        .limit(500)
+        .from('protocolo_sanitario_templates')
+        .select(`
+          *,
+          protocolo_sanitario_etapas (*)
+        `)
         .eq('status', 'ativo')
+        .or(`is_sistema.eq.true,tenant_id.eq.${activeTenantId}`)
         .order('nome', { ascending: true });
 
       if (error) {
         throw error;
       }
 
-      const defaults = [
-        {
-          id: 'def-1',
-          name: 'Vermifugação Estratégica',
-          category: 'SANIDADE',
-          steps: [{ day: 0, product: 'Ivermectina 3.5%', dose: '1ml/50kg', via: 'Subcutânea' }],
-        },
-        {
-          id: 'def-2',
-          name: 'Protocolo Reclamatória',
-          category: 'VACINAÇÃO',
-          steps: [
-            { day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' },
-            { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' },
-          ],
-        },
-      ];
-
-      const allProtocols =
-        data && data.length > 0
-          ? [
-              ...data.map((p) => ({
-                ...p,
-                name: p.nome,
-                category: p.categoria,
-                steps: p.passos || [],
-              })),
-              ...defaults,
-            ]
-          : defaults;
+      const allProtocols = data ? data.map((p) => ({
+        ...p,
+        name: p.nome,
+        category: p.categoria,
+        description: p.descricao,
+        is_sistema: p.is_sistema,
+        steps: p.protocolo_sanitario_etapas ? p.protocolo_sanitario_etapas.sort((a: any, b: any) => a.dia_relativo - b.dia_relativo).map((step: any) => ({
+          ...step,
+          day: step.dia_relativo,
+          product: step.produto_nome || '',
+          produto_id: step.produto_id,
+          dose: step.dose,
+          via: step.via
+        })) : []
+      })) : [];
 
       setProtocols(allProtocols);
     } catch (err) {
       console.error('Error fetching protocols:', err);
+      toast.error('Erro ao buscar protocolos');
     }
   };
+
+  const fetchTargets = async () => {
+    if (!activeTenantId && !activeFarm?.tenantId) return;
+    setLoadingTargets(true);
+    try {
+      const tenantId = activeTenantId || activeFarm?.tenantId;
+      
+      const { data: animais } = await supabase
+        .from('animais')
+        .select('id, identificacao, nome')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'Ativo');
+        
+      if (animais) {
+        setAnimalOptions(animais.map(a => ({ value: a.id, label: `${a.identificacao} ${a.nome ? `- ${a.nome}` : ''}` })));
+      }
+
+      const { data: lotes } = await supabase
+        .from('lotes')
+        .select('id, nome')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'ativo');
+        
+      if (lotes) {
+        setLoteOptions(lotes.map(l => ({ value: l.id, label: l.nome })));
+      }
+    } catch (err) {
+      console.error('Error fetching targets:', err);
+    } finally {
+      setLoadingTargets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+      fetchProtocols();
+      fetchTargets();
+    }
+  }, [isOpen, activeFarm, activeTenantId]);
 
   const handleDeleteProtocol = async (id: string) => {
     const isConfirmed = await confirm({
       title: 'Atenção',
-      description: 'Deseja desativar este protocolo?',
+      description: 'Deseja excluir este protocolo?',
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
       variant: 'danger',
@@ -180,24 +201,28 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
     }
 
     try {
-      if (!id.startsWith('def-')) {
-        const { error } = await supabase
-          .from('protocolos')
-          .update({ status: 'inativo' })
-          .eq('id', id);
+      const protocol = protocols.find(p => p.id === id);
+      if (protocol && protocol.is_sistema) {
+        return toast.error('Protocolos do sistema não podem ser excluídos.');
+      }
 
-        if (error) {
-          throw error;
-        }
+      const { error } = await supabase
+        .from('protocolo_sanitario_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
       }
 
       setProtocols((prev) => prev.filter((p) => p.id !== id));
       if (selectedProtocol?.id === id) {
         setSelectedProtocol(null);
       }
+      toast.success('Protocolo excluído com sucesso!');
     } catch (err) {
       console.error('Error deleting protocol:', err);
-      toast.error('Erro ao desativar protocolo');
+      toast.error('Erro ao excluir protocolo');
     }
   };
 
@@ -213,64 +238,84 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
       return toast.error('Dê um nome ao protocolo');
     }
 
+    // Sort steps by day to ensure logical ordering
+    const sortedSteps = [...newProtocol.steps].sort((a, b) => a.day - b.day);
+
     try {
-      const isDefault = isEditingId && isEditingId.startsWith('def-');
-      if (isEditingId && !isDefault) {
+      const isSystemCopy = isEditingId && (protocols.find(p => p.id === isEditingId)?.is_sistema === true);
+      
+      let savedProtocolId = isEditingId;
+
+      if (isEditingId && !isSystemCopy) {
         // Update existing protocol
-        const { data, error } = await supabase
-          .from('protocolos')
+        const { data: templateData, error: templateError } = await supabase
+          .from('protocolo_sanitario_templates')
           .update({
             nome: newProtocol.name,
+            descricao: newProtocol.description,
             categoria: newProtocol.category,
-            passos: newProtocol.steps,
           })
           .eq('id', isEditingId)
           .select()
           .single();
 
-        if (error) {
-          throw error;
-        }
+        if (templateError) throw templateError;
 
-        const updatedProtocol = {
-          ...data,
-          name: data.nome,
-          category: data.categoria,
-          steps: data.passos,
-        };
-        setProtocols((prev) => prev.map((p) => (p.id === isEditingId ? updatedProtocol : p)));
-        setSelectedProtocol(updatedProtocol);
+        // Delete old steps and insert new ones
+        await supabase.from('protocolo_sanitario_etapas').delete().eq('template_id', isEditingId);
+
+        const { error: stepsError } = await supabase
+          .from('protocolo_sanitario_etapas')
+          .insert(sortedSteps.map((step, idx) => ({
+            template_id: isEditingId,
+            dia_relativo: step.day,
+            produto_id: (step as any).produto_id || null,
+            produto_nome: step.product,
+            dose: step.dose,
+            via: step.via,
+            ordem: idx
+          })));
+
+        if (stepsError) throw stepsError;
         toast.success('Protocolo atualizado com sucesso!');
       } else {
         // Insert new protocol
-        const { data, error } = await supabase
-          .from('protocolos')
-          .insert([
-            {
-              nome: newProtocol.name,
-              categoria: newProtocol.category,
-              passos: newProtocol.steps,
-              fazenda_id: activeFarm?.id,
-              tenant_id: activeFarm?.tenantId,
-            },
-          ])
+        const { data: templateData, error: templateError } = await supabase
+          .from('protocolo_sanitario_templates')
+          .insert([{
+            tenant_id: activeTenantId,
+            fazenda_id: activeFarm?.id,
+            nome: newProtocol.name,
+            descricao: newProtocol.description,
+            categoria: newProtocol.category,
+            is_sistema: false
+          }])
           .select()
           .single();
 
-        if (error) {
-          throw error;
-        }
+        if (templateError) throw templateError;
+        savedProtocolId = templateData.id;
 
-        const savedProtocol = {
-          ...data,
-          name: data.nome,
-          category: data.categoria,
-          steps: data.passos,
-        };
-        setProtocols([savedProtocol, ...protocols]);
-        setSelectedProtocol(savedProtocol);
+        if (sortedSteps.length > 0) {
+          const { error: stepsError } = await supabase
+            .from('protocolo_sanitario_etapas')
+            .insert(sortedSteps.map((step, idx) => ({
+              template_id: templateData.id,
+              dia_relativo: step.day,
+              produto_id: (step as any).produto_id || null,
+              produto_nome: step.product,
+              dose: step.dose,
+              via: step.via,
+              ordem: idx
+            })));
+
+          if (stepsError) throw stepsError;
+        }
         toast.success('Protocolo criado com sucesso!');
       }
+      
+      await fetchProtocols();
+      
       setIsCreating(false);
       setIsEditingId(null);
       setNewProtocol({
@@ -415,7 +460,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                       textAlign: 'left',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      paddingRight: p.id.startsWith('def-') ? '12px' : '40px',
+                      paddingRight: p.is_sistema ? '12px' : '40px',
                       boxShadow: isActive ? 'inset 3px 0 0 hsl(var(--brand))' : 'none',
                     }}
                     onClick={() => {
@@ -448,36 +493,51 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                           color: 'hsl(var(--text-muted))',
                         }}
                       >
-                        {p.category || p.categoria}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>{p.category || p.categoria}</span>
+                          {p.is_sistema && (
+                            <span style={{ 
+                              background: 'var(--brand)', 
+                              color: 'white', 
+                              padding: '1px 4px', 
+                              borderRadius: '4px', 
+                              fontSize: '8px' 
+                            }}>
+                              SISTEMA
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProtocol(p.id);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      padding: '8px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: isActive ? 1 : 0.4,
-                    }}
-                    title="Excluir Protocolo"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {!p.is_sistema && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProtocol(p.id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: isActive ? 1 : 0.4,
+                      }}
+                      title="Excluir Protocolo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -563,11 +623,12 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                           ? 'Identificação do Animal'
                           : 'Identificação do Lote'}
                       </label>
-                      <input
-                        type="text"
-                        className="tauze-input"
+                      <SearchableSelect
+                        options={targetType === 'ANIMAL' ? animalOptions : loteOptions}
                         value={targetId}
-                        onChange={(e) => setTargetId(e.target.value)}
+                        onChange={setTargetId}
+                        placeholder={`Selecionar ${targetType === 'ANIMAL' ? 'Animal' : 'Lote'}...`}
+                        disabled={loadingTargets}
                       />
                     </div>
 
@@ -787,6 +848,18 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                         ]}
                       />
                     </div>
+                  </div>
+                  
+                  <div className="tauze-field-group animate-slide-up">
+                    <label className="tauze-label">Descrição do Protocolo</label>
+                    <textarea
+                      className="tauze-input"
+                      value={newProtocol.description || ''}
+                      onChange={(e) => setNewProtocol({ ...newProtocol, description: e.target.value })}
+                      placeholder="Descreva o objetivo deste protocolo..."
+                      rows={2}
+                      style={{ resize: 'none' }}
+                    />
                   </div>
 
                   <div style={{ marginTop: '12px' }}>

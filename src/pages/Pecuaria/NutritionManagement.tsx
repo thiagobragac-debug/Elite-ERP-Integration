@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
@@ -7,7 +7,8 @@ import {
   Plus,
   Search,
   Filter,
-  ChevronRight,
+
+
   MoreVertical,
   Utensils,
   Wheat,
@@ -518,6 +519,18 @@ export const NutritionManagement: React.FC = () => {
     );
   });
 
+  // Lista dinâmica de ingredientes presentes nas dietas carregadas (para o FilterModal)
+  const availableIngredients = useMemo(() => {
+    const set = new Set<string>();
+    (diets as any[]).forEach((d) => {
+      (d.ingredientes || []).forEach((ing: any) => {
+        const nome = typeof ing === 'string' ? ing : ing?.nome;
+        if (nome) set.add(nome);
+      });
+    });
+    return Array.from(set).sort();
+  }, [diets]);
+
   const tableColumns = [
     {
       header: 'Dieta / Identificação',
@@ -718,19 +731,11 @@ export const NutritionManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {/* Botão secundário: Lançar Trato. O Simulador fica no dropdown para obedecer a regra de 2 botões máx */}
-          <div className="export-dropdown-container">
-            <button className="glass-btn secondary" title="Ferramentas Nutricionais" onClick={() => { const m = document.getElementById('nutrition-tools-menu'); if (m) m.classList.toggle('active'); }}>
-              <Scale size={18} />
-              FERRAMENTAS
-              <ChevronRight size={14} style={{ transform: 'rotate(90deg)', marginLeft: '2px' }} />
-            </button>
-            <div id="nutrition-tools-menu" className="export-menu">
-              <button onClick={() => { setIsSimulatorOpen(true); document.getElementById('nutrition-tools-menu')?.classList.remove('active'); }}>
-                Simulador Nutricional
-              </button>
-            </div>
-          </div>
+          <button className="glass-btn secondary" onClick={() => setIsSimulatorOpen(true)}>
+            <Scale size={18} />
+            SIMULADOR
+          </button>
+
           <button className="glass-btn secondary" onClick={() => setIsFeedModalOpen(true)}>
             <Wheat size={18} />
             LANÇAR TRATO
@@ -839,6 +844,7 @@ export const NutritionManagement: React.FC = () => {
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
         setFilters={setFilterValues}
+        availableIngredients={availableIngredients}
       />
 
       <div className="management-content">
