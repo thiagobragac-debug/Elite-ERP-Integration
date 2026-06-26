@@ -1,8 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import './WeightForm.css';
 
 import {
   Scale,
@@ -16,6 +19,8 @@ import {
   X,
   CheckCircle2,
   TrendingUp,
+  SkipForward,
+  Clock,
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -39,6 +44,64 @@ const eccLabels: Record<number, { label: string; color: string; bg: string }> = 
   3: { label: 'Moderado', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.1)' },
   4: { label: 'Bom Estado', color: 'hsl(142 71% 45%)', bg: 'hsl(142 71% 45% / 0.1)' },
   5: { label: 'Gordo', color: 'hsl(210 100% 50%)', bg: 'hsl(210 100% 50% / 0.1)' },
+};
+
+// ── Lookup tables por raça ──────────────────────────────────────────────────
+// Target de abate (peso vivo em kg): diferente por raça e sexo
+const SLAUGHTER_TARGET_BY_BREED: Record<string, { macho: number; femea: number }> = {
+  nelore:     { macho: 480, femea: 420 },
+  brangus:    { macho: 510, femea: 450 },
+  angus:      { macho: 520, femea: 460 },
+  brahman:    { macho: 500, femea: 430 },
+  simental:   { macho: 540, femea: 470 },
+  limousin:   { macho: 530, femea: 460 },
+  hereford:   { macho: 510, femea: 450 },
+  gir:        { macho: 470, femea: 400 },
+  guzera:     { macho: 480, femea: 410 },
+  girolando:  { macho: 450, femea: 380 },
+  default:    { macho: 500, femea: 440 },
+};
+
+// Rendimento de carcaça estimado por raça (%)
+const CARCASS_YIELD_BY_BREED: Record<string, number> = {
+  nelore: 50,
+  brangus: 54,
+  angus: 58,
+  brahman: 50,
+  simental: 56,
+  limousin: 57,
+  hereford: 55,
+  gir: 49,
+  guzera: 50,
+  girolando: 48,
+  default: 52,
+};
+
+/** Retorna o target de abate em kg com base na raça e sexo do animal. */
+const getSlaughterTarget = (raca?: string, sexo?: string): number => {
+  const key = (raca || '').toLowerCase().replace(/[^a-z]/g, '');
+  const lookup = SLAUGHTER_TARGET_BY_BREED[key] ?? SLAUGHTER_TARGET_BY_BREED['default'];
+  const isFemea = sexo === 'FEMEA' || sexo === 'F' || sexo === 'f';
+  return isFemea ? lookup.femea : lookup.macho;
+};
+
+/** Retorna o rendimento de carcaça estimado (%) com base na raça. */
+const getCarcassYield = (raca?: string): number => {
+  const key = (raca || '').toLowerCase().replace(/[^a-z]/g, '');
+  return CARCASS_YIELD_BY_BREED[key] ?? CARCASS_YIELD_BY_BREED['default'];
+};
+
+// ── Limites de peso por categoria ──────────────────────────────────────────
+const WEIGHT_LIMITS: Record<string, { min: number; max: number }> = {
+  BEZERRO:    { min: 20,  max: 300 },
+  BEZERRA:    { min: 20,  max: 280 },
+  GARROTE:    { min: 80,  max: 480 },
+  NOVILHA:    { min: 80,  max: 420 },
+  NOVILHO:    { min: 150, max: 550 },
+  TOURO:      { min: 200, max: 900 },
+  VACA:       { min: 200, max: 750 },
+  BOI:        { min: 200, max: 900 },
+  default:    { min: 20,  max: 900 },
 };
 
 // #4 — simple sparkline SVG
@@ -120,24 +183,41 @@ export const WeightForm: React.FC<WeightFormProps> = ({
   const [weightHistory, setWeightHistory] = useState<any[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [animalSelected, setAnimalSelected] = useState<any>(null);
-  const [formData, setFormData] = usePersistentState('WeightForm_formData', {
-    animal_id: '',
-    data_pesagem: getTodayStr(),
-    peso: '',
-    ecc: 0,
-    observacao: '',
+  // Smart Session History: animais pesados nesta sessão de trabalho (hoje)
+  const [todayWeighedAnimals, setTodayWeighedAnimals] = useState<any[]>([]);
+  // Confirmação obrigatória quando variação de peso é extrema (>30%)
+  const [weightConfirmed, setWeightConfirmed] = useState(false);
+  // Rect do input de busca para posicionar o dropdown via portal
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `weight_form_${activeTenantId}`,
+    initialState: {
+      animal_id: '',
+      data_pesagem: getTodayStr(),
+      peso: '',
+      ecc: null,
+      observacao: '',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [animalsLoading, setAnimalsLoading] = useState(false);
   const pesoInputRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click — ignora cliques dentro do portal do dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideSearch = searchRef.current?.contains(target);
+      const insideDropdown = dropdownRef.current?.contains(target);
+      if (!insideSearch && !insideDropdown) {
         setShowDropdown(false);
       }
     };
@@ -150,56 +230,87 @@ export const WeightForm: React.FC<WeightFormProps> = ({
       animal_id: '',
       data_pesagem: keepDate ? formData.data_pesagem : getTodayStr(),
       peso: '',
-      ecc: 0,
+      ecc: null,
       observacao: '',
     });
     setSearchQuery('');
     setLastWeighing(null);
     setWeightHistory([]);
     setAnimalSelected(null);
+    setWeightConfirmed(false);
   };
 
   const fetchAnimals = async () => {
     try {
       if (!activeTenantId) {
+        toast.error('Sessão sem tenant ativo. Faça login novamente.');
         return;
       }
+      setAnimalsLoading(true);
       let query = supabase
         .from('animais')
         .select('id, brinco, peso_inicial, created_at, raca, categoria, sexo, data_nascimento')
         .eq('tenant_id', activeTenantId)
-        .ilike('status', 'ativo');
+        .neq('status', 'vendido')
+        .neq('status', 'morto')
+        .neq('status', 'ARQUIVADO')
+        .order('brinco', { ascending: true });
       if (!isGlobalMode && activeFarm?.id) {
         query = query.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
       }
-      const { data } = await query;
-      if (data) {
-        setAnimals(data);
-        if (formData.animal_id) {
-          const animal = data.find((a) => a.id === formData.animal_id);
-          if (animal) {
-            setSearchQuery(animal.brinco);
-            setAnimalSelected(animal);
-          }
+      const { data, error } = await query;
+      if (error) {
+        toast.error(`Erro ao carregar animais: ${error.message}`);
+        return;
+      }
+      setAnimals(data ?? []);
+      if (data && formData.animal_id) {
+        const animal = data.find((a) => a.id === formData.animal_id);
+        if (animal) {
+          setSearchQuery(animal.brinco);
+          setAnimalSelected(animal);
         }
       }
-    } catch (err) {
-      console.error('Error fetching animals:', err);
+    } catch (err: any) {
+      toast.error(`Erro inesperado: ${err?.message ?? String(err)}`);
+    } finally {
+      setAnimalsLoading(false);
     }
   };
 
   const fetchTodayCount = async () => {
+
     try {
-      if (!activeTenantId) {
-        return;
-      }
+      if (!activeTenantId) return;
       const today = getTodayStr();
+
+      // Contador total
       const { count } = await supabase
         .from('pesagens')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', activeTenantId)
         .eq('data_pesagem', today);
       setTodayCount(count || 0);
+
+      // Smart Session History: últimos 8 animais pesados hoje com dados do animal
+      const { data: sessionData } = await supabase
+        .from('pesagens')
+        .select('animal_id, peso, animais(brinco, raca, categoria, sexo)')
+        .eq('tenant_id', activeTenantId)
+        .eq('data_pesagem', today)
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      if (sessionData) {
+        // Deduplica por animal_id, mantendo o mais recente
+        const seen = new Set<string>();
+        const unique = sessionData.filter((p: any) => {
+          if (seen.has(p.animal_id)) return false;
+          seen.add(p.animal_id);
+          return true;
+        });
+        setTodayWeighedAnimals(unique);
+      }
     } catch {
       /* noop */
     }
@@ -242,23 +353,20 @@ export const WeightForm: React.FC<WeightFormProps> = ({
 
   // reset or populate form
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        animal_id: initialData.animal_id || '',
-        data_pesagem: initialData.data_pesagem || getTodayStr(),
-        peso: initialData.peso?.toString() || '',
-        ecc: initialData.ecc || 0,
-        observacao: initialData.observacao || '',
-      });
-      if (initialData.animal_id && animals.length > 0) {
-        const animal = animals.find((a) => a.id === initialData.animal_id);
-        if (animal) {
-          setSearchQuery(animal.brinco);
-          setAnimalSelected(animal);
-        }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      animal_id: initialData.animal_id || '',
+      data_pesagem: initialData.data_pesagem || getTodayStr(),
+      peso: initialData.peso?.toString() || '',
+      ecc: initialData.ecc ?? null,
+      observacao: initialData.observacao || '',
+    });
+    if (initialData.animal_id && animals.length > 0) {
+      const animal = animals.find((a) => a.id === initialData.animal_id);
+      if (animal) {
+        setSearchQuery(animal.brinco);
+        setAnimalSelected(animal);
       }
-    } else {
-      resetForm();
     }
   }, [initialData, isOpen, animals, actionId]);
 
@@ -310,26 +418,155 @@ export const WeightForm: React.FC<WeightFormProps> = ({
     return min;
   }, [animalSelected, lastWeighing]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, saveAndNext = false) => {
     e.preventDefault();
+
+    // Validação 1: animal obrigatório
     if (!formData.animal_id) {
       toast.error('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
       return;
     }
+
+    // Validação 2: data mínima
     if (minDate && formData.data_pesagem < minDate) {
       toast.error(
         '⚠️ A data da pesagem não pode ser anterior à data de nascimento ou à última pesagem registrada.'
       );
       return;
     }
+
+    // Validação 3: limites de peso por categoria
+    const pesoNum = Number(formData.peso);
+    const categoria = (animalSelected?.categoria || 'default').toUpperCase();
+    const limits = WEIGHT_LIMITS[categoria] ?? WEIGHT_LIMITS['default'];
+    if (pesoNum < limits.min || pesoNum > limits.max) {
+      toast.error(
+        `⚠️ Peso ${pesoNum} kg fora do intervalo esperado para esta categoria (${limits.min}–${limits.max} kg). Verifique o valor.`
+      );
+      return;
+    }
+
+    // Validação 4: confirmação obrigatória para variação extrema
+    if (isTypoWarning && !weightConfirmed) {
+      toast.error('⚠️ Confirme que o peso está correto antes de salvar.');
+      return;
+    }
+
+    // Validação 5: pesagem duplicada no mesmo dia
+    try {
+      let dupQuery = supabase
+        .from('pesagens')
+        .select('id', { count: 'exact', head: true })
+        .eq('animal_id', formData.animal_id)
+        .eq('data_pesagem', formData.data_pesagem);
+      if (initialData?.id) {
+        dupQuery = dupQuery.neq('id', initialData.id);
+      }
+      const { count: dupCount } = await dupQuery;
+
+      if (dupCount && dupCount > 0) {
+        // Oferece confirmação via toast custom com ação
+        toast(
+          (t) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ fontWeight: 700, fontSize: '13px' }}>
+                Já existe uma pesagem para este animal em{' '}
+                {new Date(formData.data_pesagem).toLocaleDateString('pt-BR')}.
+              </span>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                Deseja substituir o registro existente?
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    // Busca o id existente e re-submete como edição
+                    supabase
+                      .from('pesagens')
+                      .select('id')
+                      .eq('animal_id', formData.animal_id)
+                      .eq('data_pesagem', formData.data_pesagem)
+                      .limit(1)
+                      .then(({ data: existingRows }) => {
+                        if (existingRows && existingRows[0]) {
+                          const existingId = existingRows[0].id;
+                          setLoading(true);
+                          onSubmit({ ...formData, _replaceId: existingId })
+                            .then(() => { clearDraft(); resetForm(saveAndNext); })
+                            .finally(() => setLoading(false));
+                        }
+                      });
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    background: 'hsl(0 84% 60%)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Substituir
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    border: '1px solid #334155',
+                    color: '#94a3b8',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ),
+          {
+            duration: 8000,
+            style: { background: '#0f172a', color: '#f1f5f9', maxWidth: '340px' },
+          }
+        );
+        return;
+      }
+    } catch {
+      /* noop — não bloqueia o save por falha de verificação */
+    }
+
     setLoading(true);
     try {
       await onSubmit(formData);
-      resetForm();
+      clearDraft();
+      // Atualiza o session history após salvar
+      fetchTodayCount();
+      if (saveAndNext) {
+        resetForm(true); // mantém a data
+      } else {
+        resetForm();
+        onClose();
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  /** Handler específico do botão "Salvar e Próximo" */
+  const handleSaveAndNext = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
+      handleSubmit(syntheticEvent, true);
+    },
+    [handleSubmit]
+  );
 
   const filteredAnimals = animals.filter((a) =>
     a.brinco?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -344,9 +581,14 @@ export const WeightForm: React.FC<WeightFormProps> = ({
   const isTypoWarning = hasWeight && Math.abs(percentChange) > 30;
   const isMildWarning = hasWeight && Math.abs(percentChange) > 15 && Math.abs(percentChange) <= 30;
 
-  const slaughterTarget = animalSelected?.sexo === 'FEMEA' ? 450 : 500;
+  // Arrobas: peso vivo / 30 (convenção de mercado brasileiro)
+  const slaughterTarget = getSlaughterTarget(animalSelected?.raca, animalSelected?.sexo);
+  const carcassYield = getCarcassYield(animalSelected?.raca);
   const isSlaughterTargetReached = hasWeight && newWeightVal >= slaughterTarget;
-  const arrobas = hasWeight ? (newWeightVal * 0.5) / 15 : 0;
+  // Arrobas de peso vivo: pesoVivo / 30
+  const arrobasVivo = hasWeight ? newWeightVal / 30 : 0;
+  // Arrobas de carcaça (para negócio): pesoVivo * (rendimento%) / 15
+  const arrobasCarcaca = hasWeight ? (newWeightVal * (carcassYield / 100)) / 15 : 0;
 
   const lastDateStr = lastWeighing?.data_pesagem || lastWeighing?.created_at;
   const lastDateObj = lastDateStr ? new Date(lastDateStr) : null;
@@ -405,22 +647,57 @@ export const WeightForm: React.FC<WeightFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Pesagem' : 'Nova Pesagem'}
       size="large"
-      subtitle="Registre o peso individual de um animal."
+      subtitle={
+        initialData
+          ? `Editando pesagem de ${new Date(initialData.data_pesagem || '').toLocaleDateString('pt-BR')} — Animal #${initialData.animais?.brinco ?? ''}`
+          : todayCount > 0
+            ? `Registre o peso individual de um animal — ${todayCount} pesagem${todayCount !== 1 ? 's' : ''} hoje`
+            : 'Registre o peso individual de um animal.'
+      }
       icon={Scale}
       loading={loading}
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Pesagem'}
+      customFooter={
+        <>
+          <button type="button" className="glass-btn secondary" onClick={() => { clearDraft(); onClose(); }}>
+            Cancelar
+          </button>
+          {/* Botão "Salvar e Próximo" — apenas em modo criação */}
+          {!initialData && (
+            <button
+              type="button"
+              className="btn-save-next"
+              onClick={handleSaveAndNext}
+              disabled={loading}
+              title="Salva e abre próximo animal (Shift+Enter)"
+            >
+              <SkipForward size={16} />
+              Salvar e Próximo
+            </button>
+          )}
+          <button
+            type="submit"
+            className="primary-btn"
+            disabled={loading || (isTypoWarning && !weightConfirmed)}
+            style={{ opacity: loading || (isTypoWarning && !weightConfirmed) ? 0.6 : 1, cursor: loading || (isTypoWarning && !weightConfirmed) ? 'not-allowed' : 'pointer' }}
+          >
+            {loading ? 'Salvando...' : (initialData ? 'Salvar Alterações' : 'Salvar Pesagem')}
+          </button>
+        </>
+      }
     >
-      <form id="weight-form-el" onSubmit={handleSubmit} style={{ display: 'contents' }}>
+      <>
         <section className="tauze-form-section">
           <div className="tauze-section-header">
-            <div className="tauze-section-badge">PASSO 01</div>
+            <div className="tauze-section-badge">SEÇÃO 01</div>
             <h4 className="tauze-section-title">Dados da Pesagem</h4>
           </div>
 
-          <div className="tauze-input-grid" style={{ gridTemplateColumns: '3fr 1fr 1fr' }}>
+          <div className="tauze-input-grid" style={{ gridTemplateColumns: '3fr 2fr 1.5fr' }}>
             {/* #1 — Chip + Search */}
             <div className="tauze-field-group" style={{ position: 'relative' }}>
               <label
@@ -502,7 +779,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                   </button>
                 </div>
               ) : (
-                /* SEARCH */
+                /* SEARCH com Smart Session History + Portal dropdown */
                 <div
                   className="autocomplete-wrapper"
                   style={{ position: 'relative', width: '100%' }}
@@ -515,14 +792,35 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                     <input
                       className="tauze-input"
                       id="animal-search-input"
+                      ref={searchInputRef}
                       type="text"
-                      placeholder="Digite para filtrar pelo brinco..."
+                      placeholder={
+                        animalsLoading
+                          ? 'Carregando animais...'
+                          : animals.length > 0
+                            ? `Buscar por brinco... (${animals.length} disponíveis)`
+                            : activeTenantId
+                              ? 'Nenhum animal ativo nesta fazenda'
+                              : 'Aguardando sessão...'
+                      }
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
                         setShowDropdown(true);
+                        if (searchInputRef.current) {
+                          setDropdownRect(searchInputRef.current.getBoundingClientRect());
+                        }
                       }}
-                      onFocus={() => setShowDropdown(true)}
+                      onFocus={() => {
+                        setShowDropdown(true);
+                        if (searchInputRef.current) {
+                          setDropdownRect(searchInputRef.current.getBoundingClientRect());
+                        }
+                        // Re-fetch se ainda estiver vazio (contexto pode ter chegado depois)
+                        if (animals.length === 0 && activeTenantId && !animalsLoading) {
+                          fetchAnimals();
+                        }
+                      }}
                       required={!formData.animal_id}
                       style={{ paddingRight: '36px', width: '100%', boxSizing: 'border-box' }}
                       autoComplete="off"
@@ -540,133 +838,247 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                     />
                   </div>
 
-                  {showDropdown && (
-                    <div
-                      className="autocomplete-dropdown animate-fade-in"
-                      style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 4px)',
-                        left: 0,
-                        width: '100%',
-                        maxHeight: '280px',
-                        overflowY: 'auto',
-                        background: 'hsl(var(--bg-card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '14px',
-                        zIndex: 999,
-                        boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                    >
-                      {filteredAnimals.length === 0 ? (
-                        <div
-                          style={{
-                            padding: '16px',
-                            color: 'hsl(var(--text-muted))',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            textAlign: 'center',
-                          }}
-                        >
-                          Nenhum animal ativo com este brinco
-                        </div>
-                      ) : (
-                        filteredAnimals.map((a: any, idx: number) => (
-                          <div
-                            key={a.id}
-                            onClick={() => {
-                              setSearchQuery(a.brinco);
-                              handleAnimalChange(a);
-                              setShowDropdown(false);
-                            }}
-                            style={{
-                              padding: '12px 16px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              borderBottom:
-                                idx < filteredAnimals.length - 1
-                                  ? '1px solid hsl(var(--border) / 0.5)'
-                                  : 'none',
-                              transition: 'background 0.15s',
-                            }}
-                            className="autocomplete-option"
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '8px',
-                                  background: 'hsl(var(--brand) / 0.1)',
-                                  color: 'hsl(var(--brand))',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '11px',
-                                  fontWeight: 900,
-                                }}
-                              >
-                                #{a.brinco?.slice(0, 2).toUpperCase()}
-                              </div>
-                              <div>
+                  {/* Dropdown via portal para evitar clipping pelo SidePanel */}
+                  {showDropdown && dropdownRect && createPortal(
+                    <motion.div
+                      ref={dropdownRef}
+                      key="autocomplete-portal"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="autocomplete-dropdown"
+                        style={{
+                          position: 'fixed',
+                          top: dropdownRect.bottom + 4,
+                          left: dropdownRect.left,
+                          width: dropdownRect.width,
+                          maxHeight: '320px',
+                          overflowY: 'auto',
+                          background: 'hsl(var(--bg-card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '14px',
+                          zIndex: 100000,
+                          boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        {/* Smart Session History: exibido quando campo está vazio */}
+                        {!searchQuery && todayWeighedAnimals.length > 0 && (
+                          <div className="session-history-section">
+                            <div className="session-history-label">
+                              <Clock size={11} />
+                              Pesados hoje nesta sessão
+                            </div>
+                            {todayWeighedAnimals.map((p: any) => {
+                              const brinco = p.animais?.brinco ?? '—';
+                              const pesoReg = Number(p.peso).toFixed(1);
+                              const animalFromList = animals.find((a: any) => a.id === p.animal_id);
+                              return (
                                 <div
-                                  style={{
-                                    fontWeight: 800,
-                                    fontSize: '13px',
-                                    color: 'hsl(var(--text-main))',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
+                                  key={p.animal_id}
+                                  className="session-history-item"
+                                  onClick={() => {
+                                    if (animalFromList) {
+                                      setSearchQuery(brinco);
+                                      handleAnimalChange(animalFromList);
+                                      setShowDropdown(false);
+                                    }
                                   }}
                                 >
-                                  #{a.brinco}
-                                  {a.sexo && (
-                                    <span
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div
                                       style={{
-                                        fontSize: '9px',
-                                        fontWeight: 800,
-                                        background:
-                                          a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
-                                            ? 'hsl(217 91% 60% / 0.12)'
-                                            : 'hsl(316 73% 69% / 0.12)',
-                                        color:
-                                          a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
-                                            ? 'hsl(217 91% 60%)'
-                                            : 'hsl(316 73% 60%)',
-                                        padding: '1px 5px',
-                                        borderRadius: '4px',
+                                        width: '28px', height: '28px', borderRadius: '8px',
+                                        background: 'hsl(var(--brand) / 0.12)',
+                                        color: 'hsl(var(--brand))',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '10px', fontWeight: 900,
                                       }}
                                     >
-                                      {a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
-                                        ? '♂ Macho'
-                                        : '♀ Fêmea'}
+                                      #{brinco?.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>
+                                        #{brinco}
+                                      </div>
+                                      <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>
+                                        {p.animais?.raca ?? ''}{p.animais?.categoria ? ` · ${p.animais.categoria}` : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}>
+                                      {pesoReg} kg
+                                    </div>
+                                    <span className="session-history-badge">Pesado hoje</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Lista de animais disponíveis */}
+                        {(() => {
+                          // Quando campo está vazio: exibir todos os animais não pesados hoje
+                          // Quando campo tem texto: filtrar por brinco
+                          const todayIds = new Set(todayWeighedAnimals.map((p: any) => p.animal_id));
+                          const listToShow = searchQuery.length > 0
+                            ? filteredAnimals
+                            : animals.filter((a: any) => !todayIds.has(a.id));
+
+                          if (listToShow.length === 0 && searchQuery.length > 0) {
+                            return (
+                              <div
+                                style={{
+                                  padding: '16px',
+                                  color: 'hsl(var(--text-muted))',
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Nenhum animal ativo com este brinco
+                              </div>
+                            );
+                          }
+
+                          if (listToShow.length === 0 && animals.length === 0) {
+                            return (
+                              <div
+                                style={{
+                                  padding: '16px',
+                                  color: 'hsl(var(--text-muted))',
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Nenhum animal ativo encontrado nesta fazenda
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <>
+                              {!searchQuery && listToShow.length > 0 && (
+                                <div
+                                  style={{
+                                    padding: '6px 16px 4px',
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    color: 'hsl(var(--text-muted))',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    borderTop: todayWeighedAnimals.length > 0 ? '1px solid hsl(var(--border) / 0.5)' : 'none',
+                                  }}
+                                >
+                                  Todos os animais
+                                </div>
+                              )}
+                              {listToShow.map((a: any, idx: number) => (
+                                <div
+                                  key={a.id}
+                                  onClick={() => {
+                                    setSearchQuery(a.brinco);
+                                    handleAnimalChange(a);
+                                    setShowDropdown(false);
+                                  }}
+                                  style={{
+                                    padding: '12px 16px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    borderBottom:
+                                      idx < listToShow.length - 1
+                                        ? '1px solid hsl(var(--border) / 0.5)'
+                                        : 'none',
+                                    transition: 'background 0.15s',
+                                  }}
+                                  className="autocomplete-option"
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        background: 'hsl(var(--brand) / 0.1)',
+                                        color: 'hsl(var(--brand))',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '11px',
+                                        fontWeight: 900,
+                                      }}
+                                    >
+                                      #{a.brinco?.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <div
+                                        style={{
+                                          fontWeight: 800,
+                                          fontSize: '13px',
+                                          color: 'hsl(var(--text-main))',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                        }}
+                                      >
+                                        #{a.brinco}
+                                        {a.sexo && (
+                                          <span
+                                            style={{
+                                              fontSize: '9px',
+                                              fontWeight: 800,
+                                              background:
+                                                a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
+                                                  ? 'hsl(217 91% 60% / 0.12)'
+                                                  : 'hsl(316 73% 69% / 0.12)',
+                                              color:
+                                                a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
+                                                  ? 'hsl(217 91% 60%)'
+                                                  : 'hsl(316 73% 60%)',
+                                              padding: '1px 5px',
+                                              borderRadius: '4px',
+                                            }}
+                                          >
+                                            {a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm'
+                                              ? '♂ Macho'
+                                              : '♀ Fêmea'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div
+                                        style={{
+                                          fontSize: '11px',
+                                          color: 'hsl(var(--text-muted))',
+                                          marginTop: '2px',
+                                        }}
+                                      >
+                                        {a.raca || 'Nelore'}
+                                        {a.categoria ? ` · ${a.categoria}` : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {a.peso_inicial && (
+                                    <span style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}>
+                                      {Number(a.peso_inicial).toFixed(0)} kg
                                     </span>
                                   )}
                                 </div>
-                                <div
-                                  style={{
-                                    fontSize: '11px',
-                                    color: 'hsl(var(--text-muted))',
-                                    marginTop: '2px',
-                                  }}
-                                >
-                                  {a.raca || 'Nelore'}
-                                  {a.categoria ? ` · ${a.categoria}` : ''}
-                                </div>
-                              </div>
-                            </div>
-                            {a.peso_inicial && (
-                              <span style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}>
-                                {Number(a.peso_inicial).toFixed(0)} kg
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                              ))}
+                            </>
+                          );
+                        })()}
+
+
+
+                    </motion.div>,
+                    document.body
                   )}
                 </div>
               )}
@@ -714,7 +1126,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                       pointerEvents: 'none',
                     }}
                   >
-                    ~ {arrobas.toFixed(1)} @
+                    ~ {arrobasVivo.toFixed(1)} @PV
                   </div>
                 )}
               </div>
@@ -1186,43 +1598,72 @@ export const WeightForm: React.FC<WeightFormProps> = ({
               </div>
             )}
 
-            {/* Warning */}
-            {(isTypoWarning || isMildWarning) && (
-              <div
-                className="animate-fade-in"
-                style={{
-                  marginTop: '16px',
-                  padding: '10px 14px',
-                  background: isTypoWarning ? 'hsl(0 84% 60% / 0.08)' : 'hsl(38 92% 50% / 0.1)',
-                  border: `1.5px solid ${isTypoWarning ? 'hsl(0 84% 60% / 0.3)' : 'hsl(38 92% 50% / 0.3)'}`,
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  color: isTypoWarning ? 'hsl(0 84% 60%)' : 'hsl(38 92% 50%)',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  lineHeight: 1.4,
-                }}
-              >
-                <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-                <span>
-                  <strong>Atenção:</strong>{' '}
-                  {isTypoWarning ? 'Variação muito acentuada' : 'Variação moderada'} (
-                  {percentChange > 0 ? '+' : ''}
-                  {percentChange.toFixed(1)}%).{' '}
-                  {isTypoWarning
-                    ? 'Verifique se houve erro de digitação antes de salvar.'
-                    : 'Confirme o peso antes de salvar.'}
-                </span>
-              </div>
-            )}
+            {/* Warning + confirmação obrigatória para variação extrema */}
+            <AnimatePresence>
+              {(isTypoWarning || isMildWarning) && (
+                <motion.div
+                  key="weight-warning"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div
+                    style={{
+                      marginTop: '16px',
+                      padding: '10px 14px',
+                      background: isTypoWarning ? 'hsl(0 84% 60% / 0.08)' : 'hsl(38 92% 50% / 0.1)',
+                      border: `1.5px solid ${isTypoWarning ? 'hsl(0 84% 60% / 0.3)' : 'hsl(38 92% 50% / 0.3)'}`,
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      color: isTypoWarning ? 'hsl(0 84% 60%)' : 'hsl(38 92% 50%)',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      <strong>Atenção:</strong>{' '}
+                      {isTypoWarning ? 'Variação muito acentuada' : 'Variação moderada'} (
+                      {percentChange > 0 ? '+' : ''}
+                      {percentChange.toFixed(1)}%).{' '}
+                      {isTypoWarning
+                        ? 'Verifique se houve erro de digitação antes de salvar.'
+                        : 'Confirme o peso antes de salvar.'}
+                    </span>
+                  </div>
+                  {/* Checkbox de confirmação obrigatória — apenas para variação extrema (>30%) */}
+                  {isTypoWarning && (
+                    <label
+                      className="weight-confirm-row"
+                      htmlFor="weight-extreme-confirm"
+                    >
+                      <input
+                        id="weight-extreme-confirm"
+                        type="checkbox"
+                        checked={weightConfirmed}
+                        onChange={(e) => setWeightConfirmed(e.target.checked)}
+                      />
+                      <span>
+                        Confirmo que o peso de{' '}
+                        <strong>{newWeightVal.toFixed(1)} kg</strong>{' '}
+                        está correto e não é um erro de digitação.
+                      </span>
+                    </label>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
         <section className="tauze-form-section">
           <div className="tauze-section-header">
-            <div className="tauze-section-badge">PASSO 02</div>
+            <div className="tauze-section-badge">SEÇÃO 02</div>
             <h4 className="tauze-section-title">Condição e Observações</h4>
           </div>
 
@@ -1235,7 +1676,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
               >
                 <TrendingUp size={14} />
                 Escore de Condição Corporal (ECC)
-                {formData.ecc > 0 && (
+                {formData.ecc != null && formData.ecc > 0 && (
                   <span
                     style={{
                       marginLeft: '4px',
@@ -1251,7 +1692,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                     {formData.ecc} — {eccLabels[formData.ecc]?.label}
                   </span>
                 )}
-                {formData.ecc === 0 && (
+                {(formData.ecc == null || formData.ecc === 0) && (
                   <span
                     style={{
                       fontSize: '10px',
@@ -1272,7 +1713,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                     key={score}
                     type="button"
                     onClick={() =>
-                      setFormData({ ...formData, ecc: formData.ecc === score ? 0 : score })
+                      setFormData({ ...formData, ecc: formData.ecc === score ? null : score })
                     }
                     style={{
                       flex: 1,
@@ -1326,30 +1767,8 @@ export const WeightForm: React.FC<WeightFormProps> = ({
           </div>
         </section>
 
-        <style>{`
-          .autocomplete-option:hover {
-            background: hsl(var(--brand) / 0.1) !important;
-            color: hsl(var(--brand)) !important;
-          }
-          .autocomplete-dropdown::-webkit-scrollbar { width: 6px; }
-          .autocomplete-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-          .performance-preview-card { background: hsl(var(--brand) / 0.05); border: 1px solid hsl(var(--brand) / 0.2); border-radius: 16px; padding: 16px; margin-bottom: 20px; grid-column: span 4; }
-          .preview-stat { display: flex; flex-direction: column; }
-          .p-label { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
-          .p-value { font-size: 18px; font-weight: 900; color: hsl(var(--text-main)); }
-          .p-meta { font-size: 10px; font-weight: 700; color: hsl(var(--text-muted)); }
-          @keyframes slide-panel {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: translateY(0); }
-          }
-          .animate-slide-panel { animation: slide-panel 0.25s ease-out both; }
-          @keyframes fade-in {
-            from { opacity: 0; } to { opacity: 1; }
-          }
-          .animate-fade-in { animation: fade-in 0.2s ease both; }
-          .animal-chip:hover { border-color: hsl(var(--brand) / 0.5) !important; }
-        `}</style>
-      </form>
+
+      </>
     </SidePanel>
   );
 };

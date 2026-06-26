@@ -2184,6 +2184,7 @@ input:focus, textarea:focus, select:focus {
 .grid-col-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-col-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-col-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-col-5 { grid-template-columns: repeat(5, 1fr); }
 
 .tauze-field-group { display: flex; flex-direction: column; gap: 8px; }
 .tauze-label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #64748b; margin-left: 4px; }
@@ -2213,6 +2214,12 @@ textarea.tauze-input { height: auto; padding: 16px; min-height: 80px; line-heigh
 
 /* Input Focus Refinement */
 .tauze-input:focus { border-color: hsl(var(--brand)); box-shadow: 0 0 0 4px hsl(var(--brand) / 0.1), 0 10px 20px rgba(0,0,0,0.05) !important; background: hsl(var(--bg-card)); }
+
+/* Input Error State — brinco duplicado e outros erros inline */
+.tauze-input.tauze-input-error { border-color: #ef4444 !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important; background: rgba(239, 68, 68, 0.04); }
+.tauze-input.tauze-input-error:focus { border-color: #ef4444 !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important; }
+.tauze-field-error { font-size: 11px; font-weight: 700; color: #ef4444; margin-top: -4px; margin-left: 4px; display: flex; align-items: center; gap: 4px; animation: tauzeShakeIn 0.3s ease; }
+@keyframes tauzeShakeIn { 0% { opacity: 0; transform: translateX(-4px); } 100% { opacity: 1; transform: translateX(0); } }
 
 /* Tauze Radio/Selection Group */
 .tauze-form-radio-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }

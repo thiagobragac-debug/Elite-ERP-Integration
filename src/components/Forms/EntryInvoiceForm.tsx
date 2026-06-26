@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 import {
@@ -53,49 +53,47 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const { activeTenantId, activeCompany, activeFarm, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [items, setItems] = usePersistentState<InsumoItem[]>(
-    'EntryInvoice_items',
-    initialData?.itens || []
-  );
+  const [items, setItems] = useState<InsumoItem[]>(initialData?.itens || []);
 
-  const [formData, setFormData] = usePersistentState('EntryInvoice_formData', {
-    purchase_order_id: initialData?.purchase_order_id || '',
-    storage_location_id: initialData?.storage_location_id || '',
-    is_xml_imported: initialData?.is_xml_imported || false,
-
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    invoice_number: initialData?.invoice_number || '',
-    series: initialData?.series || '1',
-    supplier_id: initialData?.supplier_id || '',
-    issue_date:
-      initialData?.issue_date ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    entry_date:
-      initialData?.entry_date ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    total_value: initialData?.total_value || '',
-    modelo_fiscal: initialData?.modelo_fiscal || '55',
-    nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
-    xml_key: initialData?.xml_key || '',
-    description: initialData?.description || '',
-    payment_condition: initialData?.payment_condition || 'vista',
-    payment_method: initialData?.payment_method || 'Boleto',
-    installments: initialData?.installments || 1,
-    bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: initialData ? initialData.generate_financial : true,
-    iss_retido: initialData?.iss_retido?.toString() || '0',
-    irrf_retido: initialData?.irrf_retido?.toString() || '0',
-    csll_retido: initialData?.csll_retido?.toString() || '0',
-    pis_retido: initialData?.pis_retido?.toString() || '0',
-    cofins_retido: initialData?.cofins_retido?.toString() || '0',
-    inss_retido: initialData?.inss_retido?.toString() || '0',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `entry_invoice_form_${activeTenantId}`,
+    initialState: {
+      purchase_order_id: initialData?.purchase_order_id || '',
+      storage_location_id: initialData?.storage_location_id || '',
+      is_xml_imported: initialData?.is_xml_imported || false,
+      company_id: initialData?.company_id || activeCompany?.id || '',
+      invoice_number: initialData?.invoice_number || '',
+      series: initialData?.series || '1',
+      supplier_id: initialData?.supplier_id || '',
+      issue_date:
+        initialData?.issue_date ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      entry_date:
+        initialData?.entry_date ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      total_value: initialData?.total_value || '',
+      modelo_fiscal: initialData?.modelo_fiscal || '55',
+      nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
+      xml_key: initialData?.xml_key || '',
+      description: initialData?.description || '',
+      payment_condition: initialData?.payment_condition || 'vista',
+      payment_method: initialData?.payment_method || 'Boleto',
+      installments: initialData?.installments || 1,
+      bank_account_id: initialData?.bank_account_id || '',
+      generate_financial: initialData ? initialData.generate_financial : true,
+      iss_retido: initialData?.iss_retido?.toString() || '0',
+      irrf_retido: initialData?.irrf_retido?.toString() || '0',
+      csll_retido: initialData?.csll_retido?.toString() || '0',
+      pis_retido: initialData?.pis_retido?.toString() || '0',
+      cofins_retido: initialData?.cofins_retido?.toString() || '0',
+      inss_retido: initialData?.inss_retido?.toString() || '0',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [installmentsList, setInstallmentsList] = usePersistentState<any[]>(
-    'EntryInvoice_installmentsList',
-    []
-  );
+  const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
   const [showLoteModal, setShowLoteModal] = useState(false);
   const [loteModalDismissed, setLoteModalDismissed] = useState(false);
@@ -133,7 +131,8 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
     }
   }, [activeTenantId]);
 
-  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  // Reseta estados secundários ao fechar o painel.
+  // O reset do formData é gerenciado pelo useFormDraft (draft restaurado na próxima abertura).
   useEffect(() => {
     if (!isOpen && !initialData) {
       setItems([]);
@@ -143,37 +142,6 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       setLoteModalDismissed(false);
       setPendingMatches(0);
       setSupplierConfirmData(null);
-      setFormData({
-        purchase_order_id: '',
-        storage_location_id: '',
-        is_xml_imported: false,
-        company_id: activeCompany?.id || '',
-        invoice_number: '',
-        series: '1',
-        supplier_id: '',
-        issue_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        entry_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        total_value: '',
-        modelo_fiscal: '55',
-        nature_of_operation: 'Compra para Industrialização',
-        xml_key: '',
-        description: '',
-        payment_condition: 'vista',
-        payment_method: 'Boleto',
-        installments: 1,
-        bank_account_id: '',
-        generate_financial: true,
-        iss_retido: '0',
-        irrf_retido: '0',
-        csll_retido: '0',
-        pis_retido: '0',
-        cofins_retido: '0',
-        inss_retido: '0',
-      });
     }
   }, [isOpen]);
 
@@ -620,6 +588,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         inss_retido: isServiceInvoice ? parseFloat(formData.inss_retido) || 0 : 0,
         valor_liquido: isServiceInvoice ? valorLiquido : parseFloat(formData.total_value) || 0,
       });
+      clearDraft();
       onClose();
     } catch (error) {
       console.error('Error submitting invoice:', error);
@@ -868,6 +837,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
             onClose();
           }
         }}
+        onCancel={() => { clearDraft(); setShowFinancialConfirm(false); setSupplierConfirmData(null); onClose(); }}
         onSubmit={handleSubmit}
         title={initialData ? 'Editar Nota Fiscal' : 'Entrada de Nota Fiscal'}
         subtitle="Registro blindado de documentos fiscais e atualização de estoque"

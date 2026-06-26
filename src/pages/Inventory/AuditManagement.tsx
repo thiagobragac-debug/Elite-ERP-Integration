@@ -82,6 +82,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const AuditManagement: React.FC = () => {
   const { confirm } = useConfirm();
@@ -89,7 +90,7 @@ export const AuditManagement: React.FC = () => {
     useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('AuditManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'HISTORY' | 'CRITICAL') || 'HISTORY';
   const setActiveTab = (tab: string) => {
@@ -119,6 +120,13 @@ export const AuditManagement: React.FC = () => {
     dateStart: '',
     dateEnd: '',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`audit_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 

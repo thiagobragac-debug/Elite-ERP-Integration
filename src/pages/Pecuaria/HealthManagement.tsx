@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -77,13 +78,10 @@ export const HealthManagement: React.FC = () => {
     );
   };
 
-  const [isModalOpen, setIsModalOpen] = usePersistentState('HealthManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
-    'HealthManagement_isHistoryModalOpen',
-    false
-  );
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'HealthManagement_showAdvancedFilters',
@@ -97,12 +95,16 @@ export const HealthManagement: React.FC = () => {
     dateStart: '',
     dateEnd: '',
   });
-  const [isProtocolsModalOpen, setIsProtocolsModalOpen] = usePersistentState(
-    'HealthManagement_isProtocolsModalOpen',
-    false
-  );
+  const [isProtocolsModalOpen, setIsProtocolsModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 12;
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`health_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: rawEvents,
@@ -129,7 +131,7 @@ export const HealthManagement: React.FC = () => {
   const deleteHealthMutation = useMutation({
     mutationFn: async (id: string) => {
       // Apaga movimentações de estoque geradas
-      await supabase.from('movimentacoes_estoque').delete().like('origem_destino', `%[REF:${id}]%`);
+      await supabase.from('movimentacoes_estoque').delete().eq('tenant_id', activeTenantId).like('origem_destino', `%[REF:${id}]%`);
       // Apaga o evento
       const { error } = await supabase.from('sanidade').delete().eq('id', id);
       if (error) {
@@ -160,42 +162,123 @@ export const HealthManagement: React.FC = () => {
     },
   });
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este registro sanitário?')) {
-      return;
-    }
+  const handleDeleteConfirmed = (id: string) => {
     deleteHealthMutation.mutate(id);
   };
 
+  const handleDelete = (id: string) => {
+    toast((t) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '4px' }}>
+        <span style={{ fontWeight: 700, fontSize: '14px' }}>Excluir registro sanitário?</span>
+        <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Remove também a movimentação de estoque vinculada.</span>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+          <button onClick={() => { toast.dismiss(t.id); handleDeleteConfirmed(id); }} style={{ flex: 1, padding: '6px', background: 'hsl(0 84% 60%)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
+          <button onClick={() => toast.dismiss(t.id)} style={{ flex: 1, padding: '6px', background: 'transparent', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 8000, style: { maxWidth: '320px' } });
+  };
+
   const handleViewDetails = (event: any) => {
-    setIsHistoryModalOpen(true);
-    setHistoryItems([
-      {
-        id: '1',
-        date: event.data_manejo,
-        title: `Tipo: ${event.titulo}`,
-        subtitle: `Produto: ${event.produto || 'N/A'}`,
-        value: event.dose || 'N/A',
-        status: event.status === 'REALIZADO' ? 'success' : 'pending',
-      },
-      {
+    const items: any[] = [];
+
+    // 1. Identificação do Manejo
+    items.push({
+      id: '1',
+      date: event.data_manejo,
+      title: event.titulo || event.produto || 'Manejo Sanitário',
+      subtitle: `Tipo: ${event.tipo || '—'} • Via: ${event.via_aplicacao || 'N/A'} • Aplicador: ${event.aplicador || 'N/I'}`,
+      value: event.status === 'REALIZADO' ? 'REALIZADO' : event.status || 'PENDENTE',
+      status: event.status === 'REALIZADO' ? 'success' : event.status === 'PENDENTE' ? 'warning' : 'info',
+    });
+
+    // 2. Fármaco / Produto
+    if (event.produto) {
+      items.push({
         id: '2',
         date: event.data_manejo,
-        title: 'Carência',
-        subtitle:
-          event.carencia_dias > 0 ? `Carência de ${event.carencia_dias} dias` : 'Sem carência',
-        value: event.carencia_dias > 0 ? 'ALERTA' : 'OK',
-        status: event.carencia_dias > 0 ? 'warning' : 'success',
-      },
-      {
+        title: `Fármaco: ${event.produto}`,
+        subtitle: `Dose: ${event.dose || 'N/D'} • Local: ${event.local_aplicacao || 'N/I'}`,
+        value: event.dose || '—',
+        status: 'info',
+      });
+    }
+
+    // 3. Carência Abate
+    if ((event.carencia_abate_dias || 0) > 0) {
+      const liberacao = new Date(event.data_manejo);
+      liberacao.setDate(liberacao.getDate() + Number(event.carencia_abate_dias));
+      const hoje = new Date();
+      const diasRestantes = Math.ceil((liberacao.getTime() - hoje.getTime()) / 86400000);
+      items.push({
         id: '3',
         date: event.data_manejo,
-        title: 'Observação',
-        subtitle: event.observacao || 'Nenhuma observação',
-        value: 'Info',
+        title: `🥩 Carência Abate — ${event.carencia_abate_dias} dias`,
+        subtitle: diasRestantes > 0
+          ? `Bloqueio até ${liberacao.toLocaleDateString('pt-BR')} (${diasRestantes}d restantes)`
+          : `Liberado em ${liberacao.toLocaleDateString('pt-BR')}`,
+        value: diasRestantes > 0 ? 'BLOQUEADO' : 'LIBERADO',
+        status: diasRestantes > 0 ? 'warning' : 'success',
+      });
+    }
+
+    // 4. Carência Leite
+    if ((event.carencia_leite_dias || 0) > 0) {
+      const liberacao = new Date(event.data_manejo);
+      liberacao.setDate(liberacao.getDate() + Number(event.carencia_leite_dias));
+      const hoje = new Date();
+      const diasRestantes = Math.ceil((liberacao.getTime() - hoje.getTime()) / 86400000);
+      items.push({
+        id: '4',
+        date: event.data_manejo,
+        title: `🥛 Carência Leite — ${event.carencia_leite_dias} dias`,
+        subtitle: diasRestantes > 0
+          ? `Descarte até ${liberacao.toLocaleDateString('pt-BR')} (${diasRestantes}d restantes)`
+          : `Leite liberado em ${liberacao.toLocaleDateString('pt-BR')}`,
+        value: diasRestantes > 0 ? 'DESCARTE' : 'LIBERADO',
+        status: diasRestantes > 0 ? 'warning' : 'success',
+      });
+    }
+
+    // 5. Vínculo com Protocolo Reprodutivo (detecta referência [PROTOCOLO:...])
+    const protocolRef = (event.observacao || '').match(/\[PROTOCOLO:([^\]]+)\]/);
+    if (protocolRef) {
+      items.push({
+        id: '5',
+        date: event.data_manejo,
+        title: '🔗 Origem: Protocolo Reprodutivo',
+        subtitle: `Gerado automaticamente via Protocolo ID ${protocolRef[1]}. Acesse Reprodução > Protocolos para gerenciar.`,
+        value: 'PROTOCOLO',
         status: 'info',
-      },
-    ]);
+      });
+    }
+
+    // 6. Observação
+    if (event.observacao && !protocolRef) {
+      items.push({
+        id: '6',
+        date: event.data_manejo,
+        title: 'Observações',
+        subtitle: event.observacao,
+        value: 'Nota',
+        status: 'info',
+      });
+    }
+
+    // 7. Veterinário responsável
+    if (event.veterinario) {
+      items.push({
+        id: '7',
+        date: event.data_manejo,
+        title: `👨‍⚕️ Responsável: ${event.veterinario}`,
+        subtitle: event.receituario ? `Receituário: ${event.receituario}` : 'Sem receituário registrado',
+        value: 'Resp.',
+        status: 'info',
+      });
+    }
+
+    setIsHistoryModalOpen(true);
+    setHistoryItems(items);
   };
 
   const tableColumns = [
@@ -203,7 +286,7 @@ export const HealthManagement: React.FC = () => {
       header: 'Fármaco / Manejo',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>
             {item.produto || item.titulo || 'Manejo Geral'}
           </span>
           <div
@@ -213,7 +296,7 @@ export const HealthManagement: React.FC = () => {
               gap: '4px',
               fontWeight: 700,
               fontSize: '10px',
-              color: '#64748b',
+              color: 'hsl(var(--text-muted))',
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
             }}
@@ -229,7 +312,7 @@ export const HealthManagement: React.FC = () => {
       header: 'Alvo (Animal / Lote)',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 700, color: '#334155' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: 'hsl(var(--text-secondary))' }}>
             {item.targetName}
           </span>
           <span
@@ -258,7 +341,7 @@ export const HealthManagement: React.FC = () => {
               alignItems: 'center',
               gap: '4px',
               fontWeight: 700,
-              color: '#334155',
+              color: 'hsl(var(--text-secondary))',
               fontSize: '12px',
             }}
           >
@@ -355,7 +438,7 @@ export const HealthManagement: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
-            color: '#64748b',
+            color: 'hsl(var(--text-muted))',
             fontWeight: 600,
             fontSize: '12px',
           }}
@@ -597,7 +680,13 @@ export const HealthManagement: React.FC = () => {
           dose: p.dose || String(p.quantidade || ''),
           via_aplicacao: p.via_aplicacao || null,
           local_aplicacao: p.local_aplicacao || null,
-          carencia_dias: parseInt(p.carencia_dias) || 0,
+          carencia_abate_dias: parseInt(p.carencia_abate_dias) || 0,
+          carencia_leite_dias: parseInt(p.carencia_leite_dias) || 0,
+          temperatura_aplicacao: parseFloat(data.temperatura_aplicacao) || null,
+          aplicador: data.aplicador || null,
+          data_revisao: data.data_revisao || null,
+          receituario: data.receituario || null,
+          veterinario: data.veterinario || null,
           custo: custoTotal,
           observacao: data.observacao,
           status: data.status,
@@ -616,7 +705,13 @@ export const HealthManagement: React.FC = () => {
         dose: data.dose,
         via_aplicacao: data.via_aplicacao,
         local_aplicacao: data.local_aplicacao,
-        carencia_dias: parseInt(data.carencia_dias) || 0,
+        carencia_abate_dias: parseInt(data.carencia_abate_dias) || 0,
+        carencia_leite_dias: parseInt(data.carencia_leite_dias) || 0,
+        temperatura_aplicacao: parseFloat(data.temperatura_aplicacao) || null,
+        aplicador: data.aplicador || null,
+        data_revisao: data.data_revisao || null,
+        receituario: data.receituario || null,
+        veterinario: data.veterinario || null,
         custo: parseFloat(String(data.custo || 0)) || 0,
         observacao: data.observacao,
         status: data.status,
@@ -647,7 +742,8 @@ export const HealthManagement: React.FC = () => {
   const filteredEvents = events.filter((e) => {
     const matchesSearch =
       (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.produto || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
 
     const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;

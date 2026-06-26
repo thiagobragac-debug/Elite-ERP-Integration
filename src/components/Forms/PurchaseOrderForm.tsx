@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Hash,
@@ -47,27 +47,32 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>(initialData?.itens || []);
 
-  const [formData, setFormData] = usePersistentState('PurchaseOrderForm_formData', {
-    quotation_id: initialData?.quotation_id || '',
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
-    order_number: initialData?.order_number || '',
-    supplier_id: initialData?.supplier_id || '',
-    date:
-      initialData?.date ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    delivery_date: initialData?.delivery_date || '',
-    freight_type: initialData?.freight_type || 'CIF',
-    freight_value: initialData?.freight_value || '',
-    discount: initialData?.discount || '',
-    total_value: initialData?.total_value || '0',
-    delivery_instructions: initialData?.delivery_instructions || '',
-    description: initialData?.description || '', // Old notes
-    payment_condition: initialData?.payment_condition || 'vista',
-    payment_method: initialData?.payment_method || 'Boleto',
-    installments: initialData?.installments || 1,
-    bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: initialData ? initialData.generate_financial : false,
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `purchase_order_form_${activeTenantId}`,
+    initialState: {
+      quotation_id: initialData?.quotation_id || '',
+      company_id: initialData?.company_id || activeCompany?.id || '',
+      nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
+      order_number: initialData?.order_number || '',
+      supplier_id: initialData?.supplier_id || '',
+      date:
+        initialData?.date ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      delivery_date: initialData?.delivery_date || '',
+      freight_type: initialData?.freight_type || 'CIF',
+      freight_value: initialData?.freight_value || '',
+      discount: initialData?.discount || '',
+      total_value: initialData?.total_value || '0',
+      delivery_instructions: initialData?.delivery_instructions || '',
+      description: initialData?.description || '', // Old notes
+      payment_condition: initialData?.payment_condition || 'vista',
+      payment_method: initialData?.payment_method || 'Boleto',
+      installments: initialData?.installments || 1,
+      bank_account_id: initialData?.bank_account_id || '',
+      generate_financial: initialData ? initialData.generate_financial : false,
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   useEffect(() => {
@@ -82,28 +87,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     if (!isOpen && !initialData) {
       setItems([]);
       setInstallmentsList([]);
-      setFormData({
-        quotation_id: '',
-        company_id: activeCompany?.id || '',
-        nature_of_operation: 'Compra para Industrialização',
-        order_number: '',
-        supplier_id: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        delivery_date: '',
-        freight_type: 'CIF',
-        freight_value: '',
-        discount: '',
-        total_value: '0',
-        delivery_instructions: '',
-        description: '',
-        payment_condition: 'vista',
-        payment_method: 'Boleto',
-        installments: 1,
-        bank_account_id: '',
-        generate_financial: false,
-      });
     }
   }, [isOpen]);
 
@@ -191,6 +174,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, itens: items, installmentsList, total_value: totalLiquido });
+      clearDraft();
       onClose();
     } catch (error) {
       console.error('Error submitting order:', error);
@@ -203,6 +187,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Pedido de Compra' : 'Novo Pedido de Compra'}
       subtitle="Formalize o pedido com o parceiro após a cotação."

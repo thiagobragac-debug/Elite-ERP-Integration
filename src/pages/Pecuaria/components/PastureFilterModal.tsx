@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Filter, Check, Trees, Maximize, Activity, Calendar, Target, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { FORRAGEIRAS_NOMES } from '../../../constants/livestock';
 
 interface PastureFilterModalProps {
   isOpen: boolean;
@@ -22,20 +23,14 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
 
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
-    { id: 'occupied', label: 'Ocupado', icon: Activity },
-    { id: 'resting', label: 'Descanso', icon: Trees },
-    { id: 'free', label: 'Vazio', icon: Check },
+    { id: 'grazing', label: 'Pastejo', icon: Trees },
+    { id: 'resting', label: 'Descanso', icon: Calendar },
+    { id: 'degraded', label: 'Degradado', icon: Activity },
+    { id: 'renovation', label: 'Reforma', icon: Check },
   ];
 
-  const capins = [
-    'Brachiaria brizantha',
-    'Brachiaria decumbens',
-    'Mombaça',
-    'Zuri',
-    'Quênia',
-    'Tifton 85',
-    'Estrela',
-  ];
+  // Usa a mesma lista centralizada do PastureForm (evita dessincronização)
+  const capins = FORRAGEIRAS_NOMES;
 
   const toggleCapim = (capim: string) => {
     const newCapins = filters.capins?.includes(capim)

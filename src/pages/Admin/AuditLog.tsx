@@ -105,7 +105,7 @@ export const AuditLog: React.FC = () => {
     'AuditLog_isPastureFormOpen',
     false
   );
-  const [isLotFormOpen, setIsLotFormOpen] = usePersistentState('AuditLog_isLotFormOpen', false);
+  const [isLotFormOpen, setIsLotFormOpen] = useState(false);
   const [isWeightFormOpen, setIsWeightFormOpen] = usePersistentState(
     'AuditLog_isWeightFormOpen',
     false

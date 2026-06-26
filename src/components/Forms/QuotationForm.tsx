@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   BarChart2,
@@ -36,22 +36,27 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
-  const [formData, setFormData] = usePersistentState('QuotationForm_formData', {
-    request_id: '',
-    item_id: '',
-    quantity: '',
-    unit: 'Unidades',
-    suppliers: [
-      {
-        supplier_id: '',
-        price: '',
-        freight: '',
-        delivery_days: '',
-        payment_terms: '',
-        validity: '',
-      },
-    ],
+  const { activeFarm, activeTenantId } = useTenant();
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `quotation_form_${activeTenantId}`,
+    initialState: {
+      request_id: '',
+      item_id: '',
+      quantity: '',
+      unit: 'Unidades',
+      suppliers: [
+        {
+          supplier_id: '',
+          price: '',
+          freight: '',
+          delivery_days: '',
+          payment_terms: '',
+          validity: '',
+        },
+      ],
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [products, setProducts] = useState<any[]>([]);
@@ -70,23 +75,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
         quantity: initialData.quantidade?.toString() || '',
         unit: initialData.unidade || 'Unidades',
         suppliers: initialData.dados_fornecedores || [
-          {
-            supplier_id: '',
-            price: '',
-            freight: '',
-            delivery_days: '',
-            payment_terms: '',
-            validity: '',
-          },
-        ],
-      });
-    } else {
-      setFormData({
-        request_id: '',
-        item_id: '',
-        quantity: '',
-        unit: 'Unidades',
-        suppliers: [
           {
             supplier_id: '',
             price: '',
@@ -192,6 +180,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -202,6 +191,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
       size="large"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Mapa de Cotação' : 'Novo Mapa de Cotação'}
       subtitle="Equalização financeira: Compare TCO (Custo Total) e prazos para tomada de decisão."

@@ -22,6 +22,8 @@ import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import toast from 'react-hot-toast';
+import './BatchWeightModal.css';
 
 interface BatchWeightModalProps {
   isOpen: boolean;
@@ -97,6 +99,20 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
     }
   }, [isOpen, activeFarm, activeTenantId]);
 
+  useEffect(() => {
+    if (!defaultDate) return;
+    setRows(prev =>
+      prev.map(row => {
+        if (!row.newWeight || !row.lastDate || parseFloat(row.newWeight) <= 0) return row;
+        const diffTime = new Date(defaultDate).getTime() - new Date(row.lastDate).getTime();
+        const diffDays = Math.max(1, diffTime / (1000 * 60 * 60 * 24));
+        const newWeightVal = parseFloat(row.newWeight);
+        const gmd = row.lastWeight > 0 ? (newWeightVal - row.lastWeight) / diffDays : 0;
+        return { ...row, gmd };
+      })
+    );
+  }, [defaultDate]);
+
   const fetchLots = async () => {
     setLoadingLots(true);
     try {
@@ -129,7 +145,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
         .from('animais')
         .select('id, brinco, peso_atual, peso_inicial, lote_id')
         .eq('tenant_id', activeTenantId)
-        .ilike('status', 'ativo');
+        .neq('status', 'vendido')
+        .neq('status', 'morto')
+        .neq('status', 'ARQUIVADO');
 
       if (!isGlobalMode && activeFarm?.id) {
         q = q.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
@@ -151,6 +169,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
           .from('pesagens')
           .select('animal_id, peso, data_pesagem')
           .in('animal_id', animIds)
+          .eq('tenant_id', activeTenantId)
           .order('data_pesagem', { ascending: false });
 
         if (weighErr) {
@@ -164,7 +183,15 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
           }
         });
 
-        const initialRows: WeightRow[] = animData.map((a) => {
+        const validAnimals = (animData || []).filter(
+          (a: any) => a.brinco && a.brinco.trim().length >= 2
+        );
+        const invalidCount = (animData || []).length - validAnimals.length;
+        if (invalidCount > 0) {
+          toast(`${invalidCount} animal(is) com brinco inválido foram ocultados da listagem.`, { icon: '⚠️' });
+        }
+
+        const initialRows: WeightRow[] = validAnimals.map((a: any) => {
           const lastW = lastWeighingsMap[a.id];
           const lastWeight = lastW
             ? Number(lastW.peso)
@@ -213,6 +240,12 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
 
     const newWeightVal = parseFloat(val);
     if (!isNaN(newWeightVal) && newWeightVal > 0) {
+      if (newWeightVal < 5) {
+        toast.error(`Brinco #${row.brinco}: peso ${newWeightVal}kg parece muito baixo (mín. 5kg).`);
+      }
+      if (newWeightVal > 1200) {
+        toast.error(`Brinco #${row.brinco}: peso ${newWeightVal}kg acima do limite (máx. 1.200kg).`);
+      }
       row.arrobas = (newWeightVal * 0.5) / 15;
 
       const lastDate = row.lastDate ? new Date(row.lastDate) : null;
@@ -231,7 +264,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
         let diffDays = 1;
         if (lastDate && !row.isTimeTravelWarning) {
           const diffTime = currDate.getTime() - lastDate.getTime();
-          diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+          diffDays = Math.max(1, diffTime / (1000 * 60 * 60 * 24));
         }
 
         row.gmd = diff / diffDays;
@@ -296,8 +329,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       localStorage.removeItem('tauze_scale_connected');
       localStorage.removeItem('tauze_scale_brand');
       localStorage.removeItem('tauze_scale_type');
-      alert('ðŸ”Œ Balança desconectada com sucesso.');
-      alert('🔌 Balança desconectada com sucesso.');
+      toast.success('🔌 Balança desconectada com sucesso.');
       return;
     }
 
@@ -306,10 +338,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       const activeType = localStorage.getItem('tauze_scale_type') || 'BLUETOOTH';
 
       if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
-        alert(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`);
+        toast(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`, { icon: '🌐' });
       } else {
-        alert(
-          `💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`
+        toast(
+          `💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`,
+          { icon: '💡' }
         );
       }
 
@@ -320,20 +353,18 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       localStorage.setItem('tauze_scale_brand', activeBrand);
       localStorage.setItem('tauze_scale_type', activeType);
     } catch (err: any) {
-      alert(`❌ Falha ao conectar balança: ${err.message}`);
+      toast.error(`❌ Falha ao conectar balança: ${err.message}`);
     }
   };
 
   const handleScaleTriggerWeight = () => {
     if (!scaleConnected) {
-      alert('⚠️ Conecte a Balança Eletrônica primeiro!');
+      toast.error('⚠️ Conecte a Balança Eletrônica primeiro!');
       return;
     }
 
     if (activeFocusedIndex === null) {
-      alert(
-        '⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!'
-      );
+      toast('⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!', { icon: '⚠️' });
       return;
     }
 
@@ -383,7 +414,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       }, 100);
       setRfidSearch('');
     } else {
-      alert(`⚠️ Brinco RFID "${rfidSearch}" não encontrado neste lote.`);
+      toast.error(`⚠️ Brinco RFID "${rfidSearch}" não encontrado neste lote.`);
     }
   };
 
@@ -414,7 +445,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
 
   const handleCsvExport = () => {
     if (rows.length === 0) {
-      alert('âš ï¸ Não há animais listados para exportação.');
+      toast('⚠️ Não há animais listados para exportação.', { icon: '⚠️' });
       return;
     }
 
@@ -492,7 +523,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
               let diffDays = 1;
               if (lastDate) {
                 const diffTime = currDate.getTime() - lastDate.getTime();
-                diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                diffDays = Math.max(1, diffTime / (1000 * 60 * 60 * 24));
               }
               gmdVal = diff / diffDays;
 
@@ -512,11 +543,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
         });
 
         setRows(newRows);
-        alert(
+        toast.success(
           `✅ Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`
         );
       } catch (err: any) {
-        alert(`❌ Erro ao ler planilha CSV: ${err.message}`);
+        toast.error(`❌ Erro ao ler planilha CSV: ${err.message}`);
       }
     };
     reader.readAsText(file);
@@ -534,7 +565,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
     // Check Time Travel
     const hasTimeTravel = typedRows.some((r) => r.isTimeTravelWarning);
     if (hasTimeTravel) {
-      alert(
+      toast.error(
         '❌ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.'
       );
       return;
@@ -570,7 +601,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
     );
 
     if (rowsToInsert.length === 0) {
-      alert('⚠️ Digite o peso de pelo menos 1 animal.');
+      toast('⚠️ Digite o peso de pelo menos 1 animal.', { icon: '⚠️' });
       return;
     }
 
@@ -612,6 +643,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
           .from('animais')
           .update({ peso_atual: parseFloat(r.newWeight) })
           .eq('id', r.animal_id)
+          .eq('tenant_id', activeTenantId)
       );
 
       await Promise.all(updatePromises);
@@ -619,7 +651,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       onSaveSuccess();
       onClose();
     } catch (err: any) {
-      alert(`❌ Erro ao salvar pesagens em lote: ${err.message}`);
+      toast.error(`❌ Erro ao salvar pesagens em lote: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -629,7 +661,10 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
     return null;
   }
 
-  const filledCount = rows.filter((r) => r.newWeight.trim() !== '').length;
+  const filledCount = rows.filter((r) => {
+    const v = parseFloat(r.newWeight);
+    return !isNaN(v) && v > 0;
+  }).length;
   const pendingCount = rows.length - filledCount;
   const progressPct = rows.length > 0 ? (filledCount / rows.length) * 100 : 0;
 
@@ -1611,6 +1646,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
                                 setFocusedIndex(index);
                               }}
                               onBlur={() => setFocusedIndex(null)}
+                              disabled={isSubmitting}
                               style={{
                                 width: '100%',
                                 padding: '8px 45px 8px 12px',
@@ -1794,7 +1830,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
                                 textTransform: 'uppercase',
                               }}
                             >
-                              {row.evolucao > 0 ? 'Ganho > 30%' : 'Perda > 30%'}
+                              {row.evolucao > 0 ? 'Variação > 15% ↑' : 'Variação > 15% ↓'}
                             </span>
                           </div>
                         ) : row.isAbate ? (
@@ -1985,12 +2021,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
           </div>
         )}
 
-        <style>{`
-          .batch-row-hover:hover { background: hsl(var(--brand) / 0.02) !important; }
-          .hover-close-btn:hover { background: hsl(var(--text-muted) / 0.1) !important; color: hsl(var(--text-main)) !important; }
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          .spin { animation: spin 0.8s linear infinite; }
-        `}</style>
+
       </div>
     </SidePanel>
   );

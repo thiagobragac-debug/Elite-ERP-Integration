@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   UserPlus,
@@ -36,7 +36,7 @@ export const UserForm: React.FC<UserFormProps> = ({
   actionId,
 }) => {
   const { activeFarm, farms, activeTenantId } = useTenant();
-  const [formData, setFormData] = usePersistentState('UserForm_formData', {
+  const INITIAL_FORM = {
     name: '',
     email: '',
     phone: '',
@@ -45,49 +45,43 @@ export const UserForm: React.FC<UserFormProps> = ({
     company_id: '',
     fazendas_permitidas: [] as string[],
     cargo_id: '',
+  };
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `user_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
   const [profiles, setProfiles] = useState<any[]>([]);
   const [cargos, setCargos] = useState<any[]>([]);
 
   useEffect(() => {
-    if (initialData) {
-      let fazendas = [];
-      if (Array.isArray(initialData.fazendas_permitidas)) {
-        fazendas = initialData.fazendas_permitidas;
-      } else if (typeof initialData.fazendas_permitidas === 'string') {
-        try {
-          fazendas = JSON.parse(initialData.fazendas_permitidas);
-        } catch (e) {
-          fazendas = [];
-        }
-      }
-      if (!Array.isArray(fazendas)) {
+    if (!isOpen || !initialData) return;
+    let fazendas: string[] = [];
+    if (Array.isArray(initialData.fazendas_permitidas)) {
+      fazendas = initialData.fazendas_permitidas;
+    } else if (typeof initialData.fazendas_permitidas === 'string') {
+      try {
+        fazendas = JSON.parse(initialData.fazendas_permitidas);
+      } catch (e) {
         fazendas = [];
       }
-
-      setFormData({
-        name: initialData.name || '',
-        email: initialData.email || '',
-        phone: initialData.phone || '',
-        profile_id: initialData.perfil_id || '',
-        status: initialData.status || 'active',
-        company_id: initialData.unidade_id || '',
-        fazendas_permitidas: fazendas,
-        cargo_id: initialData.cargo_id || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        profile_id: '',
-        status: 'active',
-        company_id: '',
-        fazendas_permitidas: [],
-        cargo_id: '',
-      });
     }
-  }, [initialData, isOpen, actionId]);
+    if (!Array.isArray(fazendas)) {
+      fazendas = [];
+    }
+
+    setFormData({
+      name: initialData.name || '',
+      email: initialData.email || '',
+      phone: initialData.phone || '',
+      profile_id: initialData.perfil_id || '',
+      status: initialData.status || 'active',
+      company_id: initialData.unidade_id || '',
+      fazendas_permitidas: fazendas,
+      cargo_id: initialData.cargo_id || '',
+    });
+  }, [isOpen, initialData]);
 
   useEffect(() => {
     if (isOpen) {
@@ -136,6 +130,7 @@ export const UserForm: React.FC<UserFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -146,6 +141,7 @@ export const UserForm: React.FC<UserFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Usuário' : 'Convidar Novo Usuário'}
       subtitle={

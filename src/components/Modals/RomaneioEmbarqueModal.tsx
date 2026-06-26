@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import toast from 'react-hot-toast';
@@ -19,6 +19,13 @@ import {
   AlertCircle,
   Filter,
   ShieldAlert,
+  ArrowRight,
+  ChevronLeft,
+  Check,
+  DollarSign,
+  CreditCard,
+  AlertTriangle,
+  Package,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +43,7 @@ interface Animal {
   categoria: string;
   status: string;
   lote_id?: string;
+  lote_nome?: string;
   em_carencia?: boolean;
 }
 
@@ -43,6 +51,21 @@ interface Lote {
   id: string;
   nome: string;
   status: string;
+}
+
+interface FormData {
+  comprador: string;
+  comprador_cnpj: string;
+  data_embarque: string;
+  destino: string;
+  gta_numero: string;
+  gta_serie: string;
+  nfe_numero: string;
+  placa_veiculo: string;
+  tipo_veiculo: string;
+  motorista: string;
+  preco_por_arroba: string;
+  observacoes: string;
 }
 
 interface RomaneioEmbarqueModalProps {
@@ -53,10 +76,125 @@ interface RomaneioEmbarqueModalProps {
 
 const getTodayStr = () => {
   const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const PRECO_ARROBA_DEFAULT = '330.00';
+
+// ─── Animal Card (disponível) ─────────────────────────────────────────────────
+
+const AnimalCard: React.FC<{
+  animal: Animal;
+  onAdd: (animal: Animal) => void;
+}> = ({ animal, onAdd }) => {
+  const arrobas = (animal.peso_atual / 30).toFixed(1);
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 14px',
+        borderRadius: '10px',
+        border: '1px solid hsl(var(--border))',
+        background: 'hsl(var(--bg-card))',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        gap: '10px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'hsl(var(--brand) / 0.5)';
+        e.currentTarget.style.background = 'hsl(var(--brand) / 0.03)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'hsl(var(--border))';
+        e.currentTarget.style.background = 'hsl(var(--bg-card))';
+      }}
+      onClick={() => onAdd(animal)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div
+          style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '8px',
+            background: 'hsl(var(--brand) / 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'hsl(var(--brand))',
+            flexShrink: 0,
+          }}
+        >
+          <Beef size={16} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>
+              #{animal.brinco}
+            </span>
+            <span
+              style={{
+                fontSize: '9px',
+                fontWeight: 800,
+                background: animal.sexo === 'M' ? 'hsl(217 91% 60% / 0.12)' : 'hsl(316 73% 69% / 0.12)',
+                color: animal.sexo === 'M' ? 'hsl(217 91% 60%)' : 'hsl(316 73% 60%)',
+                padding: '2px 5px',
+                borderRadius: '4px',
+              }}
+            >
+              {animal.sexo === 'M' ? '♂ M' : '♀ F'}
+            </span>
+            {animal.em_carencia && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  color: '#ef4444',
+                  background: '#ef444418',
+                  padding: '2px 5px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <ShieldAlert size={9} /> CARÊNCIA
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>
+            {animal.raca} · {animal.categoria}
+            {animal.lote_nome && (
+              <span style={{ color: 'hsl(var(--brand))', marginLeft: '4px' }}>· {animal.lote_nome}</span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontWeight: 900, fontSize: '13px', color: '#10b981' }}>
+            {animal.peso_atual.toLocaleString('pt-BR')} kg
+          </div>
+          <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>{arrobas} @</div>
+        </div>
+        <div
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'hsl(var(--brand) / 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'hsl(var(--brand))',
+          }}
+        >
+          <Plus size={14} />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -69,34 +207,30 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const { activeFarmId, activeTenantId } = useFarmFilter();
   const queryClient = useQueryClient();
 
-  // Fetch real lotes
-  const { data: realLotes = [] } = useQuery({
+  // ── Fetch lotes ──────────────────────────────────────────────────────────
+  const { data: realLotes = [] } = useQuery<Lote[]>({
     queryKey: ['lotes_embarque', activeFarmId, activeTenantId],
     queryFn: async () => {
-      if (!activeFarmId || !activeTenantId) {
-        return [];
-      }
+      if (!activeFarmId || !activeTenantId) return [];
       const { data, error } = await supabase
         .from('lotes')
         .select('id, nome, status')
         .eq('fazenda_id', activeFarmId)
         .eq('tenant_id', activeTenantId)
         .eq('status', 'ATIVO');
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       return data || [];
     },
     enabled: !!activeFarmId && !!activeTenantId && isOpen,
   });
 
-  // Fetch real animals with weight and sanitary carencia check
-  const { data: realAnimais = [] } = useQuery({
+  // ── Fetch animals ────────────────────────────────────────────────────────
+  const { data: realAnimais = [], isLoading: loadingAnimais } = useQuery<Animal[]>({
     queryKey: ['animais_embarque', activeFarmId, activeTenantId],
     queryFn: async () => {
-      if (!activeFarmId || !activeTenantId) {
-        return [];
-      }
+      if (!activeFarmId || !activeTenantId) return [];
+
+      // Carência check
       const { data: sanidades } = await supabase
         .from('sanidade')
         .select('lote_id, data_manejo, carencia_dias')
@@ -107,35 +241,25 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       const carenciaLotes = new Set<string>();
       const today = new Date();
       sanidades?.forEach((s: any) => {
-        if (!s.lote_id || !s.data_manejo || !s.carencia_dias) {
-          return;
-        }
+        if (!s.lote_id || !s.data_manejo || !s.carencia_dias) return;
         const limitDate = new Date(s.data_manejo);
         limitDate.setDate(limitDate.getDate() + s.carencia_dias);
-        if (limitDate >= today) {
-          carenciaLotes.add(s.lote_id);
-        }
+        if (limitDate >= today) carenciaLotes.add(s.lote_id);
       });
 
       const { data, error } = await supabase
         .from('animais')
-        .select(
-          `
+        .select(`
           id, brinco, raca, sexo, status, lote_id, peso_entrada,
-          pesagens (
-            peso,
-            data_pesagem
-          )
-        `
-        )
+          lotes ( nome ),
+          pesagens ( peso, data_pesagem )
+        `)
         .eq('fazenda_id', activeFarmId)
         .eq('tenant_id', activeTenantId)
         .eq('status', 'ATIVO')
         .is('romaneio_id', null);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return (data || []).map((a: any) => {
         const sortedPesagens =
@@ -146,23 +270,13 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
               )
             : [];
         const peso_atual =
-          sortedPesagens.length > 0
-            ? Number(sortedPesagens[0].peso)
-            : Number(a.peso_entrada || 500);
+          sortedPesagens.length > 0 ? Number(sortedPesagens[0].peso) : Number(a.peso_entrada || 450);
 
-        let category = 'Boi Gordo';
+        let categoria = 'Boi Gordo';
         if (a.sexo === 'M') {
-          if (peso_atual > 500) {
-            category = 'Boi Gordo';
-          } else if (peso_atual > 300) {
-            category = 'Garrote';
-          } else {
-            category = 'Bezerro';
-          }
-        } else if (peso_atual > 450) {
-          category = 'Vaca';
+          categoria = peso_atual > 500 ? 'Boi Gordo' : peso_atual > 300 ? 'Garrote' : 'Bezerro';
         } else {
-          category = 'Novilha';
+          categoria = peso_atual > 450 ? 'Vaca' : 'Novilha';
         }
 
         return {
@@ -172,8 +286,9 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           sexo: a.sexo,
           status: a.status,
           lote_id: a.lote_id,
+          lote_nome: a.lotes?.nome,
           peso_atual,
-          categoria: category,
+          categoria,
           em_carencia: a.lote_id ? carenciaLotes.has(a.lote_id) : false,
         };
       });
@@ -181,130 +296,104 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
     enabled: !!activeFarmId && !!activeTenantId && isOpen,
   });
 
-  // Step 1 - Animal selection
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Animal[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  // ── Step 1 state ─────────────────────────────────────────────────────────
   const [animaisSelecionados, setAnimaisSelecionados] = useState<Animal[]>([]);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  const [lotSearchQuery, setLotSearchQuery] = useState('');
-  const [lotSearchResults, setLotSearchResults] = useState<Lote[]>([]);
-  const [showLotDropdown, setShowLotDropdown] = useState(false);
-  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
-  const lotSearchRef = useRef<HTMLDivElement>(null);
-
-  // Advanced Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filtroLoteId, setFiltroLoteId] = useState('');
   const [pesoMin, setPesoMin] = useState('');
   const [pesoMax, setPesoMax] = useState('');
   const [filtroSexo, setFiltroSexo] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [ocultarCarencia, setOcultarCarencia] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
-
-  // Step 2 - Embarque data
-  const [formData, setFormData] = usePersistentState('RomaneioEmbarqueModal_formData', {
+  // ── Step 2 state ─────────────────────────────────────────────────────────
+  const [formData, setFormData] = usePersistentState<FormData>('RomaneioEmbarqueModal_formData_v2', {
     comprador: '',
+    comprador_cnpj: '',
     data_embarque: getTodayStr(),
     destino: '',
     gta_numero: '',
+    gta_serie: '',
+    nfe_numero: '',
     placa_veiculo: '',
+    tipo_veiculo: 'TRUCK',
     motorista: '',
+    preco_por_arroba: PRECO_ARROBA_DEFAULT,
     observacoes: '',
   });
 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [saving, setSaving] = useState(false);
-  const isSubmitting = saving;
 
-  // Derived values
-  const pesoTotal = animaisSelecionados.reduce((sum, a) => sum + a.peso_atual, 0);
-  const custoMedio =
-    animaisSelecionados.length > 0 ? (pesoTotal / animaisSelecionados.length).toFixed(1) : '0';
-
-  const isFilterActive = !!(
-    selectedLote ||
-    pesoMin ||
-    pesoMax ||
-    filtroSexo ||
-    filtroCategoria ||
-    ocultarCarencia
+  // ── Derived ──────────────────────────────────────────────────────────────
+  const selectedIds = useMemo(() => new Set(animaisSelecionados.map((a) => a.id)), [animaisSelecionados]);
+  const pesoTotal = useMemo(
+    () => animaisSelecionados.reduce((sum, a) => sum + a.peso_atual, 0),
+    [animaisSelecionados]
   );
+  const arrobasTotal = (pesoTotal / 30).toFixed(1);
+  const valorEstimado = useMemo(() => {
+    const preco = parseFloat(formData.preco_por_arroba) || 330;
+    return (parseFloat(arrobasTotal) * preco).toFixed(2);
+  }, [arrobasTotal, formData.preco_por_arroba]);
 
-  // Reset on open/close
+  const animaisDisponiveis = useMemo(() => {
+    return realAnimais.filter((a) => {
+      if (selectedIds.has(a.id)) return false;
+      if (filtroLoteId && a.lote_id !== filtroLoteId) return false;
+      if (ocultarCarencia && a.em_carencia) return false;
+      if (filtroSexo && a.sexo !== filtroSexo) return false;
+      if (filtroCategoria && a.categoria !== filtroCategoria) return false;
+      if (pesoMin && a.peso_atual < Number(pesoMin)) return false;
+      if (pesoMax && a.peso_atual > Number(pesoMax)) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          a.brinco.toLowerCase().includes(q) ||
+          a.raca.toLowerCase().includes(q) ||
+          a.categoria.toLowerCase().includes(q) ||
+          (a.lote_nome || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [realAnimais, selectedIds, filtroLoteId, ocultarCarencia, filtroSexo, filtroCategoria, pesoMin, pesoMax, searchQuery]);
+
+  const isFilterActive = !!(filtroLoteId || pesoMin || pesoMax || filtroSexo || filtroCategoria || ocultarCarencia);
+  const carenciaCount = animaisDisponiveis.filter((a) => a.em_carencia).length;
+
+  // ── Reset on close ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
-      setSearchQuery('');
-      setSearchResults([]);
-      setShowDropdown(false);
       setAnimaisSelecionados([]);
-      setFormData({
-        comprador: '',
-        data_embarque: getTodayStr(),
-        destino: '',
-        gta_numero: '',
-        placa_veiculo: '',
-        motorista: '',
-        observacoes: '',
-      });
-      setLotSearchQuery('');
-      setLotSearchResults([]);
-      setShowLotDropdown(false);
-      setSelectedLote(null);
+      setSearchQuery('');
+      setFiltroLoteId('');
       setPesoMin('');
       setPesoMax('');
       setFiltroSexo('');
       setFiltroCategoria('');
       setOcultarCarencia(false);
+      setShowFilters(false);
       setCurrentStep(1);
+      setFormData({
+        comprador: '',
+        comprador_cnpj: '',
+        data_embarque: getTodayStr(),
+        destino: '',
+        gta_numero: '',
+        gta_serie: '',
+        nfe_numero: '',
+        placa_veiculo: '',
+        tipo_veiculo: 'TRUCK',
+        motorista: '',
+        preco_por_arroba: PRECO_ARROBA_DEFAULT,
+        observacoes: '',
+      });
     }
   }, [isOpen, setFormData]);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-      if (lotSearchRef.current && !lotSearchRef.current.contains(e.target as Node)) {
-        setShowLotDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleLotSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setLotSearchQuery(q);
-    setSelectedLote(null);
-    setSearchQuery('');
-
-    if (q.trim().length === 0) {
-      setLotSearchResults([]);
-      setShowLotDropdown(false);
-      return;
-    }
-    const filtered = realLotes.filter(
-      (l: any) => l.nome.toLowerCase().includes(q.toLowerCase()) && l.status === 'ATIVO'
-    );
-    setLotSearchResults(filtered);
-    setShowLotDropdown(true);
-  };
-
-  const handleSelectLote = (lote: Lote) => {
-    setSelectedLote(lote);
-    setLotSearchQuery(lote.nome);
-    setShowLotDropdown(false);
-    setShowDropdown(true);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setShowDropdown(true);
-  };
-
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleAddAnimal = (animal: Animal) => {
     setAnimaisSelecionados((prev) => [...prev, animal]);
   };
@@ -316,69 +405,27 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const handleAddAllFiltered = () => {
     setAnimaisSelecionados((prev) => {
       const existingIds = new Set(prev.map((a) => a.id));
-      const toAdd = searchResults.filter((a) => !existingIds.has(a.id));
+      const toAdd = animaisDisponiveis.filter((a) => !existingIds.has(a.id));
+      if (toAdd.length === 0) {
+        toast('Todos os animais filtrados já foram adicionados.', { icon: 'ℹ️' });
+        return prev;
+      }
       return [...prev, ...toAdd];
     });
+  };
+
+  const handleClearFilters = () => {
+    setFiltroLoteId('');
+    setPesoMin('');
+    setPesoMax('');
+    setFiltroSexo('');
+    setFiltroCategoria('');
+    setOcultarCarencia(false);
     setSearchQuery('');
-    setShowDropdown(false);
   };
 
-  const applyFilters = () => {
-    const selectedIds = new Set(animaisSelecionados.map((a) => a.id));
-    const filtered = realAnimais.filter((a: Animal) => {
-      if (selectedIds.has(a.id)) {
-        return false;
-      }
-      if (selectedLote && a.lote_id !== selectedLote.id) {
-        return false;
-      }
-      if (ocultarCarencia && a.em_carencia) {
-        return false;
-      }
-      if (filtroSexo && a.sexo !== filtroSexo) {
-        return false;
-      }
-      if (filtroCategoria && a.categoria !== filtroCategoria) {
-        return false;
-      }
-      if (pesoMin && a.peso_atual < Number(pesoMin)) {
-        return false;
-      }
-      if (pesoMax && a.peso_atual > Number(pesoMax)) {
-        return false;
-      }
-
-      const q = searchQuery.toLowerCase();
-      if (q) {
-        return (
-          a.brinco.toLowerCase().includes(q) ||
-          a.raca.toLowerCase().includes(q) ||
-          a.categoria.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-    setSearchResults(filtered);
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      applyFilters();
-    }
-  }, [
-    searchQuery,
-    selectedLote,
-    ocultarCarencia,
-    filtroSexo,
-    filtroCategoria,
-    pesoMin,
-    pesoMax,
-    animaisSelecionados,
-    isOpen,
-    realAnimais,
-  ]);
-
-  const saveRomaneio = async (status: 'Pendente' | 'Concluído') => {
+  // ── Save ─────────────────────────────────────────────────────────────────
+  const saveRomaneio = async () => {
     if (!activeFarmId || !activeTenantId) {
       toast.error('Fazenda ou Tenant não selecionados.');
       return;
@@ -387,7 +434,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       toast.error('Selecione ao menos um animal para o embarque.');
       return;
     }
-    if (!formData.comprador) {
+    if (!formData.comprador.trim()) {
       toast.error('Informe o Comprador / Destinatário.');
       return;
     }
@@ -395,69 +442,65 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       toast.error('Informe a Data do Embarque.');
       return;
     }
+    if (!formData.gta_numero.trim()) {
+      toast.error('O número da GTA é obrigatório para confirmar o embarque.');
+      return;
+    }
 
     setSaving(true);
     try {
-      const nfeCode =
-        status === 'Concluído'
-          ? `NFE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
-          : null;
+      const preco = parseFloat(formData.preco_por_arroba) || 330;
+      const arrobas = pesoTotal / 30;
+      const valor_estimado = arrobas * preco;
 
-      // Insert Romaneio
+      // 1. Insert Romaneio
       const { data: romaneio, error: romaneioError } = await supabase
         .from('romaneios')
         .insert({
           tenant_id: activeTenantId,
           fazenda_id: activeFarmId,
           data: formData.data_embarque,
-          comprador: formData.comprador,
-          destino: formData.destino,
-          placa: formData.placa_veiculo,
-          motorista: formData.motorista,
+          comprador: formData.comprador.trim(),
+          comprador_cnpj: formData.comprador_cnpj.trim() || null,
+          destino: formData.destino.trim() || null,
+          placa: formData.placa_veiculo.trim() || null,
+          tipo_veiculo: formData.tipo_veiculo || 'TRUCK',
+          motorista: formData.motorista.trim() || null,
           animais_qtd: animaisSelecionados.length,
-          valor_estimado: pesoTotal * 11, // Estimativa R$ 11/kg (aprox R$ 330/@)
-          status,
-          nfe: nfeCode,
-          observacoes: formData.observacoes,
+          valor_estimado,
+          preco_por_arroba: preco,
+          status: 'Pendente',
+          gta_numero: formData.gta_numero.trim(),
+          gta_serie: formData.gta_serie.trim() || null,
+          nfe: formData.nfe_numero.trim() || null,
+          observacoes: formData.observacoes.trim() || null,
         })
         .select()
         .single();
 
-      if (romaneioError) {
-        throw romaneioError;
-      }
+      if (romaneioError) throw romaneioError;
 
-      // Update animals' romaneio_id and status
-      const animalUpdate: any = { romaneio_id: romaneio.id };
-      if (status === 'Concluído') {
-        animalUpdate.status = 'Abatido';
-      }
-
+      // 2. Update animals → EM_EMBARQUE (reservado, aguardando trânsito)
       const { error: animalError } = await supabase
         .from('animais')
-        .update(animalUpdate)
-        .in(
-          'id',
-          animaisSelecionados.map((a) => a.id)
-        );
+        .update({ romaneio_id: romaneio.id, status: 'EM_EMBARQUE' })
+        .in('id', animaisSelecionados.map((a) => a.id));
 
-      if (animalError) {
-        throw animalError;
-      }
+      if (animalError) throw animalError;
 
       toast.success(
-        status === 'Concluído'
-          ? 'Romaneio concluído e animais atualizados para Abatido!'
-          : 'Romaneio salvo como Pendente!'
+        `Romaneio ${romaneio.codigo || ''} criado! ${animaisSelecionados.length} animais reservados para embarque.`
       );
 
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
       queryClient.invalidateQueries({ queryKey: ['animais_embarque'] });
+      queryClient.invalidateQueries({ queryKey: ['animais'] });
 
       onGerarNF({
         comprador: formData.comprador,
-        status,
-        nfe: nfeCode,
+        status: 'Pendente',
+        romaneio_id: romaneio.id,
+        codigo: romaneio.codigo,
       });
       onClose();
     } catch (error: any) {
@@ -468,1506 +511,1313 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
     }
   };
 
-  const handleSalvarRomaneio = () => {
-    saveRomaneio('Pendente');
-  };
-
-  const handleGerarNFe = () => {
-    saveRomaneio('Concluído');
-  };
-
-  // ─── Footer ──────────────────────────────────────────────────────────────────
-
-  const customFooter = (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-      }}
-    >
-      {/* Summary */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '10px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-          }}
-        >
-          <Beef size={14} style={{ color: 'hsl(var(--brand))' }} />
-          <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-            {animaisSelecionados.length}{' '}
-            <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>animais</span>
-          </span>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '10px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-          }}
-        >
-          <Scale size={14} style={{ color: '#10b981' }} />
-          <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-            {pesoTotal.toLocaleString('pt-BR')}{' '}
-            <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>kg total</span>
-          </span>
-        </div>
-        {animaisSelecionados.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '10px',
-              background: 'hsl(142 71% 45% / 0.08)',
-              border: '1px solid hsl(142 71% 45% / 0.2)',
-            }}
-          >
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-              Média: <strong style={{ color: '#10b981' }}>{custoMedio} kg/@</strong>
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
-          type="button"
-          onClick={onClose}
-          className="glass-btn secondary"
-          style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Cancelar
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSalvarRomaneio}
-          disabled={isSubmitting}
-          className="glass-btn"
-          style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            border: '1px solid hsl(var(--border))',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <FileText size={15} />
-          Salvar Romaneio
-        </button>
-
-        <button
-          type="button"
-          onClick={handleGerarNFe}
-          disabled={isSubmitting || animaisSelecionados.length === 0}
-          style={{
-            padding: '10px 22px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 900,
-            cursor: isSubmitting || animaisSelecionados.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: animaisSelecionados.length === 0 ? 0.5 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-            color: '#fff',
-            border: 'none',
-            boxShadow:
-              animaisSelecionados.length > 0 ? '0 4px 16px rgba(16, 185, 129, 0.4)' : 'none',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
-          <Truck size={15} />
-          Salvar e Gerar NF-e de Saída
-        </button>
-      </div>
-    </div>
-  );
-
-  // ─── Render ──────────────────────────────────────────────────────────────────
-
-  if (!isOpen) {
-    return null;
-  }
+  // ── Render ───────────────────────────────────────────────────────────────
+  if (!isOpen) return null;
 
   return createPortal(
     <>
       <style>{`
         @keyframes romaneioSlideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes romaneioFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .romaneio-animal-card:hover {
+          border-color: hsl(var(--brand) / 0.5) !important;
+          background: hsl(var(--brand) / 0.03) !important;
         }
       `}</style>
+
+      {/* Overlay */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: 10000,
-          background: 'rgba(2, 6, 23, 0.6)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(2, 6, 23, 0.65)',
+          backdropFilter: 'blur(6px)',
+          animation: 'romaneioFadeIn 0.2s ease',
         }}
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: '960px',
+          maxWidth: '100vw',
+          background: 'hsl(var(--bg-main))',
+          boxShadow: '-16px 0 60px rgba(0,0,0,0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'romaneioSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          zIndex: 10001,
+          borderLeft: '1px solid hsl(var(--border))',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
         <div
           style={{
-            position: 'fixed',
-            top: 0,
-            bottom: 0,
-            right: 0,
-            width: '900px',
-            maxWidth: '100vw',
-            background: 'hsl(var(--bg-main))',
-            boxShadow: '-10px 0 40px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            animation: 'romaneioSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            zIndex: 10001,
-            borderLeft: '1px solid hsl(var(--border))',
+            padding: '24px 32px',
+            borderBottom: '1px solid hsl(var(--border))',
+            background: 'hsl(var(--bg-card))',
+            flexShrink: 0,
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              padding: '32px',
-              borderBottom: '1px solid hsl(var(--border))',
-              background: 'hsl(var(--bg-card))',
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '24px',
-              }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'hsl(var(--brand) / 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'hsl(var(--brand))',
+                }}
+              >
+                <Truck size={22} />
+              </div>
               <div>
-                <h2
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: 900,
-                    color: 'hsl(var(--text-main))',
-                    margin: '0 0 8px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                  }}
-                >
-                  <Truck size={28} style={{ color: 'hsl(var(--brand))' }} />
+                <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--text-main))', margin: 0, lineHeight: 1.2 }}>
                   Romaneio de Embarque
                 </h2>
-                <p style={{ color: 'hsl(var(--text-muted))', margin: 0, fontSize: '14px' }}>
-                  Selecione os animais e preencha os dados para emissão da NF-e de Saída de gado.
+                <p style={{ color: 'hsl(var(--text-muted))', margin: '2px 0 0', fontSize: '13px' }}>
+                  Selecione os animais, preencha a GTA e confirme o embarque.
                 </p>
               </div>
-              <button
-                onClick={onClose}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'hsl(var(--text-muted))',
-                  cursor: 'pointer',
-                  padding: '8px',
-                }}
-              >
-                <X size={24} />
-              </button>
             </div>
-
-            {/* Stepper */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: currentStep === 1 ? 1 : 0.4,
-                  cursor: 'pointer',
-                }}
-                onClick={() => setCurrentStep(1)}
-              >
-                <div
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: currentStep === 1 ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
-                    color: currentStep === 1 ? '#fff' : 'hsl(var(--text-muted))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                  }}
-                >
-                  1
-                </div>
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: currentStep === 1 ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
-                  }}
-                >
-                  Seleção de Animais
-                </span>
-              </div>
-              <div style={{ height: '1px', width: '40px', background: 'hsl(var(--border))' }} />
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: currentStep === 2 ? 1 : 0.4,
-                  cursor: animaisSelecionados.length > 0 ? 'pointer' : 'not-allowed',
-                }}
-                onClick={() => {
-                  if (animaisSelecionados.length > 0) {
-                    setCurrentStep(2);
-                  }
-                }}
-              >
-                <div
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: currentStep === 2 ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
-                    color: currentStep === 2 ? '#fff' : 'hsl(var(--text-muted))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                  }}
-                >
-                  2
-                </div>
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: currentStep === 2 ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
-                  }}
-                >
-                  Dados e Documentação
-                </span>
-              </div>
-            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'hsl(var(--text-muted))',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={20} />
+            </button>
           </div>
 
-          {/* Content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-            {currentStep === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Main Toolbar */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    marginBottom: '16px',
-                    position: 'relative',
-                  }}
-                >
-                  {/* Main Animal Search Field */}
-                  <div style={{ position: 'relative', flex: 1 }} ref={searchRef}>
-                    <Search
-                      size={16}
-                      style={{
-                        position: 'absolute',
-                        left: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'hsl(var(--text-muted))',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                    <input
-                      className="tauze-input"
-                      type="text"
-                      placeholder={
-                        selectedLote
-                          ? `Buscar animal no lote ${selectedLote.nome}...`
-                          : 'Buscar por brinco, raça ou categoria...'
-                      }
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                      onFocus={() => {
-                        if (searchResults.length > 0) {
-                          setShowDropdown(true);
-                        } else if (selectedLote) {
-                          const selectedIds = new Set(animaisSelecionados.map((a) => a.id));
-                          const lotAnimals = realAnimais.filter(
-                            (a) => a.lote_id === selectedLote.id && !selectedIds.has(a.id)
-                          );
-                          if (lotAnimals.length > 0) {
-                            setSearchResults(lotAnimals);
-                            setShowDropdown(true);
-                          }
-                        }
-                      }}
-                      style={{ paddingLeft: '42px', paddingRight: '40px' }}
-                      autoComplete="off"
-                    />
-
-                    {/* Clear Button */}
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          color: 'hsl(var(--text-muted))',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-
-                    {/* Dropdown */}
-                    {showDropdown && searchResults.length > 0 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 6px)',
-                          left: 0,
-                          right: 0,
-                          background: 'hsl(var(--bg-card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '14px',
-                          boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                          zIndex: 1000,
-                          overflow: 'hidden',
-                          maxHeight: '340px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: '12px',
-                            borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                            background: 'hsl(var(--bg-main))',
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={handleAddAllFiltered}
-                            style={{
-                              width: '100%',
-                              padding: '10px',
-                              borderRadius: '8px',
-                              fontSize: '13px',
-                              fontWeight: 800,
-                              background: 'hsl(var(--brand) / 0.1)',
-                              color: 'hsl(var(--brand))',
-                              border: '1px solid hsl(var(--brand) / 0.2)',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = 'hsl(var(--brand) / 0.15)')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = 'hsl(var(--brand) / 0.1)')
-                            }
-                          >
-                            <Plus size={16} /> Adicionar Todos os {searchResults.length} Resultados
-                          </button>
-                        </div>
-                        <div style={{ overflowY: 'auto' }}>
-                          {searchResults.map((animal, idx) => (
-                            <div
-                              key={animal.id}
-                              onClick={() => handleAddAnimal(animal)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '12px 16px',
-                                cursor: 'pointer',
-                                borderBottom:
-                                  idx < searchResults.length - 1
-                                    ? '1px solid hsl(var(--border) / 0.5)'
-                                    : 'none',
-                                transition: 'background 0.15s',
-                              }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background = 'hsl(var(--brand) / 0.06)')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background = 'transparent')
-                              }
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div
-                                  style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '10px',
-                                    background: 'hsl(var(--brand) / 0.1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'hsl(var(--brand))',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <Beef size={16} />
-                                </div>
-                                <div>
-                                  <div
-                                    style={{
-                                      fontWeight: 800,
-                                      fontSize: '13px',
-                                      color: 'hsl(var(--text-main))',
-                                    }}
-                                  >
-                                    #{animal.brinco}
-                                    <span
-                                      style={{
-                                        marginLeft: '8px',
-                                        fontSize: '10px',
-                                        fontWeight: 700,
-                                        background:
-                                          animal.sexo === 'M'
-                                            ? 'hsl(217 91% 60% / 0.12)'
-                                            : 'hsl(316 73% 69% / 0.12)',
-                                        color:
-                                          animal.sexo === 'M'
-                                            ? 'hsl(217 91% 60%)'
-                                            : 'hsl(316 73% 60%)',
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                      }}
-                                    >
-                                      {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
-                                    </span>
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: '11px',
-                                      color: 'hsl(var(--text-muted))',
-                                      marginTop: '2px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                    }}
-                                  >
-                                    {animal.raca} · {animal.categoria}
-                                    {animal.em_carencia && (
-                                      <span
-                                        style={{
-                                          fontSize: '9px',
-                                          fontWeight: 800,
-                                          color: '#ef4444',
-                                          background: '#ef444420',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                        }}
-                                      >
-                                        EM CARÊNCIA
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span
-                                  style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}
-                                >
-                                  {animal.peso_atual} kg
-                                </span>
-                                <div
-                                  style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '8px',
-                                    background: 'hsl(var(--brand) / 0.1)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'hsl(var(--brand))',
-                                  }}
-                                >
-                                  <Plus size={14} />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {showDropdown && searchQuery.length > 0 && searchResults.length === 0 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 6px)',
-                          left: 0,
-                          right: 0,
-                          background: 'hsl(var(--bg-card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '14px',
-                          padding: '20px',
-                          textAlign: 'center',
-                          zIndex: 1000,
-                          boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
-                        }}
-                      >
-                        <AlertCircle
-                          size={20}
-                          style={{ color: 'hsl(var(--text-muted))', marginBottom: '6px' }}
-                        />
-                        <p
-                          style={{
-                            fontSize: '13px',
-                            color: 'hsl(var(--text-muted))',
-                            margin: 0,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Nenhum animal encontrado com "{searchQuery}"
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Filters Toggle Button */}
+          {/* Stepper */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+            {[
+              { num: 1, label: 'Seleção de Animais', icon: Beef },
+              { num: 2, label: 'Documentação e GTA', icon: FileText },
+            ].map((step, idx) => {
+              const isActive = currentStep === step.num;
+              const isDone = currentStep > step.num;
+              return (
+                <React.Fragment key={step.num}>
                   <button
                     type="button"
-                    onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+                    onClick={() => {
+                      if (step.num === 2 && animaisSelecionados.length === 0) return;
+                      setCurrentStep(step.num as 1 | 2);
+                    }}
                     style={{
-                      height: '46px',
-                      padding: '0 20px',
-                      borderRadius: '12px',
-                      border: `1px solid ${isFilterActive || showFiltersPanel ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                      background: showFiltersPanel
-                        ? 'hsl(var(--brand) / 0.05)'
-                        : 'hsl(var(--bg-card))',
-                      color:
-                        isFilterActive || showFiltersPanel
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: isActive
+                        ? 'hsl(var(--brand) / 0.1)'
+                        : isDone
+                        ? 'hsl(142 71% 45% / 0.08)'
+                        : 'transparent',
+                      cursor: step.num === 2 && animaisSelecionados.length === 0 ? 'not-allowed' : 'pointer',
+                      opacity: step.num === 2 && animaisSelecionados.length === 0 ? 0.4 : 1,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: isActive ? 'hsl(var(--brand))' : isDone ? '#10b981' : 'hsl(var(--bg-main))',
+                        border: isActive || isDone ? 'none' : '1px solid hsl(var(--border))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        color: isActive || isDone ? '#fff' : 'hsl(var(--text-muted))',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isDone ? <Check size={13} /> : step.num}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: isActive
                           ? 'hsl(var(--brand))'
-                          : 'hsl(var(--text-main))',
+                          : isDone
+                          ? '#10b981'
+                          : 'hsl(var(--text-muted))',
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                    {isActive && animaisSelecionados.length > 0 && step.num === 1 && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          background: '#10b981',
+                          color: '#fff',
+                          padding: '2px 7px',
+                          borderRadius: '10px',
+                        }}
+                      >
+                        {animaisSelecionados.length}
+                      </span>
+                    )}
+                  </button>
+                  {idx < 1 && (
+                    <div style={{ width: '32px', height: '1px', background: 'hsl(var(--border))', flexShrink: 0 }} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Live summary strip */}
+            {animaisSelecionados.length > 0 && (
+              <div
+                style={{
+                  marginLeft: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  background: 'hsl(var(--bg-main))',
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  <strong style={{ color: 'hsl(var(--text-main))' }}>{animaisSelecionados.length}</strong> animais
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  <strong style={{ color: '#10b981' }}>{pesoTotal.toLocaleString('pt-BR')} kg</strong>
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  <strong style={{ color: 'hsl(var(--brand))' }}>{arrobasTotal} @</strong>
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  est.{' '}
+                  <strong style={{ color: 'hsl(var(--text-main))' }}>
+                    R${' '}
+                    {parseFloat(valorEstimado).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </strong>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── CONTENT ────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+          {/* ════ STEP 1 — Animal Selection ════════════════════════════ */}
+          {currentStep === 1 && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+              {/* Toolbar */}
+              <div
+                style={{
+                  padding: '16px 32px',
+                  borderBottom: '1px solid hsl(var(--border))',
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  background: 'hsl(var(--bg-card))',
+                }}
+              >
+                {/* Search */}
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search
+                    size={15}
+                    style={{
+                      position: 'absolute',
+                      left: '13px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'hsl(var(--text-muted))',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <input
+                    className="tauze-input"
+                    type="text"
+                    placeholder="Buscar por brinco, raça, lote..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ paddingLeft: '38px', height: '40px', fontSize: '13px' }}
+                    autoComplete="off"
+                  />
+                </div>
+
+                {/* Filters toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  style={{
+                    height: '40px',
+                    padding: '0 16px',
+                    borderRadius: '10px',
+                    border: `1px solid ${isFilterActive || showFilters ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
+                    background: showFilters ? 'hsl(var(--brand) / 0.08)' : 'hsl(var(--bg-main))',
+                    color: isFilterActive || showFilters ? 'hsl(var(--brand))' : 'hsl(var(--text-main))',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    position: 'relative',
+                    transition: 'all 0.15s',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Filter size={15} />
+                  Filtros
+                  {isFilterActive && (
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: '#10b981',
+                        position: 'absolute',
+                        top: '7px',
+                        right: '7px',
+                      }}
+                    />
+                  )}
+                </button>
+
+                {/* Add all */}
+                {animaisDisponiveis.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddAllFiltered}
+                    style={{
+                      height: '40px',
+                      padding: '0 16px',
+                      borderRadius: '10px',
+                      border: '1px solid hsl(var(--brand) / 0.3)',
+                      background: 'hsl(var(--brand) / 0.08)',
+                      color: 'hsl(var(--brand))',
                       fontSize: '13px',
                       fontWeight: 800,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      transition: 'all 0.2s',
-                      position: 'relative',
+                      gap: '6px',
+                      flexShrink: 0,
+                      transition: 'all 0.15s',
                     }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'hsl(var(--brand) / 0.14)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = 'hsl(var(--brand) / 0.08)')
+                    }
                   >
-                    <Filter size={16} />
-                    Filtros
-                    {isFilterActive && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '-4px',
-                          right: '-4px',
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          background: '#10b981',
-                          border: '2px solid hsl(var(--bg-card))',
-                        }}
-                      />
-                    )}
+                    <Plus size={15} /> Adicionar todos ({animaisDisponiveis.length})
                   </button>
-
-                  {/* Collapsible Filters Panel (Now as a Popover) */}
-                  {showFiltersPanel && (
-                    <>
-                      <div
-                        style={{ position: 'fixed', inset: 0, zIndex: 900 }}
-                        onClick={() => setShowFiltersPanel(false)}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 8px)',
-                          right: 0,
-                          width: '640px',
-                          maxWidth: '100vw',
-                          zIndex: 1000,
-                          background: 'hsl(var(--bg-card))',
-                          padding: '24px',
-                          borderRadius: '16px',
-                          border: '1px solid hsl(var(--border))',
-                          boxShadow: '0 20px 50px rgba(0,0,0,0.3), 0 0 0 1px hsl(var(--brand)/0.1)',
-                          animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                          transformOrigin: 'top right',
-                        }}
-                      >
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                          {/* Lot Filter (Moved here) */}
-                          <div
-                            style={{ flex: '1 1 300px', position: 'relative' }}
-                            ref={lotSearchRef}
-                          >
-                            <label
-                              style={{
-                                display: 'block',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: 'hsl(var(--text-muted))',
-                                marginBottom: '6px',
-                              }}
-                            >
-                              Filtrar por Lote
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                              <Search
-                                size={14}
-                                style={{
-                                  position: 'absolute',
-                                  left: '12px',
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  color: 'hsl(var(--text-muted))',
-                                }}
-                              />
-                              <input
-                                className="tauze-input"
-                                type="text"
-                                placeholder="Buscar lote ativo..."
-                                value={lotSearchQuery}
-                                onChange={handleLotSearchChange}
-                                onFocus={() => {
-                                  if (lotSearchResults.length > 0) {
-                                    setShowLotDropdown(true);
-                                  }
-                                }}
-                                style={{
-                                  paddingLeft: '36px',
-                                  height: '38px',
-                                  fontSize: '13px',
-                                  borderColor: selectedLote ? 'hsl(var(--brand))' : undefined,
-                                }}
-                                autoComplete="off"
-                              />
-                              {selectedLote && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedLote(null);
-                                    setLotSearchQuery('');
-                                    setSearchQuery('');
-                                    setSearchResults([]);
-                                  }}
-                                  style={{
-                                    position: 'absolute',
-                                    right: '10px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'hsl(var(--text-muted))',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  <X size={14} />
-                                </button>
-                              )}
-                            </div>
-                            {/* Lot Dropdown Inside Panel */}
-                            {showLotDropdown && lotSearchResults.length > 0 && (
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  top: 'calc(100% + 4px)',
-                                  left: 0,
-                                  right: 0,
-                                  background: 'hsl(var(--bg-card))',
-                                  border: '1px solid hsl(var(--border))',
-                                  borderRadius: '10px',
-                                  boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-                                  zIndex: 1001,
-                                  maxHeight: '200px',
-                                  overflowY: 'auto',
-                                }}
-                              >
-                                {lotSearchResults.map((lote) => (
-                                  <div
-                                    key={lote.id}
-                                    onClick={() => handleSelectLote(lote)}
-                                    style={{
-                                      padding: '10px 14px',
-                                      cursor: 'pointer',
-                                      borderBottom: '1px solid hsl(var(--border)/0.5)',
-                                      fontSize: '12px',
-                                      fontWeight: 700,
-                                    }}
-                                    onMouseEnter={(e) =>
-                                      (e.currentTarget.style.background = 'hsl(var(--brand)/0.06)')
-                                    }
-                                    onMouseLeave={(e) =>
-                                      (e.currentTarget.style.background = 'transparent')
-                                    }
-                                  >
-                                    {lote.nome}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Peso Filters */}
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <div>
-                              <label
-                                style={{
-                                  display: 'block',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  color: 'hsl(var(--text-muted))',
-                                  marginBottom: '6px',
-                                }}
-                              >
-                                Peso Mínimo (kg)
-                              </label>
-                              <input
-                                type="number"
-                                className="tauze-input"
-                                style={{ width: '100px', height: '38px', fontSize: '13px' }}
-                                placeholder="Ex: 400"
-                                value={pesoMin}
-                                onChange={(e) => setPesoMin(e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label
-                                style={{
-                                  display: 'block',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  color: 'hsl(var(--text-muted))',
-                                  marginBottom: '6px',
-                                }}
-                              >
-                                Peso Máximo (kg)
-                              </label>
-                              <input
-                                type="number"
-                                className="tauze-input"
-                                style={{ width: '100px', height: '38px', fontSize: '13px' }}
-                                placeholder="Ex: 600"
-                                value={pesoMax}
-                                onChange={(e) => setPesoMax(e.target.value)}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Sexo Chips */}
-                          <div>
-                            <label
-                              style={{
-                                display: 'block',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: 'hsl(var(--text-muted))',
-                                marginBottom: '6px',
-                              }}
-                            >
-                              Sexo
-                            </label>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              {['M', 'F'].map((sex) => (
-                                <button
-                                  key={sex}
-                                  type="button"
-                                  onClick={() => setFiltroSexo(filtroSexo === sex ? '' : sex)}
-                                  style={{
-                                    height: '38px',
-                                    padding: '0 16px',
-                                    borderRadius: '8px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    background:
-                                      filtroSexo === sex
-                                        ? 'hsl(var(--brand))'
-                                        : 'hsl(var(--bg-card))',
-                                    color: filtroSexo === sex ? '#fff' : 'hsl(var(--text-main))',
-                                    border: `1px solid ${filtroSexo === sex ? 'transparent' : 'hsl(var(--border))'}`,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s',
-                                  }}
-                                >
-                                  {sex === 'M' ? 'Machos' : 'Fêmeas'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Categoria Chips */}
-                          <div>
-                            <label
-                              style={{
-                                display: 'block',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: 'hsl(var(--text-muted))',
-                                marginBottom: '6px',
-                              }}
-                            >
-                              Categoria
-                            </label>
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                              {['Boi Gordo', 'Vaca', 'Novilha', 'Garrote'].map((cat) => (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  onClick={() =>
-                                    setFiltroCategoria(filtroCategoria === cat ? '' : cat)
-                                  }
-                                  style={{
-                                    height: '38px',
-                                    padding: '0 16px',
-                                    borderRadius: '8px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    background:
-                                      filtroCategoria === cat
-                                        ? 'hsl(var(--brand))'
-                                        : 'hsl(var(--bg-card))',
-                                    color:
-                                      filtroCategoria === cat ? '#fff' : 'hsl(var(--text-main))',
-                                    border: `1px solid ${filtroCategoria === cat ? 'transparent' : 'hsl(var(--border))'}`,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s',
-                                  }}
-                                >
-                                  {cat}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Carencia Toggle */}
-                          <div
-                            style={{
-                              flex: '1 1 100%',
-                              borderTop: '1px dashed hsl(var(--border)/0.8)',
-                              marginTop: '4px',
-                              paddingTop: '16px',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                height: '36px',
-                                background: ocultarCarencia
-                                  ? 'hsl(142 71% 45% / 0.1)'
-                                  : 'transparent',
-                                padding: '0 12px',
-                                borderRadius: '8px',
-                                border: ocultarCarencia
-                                  ? '1px solid hsl(142 71% 45% / 0.3)'
-                                  : '1px solid transparent',
-                                transition: 'all 0.2s',
-                              }}
-                            >
-                              <ShieldAlert
-                                size={16}
-                                style={{
-                                  color: ocultarCarencia ? '#10b981' : 'hsl(var(--text-muted))',
-                                }}
-                              />
-                              <label
-                                style={{
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  color: ocultarCarencia ? '#10b981' : 'hsl(var(--text-main))',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={ocultarCarencia}
-                                  onChange={(e) => setOcultarCarencia(e.target.checked)}
-                                  style={{
-                                    accentColor: '#10b981',
-                                    width: '14px',
-                                    height: '14px',
-                                    cursor: 'pointer',
-                                  }}
-                                />
-                                Ocultar animais em Carência Sanitária
-                              </label>
-                            </div>
-
-                            {isFilterActive && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowDropdown(true);
-                                  setShowFiltersPanel(false);
-                                }}
-                                style={{
-                                  padding: '10px 24px',
-                                  borderRadius: '8px',
-                                  fontSize: '13px',
-                                  fontWeight: 800,
-                                  background: 'hsl(var(--brand))',
-                                  color: '#fff',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s',
-                                  boxShadow: '0 4px 14px hsl(var(--brand)/0.3)',
-                                }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.transform = 'translateY(-1px)')
-                                }
-                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}
-                              >
-                                Exibir {searchResults.length} Resultados
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Selected Animals Table */}
-                {animaisSelecionados.length === 0 ? (
-                  <div
-                    style={{
-                      border: '2px dashed hsl(var(--border) / 0.6)',
-                      borderRadius: '16px',
-                      padding: '48px 24px',
-                      textAlign: 'center',
-                      background: 'hsl(var(--bg-main) / 0.3)',
-                    }}
-                  >
-                    <Beef
-                      size={32}
-                      style={{ color: 'hsl(var(--text-muted) / 0.4)', marginBottom: '12px' }}
-                    />
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        color: 'hsl(var(--text-muted))',
-                      }}
-                    >
-                      Nenhum animal selecionado
-                    </p>
-                    <p
-                      style={{
-                        margin: '4px 0 0',
-                        fontSize: '12px',
-                        color: 'hsl(var(--text-muted) / 0.7)',
-                      }}
-                    >
-                      Use a busca e os filtros acima para adicionar animais ao embarque
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      style={{
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        background: 'hsl(var(--bg-card))',
-                      }}
-                    >
-                      {/* Table Header */}
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '2fr 1.5fr 1.2fr 1.5fr auto',
-                          gap: '0',
-                          padding: '10px 16px',
-                          background: 'hsl(var(--bg-main))',
-                          borderBottom: '1px solid hsl(var(--border))',
-                        }}
-                      >
-                        {['# Brinco', 'Raça', 'Peso Atual', 'Categoria', ''].map((h, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 900,
-                              color: 'hsl(var(--text-muted))',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.06em',
-                              textAlign: i === 4 ? 'center' : 'left',
-                            }}
-                          >
-                            {h}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Table Rows */}
-                      <div>
-                        {animaisSelecionados.map((animal, idx) => (
-                          <div
-                            key={animal.id}
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '2fr 1.5fr 1.2fr 1.5fr auto',
-                              gap: '0',
-                              padding: '12px 16px',
-                              borderBottom:
-                                idx < animaisSelecionados.length - 1
-                                  ? '1px solid hsl(var(--border) / 0.5)'
-                                  : 'none',
-                              background:
-                                idx % 2 === 0 ? 'hsl(var(--bg-card))' : 'hsl(var(--bg-main) / 0.3)',
-                              transition: 'background 0.15s',
-                              alignItems: 'center',
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = 'hsl(var(--brand) / 0.04)')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background =
-                                idx % 2 === 0 ? 'hsl(var(--bg-card))' : 'hsl(var(--bg-main) / 0.3)')
-                            }
-                          >
-                            {/* Brinco */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '8px',
-                                  background: 'hsl(var(--brand) / 0.1)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'hsl(var(--brand))',
-                                  flexShrink: 0,
-                                  fontSize: '11px',
-                                  fontWeight: 900,
-                                }}
-                              >
-                                {idx + 1}
-                              </div>
-                              <span
-                                style={{
-                                  fontWeight: 800,
-                                  fontSize: '13px',
-                                  color: 'hsl(var(--text-main))',
-                                }}
-                              >
-                                #{animal.brinco}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: '9px',
-                                  fontWeight: 800,
-                                  background:
-                                    animal.sexo === 'M'
-                                      ? 'hsl(217 91% 60% / 0.12)'
-                                      : 'hsl(316 73% 69% / 0.12)',
-                                  color:
-                                    animal.sexo === 'M' ? 'hsl(217 91% 60%)' : 'hsl(316 73% 60%)',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  textTransform: 'uppercase',
-                                }}
-                              >
-                                {animal.sexo === 'M' ? '♂' : '♀'}
-                              </span>
-                            </div>
-
-                            {/* Raça */}
-                            <div
-                              style={{
-                                fontSize: '13px',
-                                color: 'hsl(var(--text-main))',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {animal.raca}
-                            </div>
-
-                            {/* Peso */}
-                            <div style={{ fontWeight: 800, fontSize: '13px', color: '#10b981' }}>
-                              {animal.peso_atual} kg
-                            </div>
-
-                            {/* Categoria */}
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  background: 'hsl(var(--brand) / 0.1)',
-                                  color: 'hsl(var(--brand))',
-                                  padding: '3px 10px',
-                                  borderRadius: '6px',
-                                }}
-                              >
-                                {animal.categoria}
-                              </span>
-                            </div>
-
-                            {/* Remove */}
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveAnimal(animal.id)}
-                                title="Remover animal"
-                                style={{
-                                  width: '30px',
-                                  height: '30px',
-                                  borderRadius: '8px',
-                                  background: 'hsl(0 84% 60% / 0.08)',
-                                  border: '1px solid hsl(0 84% 60% / 0.2)',
-                                  color: 'hsl(0 84% 60%)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'hsl(0 84% 60% / 0.15)';
-                                  e.currentTarget.style.transform = 'scale(1.05)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'hsl(0 84% 60% / 0.08)';
-                                  e.currentTarget.style.transform = 'scale(1)';
-                                }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Summary Footer */}
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        padding: '12px 16px',
-                        background:
-                          'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, hsl(142 71% 45% / 0.06) 100%)',
-                        border: '1px solid hsl(var(--brand) / 0.15)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CheckCircle2 size={16} style={{ color: '#10b981' }} />
-                        <span
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            color: 'hsl(var(--text-main))',
-                          }}
-                        >
-                          {animaisSelecionados.length}{' '}
-                          {animaisSelecionados.length === 1
-                            ? 'animal selecionado'
-                            : 'animais selecionados'}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <span
-                          style={{
-                            fontSize: '12px',
-                            color: 'hsl(var(--text-muted))',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Peso total:{' '}
-                          <strong style={{ color: '#10b981', fontWeight: 900 }}>
-                            {pesoTotal.toLocaleString('pt-BR')} kg
-                          </strong>
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '12px',
-                            color: 'hsl(var(--text-muted))',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Média:{' '}
-                          <strong style={{ color: 'hsl(var(--brand))', fontWeight: 900 }}>
-                            {custoMedio} kg
-                          </strong>
-                        </span>
-                      </div>
-                    </div>
-                  </>
                 )}
               </div>
-            )}
 
-            {currentStep === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Row 1: Comprador, Destino, Data */}
-                <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
+              {/* Filter Panel (inline collapsible) */}
+              {showFilters && (
+                <div
+                  style={{
+                    padding: '16px 32px',
+                    borderBottom: '1px solid hsl(var(--border))',
+                    background: 'hsl(var(--bg-card) / 0.6)',
+                    display: 'flex',
+                    gap: '16px',
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-end',
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* Lote */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '5px' }}>
+                      Lote
+                    </label>
+                    <select
+                      className="tauze-input"
+                      value={filtroLoteId}
+                      onChange={(e) => setFiltroLoteId(e.target.value)}
+                      style={{ height: '36px', fontSize: '12px', minWidth: '160px' }}
+                    >
+                      <option value="">Todos os lotes</option>
+                      {realLotes.map((l) => (
+                        <option key={l.id} value={l.id}>{l.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Peso */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '5px' }}>
+                      Peso Mín. (kg)
+                    </label>
+                    <input
+                      type="number"
+                      className="tauze-input"
+                      style={{ width: '90px', height: '36px', fontSize: '12px' }}
+                      placeholder="Ex: 400"
+                      value={pesoMin}
+                      onChange={(e) => setPesoMin(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '5px' }}>
+                      Peso Máx. (kg)
+                    </label>
+                    <input
+                      type="number"
+                      className="tauze-input"
+                      style={{ width: '90px', height: '36px', fontSize: '12px' }}
+                      placeholder="Ex: 650"
+                      value={pesoMax}
+                      onChange={(e) => setPesoMax(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Sexo */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '5px' }}>
+                      Sexo
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {['', 'M', 'F'].map((sex) => (
+                        <button
+                          key={sex}
+                          type="button"
+                          onClick={() => setFiltroSexo(sex)}
+                          style={{
+                            height: '36px',
+                            padding: '0 12px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            background: filtroSexo === sex ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
+                            color: filtroSexo === sex ? '#fff' : 'hsl(var(--text-main))',
+                            border: `1px solid ${filtroSexo === sex ? 'transparent' : 'hsl(var(--border))'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {sex === '' ? 'Todos' : sex === 'M' ? 'Machos' : 'Fêmeas'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Categoria */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '5px' }}>
+                      Categoria
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {['', 'Boi Gordo', 'Vaca', 'Novilha', 'Garrote'].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setFiltroCategoria(cat)}
+                          style={{
+                            height: '36px',
+                            padding: '0 12px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            background: filtroCategoria === cat ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
+                            color: filtroCategoria === cat ? '#fff' : 'hsl(var(--text-main))',
+                            border: `1px solid ${filtroCategoria === cat ? 'transparent' : 'hsl(var(--border))'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {cat === '' ? 'Todas' : cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Carência toggle */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      height: '36px',
+                      padding: '0 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${ocultarCarencia ? 'hsl(142 71% 45% / 0.3)' : 'hsl(var(--border))'}`,
+                      background: ocultarCarencia ? 'hsl(142 71% 45% / 0.08)' : 'hsl(var(--bg-main))',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: ocultarCarencia ? '#10b981' : 'hsl(var(--text-main))',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={ocultarCarencia}
+                      onChange={(e) => setOcultarCarencia(e.target.checked)}
+                      style={{ accentColor: '#10b981', width: '13px', height: '13px', cursor: 'pointer' }}
+                    />
+                    <ShieldAlert size={13} />
+                    Ocultar em Carência
+                  </label>
+
+                  {/* Clear */}
+                  {isFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      style={{
+                        height: '36px',
+                        padding: '0 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: 'transparent',
+                        color: 'hsl(var(--text-muted))',
+                        border: '1px solid hsl(var(--border))',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <X size={13} /> Limpar
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Dual Panel */}
+              <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+                {/* LEFT — Disponíveis */}
+                <div
+                  style={{
+                    flex: '1 1 55%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRight: '1px solid hsl(var(--border))',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Left header */}
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'hsl(var(--bg-card))',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Disponíveis
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {carenciaCount > 0 && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: '#ef4444',
+                            background: '#ef444412',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <AlertTriangle size={11} /> {carenciaCount} em carência
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          color: 'hsl(var(--text-main))',
+                          background: 'hsl(var(--bg-main))',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          border: '1px solid hsl(var(--border))',
+                        }}
+                      >
+                        {animaisDisponiveis.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* List */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {loadingAnimais ? (
+                      Array(6).fill(0).map((_, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            height: '62px',
+                            borderRadius: '10px',
+                            background: 'hsl(var(--bg-card))',
+                            border: '1px solid hsl(var(--border))',
+                            animation: 'pulse 1.5s ease-in-out infinite',
+                          }}
+                        />
+                      ))
+                    ) : animaisDisponiveis.length === 0 ? (
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '40px 20px',
+                          textAlign: 'center',
+                          gap: '10px',
+                        }}
+                      >
+                        <AlertCircle size={28} style={{ color: 'hsl(var(--text-muted) / 0.4)' }} />
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                          {isFilterActive || searchQuery
+                            ? 'Nenhum animal com estes filtros'
+                            : 'Nenhum animal disponível para embarque'}
+                        </p>
+                        {(isFilterActive || searchQuery) && (
+                          <button
+                            type="button"
+                            onClick={handleClearFilters}
+                            style={{
+                              padding: '6px 16px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              background: 'hsl(var(--brand) / 0.1)',
+                              color: 'hsl(var(--brand))',
+                              border: '1px solid hsl(var(--brand) / 0.2)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Limpar filtros
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      animaisDisponiveis.map((animal) => (
+                        <AnimalCard key={animal.id} animal={animal} onAdd={handleAddAnimal} />
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT — Selecionados */}
+                <div
+                  style={{
+                    flex: '1 1 45%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Right header */}
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'hsl(var(--bg-card))',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Selecionados
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {animaisSelecionados.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAnimaisSelecionados([])}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'hsl(var(--text-muted))',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = 'hsl(var(--text-muted))')}
+                        >
+                          Limpar tudo
+                        </button>
+                      )}
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          color: animaisSelecionados.length > 0 ? '#10b981' : 'hsl(var(--text-muted))',
+                          background: animaisSelecionados.length > 0 ? 'hsl(142 71% 45% / 0.1)' : 'hsl(var(--bg-main))',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          border: `1px solid ${animaisSelecionados.length > 0 ? 'hsl(142 71% 45% / 0.2)' : 'hsl(var(--border))'}`,
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {animaisSelecionados.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Selected list */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {animaisSelecionados.length === 0 ? (
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '40px 20px',
+                          textAlign: 'center',
+                          gap: '10px',
+                          border: '2px dashed hsl(var(--border) / 0.5)',
+                          borderRadius: '12px',
+                          margin: '8px 0',
+                        }}
+                      >
+                        <Package size={28} style={{ color: 'hsl(var(--text-muted) / 0.3)' }} />
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
+                          Clique nos animais à esquerda para adicioná-los ao embarque
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {animaisSelecionados.map((animal, idx) => {
+                          const arrobas = (animal.peso_atual / 30).toFixed(1);
+                          return (
+                            <div
+                              key={animal.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '8px 12px',
+                                borderRadius: '9px',
+                                border: '1px solid hsl(var(--border))',
+                                background: 'hsl(var(--bg-card))',
+                                gap: '8px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '6px',
+                                    background: 'hsl(var(--brand) / 0.1)',
+                                    color: 'hsl(var(--brand))',
+                                    fontSize: '10px',
+                                    fontWeight: 900,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {idx + 1}
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: 800, fontSize: '12px', color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    #{animal.brinco}
+                                    {animal.em_carencia && (
+                                      <ShieldAlert size={11} style={{ color: '#ef4444' }} />
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>
+                                    {animal.raca} · {animal.categoria}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: 900, fontSize: '12px', color: '#10b981' }}>
+                                    {animal.peso_atual.toLocaleString('pt-BR')} kg
+                                  </div>
+                                  <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>{arrobas} @</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAnimal(animal.id)}
+                                  style={{
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '7px',
+                                    background: 'hsl(0 84% 60% / 0.08)',
+                                    border: '1px solid hsl(0 84% 60% / 0.15)',
+                                    color: 'hsl(0 84% 60%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.background = 'hsl(0 84% 60% / 0.16)')
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.background = 'hsl(0 84% 60% / 0.08)')
+                                  }
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Totals footer */}
+                        <div
+                          style={{
+                            marginTop: '8px',
+                            padding: '12px',
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06), hsl(142 71% 45% / 0.06))',
+                            border: '1px solid hsl(var(--brand) / 0.12)',
+                          }}
+                        >
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Peso Total
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 900, color: '#10b981' }}>
+                                {pesoTotal.toLocaleString('pt-BR')} kg
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Total Arrobas
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
+                                {arrobasTotal} @
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Média por Animal
+                              </div>
+                              <div style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
+                                {animaisSelecionados.length > 0
+                                  ? (pesoTotal / animaisSelecionados.length).toFixed(0)
+                                  : '0'}{' '}
+                                kg
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Valor Est. (R$ 330/@)
+                              </div>
+                              <div style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
+                                R${' '}
+                                {parseFloat(valorEstimado).toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 0,
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════ STEP 2 — Documentação ════════════════════════════════ */}
+          {currentStep === 2 && (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+              {/* Summary card */}
+              <div
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06), hsl(142 71% 45% / 0.06))',
+                  border: '1px solid hsl(var(--brand) / 0.15)',
+                  display: 'flex',
+                  gap: '24px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+                    <strong>{animaisSelecionados.length}</strong> animais selecionados
+                  </span>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  Peso total: <strong style={{ color: '#10b981' }}>{pesoTotal.toLocaleString('pt-BR')} kg</strong>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  Arrobas: <strong style={{ color: 'hsl(var(--brand))' }}>{arrobasTotal} @</strong>
+                </div>
+                <div style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  Valor estimado:{' '}
+                  <strong style={{ color: 'hsl(var(--text-main))', fontSize: '15px' }}>
+                    R${' '}
+                    {parseFloat(valorEstimado).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </strong>
+                </div>
+              </div>
+
+              {/* SEÇÃO: Comprador */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <User size={13} /> Comprador / Destinatário
+                </div>
+                <div className="tauze-input-grid grid-col-3">
                   <div className="tauze-field-group">
                     <label className="tauze-label">
-                      <User size={14} /> Comprador / Destinatário
+                      Nome do Comprador <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       className="tauze-input"
                       type="text"
-                      placeholder="Nome do comprador ou empresa"
+                      placeholder="Nome ou razão social"
                       value={formData.comprador}
                       onChange={(e) => setFormData({ ...formData, comprador: e.target.value })}
                       required
                     />
                   </div>
-
                   <div className="tauze-field-group">
                     <label className="tauze-label">
-                      <MapPin size={14} /> Destino
+                      CPF / CNPJ
                     </label>
                     <input
                       className="tauze-input"
                       type="text"
-                      placeholder="Ex: Frigorífico X, Fazenda ABC"
+                      placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                      value={formData.comprador_cnpj}
+                      onChange={(e) => setFormData({ ...formData, comprador_cnpj: e.target.value })}
+                    />
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <MapPin size={13} /> Destino / Propriedade
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Ex: Frigorífico ABC, Fazenda Boa Vista"
                       value={formData.destino}
                       onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
                     />
                   </div>
+                </div>
+              </div>
 
+              {/* SEÇÃO: Documentação Fiscal */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <FileText size={13} /> Documentação Fiscal e GTA
+                </div>
+
+                {/* GTA obrigatória warning */}
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'hsl(38 92% 50% / 0.08)',
+                    border: '1px solid hsl(38 92% 50% / 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <AlertTriangle size={15} style={{ color: 'hsl(38 92% 50%)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+                    A <strong>GTA (Guia de Trânsito Animal)</strong> é exigência legal do MAPA e deve ser emitida no SIGSIF antes do embarque. O campo é obrigatório para confirmar o romaneio.
+                  </span>
+                </div>
+
+                <div className="tauze-input-grid grid-col-3">
                   <div className="tauze-field-group">
                     <label className="tauze-label">
-                      <Calendar size={14} /> Data do Embarque
+                      <Hash size={13} /> Nº GTA <span style={{ color: '#ef4444' }}>*</span>
                     </label>
-                    <DateInput
+                    <input
                       className="tauze-input"
-                      type="date"
-                      value={formData.data_embarque}
-                      onChange={(e) => setFormData({ ...formData, data_embarque: e.target.value })}
-                      required
+                      type="text"
+                      placeholder="Ex: 2024000123"
+                      value={formData.gta_numero}
+                      onChange={(e) => setFormData({ ...formData, gta_numero: e.target.value })}
+                      style={{ borderColor: !formData.gta_numero ? 'hsl(38 92% 50% / 0.5)' : undefined }}
+                    />
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      Série GTA
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Ex: A"
+                      value={formData.gta_serie}
+                      onChange={(e) => setFormData({ ...formData, gta_serie: e.target.value })}
+                    />
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      Nº NF-e de Saída
+                      <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>(opcional)</span>
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Nº emitido na SEFAZ"
+                      value={formData.nfe_numero}
+                      onChange={(e) => setFormData({ ...formData, nfe_numero: e.target.value })}
                     />
                   </div>
                 </div>
+              </div>
 
-                {/* Row 2: GTA, Placa, Motorista */}
-                <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
+              {/* SEÇÃO: Transporte */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <Truck size={13} /> Transporte
+                </div>
+                <div className="tauze-input-grid grid-col-3">
                   <div className="tauze-field-group">
                     <label className="tauze-label">
-                      <Hash size={14} /> GTA Saída — Número
+                      Placa do Veículo
                     </label>
                     <input
                       className="tauze-input"
                       type="text"
-                      placeholder="Ex: GTA-2024-00123"
-                      value={formData.gta_numero}
-                      onChange={(e) => setFormData({ ...formData, gta_numero: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">
-                      <Truck size={14} /> Placa do Veículo
-                    </label>
-                    <input
-                      className="tauze-input"
-                      type="text"
-                      placeholder="Ex: ABC-1234"
+                      placeholder="ABC-1D23"
                       value={formData.placa_veiculo}
                       onChange={(e) =>
                         setFormData({ ...formData, placa_veiculo: e.target.value.toUpperCase() })
                       }
-                      style={{
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                      }}
+                      style={{ fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}
                     />
                   </div>
-
                   <div className="tauze-field-group">
                     <label className="tauze-label">
-                      <User size={14} /> Motorista
+                      Tipo de Veículo
+                    </label>
+                    <select
+                      className="tauze-input"
+                      value={formData.tipo_veiculo}
+                      onChange={(e) => setFormData({ ...formData, tipo_veiculo: e.target.value })}
+                    >
+                      <option value="TRUCK">Truck (3 eixos)</option>
+                      <option value="CARRETA">Carreta</option>
+                      <option value="BITREM">Bitrem</option>
+                      <option value="OUTRO">Outro</option>
+                    </select>
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <User size={13} /> Motorista
                     </label>
                     <input
                       className="tauze-input"
                       type="text"
-                      placeholder="Nome completo do motorista"
+                      placeholder="Nome do motorista"
                       value={formData.motorista}
                       onChange={(e) => setFormData({ ...formData, motorista: e.target.value })}
                     />
                   </div>
                 </div>
-
-                {/* Row 4: Observações */}
-                <div className="tauze-input-grid grid-col-1">
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">
-                      <FileText size={14} /> Observações
-                    </label>
-                    <textarea
-                      className="tauze-input tauze-textarea"
-                      placeholder="Informações adicionais sobre o embarque, condições, acordos especiais..."
-                      value={formData.observacoes}
-                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                      style={{ minHeight: '80px', resize: 'vertical' }}
-                    />
-                  </div>
-                </div>
               </div>
-            )}
-          </div>
 
-          {/* Footer */}
-          <div
-            style={{
-              padding: '24px 32px',
-              borderTop: '1px solid hsl(var(--border))',
-              background: 'hsl(var(--bg-card))',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button
-                onClick={onClose}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'hsl(var(--text-muted))',
-                  background: 'transparent',
-                  border: '1px solid hsl(var(--border))',
-                  cursor: 'pointer',
-                }}
-              >
-                CANCELAR
-              </button>
-              {animaisSelecionados.length > 0 && currentStep === 1 && (
-                <span
-                  style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}
-                >
-                  <strong style={{ color: '#10b981' }}>{animaisSelecionados.length}</strong> animais
-                  selecionados
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '16px' }}>
-              {currentStep === 2 && (
-                <button
-                  onClick={() => setCurrentStep(1)}
+              {/* SEÇÃO: Financeiro e Data */}
+              <div>
+                <div
                   style={{
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: 'hsl(var(--text-main))',
-                    background: 'hsl(var(--bg-main))',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ⬅ Voltar
-                </button>
-              )}
-
-              {currentStep === 1 ? (
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  disabled={animaisSelecionados.length === 0}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
+                    fontSize: '11px',
                     fontWeight: 800,
-                    color: '#fff',
-                    background: 'hsl(var(--brand))',
-                    border: 'none',
-                    cursor: 'pointer',
-                    opacity: animaisSelecionados.length === 0 ? 0.5 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Próximo: Documentação ➔
-                </button>
-              ) : (
-                <button
-                  onClick={handleGerarNFe}
-                  disabled={saving}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: '#fff',
-                    background: '#10b981',
-                    border: 'none',
-                    cursor: 'pointer',
+                    color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: '14px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
                   }}
                 >
-                  {saving ? 'SALVANDO...' : '💾 Salvar e Gerar Romaneio'}
-                </button>
-              )}
+                  <DollarSign size={13} /> Financeiro e Data
+                </div>
+                <div className="tauze-input-grid grid-col-3">
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Calendar size={13} /> Data do Embarque <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <DateInput
+                      className="tauze-input"
+                      type="date"
+                      value={formData.data_embarque}
+                      onChange={(e: any) => setFormData({ ...formData, data_embarque: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Scale size={13} /> Preço por Arroba (R$/@)
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="330.00"
+                      value={formData.preco_por_arroba}
+                      onChange={(e) => setFormData({ ...formData, preco_por_arroba: e.target.value })}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      background: 'hsl(var(--bg-card))',
+                      border: '1px solid hsl(var(--border))',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
+                      Valor Total Estimado
+                    </span>
+                    <span style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                      R${' '}
+                      {parseFloat(valorEstimado).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                      {arrobasTotal} @ × R$ {parseFloat(formData.preco_por_arroba || '330').toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <FileText size={13} /> Observações
+                </label>
+                <textarea
+                  className="tauze-input tauze-textarea"
+                  placeholder="Informações adicionais sobre o embarque..."
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  style={{ minHeight: '72px', resize: 'vertical' }}
+                />
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* ── FOOTER ─────────────────────────────────────────────────── */}
+        <div
+          style={{
+            padding: '20px 32px',
+            borderTop: '1px solid hsl(var(--border))',
+            background: 'hsl(var(--bg-card))',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+            gap: '12px',
+          }}
+        >
+          {/* Left */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '10px 22px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'hsl(var(--text-muted))',
+              background: 'transparent',
+              border: '1px solid hsl(var(--border))',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            Cancelar
+          </button>
+
+          {/* Right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {currentStep === 2 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(1)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'hsl(var(--text-main))',
+                  background: 'hsl(var(--bg-main))',
+                  border: '1px solid hsl(var(--border))',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <ChevronLeft size={15} /> Voltar
+              </button>
+            )}
+
+            {currentStep === 1 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                disabled={animaisSelecionados.length === 0}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  color: '#fff',
+                  background: 'hsl(var(--brand))',
+                  border: 'none',
+                  cursor: animaisSelecionados.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: animaisSelecionados.length === 0 ? 0.45 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  boxShadow: animaisSelecionados.length > 0 ? '0 4px 14px hsl(var(--brand) / 0.35)' : 'none',
+                }}
+              >
+                Próximo: Documentação
+                <ArrowRight size={15} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={saveRomaneio}
+                disabled={saving || !formData.gta_numero.trim()}
+                style={{
+                  padding: '10px 26px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                  color: '#fff',
+                  background: !formData.gta_numero.trim()
+                    ? 'hsl(var(--text-muted))'
+                    : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  border: 'none',
+                  cursor: saving || !formData.gta_numero.trim() ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  boxShadow: formData.gta_numero.trim() && !saving ? '0 4px 16px rgba(16, 185, 129, 0.4)' : 'none',
+                }}
+              >
+                <Truck size={15} />
+                {saving ? 'Confirmando Embarque...' : 'Confirmar Embarque'}
+              </button>
+            )}
           </div>
         </div>
       </div>

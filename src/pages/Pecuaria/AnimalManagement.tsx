@@ -6,7 +6,6 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import {
   Plus,
-  Tag,
   Scale,
   Activity,
   Beef,
@@ -15,15 +14,13 @@ import {
   Search,
   Filter,
   Eye,
-  ChevronRight,
   FileText,
   Edit3,
   LayoutGrid,
   List as ListIcon,
-  Calendar,
   Truck,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
 import { AnimalFilterModal } from './components/AnimalFilterModal';
@@ -35,6 +32,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTenantCore } from '../../contexts/TenantContext';
+import { hasDraftForFullKey } from '../../hooks/useFormDraft';
 import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
@@ -74,7 +72,7 @@ export const AnimalManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('AnimalManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState(
@@ -82,7 +80,10 @@ export const AnimalManagement: React.FC = () => {
     false
   );
   const [manejoAnimal, setManejoAnimal] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
+  const [activeTab, setActiveTab] = usePersistentState<'TODOS' | 'ATIVO' | 'ABATIDO' | 'EM_EMBARQUE' | 'EM_TRANSITO'>(
+    'AnimalManagement_activeTab',
+    'TODOS'
+  );
   const [showRomaneio, setShowRomaneio] = usePersistentState(
     'AnimalManagement_showRomaneio',
     false
@@ -91,18 +92,42 @@ export const AnimalManagement: React.FC = () => {
     'AnimalManagement_showAdvancedFilters',
     false
   );
-  const [filterValues, setFilterValues] = useState({
-    status: 'all',
-    sexo: 'all',
-    lote: 'all',
-    racas: [] as string[],
-    minWeight: 0,
-    sanidadeOk: true,
-  });
+  const [filterValues, setFilterValues] = usePersistentState(
+    'AnimalManagement_filterValues',
+    {
+      status: 'all',
+      sexo: 'all',
+      lote: 'all',
+      racas: [] as string[],
+      minWeight: 0,
+      sanidadeOk: true,
+    }
+  );
 
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const [viewMode, setViewMode] = useViewMode('pecuaria-animal-management', 'grid');
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForFullKey(`draft_animal_${activeTenantId}_new`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
+
+  // Server-side filters: pass active filters + searchTerm to the handler
+  const serverFilters = useMemo(() => ({
+    ...filterValues,
+    searchTerm: searchTerm.trim() || undefined,
+    // Normalize tab selection into status filter
+    status: activeTab !== 'TODOS' ? activeTab : (filterValues.status !== 'all' ? filterValues.status : 'all'),
+  }), [filterValues, searchTerm, activeTab]);
+
+  // Reset page when any filter changes (prevents stale pagination)
+  useEffect(() => {
+    setPage(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, activeTab, JSON.stringify(filterValues)]);
 
   const {
     data: _rawAnimals = [],
@@ -111,7 +136,7 @@ export const AnimalManagement: React.FC = () => {
     error = null,
     totalCount = 0,
     refresh,
-  } = useReportData('animais', { page, pageSize });
+  } = useReportData('animais', { page, pageSize, filters: serverFilters });
 
   const animals = (_rawAnimals as unknown[]) as Animal[];
   const stats = _rawStats as unknown[];
@@ -234,21 +259,39 @@ export const AnimalManagement: React.FC = () => {
   const isSubmitting = saveAnimalMutation.isPending;
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = animals.map((item) => ({
-      Brinco: item.brinco,
-      Raca: item.raca,
-      Sexo: item.sexo,
-      Peso_Atual: item.peso_atual,
-      Status: item.status,
-      Lote: item.lote || 'N/A',
-    }));
+    const exportData = filteredAnimals.map((item) => {
+      const pesoAtual = item.peso_atual || item.peso_inicial || 0;
+      const arrobas = pesoAtual > 0 ? (pesoAtual / 30).toFixed(2) : 'Sem pesagem';
+      let ageStr = 'N/I';
+      if (item.data_nascimento) {
+        const months = Math.floor(
+          (new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44)
+        );
+        ageStr = `${months} meses`;
+      }
+      return {
+        Brinco: item.brinco,
+        Categoria: item.categoria || 'N/I',
+        Raca: item.raca,
+        Sexo: item.sexo === 'M' ? 'Macho' : item.sexo === 'F' ? 'Fêmea' : 'N/I',
+        Idade: ageStr,
+        Peso_Atual_kg: pesoAtual > 0 ? pesoAtual : 'Sem pesagem',
+        Arrobas_30kg: arrobas,
+        GMD_kg_dia: item.gmd_periodo || 'N/I',
+        Status: item.status,
+        Lote: (item as any).lote || 'N/A',
+        Data_Nascimento: item.data_nascimento || 'N/I',
+        Data_Entrada: item.data_entrada || 'N/I',
+        Sanidade: (item as any).isSanitaryBlocked ? 'Em Carência' : 'OK',
+      };
+    });
 
     if (format === 'csv') {
-      exportToCSV(exportData, 'log_animais');
+      exportToCSV(exportData, 'inventario_animais');
     } else if (format === 'excel') {
-      exportToExcel(exportData, 'log_animais');
+      exportToExcel(exportData, 'inventario_animais');
     } else if (format === 'pdf') {
-      exportToPDF(exportData, 'log_animais', 'Inventário de Animais');
+      exportToPDF(exportData, 'inventario_animais', 'Inventário de Animais');
     }
   };
 
@@ -282,28 +325,15 @@ export const AnimalManagement: React.FC = () => {
     deleteAnimalMutation.mutate(id);
   };
 
+  // Client-side filter is now a lightweight pass-through since server-side handles the heavy lifting.
+  // We keep it to handle any extra client-side checks not yet server-side (e.g. isSanitaryBlocked).
   const filteredAnimals = useMemo(() => {
     return (animals || []).filter((a) => {
-      const matchesSearch =
-        (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (a.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab =
-        activeTab === 'TODOS'
-          ? true
-          : activeTab === 'ATIVO'
-            ? a.status === 'Ativo'
-            : a.status === 'Abatido';
-
-      const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
-      const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
-      const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
-      const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
-
-      return (
-        matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesRaca && matchesWeight
-      );
+      // sanidadeOk filter (client-side only — not a DB column)
+      if (filterValues.sanidadeOk === false && a.isSanitaryBlocked) return false;
+      return true;
     });
-  }, [animals, searchTerm, activeTab, filterValues]);
+  }, [animals, filterValues.sanidadeOk]);
 
   const tableColumns = useMemo(() => [
     {
@@ -424,6 +454,7 @@ export const AnimalManagement: React.FC = () => {
       header: 'Peso Atual',
       accessor: (item: any) => {
         const weight = item.peso_atual || item.peso_inicial || 0;
+        const semPesagem = weight === 0;
         return (
           <div
             style={{
@@ -431,12 +462,13 @@ export const AnimalManagement: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              color: '#1e293b',
-              fontWeight: 800,
+              color: semPesagem ? '#94a3b8' : '#1e293b',
+              fontWeight: semPesagem ? 500 : 800,
+              fontStyle: semPesagem ? 'italic' : 'normal',
             }}
           >
-            <Scale size={14} color="#6366f1" />
-            <span>{weight} kg</span>
+            <Scale size={14} color={semPesagem ? '#cbd5e1' : '#6366f1'} />
+            <span>{semPesagem ? 'Sem pesagem' : `${weight} kg`}</span>
           </div>
         );
       },
@@ -496,13 +528,9 @@ export const AnimalManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => navigate('/pecuaria/lote')}>
-            <Tag size={18} />
-            Lotes
-          </button>
           <button className="glass-btn secondary" onClick={() => setShowRomaneio(true)}>
             <Truck size={18} />
-            Romaneio de Embarque
+            Romaneio
           </button>
           <button
             className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
@@ -525,33 +553,21 @@ export const AnimalManagement: React.FC = () => {
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          <button
-            className={`tauze-tab-item ${activeTab === 'TODOS' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('TODOS');
-              setPage(1);
-            }}
-          >
-            Todos Animais
-          </button>
-          <button
-            className={`tauze-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('ATIVO');
-              setPage(1);
-            }}
-          >
-            Ativos
-          </button>
-          <button
-            className={`tauze-tab-item ${activeTab === 'ABATIDO' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('ABATIDO');
-              setPage(1);
-            }}
-          >
-            Abatidos
-          </button>
+          {([
+            { key: 'TODOS', label: 'Todos' },
+            { key: 'ATIVO', label: 'Ativos' },
+            { key: 'EM_EMBARQUE', label: 'Em Embarque' },
+            { key: 'EM_TRANSITO', label: 'Em Trânsito' },
+            { key: 'ABATIDO', label: 'Abatidos' },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              className={`tauze-tab-item ${activeTab === key ? 'active' : ''}`}
+              onClick={() => { setActiveTab(key); setPage(1); }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="tauze-search-wrapper">
@@ -794,6 +810,7 @@ export const AnimalManagement: React.FC = () => {
 
                 // Calcular performance (Ganho de peso)
                 const currentWeight = a.peso_atual || a.peso_inicial || 0;
+                const semPesagemCard = currentWeight === 0;
                 const weightGain = currentWeight - (a.peso_inicial || 0);
                 const performanceText =
                   weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
@@ -961,8 +978,12 @@ export const AnimalManagement: React.FC = () => {
                           }}
                         >
                           <span>PESO ATUAL</span>
-                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: 900 }}>
-                            {currentWeight} kg
+                          <span style={{
+                            color: semPesagemCard ? '#94a3b8' : 'hsl(var(--text-main))',
+                            fontWeight: semPesagemCard ? 500 : 900,
+                            fontStyle: semPesagemCard ? 'italic' : 'normal',
+                          }}>
+                            {semPesagemCard ? 'Sem pesagem' : `${currentWeight} kg`}
                           </span>
                         </div>
                         <div

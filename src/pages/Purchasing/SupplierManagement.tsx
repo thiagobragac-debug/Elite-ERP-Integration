@@ -91,6 +91,7 @@ import './SupplierManagement.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const SupplierManagement: React.FC = () => {
   const { confirm } = useConfirm();
@@ -105,7 +106,7 @@ export const SupplierManagement: React.FC = () => {
   } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('SupplierManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'HOMOLOGADO' | 'PENDENTE') || 'HOMOLOGADO';
@@ -125,7 +126,7 @@ export const SupplierManagement: React.FC = () => {
   );
   const [historySupplierId, setHistorySupplierId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('purchasing-supplier-management', 'grid');
-  const [isMapOpen, setIsMapOpen] = usePersistentState('SupplierManagement_isMapOpen', false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'SupplierManagement_showAdvancedFilters',
     false
@@ -141,6 +142,13 @@ export const SupplierManagement: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`supplier_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

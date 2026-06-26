@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useState, useEffect } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import toast from 'react-hot-toast';
 
 import {
   DollarSign,
@@ -39,7 +40,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   actionId,
 }) => {
   const { activeFarm, activeTenantId } = useTenant();
-  const [formData, setFormData] = usePersistentState('TransactionForm_formData', {
+
+  const INITIAL_TRANSACTION_FORM = {
     description: '',
     value: '',
     dueDate: '',
@@ -50,10 +52,18 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     entityId: '',
     paymentMethod: 'Boleto',
     status: 'PENDENTE',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `transaction_form_${activeTenantId}`,
+    initialState: INITIAL_TRANSACTION_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [entities, setEntities] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [fazendas, setFazendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -66,6 +76,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       fetchCategories();
     }
   }, [isOpen, activeTenantId]);
+
+  useEffect(() => {
+    if (!activeTenantId) return;
+    supabase.from('fazendas').select('id, nome').eq('tenant_id', activeTenantId).then(({ data }) => {
+      if (data) setFazendas(data);
+    });
+  }, [activeTenantId]);
 
   const fetchEntities = async () => {
     let query = supabase.from('parceiros').select('id, nome').eq('tenant_id', activeTenantId);
@@ -100,47 +117,36 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setFormData({ ...formData, category: val });
     if (val && val.trim().length > 0 && !categories.find((c) => String(c.nome) === val)) {
       try {
-        await supabase.from('categorias_sistema').insert({
+        const { error: catErr } = await supabase.from('categorias_sistema').insert({
           tenant_id: activeTenantId,
           modulo: 'financeiro',
           nome: val.trim(),
           is_active: true,
         });
+        if (catErr) throw catErr;
+        toast.success('Categoria criada com sucesso.');
         fetchCategories();
       } catch (err) {
         console.error('[TransactionForm] Erro ao criar categoria:', err);
+        toast.error('Erro ao criar categoria.');
       }
     }
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
-        description: initialData.descricao || '',
-        value: initialData.valor_total?.toString() || '',
-        dueDate: initialData.data_vencimento || '',
-        issueDate: initialData.data_emissao || '',
-        documentNumber: initialData.documento || '',
-        category: initialData.categoria || '',
-        costCenter: initialData.centro_custo || '',
-        entityId: initialData.parceiro_id || initialData.parceiro_id || '',
-        paymentMethod: initialData.metodo_pagamento || initialData.metodo_recebimento || 'Boleto',
-        status: initialData.status || 'PENDENTE',
-      });
-    } else {
-      setFormData({
-        description: '',
-        value: '',
-        dueDate: '',
-        issueDate: '',
-        documentNumber: '',
-        category: '',
-        costCenter: '',
-        entityId: '',
-        paymentMethod: 'Boleto',
-        status: 'PENDENTE',
-      });
-    }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      description: initialData.descricao || '',
+      value: initialData.valor_total?.toString() || '',
+      dueDate: initialData.data_vencimento || '',
+      issueDate: initialData.data_emissao || '',
+      documentNumber: initialData.documento || '',
+      category: initialData.categoria || '',
+      costCenter: initialData.centro_custo || '',
+      entityId: initialData.parceiro_id || initialData.parceiro_id || '',
+      paymentMethod: initialData.metodo_pagamento || initialData.metodo_recebimento || 'Boleto',
+      status: initialData.status || 'PENDENTE',
+    });
   }, [initialData, isOpen, actionId]);
 
   const title = initialData
@@ -155,13 +161,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     type === 'payable'
       ? 'Registre uma saída de caixa para fornecedores.'
       : 'Registre uma entrada de caixa de parceiros.';
-  const entityLabel = type === 'payable' ? 'Parceiro' : 'Parceiro';
+  const entityLabel = type === 'payable' ? 'Fornecedor' : 'Cliente';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await onSubmit({ ...formData, type: type === 'receivable' ? 'inflow' : 'outflow' });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -172,6 +179,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={title}
       subtitle={subtitle}
@@ -307,10 +315,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               onChange={(val: any) => setFormData({ ...formData, costCenter: val })}
               options={[
                 { value: '', label: 'Nenhum / Global' },
-                { value: 'Fazenda Santa Clara', label: 'Fazenda Santa Clara' },
-                { value: 'Silo Central', label: 'Silo Central' },
-                { value: 'Frota Pesada', label: 'Frota Pesada' },
-                { value: 'Talhão 01', label: 'Talhão 01' },
+                ...fazendas.map((f) => ({ value: String(f.id), label: String(f.nome) })),
               ]}
             />
           </div>

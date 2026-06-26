@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useState, useEffect } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   FileText,
@@ -45,30 +45,35 @@ export const ContractForm: React.FC<ContractFormProps> = ({
 }) => {
   const { activeFarm, activeTenantId, activeCompany, companies } = useTenant();
 
-  const [formData, setFormData] = usePersistentState('ContractForm_formData', {
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    contract_number: '',
-    type: 'Venda de Gado (Futuro)',
-    party_id: '',
-    party_type: 'client',
-    currency: 'BRL',
-    product_id: '',
-    product_quantity: 0,
-    product_unit: 'SC',
-    product_price: 0,
-    price_mechanism: 'fixed',
-    start_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    end_date: '',
-    total_value: 0,
-    status: 'active',
-    description: '',
-    payment_condition: 'vista',
-    payment_method: 'Transferência',
-    installments: 1,
-    bank_account_id: '',
-    generate_financial: true,
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `contract_form_${activeTenantId}`,
+    initialState: {
+      company_id: activeCompany?.id || '',
+      contract_number: '',
+      type: 'Venda de Gado (Futuro)',
+      party_id: '',
+      party_type: 'client',
+      currency: 'BRL',
+      product_id: '',
+      product_quantity: 0,
+      product_unit: 'SC',
+      product_price: 0,
+      price_mechanism: 'fixed',
+      start_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      end_date: '',
+      total_value: 0,
+      status: 'active',
+      description: '',
+      payment_condition: 'vista',
+      payment_method: 'Transferência',
+      installments: 1,
+      bank_account_id: '',
+      generate_financial: true,
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [parties, setParties] = useState<any[]>([]);
@@ -189,6 +194,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, installmentsList });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -199,6 +205,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       size="xxlarge"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Contrato' : 'Novo Contrato / Hedge'}
       subtitle="Formalize contratos de compra, venda ou proteção de preços estruturados (Hedge/Barter)."

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useEffect } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Building2,
@@ -35,7 +35,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   availablePlans = [],
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('TenantForm_formData', {
+  const INITIAL_FORM = {
     name: '',
     cnpj: '',
     email: '',
@@ -50,6 +50,13 @@ export const TenantForm: React.FC<TenantFormProps> = ({
     stripeCustomerId: '',
     asaasCustomerId: '',
     pagarmeCustomerId: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: 'tenant_form_admin',
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const availableModules = [
@@ -69,50 +76,33 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   ];
 
   useEffect(() => {
-    if (initialData) {
-      const normalizedStatus = initialData.status
-        ? initialData.status.charAt(0).toUpperCase() + initialData.status.slice(1).toLowerCase()
-        : 'Ativo';
+    if (!isOpen || !initialData) return;
 
-      const settings = initialData.settings || {};
+    const normalizedStatus = initialData.status
+      ? initialData.status.charAt(0).toUpperCase() + initialData.status.slice(1).toLowerCase()
+      : 'Ativo';
 
-      setFormData({
-        name: initialData.name || '',
-        cnpj: initialData.document || initialData.id || '',
-        email: initialData.email || '',
-        phone: initialData.phone || '',
-        plan: initialData.plan || 'Starter',
-        status: ['Ativo', 'Suspenso', 'Cancelado'].includes(normalizedStatus)
-          ? normalizedStatus
-          : 'Ativo',
-        adminName: '',
-        adminEmail: '',
-        infrastructure: settings.infrastructure || 'shared',
-        setupFee: settings.setupFee || false,
-        modules: settings.modules || [],
-        stripeCustomerId: initialData.gateway_ids?.stripe?.customerId || '',
-        asaasCustomerId: initialData.gateway_ids?.asaas?.customerId || '',
-        pagarmeCustomerId: initialData.gateway_ids?.pagarme?.customerId || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        cnpj: '',
-        email: '',
-        phone: '',
-        plan: 'Starter',
-        status: 'Ativo',
-        adminName: '',
-        adminEmail: '',
-        infrastructure: 'shared',
-        setupFee: false,
-        modules: [],
-        stripeCustomerId: '',
-        asaasCustomerId: '',
-        pagarmeCustomerId: '',
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    const settings = initialData.settings || {};
+
+    setFormData({
+      name: initialData.name || '',
+      cnpj: initialData.document || initialData.id || '',
+      email: initialData.email || '',
+      phone: initialData.phone || '',
+      plan: initialData.plan || 'Starter',
+      status: ['Ativo', 'Suspenso', 'Cancelado'].includes(normalizedStatus)
+        ? normalizedStatus
+        : 'Ativo',
+      adminName: '',
+      adminEmail: '',
+      infrastructure: settings.infrastructure || 'shared',
+      setupFee: settings.setupFee || false,
+      modules: settings.modules || [],
+      stripeCustomerId: initialData.gateway_ids?.stripe?.customerId || '',
+      asaasCustomerId: initialData.gateway_ids?.asaas?.customerId || '',
+      pagarmeCustomerId: initialData.gateway_ids?.pagarme?.customerId || '',
+    });
+  }, [isOpen, initialData]);
 
   const toggleModule = (modId: string) => {
     if (formData.modules.includes(modId)) {
@@ -128,6 +118,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={(e) => {
         e.preventDefault();
         const finalData = {
@@ -138,6 +129,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
             modules: formData.modules,
           },
         };
+        clearDraft();
         onSubmit(finalData);
       }}
       title={initialData ? 'Editar Tenant (Inquilino)' : 'Provisionar Novo Tenant'}

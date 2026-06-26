@@ -309,7 +309,7 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
                 Volume Total
               </label>
               <span style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-                {romaneio.animais} cabeças
+                {romaneio.animais_qtd} cabeças
               </span>
             </div>
           </div>
@@ -349,7 +349,7 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
               </label>
               <span style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(142 71% 45%)' }}>
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  romaneio.valor
+                  romaneio.valor_estimado
                 )}
               </span>
             </div>
@@ -408,7 +408,7 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
                 >
                   <td style={{ padding: '10px 12px', fontWeight: 700 }}>Boi Gordo (Nelore)</td>
                   <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
-                    {romaneio.animais} cbç
+                    {romaneio.animais_qtd} cbç
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
                     520 kg

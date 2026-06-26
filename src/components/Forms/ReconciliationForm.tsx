@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   RefreshCcw,
@@ -33,8 +33,9 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
-  const [formData, setFormData] = usePersistentState('ReconciliationForm_formData', {
+  const { activeFarm, activeTenantId } = useTenant();
+
+  const INITIAL_RECONCILIATION_FORM = {
     account_id: '',
     period: 'Mês Atual',
     file: null as any,
@@ -43,39 +44,30 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
     data_inicio: '',
     data_fim: '',
     observacoes: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `reconciliation_form_${activeTenantId}`,
+    initialState: INITIAL_RECONCILIATION_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
-
-    if (initialData) {
-      setFormData({
-        account_id: initialData.conta_id || '',
-        period: initialData.periodo || 'Mês Atual',
-        file: null,
-        initial_balance: initialData.saldo_inicial?.toString() || '',
-        final_balance: initialData.saldo_final?.toString() || '',
-        data_inicio: initialData.data_inicio || '',
-        data_fim: initialData.data_fim || '',
-        observacoes: initialData.observacoes || '',
-      });
-    } else {
-      setFormData({
-        account_id: '',
-        period: 'Mês Atual',
-        file: null,
-        initial_balance: '',
-        final_balance: '',
-        data_inicio: '',
-        data_fim: '',
-        observacoes: '',
-      });
-    }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      account_id: initialData.conta_id || '',
+      period: initialData.periodo || 'Mês Atual',
+      file: null,
+      initial_balance: initialData.saldo_inicial?.toString() || '',
+      final_balance: initialData.saldo_final?.toString() || '',
+      data_inicio: initialData.data_inicio || '',
+      data_fim: initialData.data_fim || '',
+      observacoes: initialData.observacoes || '',
+    });
   }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
@@ -99,6 +91,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -109,6 +102,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Conciliação' : 'Nova Conciliação Bancária'}
       subtitle="Importe o extrato OFX/CSV e concilie com o seu financeiro."

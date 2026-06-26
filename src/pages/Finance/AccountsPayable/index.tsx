@@ -25,6 +25,7 @@ import { useAccountsData } from './useAccountsData';
 import { usePaymentMutation } from './usePaymentMutation';
 import { useFilters } from './useFilters';
 import type { Account, HistoryItem } from './types';
+import { hasDraftForKey } from '../../../hooks/useFormDraft';
 
 // Import styles from parent directory
 import '../AccountsPayable.css';
@@ -35,7 +36,7 @@ export const AccountsPayable: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Modal states
-  const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsPayable_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedBill, setSelectedBill] = useState<Account | null>(null);
 
@@ -55,6 +56,13 @@ export const AccountsPayable: React.FC = () => {
     'AccountsPayable_isCalendarOpen',
     false
   );
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`transaction_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   // URL params handling
   const [searchParams] = useSearchParams();

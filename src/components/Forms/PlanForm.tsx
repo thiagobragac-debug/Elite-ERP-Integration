@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useEffect } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Check,
@@ -39,7 +39,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
   isSubmitting = false,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('PlanForm_formData', {
+  const INITIAL_FORM = {
     name: '',
     price: '',
     billingCycle: 'monthly',
@@ -60,66 +60,52 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     isRecommended: false,
     overagePolicy: 'auto_addon',
     setupFee: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: 'plan_form_admin',
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   useEffect(() => {
+    if (!isOpen || !initialData) return;
 
-    if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        price: initialData.price || '',
-        billingCycle: initialData.billing_cycle || 'monthly',
-        stripePlanId: initialData.stripe_plan_id || '',
-        pagarMePlanId: initialData.pagarme_plan_id || '',
-        asaasPlanId: initialData.asaas_plan_id || '',
-        usersLimit: initialData.users_limit || '',
-        storageLimit: initialData.storage_gb || '',
-        animalsLimit: initialData.animals_limit || '',
-        companiesLimit: initialData.companies_limit || '',
-        farmsLimit: initialData.farms_limit || '',
-        pricePerUserExtra: initialData.price_per_user_extra || '',
-        pricePerAnimalExtra: initialData.price_per_animal_extra || '',
-        modules: initialData.modules || ['Dashboard', 'Administração'],
-        features: Array.isArray(initialData.features)
-          ? initialData.features.join('\n')
-          : initialData.features || '',
-        isPublic: initialData.is_public !== undefined ? initialData.is_public : (initialData.settings?.isPublic ?? true),
-        isRecommended: initialData.settings?.isRecommended ?? false,
-        overagePolicy: initialData.settings?.overagePolicy === 'soft_limit' ? 'auto_addon' : (initialData.settings?.overagePolicy ?? 'auto_addon'),
-        setupFee: initialData.settings?.setupFee ?? '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        price: '',
-        billingCycle: 'monthly',
-        stripePlanId: '',
-        pagarMePlanId: '',
-        asaasPlanId: '',
-        usersLimit: '',
-        storageLimit: '',
-        animalsLimit: '',
-        companiesLimit: '',
-        farmsLimit: '',
-        pricePerUserExtra: '',
-        pricePerAnimalExtra: '',
-        modules: ['Dashboard', 'Administração'],
-        features: '',
-        isPublic: true,
-        isRecommended: false,
-        overagePolicy: 'auto_addon',
-        setupFee: '',
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    setFormData({
+      name: initialData.name || '',
+      price: initialData.price || '',
+      billingCycle: initialData.billing_cycle || 'monthly',
+      stripePlanId: initialData.stripe_plan_id || '',
+      pagarMePlanId: initialData.pagarme_plan_id || '',
+      asaasPlanId: initialData.asaas_plan_id || '',
+      usersLimit: initialData.users_limit || '',
+      storageLimit: initialData.storage_gb || '',
+      animalsLimit: initialData.animals_limit || '',
+      companiesLimit: initialData.companies_limit || '',
+      farmsLimit: initialData.farms_limit || '',
+      pricePerUserExtra: initialData.price_per_user_extra || '',
+      pricePerAnimalExtra: initialData.price_per_animal_extra || '',
+      modules: initialData.modules || ['Dashboard', 'Administração'],
+      features: Array.isArray(initialData.features)
+        ? initialData.features.join('\n')
+        : initialData.features || '',
+      isPublic: initialData.is_public !== undefined ? initialData.is_public : (initialData.settings?.isPublic ?? true),
+      isRecommended: initialData.settings?.isRecommended ?? false,
+      overagePolicy: initialData.settings?.overagePolicy === 'soft_limit' ? 'auto_addon' : (initialData.settings?.overagePolicy ?? 'auto_addon'),
+      setupFee: initialData.settings?.setupFee ?? '',
+    });
+  }, [isOpen, initialData]);
 
   return (
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={(e) => {
         e.preventDefault();
         const { isPublic, isRecommended, overagePolicy, setupFee, ...restData } = formData;
+        clearDraft();
         onSubmit({
           ...restData,
           is_public: isPublic,

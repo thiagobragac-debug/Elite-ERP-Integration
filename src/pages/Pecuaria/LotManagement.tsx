@@ -27,15 +27,18 @@ import {
   RefreshCw,
   Activity,
   AlertCircle,
+  AlertTriangle,
   Clock,
   Truck,
+  CheckCircle2,
+  UserPlus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { LotForm } from '../../components/Forms/LotForm';
 import { RelocateForm } from '../../components/Forms/RelocateForm';
-import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
+import { AssignToLoteForm } from '../../components/Forms/AssignToLoteForm';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
 import { ProcessarLoteModal } from '../../components/Modals/ProcessarLoteModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -49,6 +52,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { hasDraftForFullKey } from '../../hooks/useFormDraft';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const LotManagement: React.FC = () => {
@@ -66,7 +70,7 @@ export const LotManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('LotManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [isRelocateModalOpen, setIsRelocateModalOpen] = usePersistentState(
     'LotManagement_isRelocateModalOpen',
@@ -99,30 +103,6 @@ export const LotManagement: React.FC = () => {
     false
   );
   const [lotToProcess, setLotToProcess] = useState<any>(null);
-  const [mockPendingLots, setMockPendingLots] = useState<any[]>([
-    {
-      id: 'lot-pend-1',
-      nome: 'Lote NF 4589 - Recria Nelore',
-      data_criacao: '2026-05-30',
-      data_limite: '2026-06-04',
-      quantidade_nota: 60,
-      custo_total_aquisicao: 90000,
-      custo_por_cabeca: 1500,
-      fornecedor: 'Fazenda Santa Rita',
-      status: 'PENDENTE',
-    },
-    {
-      id: 'lot-pend-2',
-      nome: 'Lote NF 4612 - Bezerros Angus',
-      data_criacao: '2026-06-03',
-      data_limite: '2026-06-08',
-      quantidade_nota: 40,
-      custo_total_aquisicao: 72000,
-      custo_por_cabeca: 1800,
-      fornecedor: 'Estância Bela Vista',
-      status: 'PENDENTE',
-    },
-  ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'LotManagement_showAdvancedFilters',
     false
@@ -133,7 +113,6 @@ export const LotManagement: React.FC = () => {
     dateEnd: '',
     finalidades: [] as string[],
     minOccupancy: 0,
-    uniformityLevel: 'all',
   });
   const [viewMode, setViewMode] = useViewMode('pecuaria-lot-management', 'grid');
 
@@ -150,6 +129,13 @@ export const LotManagement: React.FC = () => {
   } = useReportData('lotes', { page, pageSize });
 
   const [localLots, setLocalLots] = useState<any[]>([]);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForFullKey(`draft_lot_${activeTenantId}_new`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   useEffect(() => {
     if (fetchedLots && fetchedLots.length > 0) {
@@ -199,10 +185,10 @@ export const LotManagement: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Lote atualizado com sucesso!');
+      toast.success('Lote atualizado com sucesso.');
     },
     onError: (err: any) => {
-      toast.error(`❌ Erro ao arquivar/reativar lote: ${err.message}`);
+      toast.error(`Erro ao arquivar/reativar lote: ${err.message}`);
       refresh();
     },
   });
@@ -213,34 +199,23 @@ export const LotManagement: React.FC = () => {
     const actionText = isArchived ? 'reativar' : 'arquivar';
 
     if (!isArchived) {
-      try {
-        const { count, error: countError } = await supabase
-          .from('animais')
-          .select('*', { count: 'exact', head: true })
-          .eq('lote_id', lot.id)
-          .in('status', ['ATIVO', 'Ativo', 'ativo']);
+      // Sempre bloquear se houver erro na consulta — nunca usar heurística de nome
+      const { count, error: countError } = await supabase
+        .from('animais')
+        .select('*', { count: 'exact', head: true })
+        .eq('lote_id', lot.id)
+        .eq('status', 'ATIVO');
 
-        if (countError) {
-          throw countError;
-        }
+      if (countError) {
+        toast.error('Não foi possível verificar os animais do lote. Tente novamente.');
+        return;
+      }
 
-        if (count && count > 0) {
-          toast.error(
-            `❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui ${count} animais ativos vinculados. Por favor, transfira os animais para outro lote antes de arquivar.`
-          );
-          return;
-        }
-      } catch (err: any) {
-        console.warn(
-          'Falha na consulta ao banco de animais, aplicando validação padrão:',
-          err.message
+      if (count && count > 0) {
+        toast.error(
+          `Lote "${lot.nome}" possui ${count} animais ativos. Remaneje antes de arquivar.`
         );
-        if (lot.nome?.includes('01') || lot.nome?.includes('Recria') || lot.nome === '1') {
-          toast.error(
-            `❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`
-          );
-          return;
-        }
+        return;
       }
     }
 
@@ -270,10 +245,10 @@ export const LotManagement: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Lote excluído!');
+      toast.success('Lote excluído.');
     },
     onError: (err: any) => {
-      toast.error(`❌ Erro ao excluir lote: ${err.message}`);
+      toast.error(`Erro ao excluir lote: ${err.message}`);
       refresh();
     },
   });
@@ -323,10 +298,10 @@ export const LotManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      toast.success(selectedLot ? '✅ Lote atualizado!' : '✅ Lote cadastrado!');
+      toast.success(selectedLot ? 'Lote atualizado com sucesso.' : 'Lote cadastrado com sucesso.');
     },
     onError: (err: any) => {
-      toast.error(`❌ Erro ao salvar lote: ${err.message}`);
+      toast.error(`Erro ao salvar lote: ${err.message}`);
       refresh();
     },
   });
@@ -354,7 +329,15 @@ export const LotManagement: React.FC = () => {
       meta_rendimento_carcaca: parseFloat(data.meta_rendimento_carcaca) || null,
       peso_carcaca_alvo: parseFloat(data.peso_carcaca_alvo) || null,
       exige_rastreabilidade: data.exige_rastreabilidade || false,
+      // Campos NF/SLA — persistidos apenas quando PENDENTE (mas enviados sempre; banco ignora null)
+      data_limite:           data.data_limite || null,
+      fornecedor:            data.fornecedor || null,
+      nf_numero:             data.nf_numero || null,
+      quantidade_nota:       parseInt(data.quantidade_nota) || null,
+      custo_total_aquisicao: parseFloat(data.custo_total_aquisicao) || null,
+      custo_por_cabeca:      parseFloat(data.custo_por_cabeca) || null,
     };
+
 
     if (selectedLot) {
       // Optimistic update
@@ -393,35 +376,41 @@ export const LotManagement: React.FC = () => {
     }
   };
 
-  const filteredLots = (activeTab === 'PENDENTE' ? mockPendingLots : localLots).filter((l) => {
+  // PENDENTES são buscados do banco real via localLots (status = 'PENDENTE')
+  const pendingLots = localLots.filter((l) => (l.status || '').toUpperCase() === 'PENDENTE');
+  const pendingAlertCount = pendingLots.filter((l) => {
+    if (!l.data_limite) return false;
+    return new Date(l.data_limite) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  }).length;
+
+  const filteredLots = localLots.filter((l) => {
     const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-    if (activeTab === 'PENDENTE') {
-      return matchesSearch;
-    }
     const status = (l.status || '').toUpperCase();
+
     const matchesTab =
-      activeTab === 'ATIVO' ? status === 'ATIVO' || !l.status : status === 'ARQUIVADO';
+      activeTab === 'ATIVO'     ? (status === 'ATIVO' || !l.status) :
+      activeTab === 'PENDENTE'  ? status === 'PENDENTE' :
+                                  status === 'ARQUIVADO';
 
     const matchesStatus =
       filterValues.status === 'all' ||
       (l.status || '').toLowerCase() === filterValues.status.toLowerCase();
+
     const matchesDate =
       (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
       (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
 
-    const occupancy = l.capacidade ? (25 / l.capacidade) * 100 : 0;
+    // Ocupação real: quantidade_animais do banco (join via useReportData)
+    const occupancy = l.capacidade
+      ? ((l.quantidade_animais || 0) / l.capacidade) * 100
+      : 0;
     const matchesOccupancy = occupancy >= filterValues.minOccupancy;
-    const matchesFinalidade =
-      filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
 
-    return (
-      matchesSearch &&
-      matchesTab &&
-      matchesStatus &&
-      matchesDate &&
-      matchesOccupancy &&
-      matchesFinalidade
-    );
+    const matchesFinalidade =
+      filterValues.finalidades.length === 0 ||
+      filterValues.finalidades.includes(l.finalidade || '');
+
+    return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesOccupancy && matchesFinalidade;
   });
 
   const tableColumns = [
@@ -642,7 +631,7 @@ export const LotManagement: React.FC = () => {
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
-            <Users size={18} />
+            <UserPlus size={18} />
             ASSOCIAR ANIMAIS
           </button>
           <button className="glass-btn secondary" onClick={() => setIsRelocateModalOpen(true)}>
@@ -678,18 +667,20 @@ export const LotManagement: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             Pendentes
-            <span
-              style={{
-                fontSize: '10px',
-                background: 'hsl(var(--warning))',
-                color: '#000',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                fontWeight: 800,
-              }}
-            >
-              {mockPendingLots.length}
-            </span>
+            {pendingLots.length > 0 && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  background: pendingAlertCount > 0 ? 'hsl(var(--danger, 0 84% 60%))' : 'hsl(var(--warning))',
+                  color: '#fff',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                }}
+              >
+                {pendingLots.length}
+              </span>
+            )}
           </button>
           <button
             className={`tauze-tab-item ${activeTab === 'ARQUIVADO' ? 'active' : ''}`}
@@ -929,24 +920,28 @@ export const LotManagement: React.FC = () => {
             ) : (
               filteredLots.map((l) => {
                 if (activeTab === 'PENDENTE') {
-                  const isSlaExpired = new Date(l.data_limite) < new Date('2026-06-05');
+                  // SLA dinâmico — nunca usa data fixa
+                  const now = Date.now();
+                  const limite = l.data_limite ? new Date(l.data_limite).getTime() : null;
+                  const isSlaExpired  = limite !== null && limite < now;
+                  const isSlaWarning  = limite !== null && !isSlaExpired && limite < now + 3 * 24 * 60 * 60 * 1000;
+                  const daysLeft = limite !== null
+                    ? Math.ceil((limite - now) / (1000 * 60 * 60 * 24))
+                    : null;
+
+                  const slaBorderColor = isSlaExpired ? '#ef4444' : isSlaWarning ? '#f59e0b' : '#10b981';
+                  const slaCardClass   = isSlaExpired ? 'danger-badge' : isSlaWarning ? 'warning-badge' : 'info-badge';
                   return (
                     <div
                       key={l.id}
-                      className={`lot-card-premium ${isSlaExpired ? 'danger-badge' : 'warning-badge'}`}
-                      style={{
-                        animation: isSlaExpired ? 'pulse-border 2s infinite' : 'none',
-                      }}
+                      className={`lot-card-premium ${slaCardClass}`}
+                      style={{ animation: isSlaExpired ? 'pulse-border 2s infinite' : 'none' }}
                     >
                       <div
                         style={{
-                          position: 'absolute',
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: '6px',
-                          backgroundColor: isSlaExpired ? '#ef4444' : '#f59e0b',
-                          boxShadow: `4px 0 15px ${isSlaExpired ? '#ef4444' : '#f59e0b'}55`,
+                          position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px',
+                          backgroundColor: slaBorderColor,
+                          boxShadow: `4px 0 15px ${slaBorderColor}55`,
                           zIndex: 2,
                         }}
                       />
@@ -954,13 +949,13 @@ export const LotManagement: React.FC = () => {
                         <div
                           className="card-avatar"
                           style={{
-                            backgroundColor: isSlaExpired
-                              ? 'rgba(239, 68, 68, 0.1)'
-                              : 'rgba(245, 158, 11, 0.1)',
-                            color: isSlaExpired ? '#ef4444' : '#f59e0b',
-                            borderColor: isSlaExpired
-                              ? 'rgba(239, 68, 68, 0.2)'
-                              : 'rgba(245, 158, 11, 0.2)',
+                            backgroundColor: isSlaExpired ? 'rgba(239,68,68,0.1)'
+                              : isSlaWarning  ? 'rgba(245,158,11,0.1)'
+                              :                 'rgba(16,185,129,0.1)',
+                            color: isSlaExpired ? '#ef4444' : isSlaWarning ? '#f59e0b' : '#10b981',
+                            borderColor: isSlaExpired ? 'rgba(239,68,68,0.2)'
+                              : isSlaWarning  ? 'rgba(245,158,11,0.2)'
+                              :                 'rgba(16,185,129,0.2)',
                           }}
                         >
                           <Truck size={28} />
@@ -1016,17 +1011,27 @@ export const LotManagement: React.FC = () => {
                             </span>
                           </div>
                           <span
-                            className={`status-pill mini ${isSlaExpired ? 'stopped' : 'warning-badge'}`}
-                            style={{ textTransform: 'uppercase', fontSize: '9px', fontWeight: 800 }}
+                            className={`status-pill mini ${
+                              isSlaExpired ? 'stopped'
+                              : isSlaWarning ? 'pending'
+                              : 'active'
+                            }`}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', fontWeight: 800 }}
                           >
-                            {isSlaExpired ? '⚠️ SLA Expirado' : '⏳ Aguardando'}
+                            {isSlaExpired
+                              ? <><AlertTriangle size={10} /> SLA EXPIRADO</>
+                              : isSlaWarning
+                              ? <><Clock size={10} /> VENCENDO</>
+                              : <><CheckCircle2 size={10} /> AGUARDANDO</>
+                            }
                           </span>
                         </div>
 
+                        {/* Custo total e custo/cabeça */}
                         <div
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateColumns: '1fr 1fr 1fr',
                             gap: '8px',
                             background: 'hsl(var(--bg-main)/0.4)',
                             padding: '10px 14px',
@@ -1035,42 +1040,25 @@ export const LotManagement: React.FC = () => {
                           }}
                         >
                           <div>
-                            <div
-                              style={{
-                                fontSize: '9px',
-                                fontWeight: 800,
-                                color: '#94a3b8',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              Animais na NF
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: 900,
-                                color: 'hsl(var(--text-main))',
-                              }}
-                            >
-                              {l.quantidade_nota} Cab.
+                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Animais na NF</div>
+                            <div style={{ fontSize: '14px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                              {l.quantidade_nota ?? '---'} Cab.
                             </div>
                           </div>
                           <div>
-                            <div
-                              style={{
-                                fontSize: '9px',
-                                fontWeight: 800,
-                                color: '#94a3b8',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              Custo/Cabeça
+                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Custo/Cab.</div>
+                            <div style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}>
+                              {l.custo_por_cabeca
+                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(l.custo_por_cabeca)
+                                : '---'}
                             </div>
-                            <div style={{ fontSize: '14px', fontWeight: 900, color: '#10b981' }}>
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              }).format(l.custo_por_cabeca)}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Total NF</div>
+                            <div style={{ fontSize: '13px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                              {l.custo_total_aquisicao
+                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(l.custo_total_aquisicao)
+                                : '---'}
                             </div>
                           </div>
                         </div>
@@ -1087,14 +1075,18 @@ export const LotManagement: React.FC = () => {
                             style={{
                               fontSize: '11px',
                               fontWeight: 700,
-                              color: isSlaExpired ? '#ef4444' : 'hsl(var(--text-muted))',
+                              color: isSlaExpired ? '#ef4444' : isSlaWarning ? '#f59e0b' : 'hsl(var(--text-muted))',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px',
                             }}
                           >
                             <Clock size={12} />
-                            Prazo: {new Date(l.data_limite).toLocaleDateString('pt-BR')}
+                            {isSlaExpired
+                              ? `Expirado em ${l.data_limite ? new Date(l.data_limite).toLocaleDateString('pt-BR') : '---'}`
+                              : daysLeft !== null
+                              ? `${daysLeft}d restante${daysLeft !== 1 ? 's' : ''}`
+                              : 'Sem prazo'}
                           </span>
 
                           <button
@@ -1306,15 +1298,13 @@ export const LotManagement: React.FC = () => {
         }}
       />
 
-      <AssignAnimalForm
+      <AssignToLoteForm
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
-        actionId={formActionId}
         onSubmit={() => {
           refresh();
           setIsAssignModalOpen(false);
         }}
-        mode="lote"
       />
 
       <AnimalListModal
@@ -1330,8 +1320,7 @@ export const LotManagement: React.FC = () => {
         lote={lotToProcess}
         onSuccess={() => {
           setIsProcessModalOpen(false);
-          setMockPendingLots((prev) => prev.filter((p) => p.id !== lotToProcess.id));
-          refresh();
+          queryClient.invalidateQueries({ queryKey: ['report'] });
         }}
       />
       <style>{`

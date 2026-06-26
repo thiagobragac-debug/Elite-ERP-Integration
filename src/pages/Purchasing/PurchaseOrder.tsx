@@ -82,6 +82,7 @@ import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const PurchaseOrder: React.FC = () => {
   const { confirm } = useConfirm();
@@ -97,7 +98,7 @@ export const PurchaseOrder: React.FC = () => {
   const { submitForApproval } = useApprovalQueue();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseOrder_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'HISTORY') || 'OPEN';
   const setActiveTab = (tab: string) => {
@@ -134,6 +135,13 @@ export const PurchaseOrder: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`purchase_order_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

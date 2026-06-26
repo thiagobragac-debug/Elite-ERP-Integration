@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Shield,
@@ -59,40 +59,39 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('ProfileForm_formData', {
+  const INITIAL_FORM = {
     nome: '',
     descricao: '',
     is_global: false,
     permissoes: {} as Record<string, string[]>, // Ex: { pecuaria: ['read', 'write'], financeiro: ['read'] }
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: 'profile_form_admin',
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState('none');
 
   useEffect(() => {
-    if (initialData) {
-      // Migração reversa básica para o novo formato caso seja legado string[]
-      let perms: Record<string, string[]> = {};
-      if (typeof initialData.permissoes === 'object' && !Array.isArray(initialData.permissoes)) {
-        perms = initialData.permissoes || {};
-      }
+    if (!isOpen || !initialData) return;
 
-      setFormData({
-        nome: initialData.nome || '',
-        descricao: initialData.descricao || '',
-        is_global: initialData.is_global || false,
-        permissoes: perms,
-      });
-      setSelectedTemplate('none');
-    } else {
-      setFormData({
-        nome: '',
-        descricao: '',
-        is_global: false,
-        permissoes: {},
-      });
-      setSelectedTemplate('none');
+    // Migração reversa básica para o novo formato caso seja legado string[]
+    let perms: Record<string, string[]> = {};
+    if (typeof initialData.permissoes === 'object' && !Array.isArray(initialData.permissoes)) {
+      perms = initialData.permissoes || {};
     }
-  }, [initialData, isOpen, actionId]);
+
+    setFormData({
+      nome: initialData.nome || '',
+      descricao: initialData.descricao || '',
+      is_global: initialData.is_global || false,
+      permissoes: perms,
+    });
+    setSelectedTemplate('none');
+  }, [isOpen, initialData]);
 
   const applyTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);
@@ -179,6 +178,7 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -189,6 +189,7 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
       size="xxlarge"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Perfil de Acesso' : 'Criar Perfil de Acesso'}
       subtitle="Configure a Matriz de Segregação de Função (SoD) e controle exatamente o que a equipe pode acessar."

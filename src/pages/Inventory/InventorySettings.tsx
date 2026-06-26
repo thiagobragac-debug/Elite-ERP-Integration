@@ -41,7 +41,7 @@ export const NcmSettingsTab: React.FC<{
   const queryClient = useQueryClient();
 
   const { confirm } = useConfirm();
-  const [isModalOpen, setIsModalOpen] = usePersistentState('InventorySettings_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<NCM | null>(null);
 
   const [isImportModalOpen, setIsImportModalOpen] = usePersistentState(

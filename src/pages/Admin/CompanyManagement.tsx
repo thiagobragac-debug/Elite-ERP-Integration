@@ -81,6 +81,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const CompanyManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -132,6 +133,20 @@ export const CompanyManagement: React.FC = () => {
     hasMatriz: 'all',
   });
   const [stats, setStats] = useState<any[]>([]);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isCompanyModalOpen) return;
+    if (hasDraftForKey(`company_form_${activeTenantId}`)) setIsCompanyModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isFarmModalOpen) return;
+    if (hasDraftForKey(`farm_form_${activeTenantId}`)) setIsFarmModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   useEffect(() => {
     const isReady = !!activeTenantId;

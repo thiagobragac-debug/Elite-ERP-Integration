@@ -58,7 +58,7 @@ export const Reports: React.FC = () => {
   >('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isViewerOpen, setIsViewerOpen] = usePersistentState('Reports_isViewerOpen', false);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useViewMode('reports-overview', 'grid');
   const [isScheduleModalOpen, setIsScheduleModalOpen] = usePersistentState(

@@ -40,7 +40,7 @@ export const TenantBilling: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
-  const [isFilterOpen, setIsFilterOpen] = usePersistentState('TenantBilling_isFilterOpen', false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Heart,
   Plus,
@@ -20,6 +20,8 @@ import {
   History,
   TrendingUp,
   FileText,
+  FlaskConical,
+  LayoutTemplate,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -38,6 +40,9 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { ProtocolManagement } from './ProtocolManagement';
+import { ProtocolForm } from './ProtocolForm';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 interface ReproductionRecord {
   id: string;
@@ -72,9 +77,10 @@ export const ReproductionManagement: React.FC = () => {
     insertPayload,
   } = useFarmFilter();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as 'ESTACAO' | 'PARTOS') || 'ESTACAO';
+  const activeTab = (searchParams.get('tab') as 'ESTACAO' | 'PARTOS' | 'PROTOCOLOS' | 'TEMPLATES') || 'ESTACAO';
   const setActiveTab = (tab: string) => {
     setSearchParams(
       (prev) => {
@@ -86,11 +92,10 @@ export const ReproductionManagement: React.FC = () => {
     );
   };
 
-  const [isModalOpen, setIsModalOpen] = usePersistentState(
-    'ReproductionManagement_isModalOpen',
-    false
-  );
-  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
+  const [isTemplateFormOpen, setIsTemplateFormOpen] = useState(false);
+  const [formActionId, setFormActionId] = useState<'create' | 'edit' | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
     'ReproductionManagement_isHistoryModalOpen',
@@ -118,6 +123,13 @@ export const ReproductionManagement: React.FC = () => {
 
   const [page, setPage] = useState(1);
   const pageSize = 15;
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`reproduction_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: rawEvents,
@@ -296,36 +308,27 @@ export const ReproductionManagement: React.FC = () => {
       return;
     }
 
-    const obsParts = [];
-    if (data.ecc) {
-      obsParts.push(`ECC: ${data.ecc}`);
-    }
-    if (data.touro) {
-      obsParts.push(`Touro/Sêmen: ${data.touro}`);
-    }
-    if (data.resultado_diagnostico) {
-      obsParts.push(`Diagnóstico: ${data.resultado_diagnostico}`);
-    }
-    if (data.dias_gestacao) {
-      obsParts.push(`Dias Gestação: ${data.dias_gestacao}`);
-    }
-    if (data.sexo_cria) {
-      obsParts.push(`Sexo da Cria: ${data.sexo_cria}`);
-    }
-    if (data.id_cria) {
-      obsParts.push(`ID da Cria: ${data.id_cria}`);
-    }
-    if (data.observacoes) {
-      obsParts.push(data.observacoes);
-    }
-
     const payload = {
       animal_id: data.animal_id,
       tipo_evento: data.tipo_evento,
       data_evento: data.data_evento,
       resultado: data.resultado || data.resultado_diagnostico,
-      observacoes: obsParts.join(' | '),
+      observacoes: data.observacoes || '',
       status: data.status,
+      tecnico: data.tecnico || null,
+      partida_semen: data.partida_semen || null,
+      metodo_diagnostico: data.metodo_diagnostico || null,
+      numero_fetos: data.numero_fetos || null,
+      peso_nascimento: data.peso_nascimento ? parseFloat(data.peso_nascimento) : null,
+      retencao_placenta: data.retencao_placenta || false,
+      dificuldade_parto: data.dificuldade_parto || null,
+      teat_sealant: data.teat_sealant || false,
+      periodo_secagem: data.periodo_secagem ? parseInt(data.periodo_secagem) : null,
+      dias_gestacao: data.dias_gestacao ? parseInt(data.dias_gestacao) : null,
+      sexo_cria: data.sexo_cria || null,
+      id_cria: data.id_cria || null,
+      touro: data.touro || null,
+      ecc: data.ecc ? parseFloat(data.ecc) : null,
     };
 
     saveReproMutation.mutate({
@@ -689,21 +692,61 @@ export const ReproductionManagement: React.FC = () => {
             <ClipboardCheck size={18} />
             LANÇAMENTO LOTE
           </button>
-          <button className="primary-btn" onClick={handleOpenCreate}>
-            <Plus size={18} />
-            NOVO EVENTO
-          </button>
+          
+          {activeTab === 'TEMPLATES' ? (
+            <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
+              <Plus size={18} />
+              NOVO TEMPLATE
+            </button>
+          ) : (
+          <div className="export-dropdown-container" style={{ position: 'relative' }}>
+            <button
+              className="primary-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                document.getElementById('new-record-menu')?.classList.toggle('active');
+              }}
+            >
+              <Plus size={18} />
+              NOVO REGISTRO
+            </button>
+            <div
+              id="new-record-menu"
+              className="export-menu"
+              style={{ right: 0, top: '100%', marginTop: '8px', minWidth: '180px' }}
+            >
+              <button
+                onClick={() => {
+                  setIsProtocolModalOpen(true);
+                  document.getElementById('new-record-menu')?.classList.remove('active');
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <FlaskConical size={16} /> Novo Protocolo
+              </button>
+              <button
+                onClick={() => {
+                  handleOpenCreate();
+                  document.getElementById('new-record-menu')?.classList.remove('active');
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Activity size={16} /> Evento Avulso
+              </button>
+            </div>
+          </div>
+          )}
         </div>
       </header>
 
+      {/* KPI Grid — sempre visível */}
       <div className="next-gen-kpi-grid">
         {loading
-          ? Array(4)
-              .fill(0)
-              .map((_, i) => <KPISkeleton key={i} />)
+          ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
           : stats?.map((stat: any, idx: number) => <TauzeStatCard key={idx} {...stat} />)}
       </div>
 
+      {/* Controls Row — 3 abas principais + busca + filtro */}
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
           <button
@@ -718,6 +761,12 @@ export const ReproductionManagement: React.FC = () => {
           >
             Previsão de Partos
           </button>
+          <button
+            className={`tauze-tab-item ${activeTab === 'PROTOCOLOS' || activeTab === 'TEMPLATES' ? 'active' : ''}`}
+            onClick={() => setActiveTab('PROTOCOLOS')}
+          >
+            Protocolos
+          </button>
         </div>
 
         <div className="tauze-search-wrapper">
@@ -725,7 +774,11 @@ export const ReproductionManagement: React.FC = () => {
           <input
             type="text"
             className="tauze-search-input"
-            placeholder="Buscar por animal ou tipo de evento..."
+            placeholder={
+              activeTab === 'PROTOCOLOS' || activeTab === 'TEMPLATES'
+                ? 'Buscar protocolo ou template...'
+                : 'Buscar por animal ou tipo de evento...'
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -745,97 +798,88 @@ export const ReproductionManagement: React.FC = () => {
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-repro');
-                if (menu) {
-                  menu.classList.toggle('active');
-                }
+                if (menu) menu.classList.toggle('active');
               }}
             >
               <FileText size={20} />
             </button>
             <div id="export-menu-repro" className="export-menu">
-              <button
-                onClick={() => {
-                  handleExport('csv');
-                  document.getElementById('export-menu-repro')?.classList.remove('active');
-                }}
-              >
-                Excel (.CSV)
-              </button>
-              <button
-                onClick={() => {
-                  handleExport('excel');
-                  document.getElementById('export-menu-repro')?.classList.remove('active');
-                }}
-              >
-                Excel (.xlsx)
-              </button>
-              <button
-                onClick={() => {
-                  handleExport('pdf');
-                  document.getElementById('export-menu-repro')?.classList.remove('active');
-                }}
-              >
-                PDF
-              </button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>Excel (.CSV)</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
       </div>
 
       <ReproductionFilterModal
-        isOpen={showAdvancedFilters}
+        isOpen={showAdvancedFilters && (activeTab === 'ESTACAO' || activeTab === 'PARTOS')}
         onClose={() => setShowAdvancedFilters(false)}
         filters={filterValues}
         setFilters={setFilterValues}
       />
 
-      <div className="management-content">
-        <ModernTable
-          emptyState={
-            <EmptyState
-              title="Nenhum evento reprodutivo"
-              description="Não há registros reprodutivos para esta unidade. Inicie o controle registrando a primeira inseminação ou diagnóstico."
-              actionLabel="Novo Evento"
-              onAction={handleOpenCreate}
-              icon={Heart}
-            />
-          }
-          data={filteredEvents}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          totalCount={totalCount}
-          currentPage={page}
-          onPageChange={setPage}
-          itemsPerPage={pageSize}
-          searchPlaceholder="Pesquisar por animal ou tipo de evento..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button
-                className="action-dot info"
-                onClick={() => handleViewDetails(item)}
-                title="Dossiê"
-              >
-                <History size={18} />
-              </button>
-              <button
-                className="action-dot edit"
-                onClick={() => handleOpenEdit(item)}
-                title="Editar"
-              >
-                <Edit3 size={18} />
-              </button>
-              <button
-                className="action-dot delete"
-                onClick={() => handleDelete(item.id)}
-                title="Excluir"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
+      {/* Aba Protocolos — renderiza o ProtocolManagement com sub-tabs Protocolos/Templates */}
+      {(activeTab === 'PROTOCOLOS' || activeTab === 'TEMPLATES') ? (
+        <ProtocolManagement
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenCreate={() => setIsProtocolModalOpen(true)}
+          externalTemplateOpen={isTemplateFormOpen}
+          onExternalTemplateClose={() => setIsTemplateFormOpen(false)}
+          searchTerm={searchTerm}
+          showFilters={showAdvancedFilters}
+          onCloseFilters={() => setShowAdvancedFilters(false)}
         />
-      </div>
+      ) : (
+        <div className="management-content">
+          <ModernTable
+            emptyState={
+              <EmptyState
+                title="Nenhum evento reprodutivo"
+                description="Não há registros reprodutivos para esta unidade. Inicie o controle registrando a primeira inseminação ou diagnóstico."
+                actionLabel="Novo Evento"
+                onAction={handleOpenCreate}
+                icon={Heart}
+              />
+            }
+            data={filteredEvents}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
+            searchPlaceholder="Pesquisar por animal ou tipo de evento..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button
+                  className="action-dot info"
+                  onClick={() => handleViewDetails(item)}
+                  title="Dossiê"
+                >
+                  <History size={18} />
+                </button>
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        </div>
+      )}
 
       <ReproductionForm
         isOpen={isModalOpen}
@@ -861,6 +905,11 @@ export const ReproductionManagement: React.FC = () => {
         onBatchSubmit={handleBatchSubmit}
         activeFarmId={activeFarmId || ''}
         tenantId={activeTenantId || ''}
+      />
+
+      <ProtocolForm
+        isOpen={isProtocolModalOpen}
+        onClose={() => setIsProtocolModalOpen(false)}
       />
     </div>
   );

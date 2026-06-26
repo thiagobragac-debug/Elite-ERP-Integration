@@ -41,7 +41,9 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import './CashFlow.css';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import toast from 'react-hot-toast';
 
 interface Transaction {
@@ -56,6 +58,7 @@ interface Transaction {
 
 export const CashFlow: React.FC = () => {
   const queryClient = useQueryClient();
+  const { activeTenantId } = useTenant();
   const { canCreate, insertPayload } = useFarmFilter();
   const {
     data: rawTransactions,
@@ -99,7 +102,7 @@ export const CashFlow: React.FC = () => {
     );
   };
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('ALL');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('CashFlow_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<'payable' | 'receivable'>('payable');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
@@ -119,6 +122,13 @@ export const CashFlow: React.FC = () => {
     categories: [] as string[],
     status: 'all',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`transaction_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const getStatIcon = (id: string) => {
     switch (id) {
@@ -572,17 +582,7 @@ export const CashFlow: React.FC = () => {
         {loading
           ? Array(4)
               .fill(0)
-              .map((_, i) => (
-                <TauzeStatCard
-                  key={i}
-                  loading={true}
-                  label=""
-                  value=""
-                  icon={Wallet}
-                  color=""
-                  periodLabel="Mês Atual"
-                />
-              ))
+              .map((_, i) => <KPISkeleton key={i} />)
           : reportStats?.map((stat: any, idx: number) => (
               <TauzeStatCard key={idx} {...stat} icon={getStatIcon(stat.id)} />
             ))}

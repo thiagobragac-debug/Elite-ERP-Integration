@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Calendar,
@@ -35,7 +35,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
   isSubmitting = false,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('CampaignForm_formData', {
+  const INITIAL_FORM = {
     name: '',
     discount_percentage: '',
     start_date: '',
@@ -49,57 +49,39 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
     duration: 'once', // 'once', 'repeating', 'forever'
     durationInMonths: '', // Used only if duration === 'repeating'
     maxRedemptions: '', // Optional usage limit
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: 'campaign_form_admin',
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
+    if (!isOpen || !initialData) return;
 
-    if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        discount_percentage: initialData.discount_percentage
-          ? initialData.discount_percentage.toString()
-          : '',
-        start_date: initialData.start_date
-          ? new Date(initialData.start_date).toISOString().slice(0, 16)
-          : '',
-        end_date: initialData.end_date
-          ? new Date(initialData.end_date).toISOString().slice(0, 16)
-          : '',
-        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
-        target_plan_ids: initialData.target_plan_ids || [],
-        discountType: initialData.settings?.discountType ?? 'percent',
-        discountAmount: initialData.settings?.discountAmount ?? '',
-        couponCode: initialData.settings?.couponCode ?? '',
-        duration: initialData.settings?.duration ?? 'once',
-        durationInMonths: initialData.settings?.durationInMonths ?? '',
-        maxRedemptions: initialData.settings?.maxRedemptions ?? '',
-      });
-    } else {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-
-      const nextWeek = new Date(now);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-
-      setFormData({
-        name: '',
-        discount_percentage: '',
-        start_date: now.toISOString().slice(0, 16),
-        end_date: nextWeek.toISOString().slice(0, 16),
-        is_active: true,
-        target_plan_ids: [],
-        discountType: 'percent',
-        discountAmount: '',
-        couponCode: '',
-        duration: 'once',
-        durationInMonths: '',
-        maxRedemptions: '',
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    setFormData({
+      name: initialData.name || '',
+      discount_percentage: initialData.discount_percentage
+        ? initialData.discount_percentage.toString()
+        : '',
+      start_date: initialData.start_date
+        ? new Date(initialData.start_date).toISOString().slice(0, 16)
+        : '',
+      end_date: initialData.end_date
+        ? new Date(initialData.end_date).toISOString().slice(0, 16)
+        : '',
+      is_active: initialData.is_active !== undefined ? initialData.is_active : true,
+      target_plan_ids: initialData.target_plan_ids || [],
+      discountType: initialData.settings?.discountType ?? 'percent',
+      discountAmount: initialData.settings?.discountAmount ?? '',
+      couponCode: initialData.settings?.couponCode ?? '',
+      duration: initialData.settings?.duration ?? 'once',
+      durationInMonths: initialData.settings?.durationInMonths ?? '',
+      maxRedemptions: initialData.settings?.maxRedemptions ?? '',
+    });
+  }, [isOpen, initialData]);
 
   const togglePlan = (planId: string) => {
     const isActive = formData.target_plan_ids.includes(planId);
@@ -117,6 +99,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={(e) => {
         e.preventDefault();
         const {
@@ -128,6 +111,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
           maxRedemptions,
           ...baseData
         } = formData;
+        clearDraft();
         onSubmit({
           ...baseData,
           settings: {

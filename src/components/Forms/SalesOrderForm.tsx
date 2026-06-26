@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   User,
@@ -46,28 +46,31 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
 
-  const [formData, setFormData] = usePersistentState('SalesOrderForm_formData', {
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    clientId: initialData?.client_id || '',
-    seller_id: initialData?.seller_id || '',
-    orderNumber: initialData?.order_number || '',
-    date:
-      initialData?.date ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    status: initialData?.status || 'pending',
-    totalValue: initialData?.total_value || 0,
-    items: initialData?.itens || [],
-    transportadora: initialData?.transportadora || '',
-    placa_veiculo: initialData?.placa_veiculo || '',
-    numero_gta: initialData?.numero_gta || '',
-    observacoes: initialData?.observacoes || '',
-    payment_condition: initialData?.payment_condition || 'vista',
-    payment_method: initialData?.payment_method || 'Pix',
-    installments: initialData?.installments || 1,
-    bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: initialData ? initialData.generate_financial : false,
-    comissao: initialData?.comissao || 0,
-    description: initialData?.description || '',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `sales_order_form_${activeTenantId}`,
+    initialState: {
+      company_id: activeCompany?.id || '',
+      clientId: '',
+      seller_id: '',
+      orderNumber: '',
+      date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      status: 'pending',
+      totalValue: 0,
+      items: [],
+      transportadora: '',
+      placa_veiculo: '',
+      numero_gta: '',
+      observacoes: '',
+      payment_condition: 'vista',
+      payment_method: 'Pix',
+      installments: 1,
+      bank_account_id: '',
+      generate_financial: false,
+      comissao: 0,
+      description: '',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   useEffect(() => {
@@ -77,33 +80,10 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     }
   }, [activeTenantId]);
 
-  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  // Reseta installments ao fechar o painel sem dados
   useEffect(() => {
     if (!isOpen && !initialData) {
       setInstallmentsList([]);
-      setFormData({
-        company_id: activeCompany?.id || '',
-        clientId: '',
-        seller_id: '',
-        orderNumber: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        status: 'pending',
-        totalValue: 0,
-        items: [],
-        transportadora: '',
-        placa_veiculo: '',
-        numero_gta: '',
-        observacoes: '',
-        payment_condition: 'vista',
-        payment_method: 'Pix',
-        installments: 1,
-        bank_account_id: '',
-        generate_financial: false,
-        comissao: 0,
-        description: '',
-      });
     }
   }, [isOpen]);
 
@@ -182,6 +162,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, installmentsList });
+      clearDraft();
       onClose();
     } catch (error) {
       console.error('Error submitting sales order:', error);
@@ -196,6 +177,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Pedido de Venda' : 'Novo Pedido de Venda'}
       subtitle="Registre os detalhes da venda comercial e comissões."

@@ -47,7 +47,7 @@ export const CategorySettingsTab: React.FC<{
   const [loading, setLoading] = useState(true);
 
   // Modal State
-  const [isModalOpen, setIsModalOpen] = usePersistentState('CategoryManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Categoria | null>(null);
   const [formData, setFormData] = usePersistentState('CategoryManagement_formData', {
     nome: '',

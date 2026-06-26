@@ -41,6 +41,7 @@ import './AccountsReceivable.css';
 
 import { useReportData } from '../../hooks/useReportData';
 import { useDebounce } from '../../hooks/useDebounce';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -53,10 +54,10 @@ export const AccountsReceivable: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsReceivable_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('AccountsReceivable_isHistoryModalOpen', false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,8 +70,15 @@ export const AccountsReceivable: React.FC = () => {
     dateEnd: ''
   });
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
-  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('AccountsReceivable_isBatchModalOpen', false);
-  const [isCalendarOpen, setIsCalendarOpen] = usePersistentState('AccountsReceivable_isCalendarOpen', false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`charge_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const [page, setPage] = useState(1);
   const pageSize = 25;
@@ -123,7 +131,8 @@ export const AccountsReceivable: React.FC = () => {
         const { error } = await supabase
           .from('contas_receber')
           .update(payload)
-          .eq('id', selectedInvoice.id);
+          .eq('id', selectedInvoice.id)
+          .eq('tenant_id', activeTenantId);
         if (error) throw error;
       } else {
         const { error } = await supabase
@@ -145,7 +154,7 @@ export const AccountsReceivable: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('contas_receber').delete().eq('id', id);
+      const { error } = await supabase.from('contas_receber').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -344,7 +353,7 @@ export const AccountsReceivable: React.FC = () => {
             trend={stat.trend === 'neutral' ? undefined : stat.trend}
             sparkline={stat.sparkline}
           
-            periodLabel="Mes Atual"
+            periodLabel="Mês Atual"
           />
         ))}
       </div>

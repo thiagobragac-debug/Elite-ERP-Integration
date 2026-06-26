@@ -3,7 +3,7 @@
  * Orchestrates all components for sales order management
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Zap } from 'lucide-react';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import { useFarmFilter } from '../../../hooks/useFarmFilter';
@@ -25,13 +25,14 @@ import { useSalesData } from './useSalesData';
 import { useSalesMutations } from './useSalesMutations';
 import { useFilters } from './useFilters';
 import type { SalesOrder, SalesOrderFormData, HistoryItem } from './types';
+import { hasDraftForKey } from '../../../hooks/useFormDraft';
 
 export const SalesOrders: React.FC = () => {
-  const { canCreate } = useFarmFilter();
+  const { canCreate, activeTenantId } = useFarmFilter();
   const { confirm } = useConfirm();
 
   // Modal states
-  const [isModalOpen, setIsModalOpen] = usePersistentState('SalesOrders_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
@@ -43,6 +44,13 @@ export const SalesOrders: React.FC = () => {
   const [isLogisticsAuditActive, setIsLogisticsAuditActive] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`sales_order_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   // Custom hooks
   const {

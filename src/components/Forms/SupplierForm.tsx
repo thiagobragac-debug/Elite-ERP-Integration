@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Building2,
@@ -45,7 +45,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('SupplierForm_formData', {
+  const INITIAL_FORM = {
     nome: '',
     cnpj: '',
     contato: '',
@@ -71,6 +71,12 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
     fazendas_vinculadas: [] as string[],
     latitude: null as number | null,
     longitude: null as number | null,
+  };
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `supplier_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const { farms, activeTenantId, activeFarm } = useTenant();
@@ -135,64 +141,35 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
-        nome: initialData.nome || '',
-        cnpj: initialData.cnpj || initialData.cnpj_cpf || '',
-        contato: initialData.contato || '',
-        telefone: initialData.telefone || '',
-        email: initialData.email || '',
-        categoria: initialData.categoria || '',
-        cep: initialData.cep || '',
-        tipo_logradouro: initialData.tipo_logradouro || '',
-        logradouro: initialData.logradouro || '',
-        numero: initialData.numero || '',
-        complemento: initialData.complemento || '',
-        bairro: initialData.bairro || '',
-        cidade: initialData.cidade || '',
-        estado: initialData.estado || '',
-        pais: initialData.pais || 'Brasil',
-        status: initialData.status || 'ATIVO',
-        inscricao_estadual: initialData.inscricao_estadual || '',
-        banco: initialData.banco || '',
-        agencia: initialData.agencia || '',
-        conta: initialData.conta || '',
-        chave_pix: initialData.chave_pix || '',
-        is_global: initialData.is_global !== undefined ? initialData.is_global : true,
-        fazendas_vinculadas: initialData.fazendas_vinculadas || [],
-        latitude: initialData.latitude || null,
-        longitude: initialData.longitude || null,
-      });
-    } else {
-      setFormData({
-        nome: '',
-        cnpj: '',
-        contato: '',
-        telefone: '',
-        email: '',
-        categoria: '',
-        cep: '',
-        tipo_logradouro: '',
-        logradouro: '',
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        pais: 'Brasil',
-        status: 'ATIVO',
-        inscricao_estadual: '',
-        banco: '',
-        agencia: '',
-        conta: '',
-        chave_pix: '',
-        is_global: true,
-        fazendas_vinculadas: [],
-        latitude: null,
-        longitude: null,
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    if (!isOpen || !initialData) return;
+    setFormData({
+      nome: initialData.nome || '',
+      cnpj: initialData.cnpj || initialData.cnpj_cpf || '',
+      contato: initialData.contato || '',
+      telefone: initialData.telefone || '',
+      email: initialData.email || '',
+      categoria: initialData.categoria || '',
+      cep: initialData.cep || '',
+      tipo_logradouro: initialData.tipo_logradouro || '',
+      logradouro: initialData.logradouro || '',
+      numero: initialData.numero || '',
+      complemento: initialData.complemento || '',
+      bairro: initialData.bairro || '',
+      cidade: initialData.cidade || '',
+      estado: initialData.estado || '',
+      pais: initialData.pais || 'Brasil',
+      status: initialData.status || 'ATIVO',
+      inscricao_estadual: initialData.inscricao_estadual || '',
+      banco: initialData.banco || '',
+      agencia: initialData.agencia || '',
+      conta: initialData.conta || '',
+      chave_pix: initialData.chave_pix || '',
+      is_global: initialData.is_global !== undefined ? initialData.is_global : true,
+      fazendas_vinculadas: initialData.fazendas_vinculadas || [],
+      latitude: initialData.latitude || null,
+      longitude: initialData.longitude || null,
+    });
+  }, [isOpen, initialData]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.cnpj.replace(/\D/g, '');
@@ -291,6 +268,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -300,6 +278,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Parceiro' : 'Novo Parceiro'}
       subtitle="Cadastre parceiros para compras de insumos e serviços."

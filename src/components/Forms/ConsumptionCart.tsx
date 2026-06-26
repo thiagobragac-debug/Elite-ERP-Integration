@@ -18,7 +18,8 @@ export interface ConsumptionItem {
   // Specific for Health/Sanidade
   via_aplicacao?: string;
   local_aplicacao?: string;
-  carencia_dias?: number;
+  carencia_abate_dias?: number;
+  carencia_leite_dias?: number;
 
   // Specific for Movement/Inventory
   valor_unitario?: number;
@@ -82,7 +83,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .from('produtos')
         .select(
           `
-          id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id, carencia_dias,
+          id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id, carencia_abate_dias, carencia_leite_dias,
           categorias_sistema(nome)
         `
         )
@@ -134,7 +135,8 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       deposito_id: deposits.length > 0 ? deposits[0].id : '',
       via_aplicacao: showHealthFields ? 'IM' : undefined,
       local_aplicacao: showHealthFields ? '' : undefined,
-      carencia_dias: showHealthFields ? 0 : undefined,
+      carencia_abate_dias: showHealthFields ? 0 : undefined,
+      carencia_leite_dias: showHealthFields ? 0 : undefined,
       valor_unitario: mode === 'movement' && isEntry ? 0 : undefined,
       lote: mode === 'movement' ? '' : undefined,
       data_validade: mode === 'movement' ? '' : undefined,
@@ -174,7 +176,10 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       custo_medio: custoRef,
       custo_padrao: product.custo_padrao || 0,
       // Carência preenchida automaticamente do cadastro do insumo
-      ...(showHealthFields && { carencia_dias: product.carencia_dias || 0 }),
+      ...(showHealthFields && {
+        carencia_abate_dias: product.carencia_abate_dias || 0,
+        carencia_leite_dias: product.carencia_leite_dias || 0,
+      }),
     });
   };
 
@@ -237,7 +242,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         </button>
       </div>
 
-      <div style={{ overflowX: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }}>
         <table
           style={{
             width: '100%',
@@ -272,7 +277,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                     color: 'hsl(var(--text-muted))',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid hsl(var(--border))',
-                    width: '130px',
+                    width: '115px',
                   }}
                 >
                   {mode === 'movement' && isEntry
@@ -298,20 +303,36 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
               </th>
 
               {showHealthFields && (
-                <th
-                  style={{
-                    textAlign: 'left',
-                    padding: '12px 8px',
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    color: 'hsl(var(--text-muted))',
-                    textTransform: 'uppercase',
-                    borderBottom: '1px solid hsl(var(--border))',
-                    width: '100px',
-                  }}
-                >
-                  Via
-                </th>
+                <>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '75px',
+                    }}
+                  >
+                    Via
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 8px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      color: 'hsl(var(--text-muted))',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid hsl(var(--border))',
+                      width: '90px',
+                    }}
+                  >
+                    Lote (Fab.)
+                  </th>
+                </>
               )}
 
               {mode === 'movement' && (
@@ -373,13 +394,13 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                     color: 'hsl(var(--text-muted))',
                     textTransform: 'uppercase',
                     borderBottom: '1px solid hsl(var(--border))',
-                    width: '80px',
+                    width: '90px',
                   }}
                 >
                   Custo (Est)
                 </th>
               )}
-              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: 'auto' }} />
+              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: '45px' }} />
             </tr>
           </thead>
           <tbody>
@@ -450,27 +471,44 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 </td>
 
                 {showHealthFields && (
-                  <td
-                    style={{
-                      padding: '8px 8px',
-                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                    }}
-                  >
-                    <select
-                      className="tauze-input"
-                      style={{ height: '36px', fontSize: '12px' }}
-                      value={item.via_aplicacao || ''}
-                      onChange={(e) =>
-                        handleUpdateItem(item.id, { via_aplicacao: e.target.value })
-                      }
+                  <>
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
                     >
-                      <option value="IM">IM</option>
-                      <option value="SC">SC</option>
-                      <option value="IV">IV</option>
-                      <option value="ORAL">Oral</option>
-                      <option value="TOPICO">Tópico</option>
-                    </select>
-                  </td>
+                      <select
+                        className="tauze-input"
+                        style={{ height: '36px', fontSize: '12px' }}
+                        value={item.via_aplicacao || ''}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { via_aplicacao: e.target.value })
+                        }
+                      >
+                        <option value="IM">IM</option>
+                        <option value="SC">SC</option>
+                        <option value="IV">IV</option>
+                        <option value="ORAL">Oral</option>
+                        <option value="TOPICO">Tópico</option>
+                      </select>
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 8px',
+                        borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className="tauze-input"
+                        style={{ height: '36px', fontSize: '12px' }}
+                        value={item.lote || ''}
+                        onChange={(e) => handleUpdateItem(item.id, { lote: e.target.value })}
+                        placeholder="Lote Fab."
+                      />
+                    </td>
+                  </>
                 )}
 
                 {mode === 'movement' && (

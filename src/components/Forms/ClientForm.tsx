@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   User,
@@ -45,7 +45,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('ClientForm_formData', {
+  const INITIAL_FORM = {
     name: '',
     cnpj: '',
     categoria_id: '',
@@ -64,11 +64,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     pais: 'Brasil',
     creditLimit: '',
     status: 'ATIVO',
-    segment: initialData?.segmento || 'Prata/Recorrente',
+    segment: 'Prata/Recorrente',
     is_global: true,
     fazendas_vinculadas: [] as string[],
     latitude: null as number | null,
     longitude: null as number | null,
+  };
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `client_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const { farms, activeTenantId } = useTenant();
@@ -146,60 +152,33 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.nome || '',
-        cnpj: initialData.cnpj_cpf || initialData.documento || '',
-        categoria_id: initialData.categoria_id || '',
-        email: initialData.email || '',
-        telefone: initialData.telefone || '',
-        contato: initialData.contato || '',
-        inscricao_estadual: initialData.inscricao_estadual || '',
-        cep: initialData.cep || '',
-        tipo_logradouro: initialData.tipo_logradouro || '',
-        logradouro: initialData.logradouro || '',
-        numero: initialData.numero || '',
-        complemento: initialData.complemento || '',
-        bairro: initialData.bairro || '',
-        cidade: initialData.cidade || '',
-        estado: initialData.estado || '',
-        pais: initialData.pais || 'Brasil',
-        creditLimit: initialData.limite_credito || '',
-        status: initialData.status || 'ATIVO',
-        segment: initialData.segmento || 'Prata/Recorrente',
-        is_global: initialData.is_global !== undefined ? initialData.is_global : true,
-        fazendas_vinculadas: initialData.fazendas_vinculadas || [],
-        latitude: initialData.latitude || null,
-        longitude: initialData.longitude || null,
-      });
-    } else {
-      setFormData({
-        name: '',
-        cnpj: '',
-        categoria_id: '',
-        email: '',
-        telefone: '',
-        contato: '',
-        inscricao_estadual: '',
-        cep: '',
-        tipo_logradouro: '',
-        logradouro: '',
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        pais: 'Brasil',
-        creditLimit: '',
-        status: 'ATIVO',
-        segment: 'Prata/Recorrente',
-        is_global: true,
-        fazendas_vinculadas: [],
-        latitude: null,
-        longitude: null,
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    if (!isOpen || !initialData) return;
+    setFormData({
+      name: initialData.nome || '',
+      cnpj: initialData.cnpj_cpf || initialData.documento || '',
+      categoria_id: initialData.categoria_id || '',
+      email: initialData.email || '',
+      telefone: initialData.telefone || '',
+      contato: initialData.contato || '',
+      inscricao_estadual: initialData.inscricao_estadual || '',
+      cep: initialData.cep || '',
+      tipo_logradouro: initialData.tipo_logradouro || '',
+      logradouro: initialData.logradouro || '',
+      numero: initialData.numero || '',
+      complemento: initialData.complemento || '',
+      bairro: initialData.bairro || '',
+      cidade: initialData.cidade || '',
+      estado: initialData.estado || '',
+      pais: initialData.pais || 'Brasil',
+      creditLimit: initialData.limite_credito || '',
+      status: initialData.status || 'ATIVO',
+      segment: initialData.segmento || 'Prata/Recorrente',
+      is_global: initialData.is_global !== undefined ? initialData.is_global : true,
+      fazendas_vinculadas: initialData.fazendas_vinculadas || [],
+      latitude: initialData.latitude || null,
+      longitude: initialData.longitude || null,
+    });
+  }, [isOpen, initialData]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.cnpj.replace(/\D/g, '');
@@ -298,6 +277,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -307,6 +287,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Parceiro' : 'Novo Parceiro'}
       subtitle="Cadastre um novo comprador ou parceiro de vendas."

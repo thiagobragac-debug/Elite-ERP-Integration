@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 import { SidePanel } from '../Layout/SidePanel';
 import { ConsumptionCart } from './ConsumptionCart';
 import { SearchableSelect } from './SearchableSelect';
@@ -26,17 +26,22 @@ interface FeedFormProps {
 }
 
 export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, actionId }) => {
-  const { activeFarm } = useTenant();
-  const [formData, setFormData] = usePersistentState('FeedForm_formData', {
-    lote_id: '',
-    dieta_id: '',
-    data_trato: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    observacoes: '',
+  const { activeFarm, activeTenantId } = useTenant();
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `feed_form_${activeTenantId}`,
+    initialState: {
+      lote_id: '',
+      dieta_id: '',
+      data_trato: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      observacoes: '',
+    },
+    isOpen,
+    isEditMode: false,
   });
 
-  const [cartItems, setCartItems] = usePersistentState<any[]>('FeedForm_cartItems', []);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [lotes, setLotes] = useState<any[]>([]);
   const [dietas, setDietas] = useState<any[]>([]);
@@ -85,6 +90,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
     setLoading(true);
     try {
       await onSubmit({ ...formData, insumos: cartItems });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -95,6 +101,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
       size="850px"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title="Registro de Trato (Fornecimento)"
       subtitle="Lance o consumo diário de ração, sal ou suplementos para os lotes."

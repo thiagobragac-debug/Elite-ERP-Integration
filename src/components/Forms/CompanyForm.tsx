@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import { useTenant } from '../../contexts/TenantContext';
 import {
   Building2,
   FileText,
@@ -45,7 +47,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const [formData, setFormData] = React.useState({
+  const { activeTenantId } = useTenant();
+
+  const INITIAL_FORM = {
     name: '',
     document: '',
     tipo_documento: 'CNPJ',
@@ -70,6 +74,13 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
     contador_cpf: '',
     contador_nome: '',
     contador_crc: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `company_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [loading, setLoading] = useState(false);
@@ -82,70 +93,39 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
   const isMatriz = formData.type === 'matriz';
 
   React.useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
+    if (!isOpen || !initialData) return;
 
-    if (initialData) {
-      setFormData({
-        name: initialData.razao_social || initialData.nome || initialData.name || '',
-        document: initialData.cnpj || initialData.documento || initialData.document || '',
-        tipo_documento:
-          initialData.tipo_documento ||
-          ((initialData.cnpj || initialData.documento || '').replace(/\D/g, '').length === 14
-            ? 'CNPJ'
-            : 'CPF'),
-        type: initialData.tipo || initialData.type || 'matriz',
-        email: initialData.email || '',
-        phone: initialData.telefone || initialData.phone || '',
-        cep: initialData.cep || '',
-        tipo_logradouro: initialData.tipo_logradouro || '',
-        logradouro: initialData.logradouro || '',
-        numero: initialData.numero || '',
-        complemento: initialData.complemento || '',
-        bairro: initialData.bairro || '',
-        cidade: initialData.cidade || '',
-        estado: initialData.estado || '',
-        pais: initialData.pais || 'Brasil',
-        inscricao_estadual: initialData.inscricao_estadual || '',
-        cnae: initialData.cnae || '',
-        situacao_cadastral: initialData.situacao_cadastral || '',
-        socio_cpf: initialData.socio_cpf || '',
-        socio_nome: initialData.socio_nome || '',
-        socio_ind_sit_esp: initialData.socio_ind_sit_esp ?? 0,
-        contador_cpf: initialData.contador_cpf || '',
-        contador_nome: initialData.contador_nome || '',
-        contador_crc: initialData.contador_crc || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        document: '',
-        tipo_documento: 'CNPJ',
-        type: 'matriz',
-        email: '',
-        phone: '',
-        cep: '',
-        tipo_logradouro: '',
-        logradouro: '',
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        pais: 'Brasil',
-        inscricao_estadual: '',
-        cnae: '',
-        situacao_cadastral: '',
-        socio_cpf: '',
-        socio_nome: '',
-        socio_ind_sit_esp: 0,
-        contador_cpf: '',
-        contador_nome: '',
-        contador_crc: '',
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    setFormData({
+      name: initialData.razao_social || initialData.nome || initialData.name || '',
+      document: initialData.cnpj || initialData.documento || initialData.document || '',
+      tipo_documento:
+        initialData.tipo_documento ||
+        ((initialData.cnpj || initialData.documento || '').replace(/\D/g, '').length === 14
+          ? 'CNPJ'
+          : 'CPF'),
+      type: initialData.tipo || initialData.type || 'matriz',
+      email: initialData.email || '',
+      phone: initialData.telefone || initialData.phone || '',
+      cep: initialData.cep || '',
+      tipo_logradouro: initialData.tipo_logradouro || '',
+      logradouro: initialData.logradouro || '',
+      numero: initialData.numero || '',
+      complemento: initialData.complemento || '',
+      bairro: initialData.bairro || '',
+      cidade: initialData.cidade || '',
+      estado: initialData.estado || '',
+      pais: initialData.pais || 'Brasil',
+      inscricao_estadual: initialData.inscricao_estadual || '',
+      cnae: initialData.cnae || '',
+      situacao_cadastral: initialData.situacao_cadastral || '',
+      socio_cpf: initialData.socio_cpf || '',
+      socio_nome: initialData.socio_nome || '',
+      socio_ind_sit_esp: initialData.socio_ind_sit_esp ?? 0,
+      contador_cpf: initialData.contador_cpf || '',
+      contador_nome: initialData.contador_nome || '',
+      contador_crc: initialData.contador_crc || '',
+    });
+  }, [isOpen, initialData]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.document.replace(/\D/g, '');
@@ -213,6 +193,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } catch (err) {
       console.error('Error in CompanyForm handleSubmit:', err);
     } finally {
@@ -224,6 +205,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
       subtitle={

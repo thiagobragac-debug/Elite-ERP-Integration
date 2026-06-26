@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Building,
@@ -41,19 +41,24 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
   onSubmit,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
-  const [formData, setFormData] = usePersistentState('ConfinementForm_formData', {
-    nome_curral: '',
-    capacidade_animais: '100',
-    dof_alvo: '90',
-    data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    peso_entrada: '420',
-    gmd_projetado: '1.5',
-    lote_id: '',
-    status: 'active',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `confinement_form_${activeTenantId}`,
+    initialState: {
+      nome_curral: '',
+      capacidade_animais: '100',
+      dof_alvo: '90',
+      data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      peso_entrada: '420',
+      gmd_projetado: '1.5',
+      lote_id: '',
+      status: 'active',
+    },
+    isOpen,
+    isEditMode: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -93,6 +98,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -140,6 +146,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
       size="850px"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title="Novo Curral de Confinamento"
       subtitle="Inicie um novo ciclo de terminação intensiva."

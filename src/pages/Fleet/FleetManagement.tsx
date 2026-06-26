@@ -86,6 +86,7 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const FleetManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -103,7 +104,7 @@ export const FleetManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = usePersistentState('FleetManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = usePersistentState(
     'FleetManagement_isMaintenanceModalOpen',
@@ -130,6 +131,13 @@ export const FleetManagement: React.FC = () => {
     maxYear: '',
   });
   const [viewMode, setViewMode] = useViewMode('fleet-management', 'grid');
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`machine_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const { data: machinesData, isLoading: loadingMachines } = useQuery({
     queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],

@@ -80,6 +80,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -89,7 +90,7 @@ export const PurchaseRequest: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseRequest_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'PENDING' | 'QUOTING') || 'PENDING';
   const setActiveTab = (tab: string) => {
@@ -125,6 +126,13 @@ export const PurchaseRequest: React.FC = () => {
     'PurchaseRequest_showOnlyUrgent',
     false
   );
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`purchase_request_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

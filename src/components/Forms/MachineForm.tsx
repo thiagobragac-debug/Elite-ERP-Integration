@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 import {
   Truck,
   Calendar,
@@ -39,7 +39,9 @@ export const MachineForm: React.FC<MachineFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('MachineForm_formData', {
+  const { activeTenantId } = useTenant();
+
+  const INITIAL_MACHINE_FORM = {
     nome: '',
     patrimonio: '',
     marca: '',
@@ -62,9 +64,14 @@ export const MachineForm: React.FC<MachineFormProps> = ({
     observacoes: '',
     unidade_medida: 'horas',
     unidade_id: '',
-  });
+  };
 
-  const { activeTenantId } = useTenant();
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `machine_form_${activeTenantId}`,
+    initialState: INITIAL_MACHINE_FORM,
+    isOpen,
+    isEditMode: !!initialData,
+  });
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
@@ -135,57 +142,31 @@ export const MachineForm: React.FC<MachineFormProps> = ({
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        nome: initialData.nome || '',
-        patrimonio: initialData.patrimonio || '',
-        marca: initialData.marca || '',
-        modelo: initialData.modelo || '',
-        categoria: initialData.categoria || '',
-        horimetro_inicial: initialData.horimetro_atual?.toString() || '0',
-        quilometragem_inicial: initialData.quilometragem_atual?.toString() || '0',
-        placa: initialData.placa || '',
-        ano: initialData.ano?.toString() || new Date().getFullYear().toString(),
-        status: initialData.status || 'active',
-        chassi: initialData.chassi || '',
-        combustivel: initialData.combustivel || 'Diesel',
-        capacidade_tanque: initialData.capacidade_tanque?.toString() || '',
-        valor_compra: initialData.valor_compra?.toString() || '',
-        potencia: initialData.potencia?.toString() || '',
-        peso_operacional: initialData.peso_operacional?.toString() || '',
-        intervalo_revisao: initialData.intervalo_revisao?.toString() || '250',
-        consumo_estimado: initialData.consumo_estimado?.toString() || '',
-        data_proxima_revisao: initialData.data_proxima_revisao || '',
-        observacoes: initialData.observacoes || '',
-        unidade_medida: initialData.unidade_medida || 'horas',
-        unidade_id: initialData.unidade_id || '',
-      });
-    } else if (!isOpen) {
-      setFormData({
-        nome: '',
-        patrimonio: '',
-        marca: '',
-        modelo: '',
-        categoria: '',
-        horimetro_inicial: '0',
-        quilometragem_inicial: '0',
-        placa: '',
-        ano: new Date().getFullYear().toString(),
-        status: 'active',
-        chassi: '',
-        combustivel: 'Diesel',
-        capacidade_tanque: '',
-        valor_compra: '',
-        potencia: '',
-        peso_operacional: '',
-        intervalo_revisao: '250',
-        consumo_estimado: '',
-        data_proxima_revisao: '',
-        observacoes: '',
-        unidade_medida: 'horas',
-        unidade_id: '',
-      });
-    }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      nome: initialData.nome || '',
+      patrimonio: initialData.patrimonio || '',
+      marca: initialData.marca || '',
+      modelo: initialData.modelo || '',
+      categoria: initialData.categoria || '',
+      horimetro_inicial: initialData.horimetro_atual?.toString() || '0',
+      quilometragem_inicial: initialData.quilometragem_atual?.toString() || '0',
+      placa: initialData.placa || '',
+      ano: initialData.ano?.toString() || new Date().getFullYear().toString(),
+      status: initialData.status || 'active',
+      chassi: initialData.chassi || '',
+      combustivel: initialData.combustivel || 'Diesel',
+      capacidade_tanque: initialData.capacidade_tanque?.toString() || '',
+      valor_compra: initialData.valor_compra?.toString() || '',
+      potencia: initialData.potencia?.toString() || '',
+      peso_operacional: initialData.peso_operacional?.toString() || '',
+      intervalo_revisao: initialData.intervalo_revisao?.toString() || '250',
+      consumo_estimado: initialData.consumo_estimado?.toString() || '',
+      data_proxima_revisao: initialData.data_proxima_revisao || '',
+      observacoes: initialData.observacoes || '',
+      unidade_medida: initialData.unidade_medida || 'horas',
+      unidade_id: initialData.unidade_id || '',
+    });
   }, [initialData, isOpen, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,6 +174,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -203,6 +185,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({
       size="large"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Máquina' : 'Nova Máquina / Veículo'}
       subtitle="Cadastre um novo ativo na sua frota."

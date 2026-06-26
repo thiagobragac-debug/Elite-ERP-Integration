@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { useSearchParams } from 'react-router-dom';
@@ -44,6 +44,7 @@ import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 interface ConfinementLot {
   id: string;
@@ -119,6 +120,13 @@ export const ConfinementManagement: React.FC = () => {
   });
   const [page, setPage] = useState(1);
   const pageSize = 12;
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`confinement_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: rawConfinements,

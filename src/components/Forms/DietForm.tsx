@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Wheat,
@@ -23,6 +23,7 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { ConsumptionCart } from './ConsumptionCart';
 import type { ConsumptionItem } from './ConsumptionCart';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface DietFormProps {
   isOpen: boolean;
@@ -46,18 +47,24 @@ export const DietForm: React.FC<DietFormProps> = ({
   initialData,
   actionId,
 }) => {
+  const { activeTenantId } = useTenant();
   const [activeEtapa, setActiveEtapa] = useState('identificacao');
-  const [formData, setFormData] = usePersistentState('DietForm_formData', {
-    nome: '',
-    tipo: 'Concentrado',
-    descricao: '',
-    custo_por_kg: '0',
-    percentual_ms: '88',
-    pb: '',
-    ndt: '',
-    consumo_esperado: '',
-    status: 'active',
-    data_registro: new Date().toISOString().split('T')[0],
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `diet_form_${activeTenantId}`,
+    initialState: {
+      nome: '',
+      tipo: 'Concentrado',
+      descricao: '',
+      custo_por_kg: '0',
+      percentual_ms: '88',
+      pb: '',
+      ndt: '',
+      consumo_esperado: '',
+      status: 'active',
+      data_registro: new Date().toISOString().split('T')[0],
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [ingredients, setIngredients] = useState<ConsumptionItem[]>([]);
@@ -103,18 +110,6 @@ export const DietForm: React.FC<DietFormProps> = ({
       });
       setIngredients(parsedIngredients);
     } else {
-      setFormData({
-        nome: '',
-        tipo: 'Concentrado',
-        descricao: '',
-        custo_por_kg: '0',
-        percentual_ms: '88',
-        pb: '',
-        ndt: '',
-        consumo_esperado: '',
-        status: 'active',
-        data_registro: new Date().toISOString().split('T')[0],
-      });
       setIngredients([]);
     }
   }, [initialData, isOpen, actionId]);
@@ -139,6 +134,7 @@ export const DietForm: React.FC<DietFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, ingredientes: ingredients });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -182,6 +178,7 @@ export const DietForm: React.FC<DietFormProps> = ({
       size="850px"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Dieta' : 'Nova Dieta / Formulação'}
       subtitle={

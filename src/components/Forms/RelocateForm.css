@@ -1,0 +1,281 @@
+/* ============================================================
+   RelocateForm.css
+   Estilos específicos do modal de Remanejamento de Lote
+   Extraído do <style> inline do RelocateForm.tsx (P11)
+   ============================================================ */
+
+/* ── Botões de texto minúsculos (ações rápidas no header da lista) ── */
+.text-btn-sm {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.text-btn-sm:hover:not(:disabled) {
+  background: hsl(var(--brand) / 0.08);
+}
+.text-btn-sm:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Grid de cards de animais ── */
+.picker-list-adv {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* ── Card individual de animal ── */
+.picker-list-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  gap: 0;
+}
+.picker-list-item:hover:not(.picker-blocked) {
+  border-color: hsl(var(--brand));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.picker-list-item.active {
+  border-color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.05);
+}
+.picker-list-item.picker-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: hsl(var(--danger, 0 84% 60%) / 0.04);
+  border-color: hsl(var(--danger, 0 84% 60%) / 0.2);
+}
+
+/* ── Checkbox de seleção ── */
+.p-check-adv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: hsl(var(--brand));
+}
+.p-check-empty {
+  width: 18px;
+  height: 18px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 4px;
+}
+
+/* ── Linha de informação principal do animal ── */
+.p-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin-left: 10px;
+  min-width: 0;
+}
+
+/* ── Linha de stats do animal (peso, idade) ── */
+.p-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.p-stats-row span {
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Identificação principal do animal ── */
+.p-brinco-adv {
+  font-size: 13px;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+/* ── Raça (informação secundária) ── */
+.p-raca-adv {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--text-muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+/* ── Tags de categoria, sexo, RFID ── */
+.p-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: hsl(var(--brand) / 0.08);
+  color: hsl(var(--brand));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Badge de carência sanitária ── */
+.p-tag-carencia {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #b45309;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Sticky summary bar de seleção ── */
+.relocate-sticky-summary {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: hsl(var(--brand) / 0.1);
+  border-bottom: 1px solid hsl(var(--brand) / 0.2);
+  border-radius: 8px 8px 0 0;
+  margin-bottom: -1px;
+  backdrop-filter: blur(4px);
+}
+.relocate-sticky-summary span {
+  font-size: 12px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+}
+.relocate-sticky-summary button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.relocate-sticky-summary button:hover {
+  background: hsl(var(--border));
+}
+
+/* ── Alerta de GTA ── */
+.gta-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fffbeb;
+  border: 1.5px solid #f59e0b;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+[data-theme="dark"] .gta-alert {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.gta-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b45309;
+}
+[data-theme="dark"] .gta-alert-header {
+  color: #fbbf24;
+}
+.gta-alert-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  cursor: pointer;
+}
+[data-theme="dark"] .gta-alert-check {
+  color: #fcd34d;
+}
+.gta-alert-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Contador de chars para motivo livre ── */
+.relocate-char-counter {
+  font-size: 10px;
+  font-weight: 600;
+  color: hsl(var(--text-muted));
+  text-align: right;
+  margin-top: 3px;
+}
+.relocate-char-counter.near-limit {
+  color: #f59e0b;
+}
+.relocate-char-counter.at-limit {
+  color: #ef4444;
+  font-weight: 800;
+}
+
+/* ── Skeleton de carregamento do grid de animais ── */
+.relocate-animal-skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.relocate-animal-skeleton-item {
+  height: 56px;
+  border-radius: 12px;
+  background: hsl(var(--border) / 0.5);
+  animation: relocate-skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes relocate-skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+/* ── Responsive: 1 coluna em painéis estreitos ── */
+@media (max-width: 600px) {
+  .picker-list-adv { grid-template-columns: 1fr; }
+  .relocate-animal-skeleton { grid-template-columns: 1fr; }
+}

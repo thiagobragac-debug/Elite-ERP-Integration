@@ -76,11 +76,12 @@ import { Filter } from 'lucide-react';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { DateInput } from '../../components/Form/DateInput';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const BankReconciliation: React.FC = () => {
   const { activeFarm, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeBank, setActiveBank] = useState('Banco do Brasil');
+  const [activeBank, setActiveBank] = useState('Conta não selecionada');
   const [bankRecords, setBankRecords] = useState<any[]>([]);
   const [internalRecords, setInternalRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +126,13 @@ export const BankReconciliation: React.FC = () => {
     dateStart: '',
     dateEnd: '',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isManualReconOpen) return;
+    if (hasDraftForKey(`reconciliation_form_${activeTenantId}`)) setIsManualReconOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   useEffect(() => {
     if (!activeTenantId) {
@@ -171,12 +179,10 @@ export const BankReconciliation: React.FC = () => {
     setLoading(true);
 
     try {
-      let query = supabase.from('conciliacoes').select('*').limit(500);
+      let query = supabase.from('conciliacoes').select('*').limit(500).eq('tenant_id', activeTenantId);
 
       if (activeFarm?.id) {
         query = query.eq('fazenda_id', activeFarm.id);
-      } else {
-        query = query.eq('tenant_id', activeTenantId);
       }
 
       const { data: dbRecons, error } = await query.order('created_at', { ascending: false });
@@ -223,7 +229,7 @@ export const BankReconciliation: React.FC = () => {
         },
         {
           label: 'Divergência de Saldo',
-          value: 'R$ 0,00',
+          value: '—',
           icon: AlertCircle,
           color: '#ef4444',
           progress: 100,

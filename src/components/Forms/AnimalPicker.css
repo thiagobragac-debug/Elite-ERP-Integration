@@ -1,0 +1,249 @@
+/* ============================================================
+   AnimalPicker.css
+   Estilos compartilhados entre AssignToLoteForm, AssignToPastoForm
+   e RelocateForm — grid de seleção de animais e componentes relacionados.
+   ============================================================ */
+
+/* ── Botões de texto minúsculos (ações rápidas) ── */
+.text-btn-sm {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.text-btn-sm:hover:not(:disabled) {
+  background: hsl(var(--brand) / 0.08);
+}
+.text-btn-sm:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Container do picker ── */
+.animal-picker-container {
+  max-height: 400px;
+  overflow-y: auto;
+  background: hsl(var(--bg-main));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  position: relative;
+}
+
+/* ── Grid de cards 2 colunas ── */
+.picker-list-adv {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+
+/* ── Card individual ── */
+.picker-list-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  gap: 0;
+}
+.picker-list-item:hover:not(.picker-blocked) {
+  border-color: hsl(var(--brand));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.picker-list-item.active {
+  border-color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.05);
+}
+.picker-list-item.picker-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: hsl(var(--danger, 0 84% 60%) / 0.04);
+  border-color: hsl(var(--danger, 0 84% 60%) / 0.2);
+}
+
+/* ── Checkbox ── */
+.p-check-adv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: hsl(var(--brand));
+}
+.p-check-empty {
+  width: 18px;
+  height: 18px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 4px;
+}
+
+/* ── Linha principal de info ── */
+.p-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin-left: 10px;
+  min-width: 0;
+}
+
+/* ── Stats (peso, idade) ── */
+.p-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.p-stats-row span {
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Identificação principal ── */
+.p-brinco-adv {
+  font-size: 13px;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+/* ── Brinco ausente ── */
+.p-brinco-adv.sem-brinco {
+  color: hsl(var(--text-muted));
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* ── Raça (secundário) ── */
+.p-raca-adv {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--text-muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+/* ── Tags (RFID, categoria, sexo) ── */
+.p-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: hsl(var(--brand) / 0.08);
+  color: hsl(var(--brand));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Sticky summary bar de seleção ── */
+.picker-sticky-summary {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: hsl(var(--brand) / 0.1);
+  border-bottom: 1px solid hsl(var(--brand) / 0.2);
+  border-radius: 8px 8px 0 0;
+  backdrop-filter: blur(4px);
+}
+.picker-sticky-summary span {
+  font-size: 12px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+}
+.picker-sticky-summary button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.picker-sticky-summary button:hover {
+  background: hsl(var(--border));
+}
+
+/* ── Skeleton de carregamento ── */
+.picker-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+.picker-skeleton-item {
+  height: 56px;
+  border-radius: 12px;
+  background: hsl(var(--border) / 0.5);
+  animation: picker-skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes picker-skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+/* ── Empty state genérico ── */
+.picker-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  text-align: center;
+  color: hsl(var(--text-muted));
+}
+.picker-empty-state svg {
+  opacity: 0.35;
+  margin-bottom: 4px;
+}
+.picker-empty-state h4 {
+  font-size: 14px;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  margin: 0;
+}
+.picker-empty-state p {
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+/* ── Responsive: 1 coluna em dispositivos menores ── */
+@media (max-width: 600px) {
+  .picker-list-adv,
+  .picker-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+}

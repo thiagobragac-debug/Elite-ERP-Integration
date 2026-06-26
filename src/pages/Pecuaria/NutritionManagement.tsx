@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -105,6 +106,13 @@ export const NutritionManagement: React.FC = () => {
   });
   const [page, setPage] = useState(1);
   const pageSize = 12;
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`diet_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: rawDiets,

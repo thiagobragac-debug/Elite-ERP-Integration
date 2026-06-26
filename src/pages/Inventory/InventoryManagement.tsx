@@ -88,6 +88,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const InventoryManagement: React.FC = () => {
   const { confirm } = useConfirm();
@@ -141,6 +142,13 @@ export const InventoryManagement: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`product_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -252,7 +260,8 @@ export const InventoryManagement: React.FC = () => {
         codigo_tributacao_nacional:
           data.tipo === 'servico' ? data.codigo_tributacao_nacional : null,
         cnae_associado: data.tipo === 'servico' ? data.cnae_associado : null,
-        carencia_dias: data.tipo === 'servico' ? null : (parseInt(data.carencia_dias) || 0),
+        carencia_abate_dias: data.tipo === 'servico' ? null : (parseInt(data.carencia_abate_dias) || 0),
+        carencia_leite_dias: data.tipo === 'servico' ? null : (parseInt(data.carencia_leite_dias) || 0),
         ...insertPayload,
       };
 

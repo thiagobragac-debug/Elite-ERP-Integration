@@ -20,6 +20,8 @@ interface SidePanelProps {
   customFooter?: ReactNode;
   contentPadding?: string | number;
   submitDisabled?: boolean;
+  /** Chamado ao clicar em "Cancelar" explicitamente. Use para clearDraft(). Se omitido, chama onClose. */
+  onCancel?: () => void;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -40,13 +42,14 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   customFooter,
   contentPadding,
   submitDisabled = false,
+  onCancel,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        (onCancel ?? onClose)();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -215,7 +218,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           </div>
           <button
             className="icon-btn-secondary"
-            onClick={onClose}
+            onClick={onCancel ?? onClose}
             style={{
               background: 'transparent',
               color: '#94a3b8',
@@ -245,7 +248,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               customFooter
             ) : (
               <>
-                <button type="button" className="glass-btn secondary" onClick={onClose}>
+                <button type="button" className="glass-btn secondary" onClick={onCancel ?? onClose}>
                   {isReadOnly ? 'Fechar' : cancelLabel}
                 </button>
                 {!hideSubmit && !isReadOnly && (

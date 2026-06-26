@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Map,
@@ -36,8 +36,8 @@ export const FarmForm: React.FC<FarmFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { companies } = useTenant();
-  const [formData, setFormData] = usePersistentState('FarmForm_formData', {
+  const { companies, activeTenantId } = useTenant();
+  const INITIAL_FORM = {
     name: '',
     registrationNumber: '',
     nirf: '',
@@ -51,6 +51,12 @@ export const FarmForm: React.FC<FarmFormProps> = ({
     uf: '',
     companyId: '',
     description: '',
+  };
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `farm_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [loading, setLoading] = useState(false);
@@ -58,44 +64,23 @@ export const FarmForm: React.FC<FarmFormProps> = ({
   const [obsOpen, setObsOpen] = useState(false);
 
   React.useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
-
-    if (initialData) {
-      setFormData({
-        name: initialData.nome || initialData.name || '',
-        registrationNumber: initialData.ie_produtor || initialData.registrationNumber || '',
-        nirf: initialData.nirf || '',
-        car: initialData.car || '',
-        situacao_ambiental: initialData.situacao_ambiental || 'Regular',
-        tipo_exploracao: initialData.tipo_exploracao || 'Própria',
-        totalArea: (initialData.area_total || initialData.totalArea)?.toString() || '',
-        area_util: initialData.area_util?.toString() || '',
-        location: initialData.localizacao || initialData.location || '',
-        municipio: initialData.municipio || '',
-        uf: initialData.uf || '',
-        companyId: initialData.unidade_id || initialData.companyId || '',
-        description: initialData.description || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        registrationNumber: '',
-        nirf: '',
-        car: '',
-        situacao_ambiental: 'Regular',
-        tipo_exploracao: 'Própria',
-        totalArea: '',
-        area_util: '',
-        location: '',
-        municipio: '',
-        uf: '',
-        companyId: '',
-        description: '',
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    if (!isOpen || !initialData) return;
+    setFormData({
+      name: initialData.nome || initialData.name || '',
+      registrationNumber: initialData.ie_produtor || initialData.registrationNumber || '',
+      nirf: initialData.nirf || '',
+      car: initialData.car || '',
+      situacao_ambiental: initialData.situacao_ambiental || 'Regular',
+      tipo_exploracao: initialData.tipo_exploracao || 'Própria',
+      totalArea: (initialData.area_total || initialData.totalArea)?.toString() || '',
+      area_util: initialData.area_util?.toString() || '',
+      location: initialData.localizacao || initialData.location || '',
+      municipio: initialData.municipio || '',
+      uf: initialData.uf || '',
+      companyId: initialData.unidade_id || initialData.companyId || '',
+      description: initialData.description || '',
+    });
+  }, [isOpen, initialData]);
 
   // --- MOTOR MATEMÁTICO DE APROVEITAMENTO ---
   const aproveitamento = useMemo(() => {
@@ -113,6 +98,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } catch (err) {
       console.error('Error in FarmForm handleSubmit:', err);
     } finally {
@@ -125,6 +111,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Fazenda' : 'Cadastrar Nova Fazenda'}
       subtitle={

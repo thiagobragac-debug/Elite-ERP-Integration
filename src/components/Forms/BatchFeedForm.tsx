@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
@@ -23,14 +22,13 @@ interface BatchFeedFormProps {
 export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, onSubmit }) => {
   const { activeFarm } = useTenant();
 
-  const [dataTrato, setDataTrato] = usePersistentState(
-    'BatchFeedForm_data',
+  const [dataTrato, setDataTrato] = useState(
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
-  const [dietaId, setDietaId] = usePersistentState('BatchFeedForm_dieta', '');
-  const [depositoId, setDepositoId] = usePersistentState('BatchFeedForm_deposito', '');
+  const [dietaId, setDietaId] = useState('');
+  const [depositoId, setDepositoId] = useState('');
 
-  const [items, setItems] = usePersistentState<any[]>('BatchFeedForm_items', []);
+  const [items, setItems] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [lotes, setLotes] = useState<any[]>([]);

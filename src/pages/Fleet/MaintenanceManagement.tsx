@@ -87,6 +87,7 @@ import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const MaintenanceManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -164,6 +165,13 @@ export const MaintenanceManagement: React.FC = () => {
 
   const [checklistItems, setChecklistItems] = useState(initialChecklist);
   const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`maintenance_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = orders.filter((o: any) => {

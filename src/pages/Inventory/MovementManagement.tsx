@@ -77,13 +77,14 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } =
     useFarmFilter();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('MovementManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'in' | 'out' | 'transfer'>('in');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
@@ -157,6 +158,13 @@ export const MovementManagement: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(15);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`movement_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const queryClient = useQueryClient();
 

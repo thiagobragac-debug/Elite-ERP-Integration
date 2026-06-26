@@ -79,6 +79,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -88,7 +89,7 @@ export const QuotationMap: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('QuotationMap_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
   const setActiveTab = (tab: string) => {
@@ -103,7 +104,7 @@ export const QuotationMap: React.FC = () => {
   };
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedMatrixQuotation, setSelectedMatrixQuotation] = useState<any>(null);
-  const [isMatrixOpen, setIsMatrixOpen] = usePersistentState('QuotationMap_isMatrixOpen', false);
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'QuotationMap_showAdvancedFilters',
     false
@@ -115,6 +116,13 @@ export const QuotationMap: React.FC = () => {
     dateStart: '',
     dateEnd: '',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`quotation_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 

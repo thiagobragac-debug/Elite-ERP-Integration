@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import './HealthForm.css';
 
 import {
   HeartPulse,
@@ -46,24 +47,34 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [activeEtapa, setActiveEtapa] = useState('contexto');
-  const [formData, setFormData] = useState({
-    tipo: 'vacina',
-    titulo: '',
-    animal_id: '',
-    lote_id: '',
-    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    produto: '',
-    produto_id: '',
-    dose: '',
-    via_aplicacao: 'IM',
-    local_aplicacao: '',
-    carencia_dias: '',
-    reforco_dias: '',
-    veterinario: '',
-    observacao: '',
-    status: 'REALIZADO',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `health_form_${activeTenantId}`,
+    initialState: {
+      tipo: 'vacina',
+      titulo: '',
+      animal_id: '',
+      lote_id: '',
+      data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      produto: '',
+      produto_id: '',
+      dose: '',
+      via_aplicacao: 'IM',
+      local_aplicacao: '',
+      carencia_abate_dias: '',
+      carencia_leite_dias: '',
+      reforco_dias: '',
+      veterinario: '',
+      aplicador: '',
+      temperatura_aplicacao: '',
+      data_revisao: '',
+      receituario: '',
+      observacao: '',
+      status: 'REALIZADO',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [loading, setLoading] = useState(false);
@@ -87,7 +98,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
   const [tempDose, setTempDose] = useState('');
   const [tempVia, setTempVia] = useState('IM');
   const [tempLocal, setTempLocal] = useState('');
-  const [tempCarencia, setTempCarencia] = useState('');
+  const [tempCarenciaAbate, setTempCarenciaAbate] = useState('');
+  const [tempCarenciaLeite, setTempCarenciaLeite] = useState('');
 
   const animalSearchRef = React.useRef<HTMLDivElement>(null);
   const loteSearchRef = React.useRef<HTMLDivElement>(null);
@@ -147,7 +159,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       // 3. Fetch Products from inventory (medicamento/vacina/insumo) including custo_medio from saldos_estoque
       let productQuery = supabase
         .from('produtos')
-        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_dias')
+        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_abate_dias, carencia_leite_dias')
         .eq('tenant_id', activeTenantId)
         .eq('is_storable', true);
 
@@ -184,7 +196,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
     setTempDose('');
     setTempVia('IM');
     setTempLocal('');
-    setTempCarencia('');
+    setTempCarenciaAbate('');
+    setTempCarenciaLeite('');
     setTempProduct(null);
 
     if (initialData) {
@@ -201,9 +214,14 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         dose: initialData.dose || '',
         via_aplicacao: initialData.via_aplicacao || 'IM',
         local_aplicacao: initialData.local_aplicacao || '',
-        carencia_dias: initialData.carencia_dias?.toString() || '',
+        carencia_abate_dias: initialData.carencia_abate_dias?.toString() || '',
+        carencia_leite_dias: initialData.carencia_leite_dias?.toString() || '',
         reforco_dias: initialData.reforco_dias?.toString() || '',
         veterinario: initialData.veterinario || '',
+        aplicador: initialData.aplicador || '',
+        temperatura_aplicacao: initialData.temperatura_aplicacao || '',
+        data_revisao: initialData.data_revisao || '',
+        receituario: initialData.receituario || '',
         observacao: initialData.observacao || '',
         status: initialData.status || 'REALIZADO',
       });
@@ -220,7 +238,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
               : '',
             via_aplicacao: initialData.via_aplicacao || 'IM',
             local_aplicacao: initialData.local_aplicacao || '',
-            carencia_dias: initialData.carencia_dias || 0,
+            carencia_abate_dias: initialData.carencia_abate_dias || 0,
+            carencia_leite_dias: initialData.carencia_leite_dias || 0,
             custo_total: initialData.custo || 0,
           },
         ]);
@@ -239,9 +258,14 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         dose: '',
         via_aplicacao: 'IM',
         local_aplicacao: '',
-        carencia_dias: '',
+        carencia_abate_dias: '',
+        carencia_leite_dias: '',
         reforco_dias: '',
         veterinario: '',
+        aplicador: '',
+        temperatura_aplicacao: '',
+        data_revisao: '',
+        receituario: '',
         observacao: '',
         status: 'REALIZADO',
       });
@@ -275,14 +299,18 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 
   // Synchronize carencia_dias when multi-product list changes
   React.useEffect(() => {
-    if (!initialData && produtosAplicados.length > 0 && formData.tipo !== 'cirurgia') {
-      const maxCarencia = Math.max(...produtosAplicados.map((p) => parseInt(p.carencia_dias) || 0));
+    if (produtosAplicados.length > 0) {
+      const maxCarenciaAbate = Math.max(...produtosAplicados.map((p) => parseInt(p.carencia_abate_dias) || 0));
+      const maxCarenciaLeite = Math.max(...produtosAplicados.map((p) => parseInt(p.carencia_leite_dias) || 0));
       setFormData((prev) => ({
         ...prev,
-        carencia_dias: maxCarencia > 0 ? String(maxCarencia) : '',
+        carencia_abate_dias: maxCarenciaAbate > 0 ? String(maxCarenciaAbate) : '',
+        carencia_leite_dias: maxCarenciaLeite > 0 ? String(maxCarenciaLeite) : '',
       }));
+    } else {
+      setFormData(prev => ({ ...prev, carencia_abate_dias: '', carencia_leite_dias: '' }));
     }
-  }, [produtosAplicados, initialData, formData.tipo]);
+  }, [produtosAplicados]);
 
   const handleAddProduto = () => {
     if (!tempProduct?.id) {
@@ -291,12 +319,16 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       );
       return;
     }
+    if (!tempDose || Number(String(tempDose).replace(/[^0-9.]/g, '')) <= 0) {
+      toast.error('⚠️ Informe a dosagem aplicada.');
+      return;
+    }
     const custoUnitario = Number(tempProduct?.custo_medio || 0);
     const parsedDose = Number(String(tempDose).replace(/[^0-9.]/g, '')) || 1;
     if (custoUnitario === 0) {
       toast(
-        '⚠️ Custo médio do produto é R$0,00. Será atualizado automaticamente quando uma entrada for registrada no estoque.',
-        { icon: '⚠️', duration: 4000 }
+        '⚠️  Custo médio do produto é R$0,00. Será atualizado automaticamente quando uma entrada for registrada no estoque.',
+        { icon: '⚠️ ', duration: 4000 }
       );
     }
     setProdutosAplicados((prev) => [
@@ -307,7 +339,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         dose: tempDose.trim(),
         via_aplicacao: tempVia,
         local_aplicacao: tempLocal.trim(),
-        carencia_dias: tempCarencia.trim(),
+        carencia_abate_dias: tempCarenciaAbate.trim(),
+        carencia_leite_dias: tempCarenciaLeite.trim(),
         custo_medio: custoUnitario,
         custo_total: parsedDose * custoUnitario,
       },
@@ -317,7 +350,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
     setTempDose('');
     setTempVia('IM');
     setTempLocal('');
-    setTempCarencia('');
+    setTempCarenciaAbate('');
+    setTempCarenciaLeite('');
     setTempProduct(null);
   };
 
@@ -334,13 +368,21 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         : produtosAplicados.length > 0;
 
     if (!isAplicacaoDone) {
-      toast.error('⚠️ Por favor, adicione ao menos um fármaco ou insumo na etapa de Aplicação.');
+      toast.error('⚠️  Por favor, adicione ao menos um fármaco ou insumo na etapa de Aplicação.');
       setActiveEtapa('aplicacao');
       return;
     }
 
     if (!formData.animal_id && !formData.lote_id) {
       toast.error('⚠️ Selecione o animal ou lote alvo no Contexto.');
+      setActiveEtapa('contexto');
+      return;
+    }
+
+    const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+    const manejoDate = new Date(formData.data_manejo + 'T00:00:00');
+    if (formData.status === 'REALIZADO' && manejoDate > todayDate) {
+      toast.error('⚠️ Data futura não permitida para status REALIZADO.');
       setActiveEtapa('contexto');
       return;
     }
@@ -352,6 +394,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         produtos: initialData || formData.tipo === 'cirurgia' ? [] : produtosAplicados,
       };
       await onSubmit(payload);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -360,17 +403,26 @@ export const HealthForm: React.FC<HealthFormProps> = ({
   // --- HEALTH ENGINE ---
   const healthStats = useMemo(() => {
     let bloqueioAbate = null;
+    let bloqueioLeite = null;
     let dataReforco = null;
 
     if (formData.data_manejo) {
       const baseDate = new Date(formData.data_manejo);
       if (!isNaN(baseDate.getTime())) {
-        // Regra 1: Carência Abate/Leite
-        const carencia = parseInt(formData.carencia_dias);
-        if (carencia > 0 && formData.tipo !== 'vacina') {
-          const dLiberacao = new Date(baseDate);
-          dLiberacao.setDate(dLiberacao.getDate() + carencia);
-          bloqueioAbate = dLiberacao.toLocaleDateString('pt-BR');
+        // Regra 1: Carência Abate
+        const carenciaAbate = parseInt(formData.carencia_abate_dias);
+        if (carenciaAbate > 0) {
+          const dAbate = new Date(baseDate);
+          dAbate.setDate(dAbate.getDate() + carenciaAbate);
+          bloqueioAbate = dAbate.toLocaleDateString('pt-BR');
+        }
+
+        // Regra 1.1: Carência Leite
+        const carenciaLeite = parseInt(formData.carencia_leite_dias);
+        if (carenciaLeite > 0) {
+          const dLeite = new Date(baseDate);
+          dLeite.setDate(dLeite.getDate() + carenciaLeite);
+          bloqueioLeite = dLeite.toLocaleDateString('pt-BR');
         }
 
         // Regra 2: Reforço Vacinal
@@ -382,21 +434,31 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         }
       }
     }
-    return { bloqueioAbate, dataReforco };
-  }, [formData.data_manejo, formData.carencia_dias, formData.reforco_dias, formData.tipo]);
+    return { bloqueioAbate, bloqueioLeite, dataReforco };
+  }, [formData.data_manejo, formData.carencia_abate_dias, formData.carencia_leite_dias, formData.reforco_dias, formData.tipo]);
 
   const limitingProductInfo = useMemo(() => {
     if (produtosAplicados.length === 0) return null;
-    let max = -1;
-    let limitProduct = null;
+    let maxAbate = -1;
+    let maxLeite = -1;
+    let limitProductAbate = null;
+    let limitProductLeite = null;
     for (const p of produtosAplicados) {
-      const pCarencia = parseInt(p.carencia_dias) || 0;
-      if (pCarencia > max) {
-        max = pCarencia;
-        limitProduct = p;
+      const pCarenciaAbate = parseInt(p.carencia_abate_dias) || 0;
+      if (pCarenciaAbate > maxAbate) {
+        maxAbate = pCarenciaAbate;
+        limitProductAbate = p;
+      }
+      const pCarenciaLeite = parseInt(p.carencia_leite_dias) || 0;
+      if (pCarenciaLeite > maxLeite) {
+        maxLeite = pCarenciaLeite;
+        limitProductLeite = p;
       }
     }
-    return max > 0 ? { dias: max, nome: limitProduct?.produto || limitProduct?.nome } : null;
+    return {
+      abate: maxAbate > 0 ? { dias: maxAbate, nome: limitProductAbate?.produto || limitProductAbate?.nome } : null,
+      leite: maxLeite > 0 ? { dias: maxLeite, nome: limitProductLeite?.produto || limitProductLeite?.nome } : null,
+    };
   }, [produtosAplicados]);
 
   const handleAnimalChange = (animal: any) => {
@@ -449,9 +511,10 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       size="xlarge"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Registro Sanitário' : 'Novo Registro Sanitário'}
-      subtitle="Registre vacinas, medicamentos ou tratamentos."
+      subtitle={initialData ? `Editando: ${initialData.titulo || initialData.tipo || 'Registro'} — ${initialData.data_manejo ? new Date(initialData.data_manejo + 'T00:00:00').toLocaleDateString('pt-BR') : ''}` : 'Registre vacinas, medicamentos ou tratamentos.'}
       icon={HeartPulse}
       loading={loading}
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Registro'}
@@ -544,7 +607,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                   color: 'hsl(0 84% 45%)',
                 }}
               >
-                <ShieldAlert size={14} /> Liberado para Abate: {healthStats.bloqueioAbate}
+                <ShieldAlert size={14} /> Bloqueado para Abate até: {healthStats.bloqueioAbate}
               </div>
             ) : (
               <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
@@ -1224,20 +1287,15 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 
           {activeEtapa === 'aplicacao' && (
             <div className="animate-slide-up">
-              {initialData || formData.tipo === 'cirurgia' ? (
-                <div className="tauze-input-grid grid-col-2">
-                  <div
-                    className="tauze-field-group"
-                    style={{ gridColumn: formData.tipo === 'cirurgia' ? 'span 2' : 'span 1' }}
-                    ref={productSearchRef}
-                  >
-                    <label className="tauze-label">
-                      <FlaskConical size={14} />{' '}
-                      {formData.tipo === 'cirurgia'
-                        ? 'Descrição do Procedimento'
-                        : 'Fármaco / Insumo (Estoque)'}
-                    </label>
-                    {formData.tipo === 'cirurgia' ? (
+              {formData.tipo === 'cirurgia' ? (
+                /* ── CIRURGIA: campos do procedimento + carrinho de insumos cirúrgicos ── */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Descrição e responsável */}
+                  <div className="tauze-input-grid grid-col-3">
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">
+                        <FlaskConical size={14} /> Descrição do Procedimento
+                      </label>
                       <input
                         className="tauze-input"
                         type="text"
@@ -1245,199 +1303,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                         value={formData.produto}
                         onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
                       />
-                    ) : (
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          className="tauze-input"
-                          type="text"
-                          placeholder="Buscar no estoque..."
-                          value={formData.produto}
-                          onChange={(e) => {
-                            setFormData({ ...formData, produto: e.target.value, produto_id: '' });
-                            setShowProductDropdown(true);
-                          }}
-                          onFocus={() => setShowProductDropdown(true)}
-                          style={{
-                            borderColor:
-                              formData.produto && !formData.produto_id ? '#f59e0b' : undefined,
-                          }}
-                        />
-                        {formData.produto_id && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              right: '8px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              background: '#10b981',
-                              color: '#fff',
-                              borderRadius: '6px',
-                              padding: '2px 8px',
-                              fontSize: '10px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            {`R$${Number(availableProducts.find((p) => p.id === formData.produto_id)?.custo_medio || 0).toFixed(2)}/un`}
-                          </div>
-                        )}
-                        {showProductDropdown && (
-                          <div
-                            className="autocomplete-dropdown animate-fade-in"
-                            style={{
-                              position: 'absolute',
-                              top: 'calc(100% + 4px)',
-                              left: 0,
-                              width: '100%',
-                              maxHeight: '200px',
-                              overflowY: 'auto',
-                              background: 'hsl(var(--bg-card))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '14px',
-                              zIndex: 999,
-                              boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                            }}
-                          >
-                            {availableProducts.filter((p) =>
-                              p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())
-                            ).length === 0 ? (
-                              <div
-                                style={{
-                                  padding: '12px',
-                                  color: '#f87171',
-                                  fontSize: '12.5px',
-                                  textAlign: 'center',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ⚠️ Produto não encontrado no estoque. Cadastre-o em Insumos.
-                              </div>
-                            ) : (
-                              availableProducts
-                                .filter((p) =>
-                                  p.nome
-                                    ?.toLowerCase()
-                                    .includes((formData.produto || '').toLowerCase())
-                                )
-                                .map((p: any) => (
-                                  <div
-                                    key={p.id}
-                                    onClick={() => {
-                                      setFormData((prev) => ({
-                                        ...prev,
-                                        produto: p.nome,
-                                        produto_id: p.id,
-                                      }));
-                                      setShowProductDropdown(false);
-                                    }}
-                                    className="autocomplete-option"
-                                    style={{
-                                      padding: '10px 16px',
-                                      cursor: 'pointer',
-                                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                                      transition: 'background 0.15s',
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                    }}
-                                  >
-                                    <div>
-                                      <div
-                                        style={{
-                                          fontWeight: 800,
-                                          fontSize: '13px',
-                                          color: 'hsl(var(--text-main))',
-                                        }}
-                                      >
-                                        {p.nome}
-                                      </div>
-                                      {p.marca && (
-                                        <div
-                                          style={{
-                                            fontSize: '10px',
-                                            color: 'hsl(var(--text-muted))',
-                                            marginTop: '2px',
-                                            fontWeight: 600,
-                                          }}
-                                        >
-                                          Marca: {p.marca}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div
-                                      style={{
-                                        textAlign: 'right',
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        color: '#10b981',
-                                        flexShrink: 0,
-                                        marginLeft: '8px',
-                                      }}
-                                    >
-                                      {`R$${Number(p.custo_medio || 0).toFixed(2)}/un`}
-                                    </div>
-                                  </div>
-                                ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {formData.tipo !== 'cirurgia' && (
-                    <div className="tauze-field-group">
-                      <label className="tauze-label">
-                        <Hash size={14} /> Dose / Quantidade
-                      </label>
-                      <input
-                        className="tauze-input"
-                        type="text"
-                        placeholder="Ex: 2ml"
-                        value={formData.dose}
-                        onChange={(e) => setFormData({ ...formData, dose: e.target.value })}
-                      />
                     </div>
-                  )}
 
-                  {formData.tipo !== 'cirurgia' && (
-                    <>
-                      <div className="tauze-field-group">
-                        <label className="tauze-label">
-                          <Activity size={14} /> Via de Aplicação
-                        </label>
-                        <SearchableSelect
-                          value={formData.via_aplicacao}
-                          onChange={(val: any) => setFormData({ ...formData, via_aplicacao: val })}
-                          options={[
-                            { value: `IM`, label: `Intramuscular (IM)` },
-                            { value: `SC`, label: `Subcutânea (SC)` },
-                            { value: `ORAL`, label: `Oral` },
-                            { value: `TOPICO`, label: `Tópico` },
-                            { value: `IV`, label: `Intravenosa (IV)` },
-                          ]}
-                        />
-                      </div>
-
-                      <div className="tauze-field-group">
-                        <label className="tauze-label">
-                          <Hash size={14} /> Local de Aplicação
-                        </label>
-                        <input
-                          className="tauze-input"
-                          type="text"
-                          placeholder="Ex: Tábua do Pescoço, Garupa..."
-                          value={formData.local_aplicacao}
-                          onChange={(e) =>
-                            setFormData({ ...formData, local_aplicacao: e.target.value })
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {formData.tipo === 'cirurgia' && (
                     <div className="tauze-field-group">
                       <label className="tauze-label">
                         <UserCheck size={14} /> Veterinário Responsável
@@ -1450,9 +1317,253 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                         onChange={(e) => setFormData({ ...formData, veterinario: e.target.value })}
                       />
                     </div>
-                  )}
+
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">
+                        <UserCheck size={14} /> Auxiliar / Aplicador
+                      </label>
+                      <input
+                        className="tauze-input"
+                        type="text"
+                        placeholder="Ex: Técnico de campo"
+                        value={formData.aplicador}
+                        onChange={(e) => setFormData({ ...formData, aplicador: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Carrinho de insumos do procedimento */}
+                  <ConsumptionCart
+                    items={produtosAplicados}
+                    onChange={setProdutosAplicados}
+                    title="Insumos do Procedimento"
+                    subtitle="Anestésicos, material de sutura, antissépticos e outros insumos consumidos na cirurgia."
+                    showHealthFields={true}
+                    filterModule="pecuaria_sanidade"
+                  />
+                </div>
+              ) : initialData ? (
+                /* ── EDIÇÃOO de registro existente (produto único legado) ── */
+                <div className="tauze-input-grid grid-col-2">
+                  <div
+                    className="tauze-field-group"
+                    style={{ gridColumn: 'span 1' }}
+                    ref={productSearchRef}
+                  >
+                    <label className="tauze-label">
+                      <FlaskConical size={14} /> Fármaco / Insumo (Estoque)
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="tauze-input"
+                        type="text"
+                        placeholder="Buscar no estoque..."
+                        value={formData.produto}
+                        onChange={(e) => {
+                          setFormData({ ...formData, produto: e.target.value, produto_id: '' });
+                          setShowProductDropdown(true);
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                        style={{
+                          borderColor:
+                            formData.produto && !formData.produto_id ? '#f59e0b' : undefined,
+                        }}
+                      />
+                      {formData.produto_id && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: '#10b981',
+                            color: '#fff',
+                            borderRadius: '6px',
+                            padding: '2px 8px',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {`R$${Number(availableProducts.find((p) => p.id === formData.produto_id)?.custo_medio || 0).toFixed(2)}/un`}
+                        </div>
+                      )}
+                      {showProductDropdown && (
+                        <div
+                          className="autocomplete-dropdown animate-fade-in"
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            width: '100%',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            background: 'hsl(var(--bg-card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '14px',
+                            zIndex: 999,
+                            boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          {availableProducts.filter((p) =>
+                            p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())
+                          ).length === 0 ? (
+                            <div
+                              style={{
+                                padding: '12px',
+                                color: '#f87171',
+                                fontSize: '12.5px',
+                                textAlign: 'center',
+                                fontWeight: 700,
+                              }}
+                            >
+                              ⚠️ Produto não encontrado no estoque. Cadastre-o em Insumos.
+                            </div>
+                          ) : (
+                            availableProducts
+                              .filter((p) =>
+                                p.nome
+                                  ?.toLowerCase()
+                                  .includes((formData.produto || '').toLowerCase())
+                              )
+                              .map((p: any) => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => {
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      produto: p.nome,
+                                      produto_id: p.id,
+                                    }));
+                                    setShowProductDropdown(false);
+                                  }}
+                                  className="autocomplete-option"
+                                  style={{
+                                    padding: '10px 16px',
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid hsl(var(--border) / 0.5)',
+                                    transition: 'background 0.15s',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <div>
+                                    <div
+                                      style={{
+                                        fontWeight: 800,
+                                        fontSize: '13px',
+                                        color: 'hsl(var(--text-main))',
+                                      }}
+                                    >
+                                      {p.nome}
+                                    </div>
+                                    {p.marca && (
+                                      <div
+                                        style={{
+                                          fontSize: '10px',
+                                          color: 'hsl(var(--text-muted))',
+                                          marginTop: '2px',
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        Marca: {p.marca}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      textAlign: 'right',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      color: '#10b981',
+                                      flexShrink: 0,
+                                      marginLeft: '8px',
+                                    }}
+                                  >
+                                    {`R$${Number(p.custo_medio || 0).toFixed(2)}/un`}
+                                  </div>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Hash size={14} /> Dose / Quantidade
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Ex: 2ml"
+                      value={formData.dose}
+                      onChange={(e) => setFormData({ ...formData, dose: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Activity size={14} /> Via de Aplicação
+                    </label>
+                    <SearchableSelect
+                      value={formData.via_aplicacao}
+                      onChange={(val: any) => setFormData({ ...formData, via_aplicacao: val })}
+                      options={[
+                        { value: `IM`, label: `Intramuscular (IM)` },
+                        { value: `SC`, label: `Subcutânea (SC)` },
+                        { value: `ORAL`, label: `Oral` },
+                        { value: `TOPICO`, label: `Tópico` },
+                        { value: `IV`, label: `Intravenosa (IV)` },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Hash size={14} /> Local de Aplicação
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Ex: Tábua do Pescoço, Garupa..."
+                      value={formData.local_aplicacao}
+                      onChange={(e) =>
+                        setFormData({ ...formData, local_aplicacao: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <UserCheck size={14} /> Aplicador / Responsável
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Quem aplicou?"
+                      value={formData.aplicador}
+                      onChange={(e) => setFormData({ ...formData, aplicador: e.target.value })}
+                    />
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">
+                      <Activity size={14} /> Temp. Aplicação (°C)
+                    </label>
+                    <input
+                      className="tauze-input"
+                      type="number"
+                      placeholder="Ex: 38.5"
+                      value={formData.temperatura_aplicacao}
+                      onChange={(e) => setFormData({ ...formData, temperatura_aplicacao: e.target.value })}
+                    />
+                  </div>
                 </div>
               ) : (
+                /* ── NOVO REGISTRO: ConsumptionCart multi-produto ── */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <ConsumptionCart
                     items={produtosAplicados}
@@ -1466,10 +1577,9 @@ export const HealthForm: React.FC<HealthFormProps> = ({
               )}
             </div>
           )}
-
           {activeEtapa === 'regras' && (
             <div className="animate-slide-up">
-              <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-input-grid grid-col-3">
                 {formData.tipo === 'vacina' && (
                   <div className="tauze-field-group">
                     <label className="tauze-label">
@@ -1486,36 +1596,90 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                 )}
 
                 {formData.tipo !== 'cirurgia' && (
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">
-                      <AlertCircle size={14} /> Carência Abate/Leite (Dias)
-                    </label>
-                    <input
-                      className="tauze-input"
-                      type="number"
-                      placeholder="Ex: 30"
-                      value={formData.carencia_dias}
-                      onChange={(e) => setFormData({ ...formData, carencia_dias: e.target.value })}
-                    />
-                    {limitingProductInfo && (
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          color: 'hsl(var(--text-muted))',
-                          marginTop: '4px',
-                          display: 'block',
-                        }}
-                      >
-                        Carência sugerida pelo maior produto:{' '}
-                        <strong style={{ color: 'hsl(var(--brand))' }}>{limitingProductInfo.dias} dias</strong>{' '}
-                        (limitado por: <strong>{limitingProductInfo.nome}</strong>)
-                      </span>
-                    )}
-                  </div>
+                  <>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">
+                        <AlertCircle size={14} /> Carência Abate (Dias)
+                      </label>
+                      <input
+                        className="tauze-input"
+                        type="number"
+                        placeholder="Ex: 30"
+                        value={formData.carencia_abate_dias}
+                        onChange={(e) => setFormData({ ...formData, carencia_abate_dias: e.target.value })}
+                      />
+                      {limitingProductInfo?.abate && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'hsl(var(--text-muted))',
+                            marginTop: '4px',
+                            display: 'block',
+                          }}
+                        >
+                          Maior carência do lote:{' '}
+                          <strong style={{ color: 'hsl(var(--brand))' }}>{limitingProductInfo.abate.dias} dias</strong>{' '}
+                          (<strong>{limitingProductInfo.abate.nome}</strong>)
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">
+                        <AlertCircle size={14} /> Carência Leite (Dias)
+                      </label>
+                      <input
+                        className="tauze-input"
+                        type="number"
+                        placeholder="Ex: 5"
+                        value={formData.carencia_leite_dias}
+                        onChange={(e) => setFormData({ ...formData, carencia_leite_dias: e.target.value })}
+                      />
+                      {limitingProductInfo?.leite && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'hsl(var(--text-muted))',
+                            marginTop: '4px',
+                            display: 'block',
+                          }}
+                        >
+                          Maior carência do lote:{' '}
+                          <strong style={{ color: 'hsl(var(--brand))' }}>{limitingProductInfo.leite.dias} dias</strong>{' '}
+                          (<strong>{limitingProductInfo.leite.nome}</strong>)
+                        </span>
+                      )}
+                    </div>
+                  </>
                 )}
 
+                <div className="tauze-field-group">
+                  <label className="tauze-label">
+                    <Calendar size={14} /> Data de Revisão
+                  </label>
+                  <input
+                    className="tauze-input"
+                    type="date"
+                    value={formData.data_revisao}
+                    onChange={(e) => setFormData({ ...formData, data_revisao: e.target.value })}
+                  />
+                </div>
 
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label">
+                    <FileText size={14} /> Nº Receituário Agronômico / Veterinário
+                  </label>
+                  <input
+                    className="tauze-input"
+                    type="text"
+                    placeholder="Ex: REC-12345"
+                    value={formData.receituario}
+                    onChange={(e) => setFormData({ ...formData, receituario: e.target.value })}
+                  />
+                </div>
+
+
+                <div className="tauze-field-group" style={{ gridColumn: 'span 3' }}>
                   <label className="tauze-label">
                     <FileText size={14} /> Observações
                   </label>
@@ -1528,11 +1692,11 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                   />
                 </div>
 
-                {/* PAINÉIS ORÁCULOS DE SANIDADE (RISCO E PREDIÇÃO) */}
+                {/* PAINÉIS ORÃCULOS DE SANIDADE (RISCO E PREDIÇÃOO) */}
                 {healthStats.bloqueioAbate && (
                   <div
                     style={{
-                      gridColumn: 'span 2',
+                      gridColumn: 'span 3',
                       marginTop: '12px',
                       padding: '16px',
                       background: 'hsl(0 84% 60% / 0.1)',
@@ -1551,7 +1715,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                         marginBottom: '4px',
                       }}
                     >
-                      <ShieldAlert size={18} /> ANIMAL/LOTE BLOQUEADO PARA ABATE E LEITE
+                      <ShieldAlert size={18} /> BLOQUEIO PARA ABATE
                     </div>
                     <div
                       style={{
@@ -1561,8 +1725,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                         marginTop: '8px',
                       }}
                     >
-                      Aviso Legal: Respeitando a carência farmacológica informada, a liberação
-                      sanitária oficial só ocorrerá no dia{' '}
+                      Respeitando a carência farmacológica informada, a liberação sanitária oficial para abate só ocorrerá no dia{' '}
                       <strong style={{ color: 'hsl(0 84% 45%)', fontWeight: 900 }}>
                         {healthStats.bloqueioAbate}
                       </strong>
@@ -1571,10 +1734,51 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                   </div>
                 )}
 
+                {healthStats.bloqueioLeite && (
+                  <div
+                    style={{
+                      gridColumn: 'span 3',
+                      marginTop: '12px',
+                      padding: '16px',
+                      background: 'hsl(32 98% 60% / 0.1)',
+                      border: '1.5px dashed hsl(32 98% 60% / 0.4)',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: 'hsl(32 98% 45%)',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <ShieldAlert size={18} /> BLOQUEIO PARA LEITE (DESCARTE)
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        color: 'hsl(var(--text-main))',
+                        lineHeight: '1.5',
+                        marginTop: '8px',
+                      }}
+                    >
+                      O descarte do leite está determinado até o dia{' '}
+                      <strong style={{ color: 'hsl(32 98% 45%)', fontWeight: 900 }}>
+                        {healthStats.bloqueioLeite}
+                      </strong>
+                      . Após esta data, o leite estará apto para ordenha e consumo.
+                    </div>
+                  </div>
+                )}
+
                 {healthStats.dataReforco && (
                   <div
                     style={{
-                      gridColumn: 'span 2',
+                      gridColumn: 'span 3',
                       marginTop: '12px',
                       padding: '16px',
                       background: 'hsl(217 91% 60% / 0.1)',
@@ -1616,19 +1820,6 @@ export const HealthForm: React.FC<HealthFormProps> = ({
           )}
         </div>
       </div>
-      <style>{`
-        .autocomplete-option:hover {
-          background: hsl(var(--brand) / 0.1) !important;
-          color: hsl(var(--brand)) !important;
-        }
-        .autocomplete-dropdown::-webkit-scrollbar { width: 6px; }
-        .autocomplete-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        @keyframes fade-in {
-          from { opacity: 0; } to { opacity: 1; }
-        }
-        .animate-fade-in { animation: fade-in 0.2s ease both; }
-        .animal-chip:hover { border-color: hsl(var(--brand) / 0.5) !important; }
-      `}</style>
     </SidePanel>
   );
 };

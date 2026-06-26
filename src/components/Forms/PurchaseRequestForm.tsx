@@ -1,5 +1,5 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   FileText,
@@ -35,39 +35,32 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeCompany, companies } = useTenant();
+  const { activeCompany, companies, activeTenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<any[]>(initialData?.items || []);
 
-  const [formData, setFormData] = usePersistentState('PurchaseRequestForm_formData', {
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    title: initialData?.title || '',
-    requester: initialData?.requester || '',
-    cost_center: initialData?.cost_center || '',
-    project: initialData?.project || '',
-    deadline:
-      initialData?.deadline ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    priority: initialData?.priority || 'medium',
-    justification: initialData?.justification || '',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `purchase_request_form_${activeTenantId}`,
+    initialState: {
+      company_id: initialData?.company_id || activeCompany?.id || '',
+      title: initialData?.title || '',
+      requester: initialData?.requester || '',
+      cost_center: initialData?.cost_center || '',
+      project: initialData?.project || '',
+      deadline:
+        initialData?.deadline ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      priority: initialData?.priority || 'medium',
+      justification: initialData?.justification || '',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
   useEffect(() => {
     if (!isOpen && !initialData) {
       setItems([]);
-      setFormData({
-        company_id: activeCompany?.id || '',
-        title: '',
-        requester: '',
-        cost_center: '',
-        project: '',
-        deadline: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        priority: 'medium',
-        justification: '',
-      });
     }
   }, [isOpen]);
 
@@ -105,6 +98,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
         estimated_value: totalEstimatedValue,
         items,
       });
+      clearDraft();
       toast.success('Solicitação salva com sucesso!');
       onClose();
     } catch (error) {
@@ -119,6 +113,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Solicitação de Compra' : 'Nova Solicitação de Compra'}
       subtitle="Crie uma nova requisição detalhada para envio à Controladoria."

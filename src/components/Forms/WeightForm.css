@@ -1,0 +1,183 @@
+/* ─────────────────────────────────────────────────────────────
+   WeightForm.css
+   Estilos específicos do formulário de pesagem.
+   Migrado do <style> inline para eliminar duplicação de CSS.
+───────────────────────────────────────────────────────────── */
+
+/* ── Autocomplete dropdown ── */
+.autocomplete-option:hover {
+  background: hsl(var(--brand) / 0.1) !important;
+  color: hsl(var(--brand)) !important;
+}
+
+.autocomplete-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+/* ── Performance preview card (exibido após seleção do animal) ── */
+.performance-preview-card {
+  background: hsl(var(--brand) / 0.05);
+  border: 1px solid hsl(var(--brand) / 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  grid-column: span 4;
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-label {
+  font-size: 11px;
+  color: hsl(var(--text-muted));
+  font-weight: 600;
+}
+
+.p-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: hsl(var(--text-main));
+}
+
+.p-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+}
+
+/* ── Smart Session History ── */
+.session-history-section {
+  padding: 8px 0 4px;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+}
+
+.session-history-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--text-muted));
+}
+
+.session-history-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.15s;
+}
+
+.session-history-item:hover {
+  background: hsl(var(--brand) / 0.06);
+}
+
+.session-history-badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.1);
+  border: 1px solid hsl(var(--brand) / 0.2);
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Confirm checkbox (variação extrema) ── */
+.weight-confirm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: hsl(0 84% 60% / 0.06);
+  border: 1.5px solid hsl(0 84% 60% / 0.25);
+  border-radius: 12px;
+  margin-top: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.weight-confirm-row input[type='checkbox'] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: hsl(0 84% 60%);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.weight-confirm-row label {
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(0 84% 60%);
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+/* ── Arroba price inline editable ── */
+.arroba-price-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+}
+
+.arroba-price-input {
+  background: hsl(var(--bg-main));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  width: 72px;
+  text-align: right;
+  transition: border-color 0.15s;
+}
+
+.arroba-price-input:focus {
+  outline: none;
+  border-color: hsl(var(--brand) / 0.5);
+  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.1);
+}
+
+/* ── Salvar e Próximo button ── */
+.btn-save-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1.5px solid hsl(var(--brand) / 0.35);
+  background: hsl(var(--brand) / 0.08);
+  color: hsl(var(--brand));
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-save-next:hover:not(:disabled) {
+  background: hsl(var(--brand) / 0.15);
+  border-color: hsl(var(--brand) / 0.55);
+}
+
+.btn-save-next:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

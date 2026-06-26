@@ -4,6 +4,7 @@ import { supabase } from '../../../../lib/supabase';
 import { useTenant } from '../../../../contexts/TenantContext';
 import { useFarmFilter } from '../../../../hooks/useFarmFilter';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
+import { hasDraftForKey } from '../../../../hooks/useFormDraft';
 import { useConfirm } from '../../../../contexts/ConfirmContext';
 import { Users, Monitor, ShieldCheck, Lock, Mail, Shield, Eye, Edit2, Search } from 'lucide-react';
 
@@ -86,6 +87,13 @@ export function useUserManagementState() {
   );
   const [isTerminalRunning, setIsTerminalRunning] = useState(true);
   const [anomalies, setAnomalies] = useState<any[]>([]);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isUserModalOpen) return;
+    if (hasDraftForKey(`user_form_${activeTenantId}`)) setIsUserModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const fetchSecurityLogs = async () => {
     if (!activeTenantId) {

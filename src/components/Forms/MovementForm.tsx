@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   ArrowRightLeft,
@@ -48,29 +48,34 @@ export const MovementForm: React.FC<MovementFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const { applyFarmFilter, applyTenantFilter } = useFarmFilter();
 
   // Base Transaction Data
-  const [formData, setFormData] = usePersistentState('MovementForm_formData', {
-    destino_deposito_id: '',
-    tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
-    data_movimentacao: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    origem_destino: '', // Text for In/Transfer
-    centro_custo: '', // Select for Out
-    responsavel: '',
-    deposito_origem_id: '', // Used only for transfers now
-    receituario_agronomico: '', // For agrochemicals
-    numero_nfe: '',
-    chave_nfe: '',
-    despesas_acessorias: '',
-    sub_centro_custo: '',
-    apropriar_custo: false,
-    apropriar_tipo: 'animal' as 'animal' | 'lote',
-    animal_id: '',
-    lote_pecuario_id: '',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `movement_form_${activeTenantId}`,
+    initialState: {
+      destino_deposito_id: '',
+      tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
+      data_movimentacao: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      origem_destino: '', // Text for In/Transfer
+      centro_custo: '', // Select for Out
+      responsavel: '',
+      deposito_origem_id: '', // Used only for transfers now
+      receituario_agronomico: '', // For agrochemicals
+      numero_nfe: '',
+      chave_nfe: '',
+      despesas_acessorias: '',
+      sub_centro_custo: '',
+      apropriar_custo: false,
+      apropriar_tipo: 'animal' as 'animal' | 'lote',
+      animal_id: '',
+      lote_pecuario_id: '',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   // Cart of Items
@@ -114,26 +119,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({
         },
       ]);
     } else {
-      setFormData({
-        destino_deposito_id: '',
-        tipo: defaultType as any,
-        data_movimentacao: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        origem_destino: '',
-        centro_custo: '',
-        responsavel: '',
-        deposito_origem_id: '',
-        receituario_agronomico: '',
-        numero_nfe: '',
-        chave_nfe: '',
-        despesas_acessorias: '',
-        sub_centro_custo: '',
-        apropriar_custo: false,
-        apropriar_tipo: 'animal',
-        animal_id: '',
-        lote_pecuario_id: '',
-      });
       setItems([]);
     }
   }, [initialData, isOpen, defaultType, actionId]);
@@ -314,6 +299,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -323,6 +309,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       size="large"
       title={

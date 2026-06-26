@@ -1,5 +1,5 @@
 import { SearchableSelect } from './SearchableSelect';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import React, { useState } from 'react';
 import {
@@ -30,9 +30,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { companies, activeCompany } = useTenant();
+  const { companies, activeCompany, activeTenantId } = useTenant();
 
-  const [formData, setFormData] = usePersistentState('BankAccountForm_formData', {
+  const INITIAL_BANK_FORM = {
     banco: '',
     agencia: '',
     conta: '',
@@ -44,46 +44,34 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
     descricao: '',
     unidade_id: activeCompany?.id || (null as string | null),
     is_global: false,
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `bank_account_form_${activeTenantId}`,
+    initialState: INITIAL_BANK_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
-
-    if (initialData) {
-      setFormData({
-        banco: initialData.banco || '',
-        agencia: initialData.agencia || '',
-        conta: initialData.conta || '',
-        tipo: initialData.tipo || 'CORRENTE',
-        saldo_inicial: initialData.saldo_atual?.toString() || '0',
-        limite_credito: initialData.limite_credito?.toString() || '0',
-        benchmark_rendimento: initialData.benchmark_rendimento || '',
-        taxa_juros: initialData.taxa_juros || '',
-        descricao: initialData.descricao || '',
-        unidade_id: initialData.is_global
-          ? null
-          : initialData.unidade_id || activeCompany?.id || null,
-        is_global: initialData.is_global || false,
-      });
-    } else {
-      setFormData({
-        banco: '',
-        agencia: '',
-        conta: '',
-        tipo: 'CORRENTE',
-        saldo_inicial: '0',
-        limite_credito: '0',
-        benchmark_rendimento: '',
-        taxa_juros: '',
-        descricao: '',
-        unidade_id: activeCompany?.id || null,
-        is_global: false,
-      });
-    }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      banco: initialData.banco || '',
+      agencia: initialData.agencia || '',
+      conta: initialData.conta || '',
+      tipo: initialData.tipo || 'CORRENTE',
+      saldo_inicial: initialData.saldo_atual?.toString() || '0',
+      limite_credito: initialData.limite_credito?.toString() || '0',
+      benchmark_rendimento: initialData.benchmark_rendimento || '',
+      taxa_juros: initialData.taxa_juros || '',
+      descricao: initialData.descricao || '',
+      unidade_id: initialData.is_global
+        ? null
+        : initialData.unidade_id || activeCompany?.id || null,
+      is_global: initialData.is_global || false,
+    });
   }, [initialData, isOpen, activeCompany, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +79,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -100,6 +89,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Conta' : 'Nova Conta Bancária'}
       subtitle="Cadastre suas contas para conciliação e fluxo de caixa."

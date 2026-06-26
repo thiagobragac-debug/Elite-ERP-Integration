@@ -17,6 +17,8 @@ import {
   History,
   AlertCircle,
   Sprout,
+  UserPlus,
+  AlertTriangle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReportData } from '../../hooks/useReportData';
@@ -35,17 +37,34 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { PastureRenovationForm } from '../../components/Forms/PastureRenovationForm';
 import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm';
-import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
+import { AssignToPastoForm } from '../../components/Forms/AssignToPastoForm';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
+import { normalizePastureStatus, PASTURE_STATUS, ANIMAL_STATUS_ATIVO, CARENCIA_QUIMICA_DIAS } from '../../constants/livestock';
+
+// ─── Helper: display unificado de status (usa enum — sem strings hardcoded) ───
+function getPastureDisplay(
+  status: string,
+  occupancyPercent: number
+): { badgeText: string; badgeClass: string; borderClass: string; statusPill: string } {
+  const ns = normalizePastureStatus(status);
+  if (ns === PASTURE_STATUS.RESTING)    return { badgeText: 'DESCANSO',    badgeClass: 'info-badge',    borderClass: 'info-badge',    statusPill: 'info' };
+  if (ns === PASTURE_STATUS.DEGRADED)   return { badgeText: 'DEGRADADO',   badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };
+  if (ns === PASTURE_STATUS.RENOVATION) return { badgeText: 'REFORMA',     badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };
+  if (occupancyPercent > 100) return { badgeText: 'SUPERLOTAÇÃO', badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };
+  if (occupancyPercent > 80)  return { badgeText: 'ATENÇÃO',      badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };
+  if (occupancyPercent === 0) return { badgeText: 'LIVRE',        badgeClass: 'active',        borderClass: 'active',        statusPill: 'success' };
+  return                               { badgeText: 'IDEAL',        badgeClass: 'active',        borderClass: 'active',        statusPill: 'success' };
+}
 
 const PastureManagement: React.FC = () => {
   const { confirm } = useConfirm();
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } =
     useFarmFilter();
   const queryClient = useQueryClient();
-  const [isFormOpen, setIsFormOpen] = usePersistentState('PastureManagement_isFormOpen', false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedPasture, setSelectedPasture] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -77,15 +96,9 @@ const PastureManagement: React.FC = () => {
     needsFertilization: false,
   });
 
-  const [isManejoOpen, setIsManejoOpen] = usePersistentState(
-    'PastureManagement_isManejoOpen',
-    false
-  );
+  const [isManejoOpen, setIsManejoOpen] = useState(false);
   const [manejoPastureId, setManejoPastureId] = useState<string | undefined>(undefined);
-  const [isHistoryOpen, setIsHistoryOpen] = usePersistentState(
-    'PastureManagement_isHistoryOpen',
-    false
-  );
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null);
   const [selectedPastureName, setSelectedPastureName] = useState('');
   const [isRelocateOpen, setIsRelocateOpen] = usePersistentState(
@@ -96,14 +109,18 @@ const PastureManagement: React.FC = () => {
     'PastureManagement_isAssignOpen',
     false
   );
-  const [isRenovationOpen, setIsRenovationOpen] = usePersistentState(
-    'PastureManagement_isRenovationOpen',
-    false
-  );
+  const [isRenovationOpen, setIsRenovationOpen] = useState(false);
   const [selectedRenovationPastureId, setSelectedRenovationPastureId] = useState<string | null>(
     null
   );
   const [selectedRenovationData, setSelectedRenovationData] = useState<any>(null);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isFormOpen) return;
+    if (hasDraftForKey(`pasture_form_${activeTenantId}`)) setIsFormOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const handleOpenManejo = (pasture: any) => {
     setManejoPastureId(pasture.id);
@@ -113,45 +130,62 @@ const PastureManagement: React.FC = () => {
   const { data: rawHistoryLogs = null, isLoading: historyLoading } = useQuery({
     queryKey: ['pastos', 'history', selectedPastureId],
     queryFn: async () => {
-      if (!selectedPastureId) {
-        return null;
-      }
+      if (!selectedPastureId || !activeTenantId) return null;
+
+      // 1. Logs diretos do pasto
       const { data: pastoLogs, error: err1 } = await supabase
         .from('audit_logs')
         .select('*')
         .eq('entity', 'pastos')
-        .eq('entity_id', selectedPastureId);
+        .eq('entity_id', selectedPastureId)
+        .eq('tenant_id', activeTenantId)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
+      // 2. Logs de lotes com filtro de tenant (P0: vazamento de dados)
       const { data: loteLogs, error: err2 } = await supabase
         .from('audit_logs')
         .select('*')
-        .eq('entity', 'lotes');
+        .eq('entity', 'lotes')
+        .eq('tenant_id', activeTenantId)
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-      if (err1) {
-        throw err1;
-      }
-      if (err2) {
-        throw err2;
-      }
+      // 3. Logs de animais individuais (ASSIGN / TRANSFER com pasto)
+      const { data: animalLogs, error: err3 } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('entity', 'Animal')
+        .eq('tenant_id', activeTenantId)
+        .or(`new_data->>pasto_id.eq.${selectedPastureId},old_data->>pasto_id.eq.${selectedPastureId}`)
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-      return { pastoLogs: pastoLogs || [], loteLogs: loteLogs || [] };
+      if (err1) throw err1;
+      if (err2) throw err2;
+      // err3 silencioso — pode não ter RLS permissão ou query JSONB não suportada
+
+      return {
+        pastoLogs: pastoLogs || [],
+        loteLogs: loteLogs || [],
+        animalLogs: animalLogs || [],
+      };
     },
-    enabled: !!selectedPastureId,
+    enabled: !!selectedPastureId && !!activeTenantId,
   });
 
   const historyItems = React.useMemo(() => {
-    if (!selectedPastureId || !rawHistoryLogs) {
-      return [];
-    }
-    const { pastoLogs = [], loteLogs = [] } = rawHistoryLogs as any;
+    if (!selectedPastureId || !rawHistoryLogs) return [];
+    const { pastoLogs = [], loteLogs = [], animalLogs = [] } = rawHistoryLogs as any;
+
     const filteredLoteLogs = (loteLogs || []).filter(
       (item: any) =>
         item.new_data?.pasto_id === selectedPastureId ||
         item.old_data?.pasto_id === selectedPastureId
     );
 
-    const allLogs = [...pastoLogs, ...filteredLoteLogs].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    const allLogs = [...pastoLogs, ...filteredLoteLogs, ...(animalLogs || [])].sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     return allLogs.map((item: any) => {
@@ -174,16 +208,12 @@ const PastureManagement: React.FC = () => {
         const oldStatus = item.old_data?.status;
         const newStatus = item.new_data?.status;
         if (oldStatus !== newStatus && newStatus) {
+          const ns = normalizePastureStatus(newStatus);
+          const nsLabel = ns === PASTURE_STATUS.RESTING ? 'Descanso' : ns === PASTURE_STATUS.GRAZING ? 'Pastejo' : ns === PASTURE_STATUS.RENOVATION ? 'Reforma' : 'Degradado';
           title = 'Mudança de Status';
-          subtitle = `Pasto alterado para status: ${newStatus === 'resting' ? 'Descanso' : newStatus === 'grazing' ? 'Pastejo' : 'Degradado'}`;
-          value =
-            newStatus === 'resting'
-              ? 'DESCANSO'
-              : newStatus === 'grazing'
-                ? 'PASTEJO'
-                : 'DEGRADADO';
-          status =
-            newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
+          subtitle = `Pasto alterado para: ${nsLabel}`;
+          value = nsLabel.toUpperCase();
+          status = ns === PASTURE_STATUS.RESTING ? 'info' : ns === PASTURE_STATUS.GRAZING ? 'success' : 'warning';
         } else {
           title = 'Dados Atualizados';
           subtitle = 'Alterações nas configurações ou limites físicos';
@@ -198,16 +228,15 @@ const PastureManagement: React.FC = () => {
           : `Lote "${item.old_data?.nome}" transferido para outro pasto`;
         value = isEntrance ? 'ENTRADA' : 'SAÍDA';
         status = isEntrance ? 'success' : 'warning';
+      } else if (item.entity === 'Animal') {
+        const isEntrance = item.new_data?.pasto_id === selectedPastureId;
+        title = isEntrance ? 'Animal Associado' : 'Animal Transferido';
+        subtitle = item.description || (isEntrance ? 'Animal alocado neste pasto' : 'Animal saiu deste pasto');
+        value = isEntrance ? 'ENTRADA' : 'SAÍDA';
+        status = isEntrance ? 'success' : 'warning';
       }
 
-      return {
-        id: item.id,
-        date: item.created_at,
-        title,
-        subtitle,
-        value,
-        status,
-      };
+      return { id: item.id, date: item.created_at, title, subtitle, value, status };
     });
   }, [rawHistoryLogs, selectedPastureId]);
 
@@ -259,21 +288,38 @@ const PastureManagement: React.FC = () => {
     },
   });
 
-  const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({
-      title: 'Atenção',
-      description: 'Deseja excluir este pasto?',
-      confirmText: 'Confirmar',
-      cancelText: 'Cancelar',
-      variant: 'danger',
-    });
-    if (!isConfirmed) {
+  const handleDelete = async (pasture: any) => {
+    const id = pasture.id;
+
+    // P0: verificar animais alocados antes de qualquer confirmação
+    const { count } = await supabase
+      .from('animais')
+      .select('*', { count: 'exact', head: true })
+      .eq('pasto_id', id)
+      .in('status', ANIMAL_STATUS_ATIVO as unknown as string[]);
+
+    if (count && count > 0) {
+      toast.error(
+        `Impossível excluir "${pasture.nome}": ${count} animal(is) ainda alocado(s). Remaneie-os primeiro.`,
+        { duration: 5000 }
+      );
       return;
     }
 
+    const areaNum = parseFloat((pasture.area || '').toString().replace(/[^\d.-]/g, ''));
+    const area = isNaN(areaNum) ? 0 : areaNum;
+
+    const isConfirmed = await confirm({
+      title: `Excluir "${pasture.nome}"?`,
+      description: `Esta ação removerá permanentemente o pasto "${pasture.nome}" (${area} ha | ${pasture.tipo_capim || 'capim não informado'}). Essa operação não pode ser desfeita.`,
+      confirmText: 'Excluir permanentemente',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!isConfirmed) return;
+
     // Optimistic delete
     setLocalPastures((prev) => prev.filter((p) => p.id !== id));
-
     deletePastureMutation.mutate(id);
   };
 
@@ -311,15 +357,23 @@ const PastureManagement: React.FC = () => {
       area: parseFloat(data.area) || 0,
       capacidade_ua: parseFloat(data.capacidade_ua) || 2.5,
       tipo_capim: data.tipo_capim,
-      status: data.status || 'free',
+      status: data.status || PASTURE_STATUS.GRAZING,
+      sistema_pastejo: data.sistema_pastejo || 'Contínuo',
       data_ultima_fertilizacao: data.data_ultima_fertilizacao || null,
       topografia: data.topografia,
       tipo_solo: data.tipo_solo,
       agua: data.agua,
       observacoes: data.observacoes,
       estado_cerca: data.estado_cerca || 'Bom',
-      sombreamento: data.sombreamento || 'Natural',
-      plantas_daninhas: data.plantas_daninhas || 'Baixa',
+      sombreamento: data.sombreamento || 'Natural (Árvores)',
+      plantas_daninhas: data.plantas_daninhas || 'Baixa Infestação',
+      coordenadas: data.coordenadas || null,
+      // Campos condicionais — Rotacionado
+      num_piquetes: data.num_piquetes ? parseInt(data.num_piquetes) : null,
+      dias_ocupacao: data.dias_ocupacao ? parseInt(data.dias_ocupacao) : null,
+      dias_descanso: data.dias_descanso ? parseInt(data.dias_descanso) : null,
+      // Campo condicional — Diferido
+      data_diferimento: data.data_diferimento || null,
       fazenda_id: data.fazenda_id || activeFarmId,
       tenant_id: activeTenantId,
     };
@@ -493,28 +547,33 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleVazioSanitario = async (pasture: any) => {
-    const isConfirmed = await confirm({
-      title: 'Atenção',
-      description: `Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`,
-      confirmText: 'Confirmar',
-      cancelText: 'Cancelar',
-      variant: 'danger',
-    });
-    if (!isConfirmed) {
+    // P0: verificar se há animais alocados — Vazio Sanitário requer pasto vazio
+    const { count } = await supabase
+      .from('animais')
+      .select('*', { count: 'exact', head: true })
+      .eq('pasto_id', pasture.id)
+      .in('status', ANIMAL_STATUS_ATIVO as unknown as string[]);
+
+    if (count && count > 0) {
+      toast.error(
+        `"${pasture.nome}" ainda possui ${count} animal(is) alocado(s). Remaneie-os usando o botão REMANEJAR antes de iniciar o Vazio Sanitário.`,
+        { duration: 6000 }
+      );
       return;
     }
 
+    const isConfirmed = await confirm({
+      title: `Iniciar Vazio Sanitário em "${pasture.nome}"?`,
+      description: `O pasto será colocado em período de Descanso/Vazio Sanitário. Nenhum animal poderá ser alocado durante o período. Confirma?`,
+      confirmText: 'Iniciar Vazio Sanitário',
+      cancelText: 'Cancelar',
+      variant: 'warning',
+    });
+    if (!isConfirmed) return;
+
     // Optimistic update
     setLocalPastures((prev) =>
-      prev.map((p) =>
-        p.id === pasture.id
-          ? {
-              ...p,
-              status: 'resting',
-              lotacao: '0.00 UA',
-            }
-          : p
-      )
+      prev.map((p) => p.id === pasture.id ? { ...p, status: 'resting' } : p)
     );
 
     vazioSanitarioMutation.mutate(pasture.id);
@@ -547,27 +606,30 @@ const PastureManagement: React.FC = () => {
     const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
     const areaVal = isNaN(areaNum) ? 0 : areaNum;
 
-    // Tab Filter
+    // Tab Filter — usa enum canônico (sem strings hardcoded)
     let matchesTab = true;
-    const explicitStatus = (p.status || '').toLowerCase();
+    const normalizedTabStatus = normalizePastureStatus(p.status || '');
 
     if (activeTab === 'resting') {
-      matchesTab = explicitStatus === 'resting' || explicitStatus === 'descanso';
+      matchesTab = normalizedTabStatus === PASTURE_STATUS.RESTING;
     } else if (activeTab === 'occupied') {
-      matchesTab = lotacaoVal > 0 && explicitStatus !== 'resting' && explicitStatus !== 'descanso';
+      matchesTab = lotacaoVal > 0 && normalizedTabStatus !== PASTURE_STATUS.RESTING && normalizedTabStatus !== PASTURE_STATUS.RENOVATION;
+    } else if (activeTab === 'renovation') {
+      matchesTab = normalizedTabStatus === PASTURE_STATUS.RENOVATION;
     }
 
-    // Status Filter
+    // Status Filter — usa enum canônico (P0 fix)
     let matchesStatus = true;
     if (filterValues.status !== 'all') {
-      if (filterValues.status === 'occupied') {
-        matchesStatus =
-          lotacaoVal > 0 || explicitStatus === 'occupied' || explicitStatus === 'grazing';
+      const normalizedExplicit = normalizePastureStatus(p.status || '');
+      if (filterValues.status === 'grazing') {
+        matchesStatus = normalizedExplicit === PASTURE_STATUS.GRAZING;
       } else if (filterValues.status === 'resting') {
-        matchesStatus = explicitStatus === 'resting' || explicitStatus === 'descanso';
-      } else if (filterValues.status === 'free') {
-        matchesStatus =
-          lotacaoVal === 0 && (explicitStatus === 'free' || explicitStatus === 'grazing');
+        matchesStatus = normalizedExplicit === PASTURE_STATUS.RESTING;
+      } else if (filterValues.status === 'degraded') {
+        matchesStatus = normalizedExplicit === PASTURE_STATUS.DEGRADED;
+      } else if (filterValues.status === 'renovation') {
+        matchesStatus = normalizedExplicit === PASTURE_STATUS.RENOVATION;
       }
     }
 
@@ -609,11 +671,31 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = localPastures.map((p) => ({
-      Nome: p.nome,
-      Area: p.area,
-      Lotacao: p.lotacao,
-    }));
+    const exportData = localPastures.map((p) => {
+      const area = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, '')) || 0;
+      const uas = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, '')) || 0;
+      const density = area > 0 ? (uas / area).toFixed(2) : '0';
+      let fertDias = '-';
+      if (p.data_ultima_fertilizacao) {
+        fertDias = String(Math.floor((Date.now() - new Date(p.data_ultima_fertilizacao).getTime()) / 86400000));
+      }
+      return {
+        'Nome do Pasto': p.nome,
+        'Área (ha)': area,
+        'Forrageira': p.tipo_capim || 'Não informado',
+        'Status': normalizePastureStatus(p.status || ''),
+        'Sistema de Pastejo': p.sistema_pastejo || 'Não informado',
+        'Lotação (UA)': uas,
+        'Capacidade (UA)': p.capacidade_ua || 'Não configurado',
+        'Pressão (UA/ha)': density,
+        'Tipo de Solo': p.tipo_solo || 'Não informado',
+        'Topografia': p.topografia || 'Não informado',
+        'Água': p.agua || 'Não informado',
+        'Dias sem Adubação': fertDias,
+        'Estado da Cerca': p.estado_cerca || 'Não informado',
+        'Observações': p.observacoes || '',
+      };
+    });
 
     if (format === 'csv') {
       exportToCSV(exportData, 'relatorio_pastagens');
@@ -726,7 +808,7 @@ const PastureManagement: React.FC = () => {
         const uas = isNaN(uasNum) ? 0 : uasNum;
 
         const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
-        const area = isNaN(areaNum) ? 1 : areaNum;
+        const area = isNaN(areaNum) || areaNum <= 0 ? 0 : areaNum;
 
         const density = area > 0 ? (uas / area).toFixed(2) : '0';
         return (
@@ -772,69 +854,15 @@ const PastureManagement: React.FC = () => {
       accessor: (item: any) => {
         const uasNum = parseFloat((item.lotacao || '').toString().replace(/[^\d.-]/g, ''));
         const uas = isNaN(uasNum) ? 0 : uasNum;
-
-        const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
-        const area = isNaN(areaNum) ? 1 : areaNum;
-
-        const density = parseFloat(area > 0 ? (uas / area).toFixed(2) : '0');
-
-        const explicitStatus = (item.status || '').toLowerCase();
-
-        let status = 'Ideal';
-        let color = 'success';
-
-        if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
-          status = 'Descanso';
-          color = 'info';
-        } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
-          status = 'Degradado';
-          color = 'warning';
-        } else if (
-          explicitStatus === 'renovation' ||
-          explicitStatus === 'reforma' ||
-          explicitStatus === 'em_reforma'
-        ) {
-          status = 'Reforma';
-          color = 'danger';
-        } else if (uas === 0) {
-          status = 'Livre';
-          color = 'success';
-        } else if (density > 3.0) {
-          status = 'Superlotação';
-          color = 'danger';
-        } else if (density > 2.0) {
-          status = 'Atenção';
-          color = 'warning';
-        }
+        // P0: usa capacidade_ua total (não multiplica por área)
+        const area = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, '')) || 0;
+        const maxUa = item.capacidade_ua > 0 ? item.capacidade_ua : area * 2.5;
+        const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
+        const { badgeText, statusPill } = getPastureDisplay(item.status || '', occupancyPercent);
 
         return (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-            }}
-          >
-            <span
-              className={`status-pill ${color === 'danger' ? 'danger' : color === 'warning' ? 'warning' : color === 'info' ? 'info' : 'success'}`}
-            >
-              {status}
-            </span>
-            {item.status && (
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  color: '#94a3b8',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                {item.status}
-              </span>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <span className={`status-pill ${statusPill}`}>{badgeText}</span>
           </div>
         );
       },
@@ -860,21 +888,7 @@ const PastureManagement: React.FC = () => {
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsAssignOpen(true)}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <line x1="19" y1="8" x2="19" y2="14" />
-                <line x1="22" y1="11" x2="16" y2="11" />
-              </svg>
-            </span>
+            <UserPlus size={18} />
             ASSOCIAR ANIMAIS
           </button>
           <button className="glass-btn secondary" onClick={() => setIsRelocateOpen(true)}>
@@ -915,6 +929,12 @@ const PastureManagement: React.FC = () => {
             onClick={() => setActiveTab('occupied')}
           >
             Em Uso
+          </button>
+          <button
+            className={`tauze-tab-item ${activeTab === 'renovation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('renovation')}
+          >
+            Em Reforma
           </button>
         </div>
 
@@ -1055,7 +1075,7 @@ const PastureManagement: React.FC = () => {
                 <button
                   className="action-dot delete"
                   title="Excluir"
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => handleDelete(item)}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -1145,45 +1165,19 @@ const PastureManagement: React.FC = () => {
                 const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
                 const area = isNaN(areaNum) ? 0 : areaNum;
 
-                const capacityUa = p.capacidade_ua || 2.5;
-                const maxUa = area * capacityUa;
+                // P0: capacidade_ua é o total de UA do pasto (não multiplica por área)
+                const maxUa = p.capacidade_ua > 0 ? p.capacidade_ua : area * 2.5;
                 const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
 
-                const explicitStatus = (p.status || '').toLowerCase();
-
-                let badgeClass = 'active'; // green
-                let badgeText = 'IDEAL';
-                let borderClass = 'active';
-
-                if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
-                  badgeClass = 'info-badge';
-                  badgeText = 'DESCANSO';
-                  borderClass = 'info-badge';
-                } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
-                  badgeClass = 'warning-badge';
-                  badgeText = 'DEGRADADO';
-                  borderClass = 'warning-badge';
-                } else if (
-                  explicitStatus === 'renovation' ||
-                  explicitStatus === 'reforma' ||
-                  explicitStatus === 'em_reforma'
-                ) {
-                  badgeClass = 'stopped';
-                  badgeText = 'REFORMA';
-                  borderClass = 'danger-badge';
-                } else if (uas === 0) {
-                  badgeClass = 'active';
-                  badgeText = 'LIVRE';
-                  borderClass = 'active';
-                } else if (occupancyPercent > 100) {
-                  badgeClass = 'stopped';
-                  badgeText = 'SUPERLOTAÇÃO';
-                  borderClass = 'danger-badge';
-                } else if (occupancyPercent > 80) {
-                  badgeClass = 'warning-badge';
-                  badgeText = 'ATENÇÃO';
-                  borderClass = 'warning-badge';
+                // P2: carência química
+                let emCarencia = false;
+                let diasCarencia = 0;
+                if (p.data_ultima_fertilizacao) {
+                  diasCarencia = Math.floor((Date.now() - new Date(p.data_ultima_fertilizacao).getTime()) / 86400000);
+                  emCarencia = diasCarencia >= 0 && diasCarencia < CARENCIA_QUIMICA_DIAS;
                 }
+
+                const { badgeText, badgeClass, borderClass } = getPastureDisplay(p.status || '', occupancyPercent);
 
                 return (
                   <div key={p.id} className={`pasture-card-premium ${borderClass}`}>
@@ -1223,7 +1217,7 @@ const PastureManagement: React.FC = () => {
                         <button
                           className="action-icon-btn delete"
                           title="Excluir"
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => handleDelete(p)}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -1235,17 +1229,31 @@ const PastureManagement: React.FC = () => {
                         className="card-header-info"
                         style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
                       >
-                        <div className="title-row" style={{ width: '100%' }}>
+                        <div className="title-row" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <h3
                             style={{
                               fontSize: '16px',
                               fontWeight: 800,
                               color: 'hsl(var(--text-main))',
-                              width: '100%',
                             }}
                           >
                             {p.nome}
                           </h3>
+                          {/* P2: Indicador de carência química */}
+                          {emCarencia && (
+                            <span
+                              title={`Carência química ativa: ${diasCarencia} de ${CARENCIA_QUIMICA_DIAS} dias`}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                fontSize: '10px', fontWeight: 800, color: '#d97706',
+                                background: '#fffbeb', border: '1px solid #fde68a',
+                                borderRadius: '6px', padding: '2px 6px', flexShrink: 0,
+                              }}
+                            >
+                              <AlertTriangle size={10} />
+                              CARÊNCIA {CARENCIA_QUIMICA_DIAS - diasCarencia}d
+                            </span>
+                          )}
                         </div>
                         <div
                           className="meta-row"
@@ -1271,6 +1279,12 @@ const PastureManagement: React.FC = () => {
                         </div>
                         <div className="occ-footer">
                           {uas.toFixed(2)} / {maxUa > 0 ? maxUa.toFixed(2) : '∞'} UA
+                          {/* P2: Cabeças alocadas */}
+                          {p.cabecas_alocadas > 0 && (
+                            <span style={{ marginLeft: '6px', color: 'hsl(var(--text-muted))', fontSize: '10px', fontWeight: 700 }}>
+                              · {p.cabecas_alocadas} cab.
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1351,14 +1365,13 @@ const PastureManagement: React.FC = () => {
         }}
       />
 
-      <AssignAnimalForm
+      <AssignToPastoForm
         isOpen={isAssignOpen}
         onClose={() => setIsAssignOpen(false)}
         onSubmit={() => {
           refresh();
           setIsAssignOpen(false);
         }}
-        mode="pasto"
       />
       <style>{`
         .pasture-cards-grid {

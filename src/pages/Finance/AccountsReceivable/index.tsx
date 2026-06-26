@@ -25,6 +25,7 @@ import { useReceivablesData } from './useReceivablesData';
 import { useReceivableMutation } from './useReceivableMutation';
 import { useFilters } from './useFilters';
 import type { Receivable, HistoryItem } from './types';
+import { hasDraftForKey } from '../../../hooks/useFormDraft';
 
 // Import styles from parent directory
 import '../AccountsReceivable.css';
@@ -35,7 +36,7 @@ export const AccountsReceivable: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Modal states
-  const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsReceivable_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedInvoice, setSelectedInvoice] = useState<Receivable | null>(null);
 
@@ -55,6 +56,13 @@ export const AccountsReceivable: React.FC = () => {
     'AccountsReceivable_isCalendarOpen',
     false
   );
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`charge_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   // URL params handling
   const [searchParams] = useSearchParams();

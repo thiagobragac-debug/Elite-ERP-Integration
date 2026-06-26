@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
@@ -51,43 +51,46 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm, companies, activeCompany } = useTenant();
-  const [formData, setFormData] = usePersistentState('OutputInvoiceForm_formData', {
-    company_id: initialData?.company_id || activeCompany?.id || '',
-    seller_id: initialData?.seller_id || '',
-    sales_order_id: initialData?.sales_order_id || '',
-    invoice_number: initialData?.numero_nota || 'Gerado pela SEFAZ',
-    series: initialData?.serie || '1',
-    modelo_fiscal: initialData?.modelo_fiscal || '55',
-    client_id: initialData?.cliente_id || '',
-    date:
-      initialData?.data_emissao ||
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    total_value: initialData?.valor_total?.toString() || '0',
-    nature_of_operation: initialData?.natureza_operacao || 'Venda de Produção Própria',
+  const { activeFarm, companies, activeCompany, activeTenantId } = useTenant();
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `output_invoice_form_${activeTenantId}`,
+    initialState: {
+      company_id: activeCompany?.id || '',
+      seller_id: '',
+      sales_order_id: '',
+      invoice_number: 'Gerado pela SEFAZ',
+      series: '1',
+      modelo_fiscal: '55',
+      client_id: '',
+      date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      total_value: '0',
+      nature_of_operation: 'Venda de Produção Própria',
 
-    // Logística
-    transport_company: initialData?.transportadora || '',
-    freight_type: initialData?.freight_type || 'CIF',
-    vehicle_plate: initialData?.vehicle_plate || '',
-    gross_weight: initialData?.gross_weight || '',
+      // Logística
+      transport_company: '',
+      freight_type: 'CIF',
+      vehicle_plate: '',
+      gross_weight: '',
 
-    // Financeiro
-    payment_condition: initialData?.payment_condition || 'vista',
-    payment_method: initialData?.payment_method || 'Boleto',
-    installments: initialData?.installments || 1,
-    bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: initialData ? initialData.generate_financial : true,
+      // Financeiro
+      payment_condition: 'vista',
+      payment_method: 'Boleto',
+      installments: 1,
+      bank_account_id: '',
+      generate_financial: true,
 
-    description: initialData?.observacoes || '',
-    is_xml_imported: false,
-    xml_key: '',
-    iss_retido: initialData?.iss_retido?.toString() || '0',
-    irrf_retido: initialData?.irrf_retido?.toString() || '0',
-    csll_retido: initialData?.csll_retido?.toString() || '0',
-    pis_retido: initialData?.pis_retido?.toString() || '0',
-    cofins_retido: initialData?.cofins_retido?.toString() || '0',
-    inss_retido: initialData?.inss_retido?.toString() || '0',
+      description: '',
+      is_xml_imported: false,
+      xml_key: '',
+      iss_retido: '0',
+      irrf_retido: '0',
+      csll_retido: '0',
+      pis_retido: '0',
+      cofins_retido: '0',
+      inss_retido: '0',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
   const [items, setItems] = useState<InsumoItem[]>(initialData?.itens || []);
 
@@ -106,7 +109,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({
     }
   }, [isOpen, activeFarm]);
 
-  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  // Reseta estados secundários ao fechar o painel
   useEffect(() => {
     if (!isOpen && !initialData) {
       setItems([]);
@@ -114,38 +117,6 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({
       setShowFinancialConfirm(false);
       setShowXMLField(false);
       setPendingMatches(0);
-      setFormData({
-        company_id: activeCompany?.id || '',
-        seller_id: '',
-        sales_order_id: '',
-        invoice_number: 'Gerado pela SEFAZ',
-        series: '1',
-        modelo_fiscal: '55',
-        client_id: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        total_value: '0',
-        nature_of_operation: 'Venda de Produção Própria',
-        transport_company: '',
-        freight_type: 'CIF',
-        vehicle_plate: '',
-        gross_weight: '',
-        payment_condition: 'vista',
-        payment_method: 'Boleto',
-        installments: 1,
-        bank_account_id: '',
-        generate_financial: true,
-        description: '',
-        is_xml_imported: false,
-        xml_key: '',
-        iss_retido: '0',
-        irrf_retido: '0',
-        csll_retido: '0',
-        pis_retido: '0',
-        cofins_retido: '0',
-        inss_retido: '0',
-      });
     }
   }, [isOpen]);
 
@@ -382,6 +353,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({
         inss_retido: isServiceInvoice ? parseFloat(formData.inss_retido) || 0 : 0,
         valor_liquido: isServiceInvoice ? valorLiquido : parseFloat(formData.total_value) || 0,
       });
+      clearDraft();
       onClose();
     } finally {
       setLoading(false);
@@ -512,6 +484,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({
             onClose();
           }
         }}
+        onCancel={() => { clearDraft(); setShowFinancialConfirm(false); onClose(); }}
         onSubmit={handleSubmit}
         title={initialData ? 'Editar Nota Fiscal' : 'Emitir Nota Fiscal de Saída'}
         subtitle="Faturamento de vendas, integrações financeiras e baixas de estoque."

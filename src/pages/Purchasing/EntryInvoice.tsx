@@ -76,6 +76,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const EntryInvoice: React.FC = () => {
   const { confirm } = useConfirm();
@@ -91,7 +92,7 @@ export const EntryInvoice: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('EntryInvoice_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'INVOICES' | 'FISCAL') || 'INVOICES';
   const setActiveTab = (tab: string) => {
@@ -135,6 +136,13 @@ export const EntryInvoice: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`entry_invoice_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

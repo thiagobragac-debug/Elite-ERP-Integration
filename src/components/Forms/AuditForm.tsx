@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   ClipboardCheck,
@@ -36,12 +36,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
 
-  const [formData, setFormData] = usePersistentState('AuditForm_formData', {
+  const INITIAL_FORM = {
     title: '',
     date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     responsible: '',
@@ -51,6 +51,13 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     motivo: 'Rotina Mensal',
     ajuste_automatico: true,
     contagem_cega: false,
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `audit_form_${activeTenantId}`,
+    initialState: INITIAL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [items, setItems] = useState<any[]>([]);
@@ -76,42 +83,29 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        title: initialData.titulo || '',
-        date:
-          initialData.data_contagem ||
-          new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        responsible: initialData.responsavel || '',
-        category: initialData.categoria || 'Insumos (Sementes/Adubos)',
-        description: initialData.descricao || '',
-        deposito_id: initialData.deposito_id || '',
-        motivo: initialData.motivo || 'Rotina Mensal',
-        ajuste_automatico: initialData.ajuste_automatico !== false,
-        contagem_cega: !!initialData.contagem_cega,
-      });
-    } else {
-      setFormData({
-        title: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        responsible: '',
-        category: 'Insumos (Sementes/Adubos)',
-        description: '',
-        deposito_id: '',
-        motivo: 'Rotina Mensal',
-        ajuste_automatico: true,
-        contagem_cega: false,
-      });
-    }
-  }, [initialData, isOpen, actionId]);
+    if (!isOpen || !initialData) return;
+
+    setFormData({
+      title: initialData.titulo || '',
+      date:
+        initialData.data_contagem ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      responsible: initialData.responsavel || '',
+      category: initialData.categoria || 'Insumos (Sementes/Adubos)',
+      description: initialData.descricao || '',
+      deposito_id: initialData.deposito_id || '',
+      motivo: initialData.motivo || 'Rotina Mensal',
+      ajuste_automatico: initialData.ajuste_automatico !== false,
+      contagem_cega: !!initialData.contagem_cega,
+    });
+  }, [isOpen, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -122,6 +116,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Inventário' : 'Novo Inventário / Auditoria'}
       subtitle="Inicie um processo de contagem física para ajuste de saldo de estoque."

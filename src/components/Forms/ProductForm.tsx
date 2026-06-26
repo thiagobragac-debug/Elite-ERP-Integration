@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 import {
   Package,
   Tag,
@@ -45,37 +45,43 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   hasHistory = false,
   actionId,
 }) => {
-  const { tenant } = useTenant();
+  const { tenant, activeTenantId } = useTenant();
   const [categories, setCategories] = useState<
     { id: string; nome: string; tipo_item?: string; parent_id?: string | null }[]
   >([]);
   const [ncms, setNcms] = useState<{ value: string; label: string }[]>([]);
 
-  const [formData, setFormData] = usePersistentState('ProductForm_formData', {
-    nome: '',
-    categoria: '',
-    categoria_id: '',
-    subcategoria_id: '',
-    unidade: 'un',
-    estoque_minimo: '0',
-    estoque_atual: '0',
-    custo_medio: '0',
-    custo_padrao: '0',
-    carencia_dias: '0',
-    descricao: '',
-    ean: '',
-    ncm: '',
-    marca: '',
-    localizacao: '',
-    is_purchasable: true,
-    is_sellable: false,
-    is_storable: true,
-    is_active: true,
-    tipo: 'produto',
-    embalagens: [] as { descricao: string; fator: number }[],
-    codigo_servico_lc116: '',
-    codigo_tributacao_nacional: '',
-    cnae_associado: '',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `product_form_${activeTenantId}`,
+    initialState: {
+      nome: '',
+      categoria: '',
+      categoria_id: '',
+      subcategoria_id: '',
+      unidade: 'un',
+      estoque_minimo: '0',
+      estoque_atual: '0',
+      custo_medio: '0',
+      custo_padrao: '0',
+      carencia_abate_dias: '0',
+      carencia_leite_dias: '0',
+      descricao: '',
+      ean: '',
+      ncm: '',
+      marca: '',
+      localizacao: '',
+      is_purchasable: true,
+      is_sellable: false,
+      is_storable: true,
+      is_active: true,
+      tipo: 'produto',
+      embalagens: [] as { descricao: string; fator: number }[],
+      codigo_servico_lc116: '',
+      codigo_tributacao_nacional: '',
+      cnae_associado: '',
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [loading, setLoading] = useState(false);
@@ -254,7 +260,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         custo_medio: initialData.custo_medio?.toString() || '0',
         custo_padrao:
           initialData.custo_padrao?.toString() || initialData.preco_custo?.toString() || '0',
-        carencia_dias: initialData.carencia_dias?.toString() || '0',
+        carencia_abate_dias: initialData.carencia_abate_dias?.toString() || '0',
+        carencia_leite_dias: initialData.carencia_leite_dias?.toString() || '0',
         descricao: initialData.descricao || '',
         ean: initialData.ean || '',
         ncm: initialData.ncm || '',
@@ -271,33 +278,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         codigo_tributacao_nacional: initialData.codigo_tributacao_nacional || '',
         cnae_associado: initialData.cnae_associado || '',
       });
-    } else if (!isOpen) {
-      setFormData({
-        nome: '',
-        categoria: '',
-        categoria_id: '',
-        subcategoria_id: '',
-        unidade: 'un',
-        estoque_minimo: '0',
-        estoque_atual: '0',
-        custo_medio: '0',
-        custo_padrao: '0',
-        carencia_dias: '0',
-        descricao: '',
-        ean: '',
-        ncm: '',
-        marca: '',
-        localizacao: '',
-        is_purchasable: true,
-        is_sellable: false,
-        is_storable: true,
-        is_active: true,
-        tipo: 'produto',
-        embalagens: [],
-        codigo_servico_lc116: '',
-        codigo_tributacao_nacional: '',
-        cnae_associado: '',
-      });
     }
   }, [initialData, isOpen, actionId]);
 
@@ -306,6 +286,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData);
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -322,6 +303,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       size="large"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Produto' : 'Novo Insumo / Produto'}
       subtitle="Cadastre um item no seu estoque."
@@ -598,10 +580,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <div className="tauze-section-badge">PASSO 03</div>
               <h4 className="tauze-section-title">Controle de Estoque</h4>
             </div>
-            <div className="tauze-input-grid grid-col-4">
+            <div className="tauze-input-grid grid-col-5">
               <div className="tauze-field-group">
                 <label className="tauze-label">
-                  <AlertCircle size={14} /> Carência de Abate
+                  <AlertCircle size={14} /> Carência Abate
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input
@@ -609,8 +591,36 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     type="number"
                     placeholder="Ex: 0"
                     style={{ paddingRight: '42px' }}
-                    value={formData.carencia_dias}
-                    onChange={(e) => setFormData({ ...formData, carencia_dias: e.target.value })}
+                    value={formData.carencia_abate_dias}
+                    onChange={(e) => setFormData({ ...formData, carencia_abate_dias: e.target.value })}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      fontSize: '11px',
+                      color: 'hsl(var(--text-muted))',
+                      fontWeight: 600,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    dias
+                  </span>
+                </div>
+              </div>
+
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <AlertCircle size={14} /> Carência Leite
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    className="tauze-input"
+                    type="number"
+                    placeholder="Ex: 0"
+                    style={{ paddingRight: '42px' }}
+                    value={formData.carencia_leite_dias}
+                    onChange={(e) => setFormData({ ...formData, carencia_leite_dias: e.target.value })}
                   />
                   <span
                     style={{

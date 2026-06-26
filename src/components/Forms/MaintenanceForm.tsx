@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Wrench,
@@ -38,8 +38,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
-  const [formData, setFormData] = usePersistentState('MaintenanceForm_formData', {
+  const { activeFarm, activeTenantId } = useTenant();
+
+  const INITIAL_MAINTENANCE_FORM = {
     maquina_id: '',
     tipo: 'preventive',
     descricao: '',
@@ -51,6 +52,13 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     responsavel: '',
     status: 'open',
     meter_value: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `maintenance_form_${activeTenantId}`,
+    initialState: INITIAL_MAINTENANCE_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [items, setItems] = useState<any[]>([]);
@@ -67,42 +75,22 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   });
 
   useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
-
-    if (initialData) {
-      setFormData({
-        maquina_id: initialData.maquina_id || '',
-        tipo: initialData.tipo || 'preventive',
-        descricao: initialData.descricao || '',
-        data_inicio:
-          initialData.data_inicio ||
-          new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        custo_pecas: initialData.custo_pecas?.toString() || '0',
-        custo_mao_obra: initialData.custo_mao_obra?.toString() || '0',
-        responsavel: initialData.responsavel || '',
-        status: initialData.status || 'open',
-        meter_value: initialData.valor_medidor?.toString() || '',
-      });
-      if (initialData.materiais) {
-        setItems(initialData.materiais);
-      }
-    } else {
-      setFormData({
-        maquina_id: '',
-        tipo: 'preventive',
-        descricao: '',
-        data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        custo_pecas: '0',
-        custo_mao_obra: '0',
-        responsavel: '',
-        status: 'open',
-        meter_value: '',
-      });
-      setItems([]);
+    if (!isOpen || !initialData) return;
+    setFormData({
+      maquina_id: initialData.maquina_id || '',
+      tipo: initialData.tipo || 'preventive',
+      descricao: initialData.descricao || '',
+      data_inicio:
+        initialData.data_inicio ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      custo_pecas: initialData.custo_pecas?.toString() || '0',
+      custo_mao_obra: initialData.custo_mao_obra?.toString() || '0',
+      responsavel: initialData.responsavel || '',
+      status: initialData.status || 'open',
+      meter_value: initialData.valor_medidor?.toString() || '',
+    });
+    if (initialData.materiais) {
+      setItems(initialData.materiais);
     }
   }, [initialData, isOpen, actionId]);
 
@@ -170,6 +158,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -180,6 +169,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       size="medium"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço'}
       subtitle={

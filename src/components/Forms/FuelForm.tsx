@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   Fuel,
@@ -39,12 +39,20 @@ export const FuelForm: React.FC<FuelFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
-  const [formData, setFormData] = useState({
+  const { activeFarm, activeTenantId } = useTenant();
+
+  const INITIAL_FUEL_FORM = {
     machine_id: '',
     date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     meter_value: '',
     responsible: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `fuel_form_${activeTenantId}`,
+    initialState: INITIAL_FUEL_FORM,
+    isOpen,
+    isEditMode: !!initialData,
   });
 
   const [items, setItems] = useState<any[]>([]);
@@ -54,29 +62,15 @@ export const FuelForm: React.FC<FuelFormProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionId) {
-      return;
-    } // Ignore on initial mount / refresh
-
-    if (initialData) {
-      setFormData({
-        machine_id: initialData.maquina_id || '',
-        date:
-          initialData.data_abastecimento ||
-          new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        meter_value: initialData.valor_medidor?.toString() || '',
-        responsible: initialData.responsavel || '',
-      });
-    } else {
-      setFormData({
-        machine_id: '',
-        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        meter_value: '',
-        responsible: '',
-      });
-    }
+    if (!isOpen || !initialData) return;
+    setFormData({
+      machine_id: initialData.maquina_id || '',
+      date:
+        initialData.data_abastecimento ||
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      meter_value: initialData.valor_medidor?.toString() || '',
+      responsible: initialData.responsavel || '',
+    });
   }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
@@ -156,6 +150,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -165,6 +160,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Abastecimento' : 'Novo Registro de Abastecimento'}
       subtitle="Controle o consumo de combustível da sua frota."

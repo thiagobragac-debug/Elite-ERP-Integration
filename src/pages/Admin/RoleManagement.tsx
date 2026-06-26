@@ -28,7 +28,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string; triggerCreate: numb
   const [loading, setLoading] = useState(true);
 
   // Modal State
-  const [isModalOpen, setIsModalOpen] = usePersistentState('RoleManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Cargo | null>(null);
   const [formData, setFormData] = usePersistentState('RoleManagement_formData', {
     nome: '',

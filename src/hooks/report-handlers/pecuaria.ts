@@ -924,7 +924,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
 // ─────────────────────────────────────────────────────────────
 // Pecuária: Gestão de Animais
 // ─────────────────────────────────────────────────────────────
-export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
+export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20, filters: Record<string, unknown> = {}) => {
   const columns = [
     { header: 'Brinco', accessor: 'brinco' },
     { header: 'Raça', accessor: 'raca' },
@@ -948,10 +948,38 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     let animaisQuery = supabase.from('animais').select('*, lotes(nome)', { count: 'exact' });
     animaisQuery = applyScope(animaisQuery, tenantId, fazendaId);
+
+    // ── Server-side filters ───────────────────────────────────────────────
+    // Status filter: normalize case (Ativo = ATIVO)
+    if (filters.status && filters.status !== 'all') {
+      const statusVal = String(filters.status);
+      // Handle both 'Ativo' and 'ATIVO' by using ilike or explicit OR
+      if (statusVal === 'Ativo' || statusVal === 'ATIVO') {
+        animaisQuery = animaisQuery.in('status', ['Ativo', 'ATIVO']);
+      } else {
+        animaisQuery = animaisQuery.eq('status', statusVal);
+      }
+    }
+    // Sexo filter
+    if (filters.sexo && filters.sexo !== 'all') {
+      animaisQuery = animaisQuery.eq('sexo', String(filters.sexo));
+    }
+    // Raças filter (array)
+    if (Array.isArray(filters.racas) && (filters.racas as string[]).length > 0) {
+      animaisQuery = animaisQuery.in('raca', filters.racas as string[]);
+    }
+    // Min weight filter
+    if (filters.minWeight && Number(filters.minWeight) > 0) {
+      animaisQuery = animaisQuery.gte('peso_atual', Number(filters.minWeight));
+    }
+    // Search term filter (brinco or raca)
+    if (filters.searchTerm && String(filters.searchTerm).trim()) {
+      const term = String(filters.searchTerm).trim();
+      animaisQuery = animaisQuery.or(`brinco.ilike.%${term}%,raca.ilike.%${term}%`);
+    }
 
     let sanidadeQuery = supabase
       .from('sanidade')
@@ -988,8 +1016,20 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
     const totalAnimals = dataRes.count || 0;
     const activeAnimals = Number(statsRes.data?.active || 0);
     const deadAnimals = Number(statsRes.data?.dead || 0);
-    const avgWeight = Number(statsRes.data?.avg_weight || 0);
+    const soldAnimals = Number(statsRes.data?.sold || 0);
     const gmdGlobal = Number(gmdRes.data || 0);
+
+    // ── Peso Médio: usar RPC se disponível; fallback JS excluindo zeros ─────
+    // Bug fix: avg_weight from RPC may include animals with peso=0 (no weighing)
+    // Correct: compute from page data rows with peso > 0 as JS fallback
+    const rpcAvgWeight = Number(statsRes.data?.avg_weight || 0);
+    const pageRows: any[] = dataRes.data || [];
+    const rowsWithWeight = pageRows.filter((a: any) => (a.peso_atual || a.peso_inicial || 0) > 0);
+    const jsAvgWeight = rowsWithWeight.length > 0
+      ? rowsWithWeight.reduce((s: number, a: any) => s + Number(a.peso_atual || a.peso_inicial || 0), 0) / rowsWithWeight.length
+      : 0;
+    // Prefer RPC value if it looks correct (> 50kg); otherwise use JS calc
+    const avgWeight = (rpcAvgWeight > 50) ? rpcAvgWeight : jsAvgWeight;
 
     // Carências ativas: calcular quais animais/lotes estão em período de carência
     const activeSanidades = (sanidadeRes?.data || []).filter((s: any) => {
@@ -1001,8 +1041,8 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
       return releaseDate > new Date();
     });
 
-    const _lastAnimalDate = dataRes.data?.[0]?.created_at
-      ? fmtDateBR(dataRes.data[0].created_at)
+    const _lastAnimalDate = pageRows[0]?.created_at
+      ? fmtDateBR(pageRows[0].created_at)
       : null;
     const blockedAnimalIds = new Set(
       activeSanidades.filter((s: any) => s.animal_id).map((s: any) => s.animal_id)
@@ -1011,8 +1051,14 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
       activeSanidades.filter((s: any) => s.lote_id).map((s: any) => s.lote_id)
     );
 
+    // Arroba padrão CEPEA: 1@ = 30 kg (peso vivo comercial)
+    const ARROBA_DIVISOR = 30;
+    const totalArrobas = avgWeight > 0 && activeAnimals > 0
+      ? ((avgWeight * activeAnimals) / ARROBA_DIVISOR).toFixed(0)
+      : null;
+
     return {
-      data: (dataRes.data || []).map((a: any) => ({
+      data: pageRows.map((a: any) => ({
         ...a,
         lote: a.lotes?.nome || '---',
         isSanitaryBlocked:
@@ -1025,7 +1071,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
           subtitle: _lastAnimalDate
             ? `Último cadastro em ${_lastAnimalDate}`
             : `Inventário em ${todayBR()}`,
-          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
+          sparkline: buildSparkline(pageRows, 'created_at', null),
           value: totalAnimals > 0 ? totalAnimals.toLocaleString() : '---',
           change: activeAnimals > 0 ? `${activeAnimals} ativos` : 'Sem animais',
           trend: 'neutral' as const,
@@ -1034,33 +1080,36 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
         },
         {
           label: 'Peso Médio',
-          subtitle: 'Calculado de pesagens do rebanho',
-          sparkline: buildSparkline(dataRes.data || [], 'created_at', 'peso_atual'),
+          subtitle: avgWeight > 50
+            ? `≈ ${(avgWeight / ARROBA_DIVISOR).toFixed(1)}@ por cabeça (CEPEA)`
+            : 'Cadastre pesagens para calcular',
+          sparkline: buildSparkline(pageRows, 'created_at', 'peso_atual'),
           value: avgWeight > 0 ? `${avgWeight.toFixed(1)} kg` : '---',
-          change:
-            avgWeight > 0
-              ? `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total`
-              : 'Sem pesagens',
-          trend: avgWeight > 0 ? ('up' as const) : ('neutral' as const),
+          change: totalArrobas
+            ? `${totalArrobas}@ total estimado`
+            : 'Sem pesagens registradas',
+          trend: avgWeight > 50 ? ('up' as const) : ('neutral' as const),
           icon: Scale,
           color: 'hsl(var(--warning))',
         },
         {
-          label: 'Saídas / Abatidos',
-          subtitle: `Histórico até ${todayBR()}`,
-          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
-          value: deadAnimals > 0 ? String(deadAnimals) : '0',
-          change: deadAnimals > 0 ? 'Histórico registrado' : 'Nenhum registrado',
+          label: 'Abatidos / Vendidos',
+          subtitle: `Saídas registradas até ${todayBR()}`,
+          sparkline: buildSparkline(pageRows, 'created_at', null),
+          value: (deadAnimals + soldAnimals) > 0 ? String(deadAnimals + soldAnimals) : '0',
+          change: deadAnimals > 0 || soldAnimals > 0
+            ? `${deadAnimals} abatidos · ${soldAnimals} vendidos`
+            : 'Nenhuma saída registrada',
           trend: 'neutral' as const,
           icon: Skull,
           color: 'hsl(var(--danger))',
         },
         {
           label: 'GMD Médio',
-          subtitle: 'Calculado de pesagens do rebanho',
-          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
+          subtitle: gmdGlobal > 0 ? 'Últimas pesagens do rebanho' : 'Cadastre pesagens para calcular',
+          sparkline: buildSparkline(pageRows, 'created_at', null),
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
-          change: gmdGlobal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
+          change: gmdGlobal > 0 ? 'Base: histórico de pesagens' : 'Sem pesagens registradas',
           trend: gmdGlobal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
           color: 'hsl(var(--success))',
@@ -1206,6 +1255,13 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
       header: 'Previsão Parto',
       accessor: (row: any) =>
         row.previsaoParto ? new Date(row.previsaoParto).toLocaleDateString('pt-BR') : '---',
+    },
+    { header: 'Touro/Sêmen', accessor: (row: any) => row.touro || row.partida_semen || '---' },
+    { header: 'Inseminador', accessor: (row: any) => row.tecnico || '---' },
+    { header: 'Cria', accessor: (row: any) => row.sexo_cria ? `${row.sexo_cria} ${row.peso_nascimento ? `(${row.peso_nascimento}kg)` : ''}` : '---' },
+    {
+      header: 'Observações',
+      accessor: (row: any) => row.observacoes || '---',
     },
     {
       header: 'Progresso Gestação',

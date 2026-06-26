@@ -88,6 +88,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const BankAccounts: React.FC = () => {
   const { confirm } = useConfirm();
@@ -103,7 +104,7 @@ export const BankAccounts: React.FC = () => {
   const { activeCompany, companies } = useTenant();
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('BankAccounts_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'BALANCES' | 'CASHFLOW') || 'BALANCES';
@@ -134,6 +135,13 @@ export const BankAccounts: React.FC = () => {
     balanceStatus: 'all',
     institution: 'all',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`bank_account_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const queryClient = useQueryClient();
 
@@ -319,7 +327,8 @@ export const BankAccounts: React.FC = () => {
           return await supabase
             .from('contas_bancarias')
             .update(payloadToSave)
-            .eq('id', selectedAccount.id);
+            .eq('id', selectedAccount.id)
+            .eq('tenant_id', activeTenantId);
         }
         return await supabase.from('contas_bancarias').insert([payloadToSave]);
       };
@@ -362,7 +371,7 @@ export const BankAccounts: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('contas_bancarias').delete().eq('id', id);
+      const { error } = await supabase.from('contas_bancarias').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -698,7 +707,7 @@ export const BankAccounts: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => toast('Em breve: módulo de conciliação bancária.', { icon: '📊' })}>
             <Layout size={18} />
             CONCILIAÇÃO
           </button>
@@ -1145,7 +1154,7 @@ export const BankAccounts: React.FC = () => {
                         }}
                       >
                         <Clock size={12} style={{ color: '#10b981' }} />
-                        <span>Sincronizado via API • Hoje 08:30</span>
+                        <span>Saldo atualizado manualmente</span>
                       </div>
                     </div>
                   </div>

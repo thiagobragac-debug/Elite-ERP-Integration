@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 
 import {
   DollarSign,
@@ -19,6 +19,7 @@ import {
 import { SearchableSelect } from './SearchableSelect';
 import { SidePanel } from '../Layout/SidePanel';
 import { DateInput } from '../../components/Form/DateInput';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface ChargeFormProps {
   isOpen: boolean;
@@ -39,7 +40,9 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({
   isSubmitting = false,
   actionId: _actionId,
 }) => {
-  const [formData, setFormData] = usePersistentState('ChargeForm_formData', {
+  const { activeTenantId } = useTenant();
+
+  const INITIAL_CHARGE_FORM = {
     tenant_id: '',
     plan_name: '',
     billing_type: 'recurring', // 'recurring' ou 'one_time'
@@ -51,27 +54,19 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({
     payment_link: '',
     auto_send_email: true,
     description: '',
+  };
+
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `charge_form_${activeTenantId}`,
+    initialState: INITIAL_CHARGE_FORM,
+    isOpen,
+    isEditMode: false,
   });
 
   const [isCustomPlan, setIsCustomPlan] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        tenant_id: '',
-        plan_name: '',
-        billing_type: 'recurring',
-        amount: '',
-        discount_amount: '',
-        payment_method: 'pix',
-        status: 'pendente',
-        due_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        payment_link: '',
-        auto_send_email: true,
-        description: '',
-      });
       setIsCustomPlan(false);
     }
   }, [isOpen]);
@@ -89,6 +84,7 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+    clearDraft();
   };
 
   const tenantOptions = [
@@ -114,6 +110,7 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({
       size="large"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title="Emissão de Fatura SaaS"
       subtitle="Geração manual de cobrança B2B (Assinaturas ou Setup)."

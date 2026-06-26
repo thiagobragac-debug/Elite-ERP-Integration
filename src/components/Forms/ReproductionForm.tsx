@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useFormDraft } from '../../hooks/useFormDraft';
 import { motion } from 'framer-motion';
 
 import {
@@ -45,7 +45,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
   loading: propsLoading,
   actionId,
 }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
   const [animais, setAnimais] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -97,27 +97,38 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
     }
   };
 
-  const [formData, setFormData] = usePersistentState('ReproductionForm_formData', {
-    animal_id: '',
-    tipo_evento: 'IATF',
-    data_evento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0],
-    resultado: '',
-    resultado_diagnostico: 'Prenha',
-    dias_gestacao: '',
-    sexo_cria: 'Macho',
-    id_cria: '',
-    touro: '',
-    ecc: '3',
-    observacoes: '',
-    status: 'pending',
+  const { formData, setFormData, clearDraft } = useFormDraft({
+    key: `reproduction_form_${activeTenantId}`,
+    initialState: {
+      animal_id: '',
+      tipo_evento: 'IATF',
+      data_evento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .split('T')[0],
+      resultado: '',
+      resultado_diagnostico: 'Prenha',
+      dias_gestacao: '',
+      sexo_cria: 'Macho',
+      id_cria: '',
+      touro: '',
+      ecc: '3',
+      observacoes: '',
+      status: 'pending',
+      tecnico: '',
+      partida_semen: '',
+      metodo_diagnostico: 'Palpação Retal',
+      numero_fetos: 'Simples',
+      peso_nascimento: '',
+      retencao_placenta: false,
+      dificuldade_parto: 1,
+      teat_sealant: false,
+      periodo_secagem: 60,
+    },
+    isOpen,
+    isEditMode: !!initialData,
   });
 
-  const [produtosAplicados, setProdutosAplicados] = usePersistentState<any[]>(
-    'ReproductionForm_produtosAplicados',
-    []
-  );
+  const [produtosAplicados, setProdutosAplicados] = useState<any[]>([]);
 
   React.useEffect(() => {
     if (!actionId) {
@@ -140,25 +151,18 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
         ecc: initialData.ecc?.toString() || '3',
         observacoes: initialData.observacoes || '',
         status: initialData.status || 'pending',
+        tecnico: initialData.tecnico || '',
+        partida_semen: initialData.partida_semen || '',
+        metodo_diagnostico: initialData.metodo_diagnostico || 'Palpação Retal',
+        numero_fetos: initialData.numero_fetos || 'Simples',
+        peso_nascimento: initialData.peso_nascimento || '',
+        retencao_placenta: initialData.retencao_placenta || false,
+        dificuldade_parto: initialData.dificuldade_parto || 1,
+        teat_sealant: initialData.teat_sealant || false,
+        periodo_secagem: initialData.periodo_secagem || 60,
       });
       setProdutosAplicados(initialData.produtos || []);
     } else {
-      setFormData({
-        animal_id: '',
-        tipo_evento: 'IATF',
-        data_evento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .split('T')[0],
-        resultado: '',
-        resultado_diagnostico: 'Prenha',
-        dias_gestacao: '',
-        sexo_cria: 'Macho',
-        id_cria: '',
-        touro: '',
-        ecc: '3',
-        observacoes: '',
-        status: 'pending',
-      });
       setProdutosAplicados([]);
     }
   }, [initialData, isOpen, actionId]);
@@ -167,8 +171,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
 
   const ETAPAS_CONFIG = [
     { id: 'dados', label: '1. Dados do Evento', icon: Calendar, color: '#3b82f6' },
-    { id: 'resultados', label: '2. Resultados', icon: Activity, color: '#10b981' },
-    { id: 'produtos', label: '3. Fármacos', icon: Syringe, color: '#f59e0b' },
+    { id: 'produtos', label: '2. Fármacos', icon: Syringe, color: '#f59e0b' },
+    { id: 'resultados', label: '3. Resultados', icon: Activity, color: '#10b981' },
   ];
 
   const isDadosDone = formData.animal_id.trim().length > 0;
@@ -184,6 +188,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
     setLoading(true);
     try {
       await onSubmit({ ...formData, produtos: produtosAplicados });
+      clearDraft();
     } finally {
       setLoading(false);
     }
@@ -239,6 +244,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
       size="xlarge"
       isOpen={isOpen}
       onClose={onClose}
+      onCancel={() => { clearDraft(); onClose(); }}
       onSubmit={handleSubmit}
       title={initialData ? 'Editar Evento Reprodutivo' : 'Novo Evento Reprodutivo'}
       subtitle={
@@ -513,6 +519,39 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                       placeholder="Busque pelo brinco ou ID..."
                     />
                   </div>
+                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>
+                        <Activity size={14} /> ECC (Escore de Condição Corporal)
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                        1 (Muito Magra) a 5 (Obesa)
+                      </span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                      {[1, 2, 3, 4, 5].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, ecc: score.toString() })}
+                          style={{
+                            flex: 1,
+                            padding: '12px 0',
+                            borderRadius: '10px',
+                            fontWeight: 800,
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            background: formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
+                            color: formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
+                            border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
+                          }}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -561,14 +600,38 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                       </div>
                       <div className="tauze-field-group">
                         <label className="tauze-label">
-                          <Hash size={14} /> Touro / Partida de Sêmen
+                          <Hash size={14} /> Nome do Touro (Reprodutor)
                         </label>
                         <input
                           className="tauze-input"
                           type="text"
-                          placeholder="Nome do Touro ou Lote..."
+                          placeholder="Nome ou código do touro..."
                           value={formData.touro}
                           onChange={(e) => setFormData({ ...formData, touro: e.target.value })}
+                        />
+                      </div>
+                      <div className="tauze-field-group">
+                        <label className="tauze-label">
+                          <Hash size={14} /> Partida de Sêmen (Opcional)
+                        </label>
+                        <input
+                          className="tauze-input"
+                          type="text"
+                          placeholder="Código do lote/partida..."
+                          value={formData.partida_semen}
+                          onChange={(e) => setFormData({ ...formData, partida_semen: e.target.value })}
+                        />
+                      </div>
+                      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                        <label className="tauze-label">
+                          <Activity size={14} /> Técnico / Inseminador Responsável
+                        </label>
+                        <input
+                          className="tauze-input"
+                          type="text"
+                          placeholder="Nome do profissional..."
+                          value={formData.tecnico}
+                          onChange={(e) => setFormData({ ...formData, tecnico: e.target.value })}
                         />
                       </div>
                     </>
@@ -593,8 +656,23 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                           ]}
                         />
                       </div>
+                      <div className="tauze-field-group">
+                        <label className="tauze-label">
+                          <Activity size={14} /> Método de Diagnóstico
+                        </label>
+                        <SearchableSelect
+                          value={formData.metodo_diagnostico}
+                          onChange={(val: any) => setFormData({ ...formData, metodo_diagnostico: val })}
+                          options={[
+                            { value: `Palpação Retal`, label: `Palpação Retal` },
+                            { value: `Ultrassonografia`, label: `Ultrassonografia` },
+                            { value: `Exame Visual`, label: `Exame Visual` },
+                          ]}
+                        />
+                      </div>
                       {formData.resultado_diagnostico === 'Prenha' && (
-                        <div className="tauze-field-group">
+                        <>
+                          <div className="tauze-field-group">
                           <label className="tauze-label">
                             <CalendarDays size={14} /> Dias de Gestação
                           </label>
@@ -608,6 +686,21 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                             }
                           />
                         </div>
+                        <div className="tauze-field-group">
+                          <label className="tauze-label">
+                            <Baby size={14} /> Número de Fetos
+                          </label>
+                          <SearchableSelect
+                            value={formData.numero_fetos}
+                            onChange={(val: any) => setFormData({ ...formData, numero_fetos: val })}
+                            options={[
+                              { value: `Simples`, label: `Único (Simples)` },
+                              { value: `Gemelar`, label: `Gemelar` },
+                              { value: `Múltiplo`, label: `Múltiplo` },
+                            ]}
+                          />
+                        </div>
+                        </>
                       )}
                     </>
                   )}
@@ -629,6 +722,23 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                           ]}
                         />
                       </div>
+                      {formData.resultado !== 'Aborto' && (
+                        <div className="tauze-field-group">
+                          <label className="tauze-label">
+                            <Activity size={14} /> Escore de Dificuldade do Parto
+                          </label>
+                          <SearchableSelect
+                            value={formData.dificuldade_parto.toString()}
+                            onChange={(val: any) => setFormData({ ...formData, dificuldade_parto: parseInt(val) })}
+                            options={[
+                              { value: `1`, label: `1 - Fácil (Sem assistência)` },
+                              { value: `2`, label: `2 - Moderado (Assistência leve)` },
+                              { value: `3`, label: `3 - Difícil (Força mecânica necessária)` },
+                              { value: `4`, label: `4 - Cirúrgico / Cesariana` },
+                            ]}
+                          />
+                        </div>
+                      )}
                       {formData.resultado !== 'Aborto' && (
                         <>
                           <div className="tauze-field-group">
@@ -658,56 +768,64 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                               }
                             />
                           </div>
+                          <div className="tauze-field-group">
+                            <label className="tauze-label">
+                              <Target size={14} /> Peso ao Nascer (kg)
+                            </label>
+                            <input
+                              className="tauze-input"
+                              type="number"
+                              step="0.1"
+                              placeholder="Ex: 35.5"
+                              value={formData.peso_nascimento}
+                              onChange={(e) => setFormData({ ...formData, peso_nascimento: e.target.value })}
+                            />
+                          </div>
+                          <div className="tauze-field-group" style={{ display: 'flex', alignItems: 'center' }}>
+                            <label className="tauze-checkbox-container" style={{ display: 'flex', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                              <input
+                                type="checkbox"
+                                checked={formData.retencao_placenta}
+                                onChange={(e) => setFormData({ ...formData, retencao_placenta: e.target.checked })}
+                                style={{ accentColor: 'hsl(var(--brand))', width: '16px', height: '16px' }}
+                              />
+                              Houve Retenção de Placenta?
+                            </label>
+                          </div>
                         </>
                       )}
                     </>
                   )}
 
-                  {/* ----- CAMPOS COMPARTILHADOS ----- */}
-                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label
-                      className="tauze-label"
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span>
-                        <Activity size={14} /> ECC (Escore de Condição Corporal)
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                        1 (Muito Magra) a 5 (Obesa)
-                      </span>
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                      {[1, 2, 3, 4, 5].map((score) => (
-                        <button
-                          key={score}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, ecc: score.toString() })}
-                          style={{
-                            flex: 1,
-                            padding: '12px 0',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            background:
-                              formData.ecc === score.toString()
-                                ? 'hsl(var(--brand))'
-                                : 'hsl(var(--bg-main))',
-                            color:
-                              formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
-                            border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                          }}
-                        >
-                          {score}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                      {/* ----- FORMULÁRIO MUTANTE: SECAGEM ----- */}
+                      {formData.tipo_evento === 'Secagem' && (
+                        <>
+                          <div className="tauze-field-group">
+                            <label className="tauze-label">
+                              <CalendarDays size={14} /> Período Esperado de Secagem (dias)
+                            </label>
+                            <input
+                              className="tauze-input"
+                              type="number"
+                              placeholder="Ex: 60"
+                              value={formData.periodo_secagem}
+                              onChange={(e) => setFormData({ ...formData, periodo_secagem: e.target.value })}
+                            />
+                          </div>
+                          <div className="tauze-field-group" style={{ display: 'flex', alignItems: 'center' }}>
+                            <label className="tauze-checkbox-container" style={{ display: 'flex', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                              <input
+                                type="checkbox"
+                                checked={formData.teat_sealant}
+                                onChange={(e) => setFormData({ ...formData, teat_sealant: e.target.checked })}
+                                style={{ accentColor: 'hsl(var(--brand))', width: '16px', height: '16px' }}
+                              />
+                              Utilizou Selante de Teto (Teat Sealant)?
+                            </label>
+                          </div>
+                        </>
+                      )}
+                      {/* ----- CAMPOS COMPARTILHADOS ----- */}
 
                   <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                     <label className="tauze-label">

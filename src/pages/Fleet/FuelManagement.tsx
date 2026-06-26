@@ -84,6 +84,7 @@ import { FuelFilterModal } from './components/FuelFilterModal';
 import './FuelManagement.css';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const FuelManagement: React.FC = () => {
   const { confirm } = useConfirm();
@@ -91,7 +92,7 @@ export const FuelManagement: React.FC = () => {
     useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = usePersistentState('FuelManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
@@ -122,6 +123,13 @@ export const FuelManagement: React.FC = () => {
     dateStart: '',
     dateEnd: '',
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`fuel_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: logs = [],

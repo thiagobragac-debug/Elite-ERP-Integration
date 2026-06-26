@@ -36,6 +36,7 @@ import { BatchWeightModal } from '../../components/Modals/BatchWeightModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 interface WeightRecord {
   id: string;
@@ -51,6 +52,20 @@ interface WeightRecord {
   observacao?: string;
   [key: string]: unknown;
 }
+
+// ── Lookup tables (espelhadas do WeightForm para uso no dashboard de lote) ──
+const LOT_SLAUGHTER_TARGET_BREED: Record<string, number> = {
+  nelore: 480, brangus: 510, angus: 520, brahman: 500,
+  simental: 540, limousin: 530, hereford: 510, gir: 470,
+  guzera: 480, girolando: 450, default: 500,
+};
+const LOT_CARCASS_YIELD_BREED: Record<string, number> = {
+  nelore: 50, brangus: 54, angus: 58, brahman: 50,
+  simental: 56, limousin: 57, hereford: 55, gir: 49,
+  guzera: 50, girolando: 48, default: 52,
+};
+const getLotBreedKey = (raca?: string) =>
+  (raca || '').toLowerCase().replace(/[^a-z]/g, '');
 
 // Brazilian Cattle Market Lot Performance Dashboard
 const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
@@ -106,20 +121,48 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
   // Calculate statistics
   const count = weighings.length;
   const avgWeight = weighings.reduce((sum, w) => sum + Number(w.peso || 0), 0) / count;
-  const avgGmd = weighings.reduce((sum, w) => sum + Number(w.gmd || 0), 0) / count || 0.92;
+  const avgGmd = weighings.reduce((sum, w) => sum + Number(w.gmd || 0), 0) / count || 0;
 
-  // Arroba calculations (1 @ = 30kg of live weight)
+  // ── Preço de arroba configurável (persiste por sessão via localStorage) ──
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [arrobaPrice, setArrobaPrice] = React.useState<number | null>(() => {
+    const stored = localStorage.getItem('tauze_arroba_price');
+    return stored ? Number(stored) : null;
+  });
+  const [editingPrice, setEditingPrice] = React.useState(false);
+  const [priceInput, setPriceInput] = React.useState(String(arrobaPrice ?? ''));
+
+  const handlePriceConfirm = () => {
+    const val = Number(priceInput);
+    if (val > 0) {
+      setArrobaPrice(val);
+      localStorage.setItem('tauze_arroba_price', String(val));
+    }
+    setEditingPrice(false);
+  };
+
+  // ── Rendimento de carcaça por raça dominante do lote ──
+  const racaCounts: Record<string, number> = {};
+  weighings.forEach((w: any) => {
+    const key = getLotBreedKey(w.animais?.raca);
+    racaCounts[key] = (racaCounts[key] || 0) + 1;
+  });
+  const dominantBreed = Object.entries(racaCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'default';
+  const carcassYield = LOT_CARCASS_YIELD_BREED[dominantBreed] ?? LOT_CARCASS_YIELD_BREED['default'];
+  const targetWeight = LOT_SLAUGHTER_TARGET_BREED[dominantBreed] ?? LOT_SLAUGHTER_TARGET_BREED['default'];
+
+  // Arroba calculations: pesoVivo / 30 (conv. mercado)
   const avgArroba = avgWeight / 30;
-  const estimatedArrobaPrice = 285; // R$ per Arroba in BR
-  const estimatedValuePerHead = avgArroba * estimatedArrobaPrice;
-  const totalLotValue = estimatedValuePerHead * count;
+  // Valor comercial: apenas se preço configurado
+  const estimatedValuePerHead = arrobaPrice ? avgArroba * arrobaPrice : null;
+  const totalLotValue = estimatedValuePerHead ? estimatedValuePerHead * count : null;
 
   // Weight Classes
   const classes = {
     light: weighings.filter((w) => Number(w.peso) < 350).length,
     recria: weighings.filter((w) => Number(w.peso) >= 350 && Number(w.peso) < 450).length,
-    termination: weighings.filter((w) => Number(w.peso) >= 450 && Number(w.peso) < 520).length,
-    ready: weighings.filter((w) => Number(w.peso) >= 520).length,
+    termination: weighings.filter((w) => Number(w.peso) >= 450 && Number(w.peso) < targetWeight).length,
+    ready: weighings.filter((w) => Number(w.peso) >= targetWeight).length,
   };
 
   // Top performers
@@ -128,7 +171,6 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
     .slice(0, 5);
 
   // SLA calculations
-  const targetWeight = 540;
   const remainingWeight = Math.max(0, targetWeight - avgWeight);
   const estimatedDays = avgGmd > 0 ? Math.ceil(remainingWeight / avgGmd) : 90;
   const estimatedDate = new Date();
@@ -178,10 +220,12 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
                 gap: '4px',
               }}
             >
-              {avgGmd.toFixed(2)}
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-                kg/dia
-              </span>
+              {avgGmd > 0 ? avgGmd.toFixed(2) : '—'}
+              {avgGmd > 0 && (
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                  kg/dia
+                </span>
+              )}
             </div>
           </div>
           <div
@@ -246,7 +290,7 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
             </div>
           </div>
           <div style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
-            Rendimento de Carcaça Proj. 52%
+            Rendimento de Carcaça ({carcassYield}% — {dominantBreed !== 'default' ? dominantBreed.charAt(0).toUpperCase() + dominantBreed.slice(1) : 'Raça padrão'})
           </div>
         </div>
 
@@ -276,25 +320,49 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
             >
               Valor Comercial do Lote
             </span>
-            <div
-              style={{
-                fontSize: '22px',
-                fontWeight: 900,
-                color: 'hsl(var(--text-main))',
-                marginTop: '8px',
-              }}
-            >
-              R${' '}
-              {totalLotValue.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-            Ref: R$ {estimatedArrobaPrice}/@ líquida
+          <div
+            style={{
+              fontSize: totalLotValue ? '22px' : '15px',
+              fontWeight: 900,
+              color: totalLotValue ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
+              marginTop: '8px',
+            }}
+          >
+            {totalLotValue
+              ? `R$ ${totalLotValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : 'Preço não configurado'}
           </div>
         </div>
+        {/* Editor de preço da arroba */}
+        <div className="arroba-price-editor">
+          {editingPrice ? (
+            <>
+              <span>R$/@ =</span>
+              <input
+                className="arroba-price-input"
+                type="number"
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handlePriceConfirm(); if (e.key === 'Escape') setEditingPrice(false); }}
+                autoFocus
+                min={1}
+                placeholder="ex: 290"
+              />
+              <button
+                onClick={handlePriceConfirm}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(142 71% 45%)', fontWeight: 800, fontSize: '12px' }}
+              >OK</button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setEditingPrice(true); setPriceInput(String(arrobaPrice ?? '')); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--brand))', fontWeight: 700, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {arrobaPrice ? `Ref: R$ ${arrobaPrice}/@` : 'Definir preço da @'}
+            </button>
+          )}
+        </div>
+      </div>
 
         {/* Card 4: Projeção de Abate */}
         <div
@@ -547,7 +615,7 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <span style={{ fontWeight: 800, color: '#10b981' }}>
-                    +{item.gmd ? item.gmd.toFixed(2) : '1.15'} kg/d
+                    {item.gmd && item.gmd > 0 ? `+${item.gmd.toFixed(2)} kg/d` : '—'}
                   </span>
                 </div>
               </div>
@@ -572,7 +640,7 @@ export const WeightManagement: React.FC = () => {
   } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = usePersistentState('WeightManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWeight, setSelectedWeight] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
     'WeightManagement_isHistoryModalOpen',
@@ -617,6 +685,13 @@ export const WeightManagement: React.FC = () => {
 
   const [selectedLotId, setSelectedLotId] = useState<string>('all');
 
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`weight_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
+
   const { data: lots = [] } = useQuery({
     queryKey: ['lotes', activeTenantId, activeFarmId],
     queryFn: async () => {
@@ -648,6 +723,7 @@ export const WeightManagement: React.FC = () => {
         .from('pesagens')
         .select('*')
         .eq('animal_id', selectedAnimalId)
+        .eq('tenant_id', activeTenantId)
         .order('data_pesagem', { ascending: false });
       if (error) {
         throw error;
@@ -1090,9 +1166,13 @@ export const WeightManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsScaleModalOpen(true)}>
-            <Wifi size={18} />
-            CONFIGURAR BALANÇA
+          {/* Ícone de configuração de balança — não conta como botão de ação principal */}
+          <button
+            className="icon-btn-secondary"
+            title="Configurar Balança"
+            onClick={() => setIsScaleModalOpen(true)}
+          >
+            <Wifi size={20} />
           </button>
           <button
             className="glass-btn secondary"
@@ -1112,6 +1192,7 @@ export const WeightManagement: React.FC = () => {
             NOVA PESAGEM
           </button>
         </div>
+
       </header>
 
       <div className="next-gen-kpi-grid">

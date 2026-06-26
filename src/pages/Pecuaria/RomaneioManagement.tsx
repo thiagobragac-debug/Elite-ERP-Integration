@@ -15,6 +15,8 @@ import {
   XCircle,
   MoreVertical,
   Download,
+  Navigation,
+  Flag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
@@ -26,6 +28,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueModal';
@@ -35,6 +38,15 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
 const getStatusColor = (status: string) => {
+  if (status === 'Pendente') return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };
+  if (status === 'Em Trânsito') return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };
+  if (status === 'Concluído') return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
+  if (status === 'Cancelado') return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };
+  return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
+};
+
+// Dead code below kept for backwards compat — replaced by getStatusColor above
+const _getStatusColor = (status: string) => {
   switch (status) {
     case 'Concluído':
       return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
@@ -56,7 +68,7 @@ export default function RomaneioManagement() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = usePersistentState('RomaneioManagement_searchTerm', '');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('RomaneioManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = usePersistentState<
     'TODOS' | 'Concluído' | 'Em Trânsito' | 'Pendente'
   >('RomaneioManagement_activeTab', 'TODOS');
@@ -330,6 +342,73 @@ export default function RomaneioManagement() {
     }, 800);
   };
 
+  // ── Status Transitions ───────────────────────────────────────────────────
+  const transitMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('romaneios')
+        .update({ status: 'Em Trânsito' })
+        .eq('id', id);
+      if (error) throw error;
+      // Animals stay as EM_EMBARQUE during transit — they're physically in the truck
+      const { error: animalError } = await supabase
+        .from('animais')
+        .update({ status: 'EM_TRANSITO' })
+        .eq('romaneio_id', id);
+      if (animalError) throw animalError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
+      queryClient.invalidateQueries({ queryKey: ['animais'] });
+      toast.success('Romaneio confirmado como Em Trânsito. Animais marcados como EM_TRANSITO.');
+    },
+    onError: (err: any) => toast.error(`Erro: ${err.message}`),
+  });
+
+  const concludeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('romaneios')
+        .update({ status: 'Concluído', data_chegada: new Date().toISOString().split('T')[0] })
+        .eq('id', id);
+      if (error) throw error;
+      // On conclusion: animals → Abatido (arrived at slaughterhouse)
+      const { error: animalError } = await supabase
+        .from('animais')
+        .update({ status: 'Abatido' })
+        .eq('romaneio_id', id);
+      if (animalError) throw animalError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
+      queryClient.invalidateQueries({ queryKey: ['animais'] });
+      toast.success('Romaneio concluído! Animais registrados como Abatidos.');
+    },
+    onError: (err: any) => toast.error(`Erro: ${err.message}`),
+  });
+
+  const handleConfirmTransit = async (row: any) => {
+    const ok = await confirm({
+      title: 'Confirmar Em Trânsito',
+      description: `Confirma que o Romaneio ${row.codigo || row.id} saiu da fazenda? Os animais serão marcados como EM_TRANSITO.`,
+      confirmText: 'Confirmar Saída',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (ok) transitMutation.mutate(row.id);
+  };
+
+  const handleConclude = async (row: any) => {
+    const ok = await confirm({
+      title: 'Confirmar Chegada e Concluir',
+      description: `Confirma a chegada do Romaneio ${row.codigo || row.id} ao destino? Os animais serão marcados como Abatidos.`,
+      confirmText: 'Confirmar Chegada',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (ok) concludeMutation.mutate(row.id);
+  };
+
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -461,36 +540,71 @@ export default function RomaneioManagement() {
       },
     },
     {
-      header: 'NF-e',
+      header: 'GTA / NF-e',
       accessor: (row: any) => (
-        <span style={{ fontFamily: 'monospace', color: 'hsl(var(--text-muted))' }}>{row.nfe}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {row.gta_numero && (
+            <span className="main-text" style={{ fontSize: '12px', fontWeight: 700 }}>
+              GTA: {row.gta_numero}
+            </span>
+          )}
+          {row.nfe && (
+            <span className="sub-meta" style={{ fontFamily: 'monospace' }}>{row.nfe}</span>
+          )}
+          {!row.gta_numero && !row.nfe && (
+            <span style={{ color: 'hsl(var(--text-muted))' }}>—</span>
+          )}
+        </div>
       ),
     },
     {
       header: 'Ações',
       accessor: (row: any) => (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
             onClick={() => handleShowDetails(row)}
-            className="action-icon-btn info"
+            className="action-dot info"
             title="Visualizar Detalhes"
           >
             <Eye size={14} />
           </button>
           <button
             onClick={() => handleDownloadPDF(row)}
-            className="action-icon-btn"
+            className="action-dot"
             title="Baixar PDF"
+            style={{ background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))' }}
           >
             <FileText size={14} />
           </button>
-          <button
-            onClick={() => handleCancelRomaneio(row)}
-            className="action-icon-btn danger"
-            title="Cancelar"
-          >
-            <XCircle size={14} />
-          </button>
+          {row.status === 'Pendente' && (
+            <button
+              onClick={() => handleConfirmTransit(row)}
+              className="action-dot"
+              title="Confirmar Saída / Em Trânsito"
+              style={{ background: 'hsl(217 91% 60% / 0.1)', color: 'hsl(217 91% 60%)' }}
+            >
+              <Navigation size={14} />
+            </button>
+          )}
+          {row.status === 'Em Trânsito' && (
+            <button
+              onClick={() => handleConclude(row)}
+              className="action-dot"
+              title="Confirmar Chegada e Concluir"
+              style={{ background: 'hsl(142 71% 45% / 0.1)', color: 'hsl(142 71% 45%)' }}
+            >
+              <Flag size={14} />
+            </button>
+          )}
+          {row.status !== 'Cancelado' && row.status !== 'Concluído' && (
+            <button
+              onClick={() => handleCancelRomaneio(row)}
+              className="action-dot delete"
+              title="Cancelar Romaneio"
+            >
+              <XCircle size={14} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -556,42 +670,45 @@ export default function RomaneioManagement() {
 
       {/* ─── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="next-gen-kpi-grid">
-        <TauzeStatCard
-          label="Total de Embarques"
-          value={loading ? '...' : stats.totalCount.toString()}
-          subtitle="Romaneios gerados no total"
-          icon={Truck}
-          color="#3b82f6"
-        />
-        <TauzeStatCard
-          label="Animais Despachados"
-          value={loading ? '...' : `${stats.totalAnimals} cbç`}
-          subtitle="Soma de todos os lotes"
-          icon={Activity}
-          color="hsl(var(--brand))"
-        />
-        <TauzeStatCard
-          label="Custo Estimado (Frete)"
-          value={
-            loading
-              ? '...'
-              : new Intl.NumberFormat('pt-BR', {
+        {loading
+          ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+          : (
+            <>
+              <TauzeStatCard
+                label="Total de Embarques"
+                value={stats.totalCount.toString()}
+                subtitle="Romaneios gerados no total"
+                icon={Truck}
+                color="#3b82f6"
+              />
+              <TauzeStatCard
+                label="Animais Despachados"
+                value={`${stats.totalAnimals} cbç`}
+                subtitle="Soma de todos os lotes"
+                icon={Activity}
+                color="hsl(var(--brand))"
+              />
+              <TauzeStatCard
+                label="Custo Estimado (Frete)"
+                value={new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
                   maximumFractionDigits: 0,
-                }).format(stats.totalValue)
-          }
-          subtitle="Faturamento estimado de vendas"
-          icon={TrendingUp}
-          color="#10b981"
-        />
-        <TauzeStatCard
-          label="Aproveitamento Lotes"
-          value={loading ? '...' : stats.pendentesCount.toString()}
-          subtitle="Aguardando liberação / NF-e"
-          icon={Calendar}
-          color="#f59e0b"
-        />
+                }).format(stats.totalValue)}
+                subtitle="Faturamento estimado de vendas"
+                icon={TrendingUp}
+                color="#10b981"
+              />
+              <TauzeStatCard
+                label="Aproveitamento Lotes"
+                value={stats.pendentesCount.toString()}
+                subtitle="Aguardando liberação / NF-e"
+                icon={Calendar}
+                color="#f59e0b"
+              />
+            </>
+          )
+        }
       </div>
 
       {/* ─── Main Content ────────────────────────────────────────────────────── */}
@@ -689,6 +806,12 @@ export default function RomaneioManagement() {
         <ModernTable
           columns={columns}
           data={filteredData}
+          loading={loading}
+          hideHeader={true}
+          totalCount={filteredData.length}
+          currentPage={1}
+          onPageChange={() => {}}
+          itemsPerPage={12}
           emptyState={
             <EmptyState
               icon={Truck}

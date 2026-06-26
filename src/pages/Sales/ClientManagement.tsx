@@ -80,13 +80,14 @@ import { useServerPagination } from '../../hooks/useServerPagination';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const ClientManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'ATIVO' | 'LEAD'>('ATIVO');
@@ -111,6 +112,14 @@ export const ClientManagement: React.FC = () => {
     rating: 'all',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`client_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
+
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   const queryClient = useQueryClient();

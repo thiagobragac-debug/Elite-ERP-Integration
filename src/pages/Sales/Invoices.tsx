@@ -81,6 +81,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 export const Invoices: React.FC = () => {
   const { confirm } = useConfirm();
@@ -95,7 +96,7 @@ export const Invoices: React.FC = () => {
   } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = usePersistentState('Invoices_isModalOpen', false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ISSUED' | 'CANCELED') || 'ISSUED';
@@ -128,6 +129,13 @@ export const Invoices: React.FC = () => {
     dateEnd: '',
     onlyConciliated: false,
   });
+
+  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
+  useEffect(() => {
+    if (!activeTenantId || isModalOpen) return;
+    if (hasDraftForKey(`output_invoice_form_${activeTenantId}`)) setIsModalOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTenantId]);
 
   const {
     data: invoices = [],
