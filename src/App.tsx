@@ -10,6 +10,7 @@ import { CepeaProvider } from './contexts/CepeaContext';
 import { OfflineSyncProvider } from './contexts/OfflineSyncContext';
 import { ConfirmProvider } from './contexts/ConfirmContext';
 import { SystemSettingsProvider } from './contexts/SystemSettingsContext';
+import { ScaleProvider } from './contexts/ScaleContext';
 
 // Feedback
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
@@ -210,33 +211,35 @@ export function App() {
           <TenantProvider>
             <CepeaProvider>
               <ConfirmProvider>
-                <SystemSettingsProvider>
-                  <ErrorBoundary>
-                    <Toaster
-                      position="bottom-right"
-                      toastOptions={{
-                        duration: 4000,
-                        style: {
-                          background: 'var(--bg-card)',
-                          color: 'var(--text-main)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '10px',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                        },
-                        success: {
-                          iconTheme: { primary: '#10b981', secondary: 'white' },
-                          style: { borderLeft: '4px solid #10b981' },
-                        },
-                        error: {
-                          iconTheme: { primary: '#ef4444', secondary: 'white' },
-                          style: { borderLeft: '4px solid #ef4444' },
-                        },
-                      }}
-                    />
-                    <AppContent />
-                  </ErrorBoundary>
-                </SystemSettingsProvider>
+                <ScaleProvider>
+                  <SystemSettingsProvider>
+                    <ErrorBoundary>
+                      <Toaster
+                        position="bottom-right"
+                        toastOptions={{
+                          duration: 4000,
+                          style: {
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-main)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                          },
+                          success: {
+                            iconTheme: { primary: '#10b981', secondary: 'white' },
+                            style: { borderLeft: '4px solid #10b981' },
+                          },
+                          error: {
+                            iconTheme: { primary: '#ef4444', secondary: 'white' },
+                            style: { borderLeft: '4px solid #ef4444' },
+                          },
+                        }}
+                      />
+                      <AppContent />
+                    </ErrorBoundary>
+                  </SystemSettingsProvider>
+                </ScaleProvider>
               </ConfirmProvider>
             </CepeaProvider>
           </TenantProvider>

@@ -839,32 +839,117 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
     const to = from + pageSize - 1;
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    const { data, count, error } = await withTimeout(
-      supabase
-        .from('dietas')
-        .select('*', { count: 'exact' })
-        .match(scope)
-        .range(from, to) as unknown as Promise<any>
-    );
+    // Janela operacional: últimos 30 dias
+    const hoje = new Date();
+    const trintaDiasAtras = new Date(hoje);
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    const dataInicio = trintaDiasAtras.toISOString().split('T')[0];
 
-    if (error) {
-      throw error;
-    }
+    // ── Consultas paralelas ────────────────────────────────────────────────
+    const [dietasRes, nutricaoRes, pesagensRes] = await Promise.all([
+      withTimeout(
+        supabase
+          .from('dietas')
+          .select('*', { count: 'exact' })
+          .match(scope)
+          .range(from, to) as unknown as Promise<any>
+      ),
 
-    const dietasData = (data || []).map((d: any) => {
+      // Tratos dos últimos 30 dias com percentual_ms da dieta para cálculo de MS real
+      withTimeout(
+        supabase
+          .from('nutricao_animais')
+          .select('quantidade_kg, data_consumo, dieta_id, animal_id, dietas(percentual_ms)')
+          .match(scope)
+          .gte('data_consumo', dataInicio) as unknown as Promise<any>
+      ),
+
+      // Pesagens dos últimos 30 dias para calcular ganho de peso no mesmo período
+      withTimeout(
+        supabase
+          .from('pesagens')
+          .select('animal_id, data_pesagem, peso')
+          .match(scope)
+          .gte('data_pesagem', dataInicio)
+          .order('data_pesagem', { ascending: true }) as unknown as Promise<any>
+      ),
+    ]);
+
+    if (dietasRes.error) throw dietasRes.error;
+
+    const dietasData = (dietasRes.data || []).map((d: any) => {
       const ms = d.percentual_ms ? d.percentual_ms / 100 : 0.88;
       const custoMS = d.custo_por_kg && ms > 0 ? Number(d.custo_por_kg) / ms : null;
       return { ...d, percMS: d.percentual_ms || null, custoMS };
     });
 
-    // KPIs calculados dos dados reais
-    const totalDietas = count || 0;
+    // ── KPI 1: Dietas formuladas + KPI 2: Custo médio MS ─────────────────
+    const totalDietas = dietasRes.count || 0;
     const _lastDietDate = dietasData.length > 0 ? fmtDateBR(dietasData[0].created_at) : null;
+    const dietasComCusto = dietasData.filter((d: any) => d.custoMS);
     const custoMedioKgMS =
-      dietasData.length > 0
-        ? dietasData.filter((d: any) => d.custoMS).reduce((a: number, d: any) => a + d.custoMS, 0) /
-          dietasData.filter((d: any) => d.custoMS).length
+      dietasComCusto.length > 0
+        ? dietasComCusto.reduce((a: number, d: any) => a + d.custoMS, 0) / dietasComCusto.length
         : null;
+
+    // ── KPI 3: Conversão Alimentar real (CA = total MS consumida / total ganho de peso) ──
+    let caReal: number | null = null;
+    let caLabel = 'Sem lançamentos nos últimos 30 dias';
+    const nutricaoData: any[] = nutricaoRes.data || [];
+    const pesagensData: any[] = pesagensRes.data || [];
+
+    if (nutricaoData.length > 0 && pesagensData.length > 0) {
+      // Consumo total em MS no período
+      const totalConsumidoMS = nutricaoData.reduce((acc: number, row: any) => {
+        const ms = Number(row.dietas?.percentual_ms || 88) / 100;
+        return acc + Number(row.quantidade_kg || 0) * ms;
+      }, 0);
+
+      // Ganho de peso: primeiro e último peso por animal no período
+      const pesagensPorAnimal: Record<string, number[]> = {};
+      for (const p of pesagensData) {
+        if (!pesagensPorAnimal[p.animal_id]) pesagensPorAnimal[p.animal_id] = [];
+        pesagensPorAnimal[p.animal_id].push(Number(p.peso));
+      }
+
+      let totalGanhoPeso = 0;
+      for (const pesos of Object.values(pesagensPorAnimal)) {
+        if (pesos.length >= 2) {
+          const ganho = pesos[pesos.length - 1] - pesos[0];
+          if (ganho > 0) totalGanhoPeso += ganho;
+        }
+      }
+
+      if (totalConsumidoMS > 0 && totalGanhoPeso > 0) {
+        caReal = totalConsumidoMS / totalGanhoPeso;
+        caLabel = 'Últimos 30 dias (base MS corrigida)';
+      } else if (totalConsumidoMS > 0) {
+        caLabel = 'Aguardando pesagens correspondentes';
+      }
+    }
+
+    // ── KPI 4: Consumo Médio Diário MS por cabeça (DM) ───────────────────
+    let consumoMedioDM: number | null = null;
+    let consumoDMLabel = 'Sem lançamentos nos últimos 30 dias';
+
+    if (nutricaoData.length > 0) {
+      const animaisUnicos = new Set(nutricaoData.map((r: any) => r.animal_id)).size;
+      const diasUnicos = new Set(nutricaoData.map((r: any) => r.data_consumo)).size;
+
+      if (animaisUnicos > 0 && diasUnicos > 0) {
+        const totalMS = nutricaoData.reduce((acc: number, row: any) => {
+          const ms = Number(row.dietas?.percentual_ms || 88) / 100;
+          return acc + Number(row.quantidade_kg || 0) * ms;
+        }, 0);
+        consumoMedioDM = totalMS / (animaisUnicos * diasUnicos);
+        consumoDMLabel = `${animaisUnicos} animais · ${diasUnicos} dias registrados`;
+      }
+    }
+
+    const sparklineConsumo =
+      nutricaoData.length > 0
+        ? buildSparkline(nutricaoData, 'data_consumo', 'quantidade_kg')
+        : buildSparkline(dietasData, 'created_at', null);
 
     return {
       data: dietasData,
@@ -876,8 +961,8 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
             ? `Último cadastro em ${_lastDietDate}`
             : `Cadastro em ${todayBR()}`,
           sparkline: buildSparkline(dietasData, 'created_at', null),
-          value: totalDietas > 0 ? String(totalDietas) : '---',
-          change: totalDietas > 0 ? 'Cadastradas' : 'Sem dietas',
+          value: totalDietas > 0 ? String(totalDietas) : '0',
+          change: totalDietas > 0 ? 'Cadastradas' : 'Nenhuma dieta',
           trend: 'neutral' as const,
           icon: Activity,
           color: 'hsl(var(--brand))',

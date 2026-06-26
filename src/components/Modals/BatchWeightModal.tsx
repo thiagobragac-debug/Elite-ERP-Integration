@@ -23,6 +23,7 @@ import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
+import { useScale } from '../../contexts/ScaleContext';
 import './BatchWeightModal.css';
 
 interface BatchWeightModalProps {
@@ -53,6 +54,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
 }) => {
   const { confirm } = useConfirm();
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
+  const { state: scaleState } = useScale();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
   const [defaultDate, setDefaultDate] = useState<string>(
@@ -67,29 +69,21 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
   const [activeTab, setActiveTab] = useState<'manual' | 'planilha' | 'smart'>('manual');
   const [showSummary, setShowSummary] = useState(false);
 
-  // Agricultural Smart Corral States
-  const [scaleConnected, setScaleConnected] = useState(false);
-  const [scaleBrand, setScaleBrand] = useState<string>('TRUTEST');
-  const [scaleType, setScaleType] = useState<string>('BLUETOOTH');
+  // Smart Corral States
   const [activeFocusedIndex, setActiveFocusedIndex] = useState<number | null>(null);
   const [rfidSearch, setRfidSearch] = useState('');
 
-  // #3 â€” track which row is being typed (for visual state)
+  // Track which row is being typed (for visual state)
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen && activeTenantId) {
       fetchLots();
       fetchAnimals('');
-
-      const globalConnected = localStorage.getItem('tauze_scale_connected') === 'true';
-      if (globalConnected) {
-        setScaleConnected(true);
+      // Auto-switch to smart tab if scale is already connected via ScaleContext
+      if (scaleState.status === 'CONNECTED') {
         setActiveTab('smart');
-        setScaleBrand(localStorage.getItem('tauze_scale_brand') || 'TRUTEST');
-        setScaleType(localStorage.getItem('tauze_scale_type') || 'BLUETOOTH');
       } else {
-        setScaleConnected(false);
         setActiveTab('manual');
       }
     } else {
@@ -112,6 +106,23 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       })
     );
   }, [defaultDate]);
+
+  // Auto-fill linha ativa quando balança envia novo peso.
+  // focusedIndex rastreia qual input de peso o operador clicou por último.
+  useEffect(() => {
+    if (!isOpen || scaleState.currentWeight === null || scaleState.status !== 'CONNECTED') return;
+    // Preferência: focusedIndex (input clicado) → activeFocusedIndex (modo smart corral)
+    const targetIdx = focusedIndex ?? activeFocusedIndex;
+    if (targetIdx === null || targetIdx < 0) return;
+    const newWeight = scaleState.currentWeight.toFixed(1);
+    setRows((prev) => {
+      if (targetIdx >= prev.length) return prev;
+      const updated = [...prev];
+      updated[targetIdx] = { ...updated[targetIdx], newWeight };
+      return updated;
+    });
+  }, [scaleState.currentWeight, isOpen, focusedIndex, activeFocusedIndex]);
+
 
   const fetchLots = async () => {
     setLoadingLots(true);
@@ -323,71 +334,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
     }
   };
 
-  const handleConnectScale = async () => {
-    if (scaleConnected) {
-      setScaleConnected(false);
-      localStorage.removeItem('tauze_scale_connected');
-      localStorage.removeItem('tauze_scale_brand');
-      localStorage.removeItem('tauze_scale_type');
-      toast.success('🔌 Balança desconectada com sucesso.');
-      return;
-    }
 
-    try {
-      const activeBrand = localStorage.getItem('tauze_scale_brand') || 'TRUTEST';
-      const activeType = localStorage.getItem('tauze_scale_type') || 'BLUETOOTH';
-
-      if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
-        toast(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`, { icon: '🌐' });
-      } else {
-        toast(
-          `💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`,
-          { icon: '💡' }
-        );
-      }
-
-      setScaleConnected(true);
-      setScaleBrand(activeBrand);
-      setScaleType(activeType);
-      localStorage.setItem('tauze_scale_connected', 'true');
-      localStorage.setItem('tauze_scale_brand', activeBrand);
-      localStorage.setItem('tauze_scale_type', activeType);
-    } catch (err: any) {
-      toast.error(`❌ Falha ao conectar balança: ${err.message}`);
-    }
-  };
-
-  const handleScaleTriggerWeight = () => {
-    if (!scaleConnected) {
-      toast.error('⚠️ Conecte a Balança Eletrônica primeiro!');
-      return;
-    }
-
-    if (activeFocusedIndex === null) {
-      toast('⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!', { icon: '⚠️' });
-      return;
-    }
-
-    const baseWeight =
-      rows[activeFocusedIndex].lastWeight > 0 ? rows[activeFocusedIndex].lastWeight : 380;
-    const gain = 10 + Math.floor(Math.random() * 25);
-    const simulatedWeight = baseWeight + gain;
-
-    handleWeightChange(activeFocusedIndex, simulatedWeight.toString());
-
-    setTimeout(() => {
-      const nextIndex = activeFocusedIndex + 1;
-      if (nextIndex < rows.length) {
-        const nextInput = document.getElementById(
-          `weight-input-${nextIndex}`
-        ) as HTMLInputElement | null;
-        if (nextInput) {
-          nextInput.focus();
-          nextInput.select();
-        }
-      }
-    }, 150);
-  };
 
   const handleRfidScan = (e: React.FormEvent) => {
     e.preventDefault();
@@ -946,7 +893,45 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-        {/* â”€â”€ Filters Row â”€â”€ */}
+        {/* ── Indicador de balança conectada ── */}
+        {scaleState.status === 'CONNECTED' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '7px 20px',
+            background: 'hsl(142 76% 36% / 0.08)',
+            borderBottom: '1px solid hsl(142 76% 36% / 0.2)',
+          }}>
+            <div style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: 'hsl(142 76% 45%)',
+              boxShadow: '0 0 6px hsl(142 76% 45%)',
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'hsl(142 76% 45%)',
+              letterSpacing: '0.04em',
+            }}>
+              BALANÇA {scaleState.brand} CONECTADA — {scaleState.deviceName}
+            </span>
+            {scaleState.currentWeight !== null && (
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: 12,
+                fontWeight: 900,
+                color: 'hsl(142 76% 45%)',
+              }}>
+                ⚡ {scaleState.currentWeight.toFixed(1)} kg
+              </span>
+            )}
+          </div>
+        )}
+        {/* ── Filters Row ── */}
         <div
           style={{
             padding: '20px',
@@ -1125,65 +1110,17 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: 'hsl(var(--text-muted))',
-                  textTransform: 'uppercase',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Scale size={12} /> Integração Balança:
-              </span>
-              <button
-                type="button"
-                onClick={handleConnectScale}
-                className="glass-btn"
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  border: scaleConnected ? '1px solid #10b981' : '1px solid hsl(var(--border))',
-                  background: scaleConnected ? 'rgba(16, 185, 129, 0.1)' : 'hsl(var(--bg-card))',
-                  color: scaleConnected ? '#10b981' : 'hsl(var(--text-main))',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                {scaleConnected
-                  ? `ðŸŸ¢ Balança ${scaleBrand} - ${scaleType} Ativa`
-                  : 'ðŸ”Œ Conectar Balança Bluetooth'}
-              </button>
-              {scaleConnected && (
-                <button
-                  type="button"
-                  onClick={handleScaleTriggerWeight}
-                  className="primary-btn animate-pulse"
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    background:
-                      'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 0 10px hsl(var(--brand) / 0.3)',
-                  }}
-                >
-                  âš–ï¸ Pesar Animal{' '}
-                  {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
-                </button>
+              {scaleState.status === 'CONNECTED' ? (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'hsl(142 76% 36% / 0.1)', border: '1px solid hsl(142 76% 36% / 0.3)', borderRadius: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'hsl(142 76% 45%)', boxShadow: '0 0 5px hsl(142 76% 45%)' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(142 76% 45%)' }}>
+                    {scaleState.brand} ATIVA — aguardando pesagem...
+                  </span>
+                </div>
+              ) : (
+                <span style={{ fontSize: 11, color: 'hsl(var(--text-muted))' }}>
+                  Balança não conectada — use Configurar Balança
+                </span>
               )}
             </div>
             <form

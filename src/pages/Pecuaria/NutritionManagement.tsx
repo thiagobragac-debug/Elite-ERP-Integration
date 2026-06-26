@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
-import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -50,6 +49,7 @@ interface Diet {
   custoMS?: number;
   custo_medio?: number;
   preco_custo?: number;
+  consumo_esperado?: number | null;
   ingredientes?: Array<string | { nome: string }>;
 }
 
@@ -59,6 +59,31 @@ export const NutritionManagement: React.FC = () => {
     useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // ── Lotes enriquecidos para o Simulador Nutricional ──────────────────────
+  const [lotesSimulador, setLotesSimulador] = useState<any[]>([]);
+  useEffect(() => {
+    if (!activeFarm?.id) return;
+    const fetchLotes = async () => {
+      const [lotesRes, animaisRes] = await Promise.all([
+        supabase.from('lotes').select('id, nome').eq('fazenda_id', activeFarm.id).eq('status', 'ATIVO'),
+        supabase.from('animais').select('id, lote_id, peso_atual').eq('fazenda_id', activeFarm.id).eq('status', 'Ativo'),
+      ]);
+      const animaisData: any[] = animaisRes.data || [];
+      const enriched = (lotesRes.data || []).map((l: any) => {
+        const lotAnimais = animaisData.filter(a => String(a.lote_id) === String(l.id));
+        const weights = lotAnimais.map(a => Number(a.peso_atual || 0)).filter(w => w > 0);
+        return {
+          id: l.id,
+          nome: l.nome,
+          num_animais: lotAnimais.length,
+          peso_medio: weights.length > 0 ? weights.reduce((s, w) => s + w, 0) / weights.length : 0,
+        };
+      });
+      setLotesSimulador(enriched);
+    };
+    fetchLotes();
+  }, [activeFarm?.id]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'DIETAS' | 'INSUMOS' | 'TRATOS') || 'DIETAS';
@@ -107,12 +132,7 @@ export const NutritionManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
-  useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForKey(`diet_form_${activeTenantId}`)) setIsModalOpen(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTenantId]);
+
 
   const {
     data: rawDiets,
@@ -141,14 +161,10 @@ export const NutritionManagement: React.FC = () => {
     mutationFn: async (payload: any) => {
       if (selectedDiet) {
         const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id);
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
       } else {
         const { error } = await supabase.from('dietas').insert([{ ...payload, ...insertPayload }]);
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
       }
     },
     onSuccess: () => {
@@ -264,7 +280,6 @@ export const NutritionManagement: React.FC = () => {
       toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
       return;
     }
-
     const payload = {
       nome: data.nome,
       tipo: data.tipo,
@@ -273,41 +288,75 @@ export const NutritionManagement: React.FC = () => {
       percentual_ms: parseFloat(data.percentual_ms),
       descricao: data.descricao,
       status: data.status,
+      data_vigencia: data.data_vigencia || null,
+      vigencia_bloqueante: data.vigencia_bloqueante ?? false,
+      pb: data.pb ? parseFloat(data.pb) : null,
+      ndt: data.ndt ? parseFloat(data.ndt) : null,
+      consumo_esperado: data.consumo_esperado ? parseFloat(data.consumo_esperado) : null,
     };
-
     saveDietMutation.mutate(payload);
   };
+
+  const archiveDietMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Dieta arquivada. Histórico de tratos preservado.');
+    },
+    onError: (err: any) => toast.error(`❌ Erro ao arquivar dieta: ${err.message}`),
+  });
 
   const deleteDietMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('dietas').delete().eq('id', id);
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Dieta excluída!');
+      toast.success('✅ Dieta excluída definitivamente.');
     },
-    onError: (err: any) => {
-      toast.error(`❌ Erro ao excluir dieta: ${err.message}`);
-    },
+    onError: (err: any) => toast.error(`❌ Erro ao excluir dieta: ${err.message}`),
   });
 
   const handleDelete = async (id: string) => {
+    // 1. Verificar se a dieta tem tratos registrados (dependências)
+    const { count: tratoCount } = await supabase
+      .from('nutricao_animais')
+      .select('id', { count: 'exact', head: true })
+      .eq('dieta_id', id);
+
+    if ((tratoCount || 0) > 0) {
+      // Dieta em uso — oferecer Arquivar como alternativa segura
+      const shouldArchive = await confirm({
+        title: 'Dieta em uso',
+        description: `Esta dieta possui ${tratoCount} lançamento(s) de trato vinculado(s). Excluí-la quebraria o histórico nutricional. Deseja arquivá-la (fica inativa mas preserva o histórico)?`,
+        confirmText: 'Arquivar dieta',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+      });
+      if (shouldArchive) archiveDietMutation.mutate(id);
+      return;
+    }
+
+    // 2. Sem dependências — excluir com confirmação padrão
     const isConfirmed = await confirm({
-      title: 'Atenção',
-      description: 'Deseja excluir esta dieta?',
-      confirmText: 'Confirmar',
+      title: 'Excluir dieta',
+      description: 'Nenhum trato vinculado encontrado. Deseja excluir esta dieta permanentemente?',
+      confirmText: 'Excluir',
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (!isConfirmed) {
-      return;
-    }
+    if (!isConfirmed) return;
     deleteDietMutation.mutate(id);
   };
 
+  const [insumosPage, setInsumosPage] = useState(1);
+  const insumosPageSize = 12;
+
+  // ── Histórico de Tratos: registros individuais, sem agrupamento ──────────
   const { data: tratosHistory, isLoading: isLoadingTratos } = useQuery({
     queryKey: ['tratosHistory', activeFarmId, activeTenantId],
     queryFn: async () => {
@@ -322,35 +371,43 @@ export const NutritionManagement: React.FC = () => {
           created_at,
           dietas ( nome ),
           lotes ( nome ),
-          animais ( brinco, raca )
+          animais ( brinco, raca ),
+          depositos ( nome )
         `
         )
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       q = applyFarmFilter(q);
       const { data, error } = await q;
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       return data || [];
     },
     enabled: activeTab === 'TRATOS',
   });
 
-  const { data: insumosList, isLoading: isLoadingInsumos } = useQuery({
-    queryKey: ['insumosList', activeFarmId, activeTenantId],
+  // ── Insumos: filtrados por tipo MATERIA_PRIMA com paginação server-side ──
+  const { data: insumosData, isLoading: isLoadingInsumos } = useQuery({
+    queryKey: ['insumosList', activeFarmId, activeTenantId, insumosPage],
     queryFn: async () => {
-      let q = supabase.from('produtos').select('*').order('nome');
+      const from = (insumosPage - 1) * insumosPageSize;
+      const to = from + insumosPageSize - 1;
+      let q = supabase
+        .from('produtos')
+        .select('*', { count: 'exact' })
+        .eq('tipo', 'MATERIA_PRIMA')
+        .order('nome')
+        .range(from, to);
 
-      q = applyFarmFilter(q);
-      const { data, error } = await q;
-      if (error) {
-        throw error;
-      }
-      return data || [];
+      q = applyFarmFilter(q as any) as any;
+      const { data, error, count } = await q as any;
+      if (error) throw error;
+      return { list: data || [], total: count || 0 };
     },
     enabled: activeTab === 'INSUMOS',
   });
+  const insumosList = insumosData?.list || [];
+  const insumosTotal = insumosData?.total || 0;
 
   const handleViewHistory = async (dietId: string) => {
     setIsHistoryModalOpen(true);
@@ -434,34 +491,30 @@ export const NutritionManagement: React.FC = () => {
 
   const filteredDiets = diets.filter((d) => {
     const matchesSearch = (d.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab =
-      activeTab === 'DIETAS' ? d.tipo !== 'MATERIA_PRIMA' : d.tipo === 'MATERIA_PRIMA';
-
+    // Aba DIETAS mostra apenas formulações (não MP); aba INSUMOS é server-side separada
+    const matchesTab = d.tipo !== 'MATERIA_PRIMA';
     const matchesStatus = filterValues.status === 'all' || d.status === filterValues.status;
     const matchesTipo = filterValues.tipo === 'all' || d.tipo === filterValues.tipo;
-
     const matchesIngredients =
       filterValues.ingredients.length === 0 ||
       filterValues.ingredients.some((ing) => {
-        if (!d.ingredientes) {
-          return false;
-        }
+        if (!d.ingredientes) return false;
         return d.ingredientes.some((i: any) => (typeof i === 'string' ? i : i.nome) === ing);
       });
-
     const matchesCost = filterValues.maxCostMS >= 100 || (d.custoMS || 0) <= filterValues.maxCostMS;
     const matchesMS = (d.percMS || 0) >= filterValues.minMS;
     const matchesActive = !filterValues.onlyActive || d.status === 'active';
+    return matchesSearch && matchesTab && matchesStatus && matchesTipo && matchesIngredients && matchesCost && matchesMS && matchesActive;
+  });
 
+  // Tratos filtrados por busca (nome da dieta ou lote)
+  const filteredTratos = (tratosHistory || []).filter((t: any) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
     return (
-      matchesSearch &&
-      matchesTab &&
-      matchesStatus &&
-      matchesTipo &&
-      matchesIngredients &&
-      matchesCost &&
-      matchesMS &&
-      matchesActive
+      (t.dietas?.nome || '').toLowerCase().includes(term) ||
+      (t.lotes?.nome || '').toLowerCase().includes(term) ||
+      (t.animais?.brinco || '').toLowerCase().includes(term)
     );
   });
 
@@ -470,107 +523,59 @@ export const NutritionManagement: React.FC = () => {
       header: 'Dieta / Identificação',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+          <span className="main-text" style={{ fontWeight: 800 }}>
             {item.nome}
           </span>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: 700,
-              fontSize: '9px',
-              letterSpacing: '0.05em',
-              color: '#64748b',
-              textTransform: 'uppercase',
-            }}
-          >
-            <Wheat size={12} color={item.tipo === 'MATERIA_PRIMA' ? '#f59e0b' : '#10b981'} />
-            {item.tipo === 'MATERIA_PRIMA' ? 'Matéria Prima' : 'Fórmula / Dieta'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
+            <Wheat size={12} color="#10b981" />
+            Fórmula / Dieta
           </div>
         </div>
       ),
       align: 'left' as const,
     },
     {
-      header: 'Matéria Seca (M.S.)',
+      header: 'M.S. / Custo kg MS',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span
-            style={{
-              padding: '2px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 800,
-              background: 'hsl(var(--bg-main))',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-            }}
-          >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+          <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, background: 'hsl(var(--bg-main))', color: '#475569', border: '1px solid #e2e8f0' }}>
             {item.percMS || item.percentual_ms || 0}% MS
           </span>
-        </div>
-      ),
-      align: 'center' as const,
-    },
-    {
-      header: 'Custo por kg MS',
-      accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
-            R$ {(item.custoMS || 0).toFixed(2)}
+            R$ {(item.custoMS || 0).toFixed(2)}/kg MS
+          </span>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: '#94a3b8' }}>
+            R$ {Number(item.custo_por_kg || 0).toFixed(2)}/kg MN
           </span>
         </div>
       ),
       align: 'center' as const,
     },
     {
-      header: 'Custo Matéria Natural',
+      header: 'Consumo Esperado',
+      accessor: (item: any) => {
+        const ce = item.consumo_esperado;
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {ce ? (
+              <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, background: 'hsl(217 91% 50% / 0.1)', color: 'hsl(217 91% 45%)', border: '1px solid hsl(217 91% 50% / 0.2)' }}>
+                {ce}% PV
+              </span>
+            ) : (
+              <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>Não definido</span>
+            )}
+          </div>
+        );
+      },
+      align: 'center' as const,
+    },
+    {
+      header: 'Ingredientes',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-            R$ {Number(item.custo_por_kg || 0).toFixed(2)} / kg
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+            {item.ingredientes?.length ?? 0} ingrediente{item.ingredientes?.length !== 1 ? 's' : ''}
           </span>
-        </div>
-      ),
-      align: 'center' as const,
-    },
-    {
-      header: 'Composição',
-      accessor: (item: any) => (
-        <div
-          style={{
-            display: 'flex',
-            gap: '4px',
-            flexWrap: 'wrap',
-            maxWidth: '200px',
-            justifyContent: 'center',
-          }}
-        >
-          {item.ingredientes?.slice(0, 3).map((ing: any, i: number) => (
-            <span
-              key={i}
-              style={{
-                background: '#f1f5f9',
-                color: '#475569',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-              }}
-            >
-              {typeof ing === 'string' ? ing : ing.nome}
-            </span>
-          ))}
-          {item.ingredientes?.length > 3 && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8' }}>
-              +{item.ingredientes.length - 3}
-            </span>
-          )}
-          {(!item.ingredientes || item.ingredientes.length === 0) && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8' }}>Puro</span>
-          )}
         </div>
       ),
       align: 'center' as const,
@@ -579,8 +584,10 @@ export const NutritionManagement: React.FC = () => {
       header: 'Status',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.status === 'active' ? 'active' : 'stopped'}`}>
-            {item.status === 'active' ? 'Liberada' : 'Bloqueada'}
+          <span className={`status-pill ${
+            item.status === 'active' ? 'active' : item.status === 'archived' ? 'pending' : 'stopped'
+          }`}>
+            {item.status === 'active' ? 'Liberada' : item.status === 'archived' ? 'Arquivada' : 'Bloqueada'}
           </span>
         </div>
       ),
@@ -590,17 +597,14 @@ export const NutritionManagement: React.FC = () => {
 
   const tratosColumns = [
     {
-      header: 'Data do Lançamento',
+      header: 'Data / Hora',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+          <span style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
             {new Date(`${item.data_consumo}T12:00:00Z`).toLocaleDateString('pt-BR')}
           </span>
           <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-            {new Date(item.created_at).toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       ),
@@ -609,44 +613,41 @@ export const NutritionManagement: React.FC = () => {
       header: 'Dieta',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              background: 'rgba(59, 130, 246, 0.1)',
-              color: '#3b82f6',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Wheat size={16} />
+          <div style={{ width: '30px', height: '30px', background: 'hsl(217 91% 50% / 0.1)', color: 'hsl(217 91% 50%)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Wheat size={15} />
           </div>
           <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
-            {item.dietas?.nome || '-'}
+            {item.dietas?.nome || 'Sem dieta'}
           </span>
         </div>
       ),
     },
     {
-      header: 'Destino do Trato',
+      header: 'Destino',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
-            {item.lotes
-              ? `Lote: ${item.lotes.nome}`
-              : item.animais
-                ? `Animal: ${item.animais.brinco}`
-                : 'Não especificado'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <span style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+            {item.lotes ? item.lotes.nome : item.animais ? item.animais.brinco : 'Não especificado'}
+          </span>
+          <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
+            {item.lotes ? 'Lote' : item.animais ? `${item.animais.raca || 'Animal'}` : ''}
           </span>
         </div>
       ),
     },
     {
-      header: 'Quantidade (KG)',
+      header: 'Depósito de Origem',
       accessor: (item: any) => (
-        <span style={{ fontWeight: 700, color: '#059669' }}>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
+          {item.depositos?.nome || '—'}
+        </span>
+      ),
+      align: 'center' as const,
+    },
+    {
+      header: 'Qtd. (kg)',
+      accessor: (item: any) => (
+        <span style={{ fontWeight: 800, color: '#059669' }}>
           {Number(item.quantidade_kg).toFixed(2)} kg
         </span>
       ),
@@ -656,10 +657,7 @@ export const NutritionManagement: React.FC = () => {
       header: 'Custo Gerado',
       accessor: (item: any) => (
         <span style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
-          {Number(item.valor_total_consumido).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          })}
+          {Number(item.valor_total_consumido).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         </span>
       ),
       align: 'right' as const,
@@ -720,15 +718,20 @@ export const NutritionManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsSimulatorOpen(true)}>
-            <Scale size={18} />
-            SIMULADOR
-          </button>
-          <button
-            className="primary-btn"
-            onClick={() => setIsFeedModalOpen(true)}
-            style={{ background: '#f59e0b', color: '#fff', border: 'none' }}
-          >
+          {/* Botão secundário: Lançar Trato. O Simulador fica no dropdown para obedecer a regra de 2 botões máx */}
+          <div className="export-dropdown-container">
+            <button className="glass-btn secondary" title="Ferramentas Nutricionais" onClick={() => { const m = document.getElementById('nutrition-tools-menu'); if (m) m.classList.toggle('active'); }}>
+              <Scale size={18} />
+              FERRAMENTAS
+              <ChevronRight size={14} style={{ transform: 'rotate(90deg)', marginLeft: '2px' }} />
+            </button>
+            <div id="nutrition-tools-menu" className="export-menu">
+              <button onClick={() => { setIsSimulatorOpen(true); document.getElementById('nutrition-tools-menu')?.classList.remove('active'); }}>
+                Simulador Nutricional
+              </button>
+            </div>
+          </div>
+          <button className="glass-btn secondary" onClick={() => setIsFeedModalOpen(true)}>
             <Wheat size={18} />
             LANÇAR TRATO
           </button>
@@ -889,17 +892,21 @@ export const NutritionManagement: React.FC = () => {
           <ModernTable
             emptyState={
               <EmptyState
-                title="Nenhum insumo cadastrado"
-                description="Não há matérias primas listadas no estoque."
-                actionLabel="Estoque Geral"
+                title="Nenhuma matéria prima cadastrada"
+                description="Cadastre insumos nutricionais no módulo de Estoque para visualizá-los aqui."
+                actionLabel="Ir para Estoque"
                 onAction={() => (window.location.href = '/pecuaria/estoque')}
                 icon={Package}
               />
             }
-            data={insumosList || []}
+            data={insumosList}
             columns={insumosColumns}
             loading={isLoadingInsumos}
             hideHeader={true}
+            totalCount={insumosTotal}
+            currentPage={insumosPage}
+            onPageChange={setInsumosPage}
+            itemsPerPage={insumosPageSize}
           />
         ) : (
           <ModernTable
@@ -912,7 +919,7 @@ export const NutritionManagement: React.FC = () => {
                 icon={Wheat}
               />
             }
-            data={tratosHistory || []}
+            data={filteredTratos}
             columns={tratosColumns}
             loading={isLoadingTratos}
             hideHeader={true}
@@ -942,6 +949,7 @@ export const NutritionManagement: React.FC = () => {
         isOpen={isSimulatorOpen}
         onClose={() => setIsSimulatorOpen(false)}
         diets={diets}
+        lotes={lotesSimulador}
       />
 
       <BatchFeedForm

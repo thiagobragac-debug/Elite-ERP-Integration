@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   X,
   Scale,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Utensils,
   Target,
-  ChevronRight,
   Beef,
   Activity,
   Zap,
@@ -14,539 +14,695 @@ import {
   Calendar,
   AlertTriangle,
   Award,
+  Info,
+  ChevronDown,
+  Layers,
+  GitCompare,
+  CheckCircle2,
+  XCircle,
+  Users,
+  Wheat,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
+import { usePersistentState } from '../../../hooks/usePersistentState';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import toast from 'react-hot-toast';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface NutritionSimulatorModalProps {
   isOpen: boolean;
   onClose: () => void;
   diets: any[];
+  lotes?: any[]; // optional: enriched lot list from parent
 }
 
+// ─── Helpers & Constants ─────────────────────────────────────────────────────
+
+const fmtBrl = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const fmtNum = (v: number, dec = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+/** Avalia CA e retorna badge textual + cor */
+function avaliarCA(ca: number): { label: string; color: string; bg: string } {
+  if (ca === 0) return { label: '—', color: 'hsl(var(--text-muted))', bg: 'hsl(var(--bg-main))' };
+  if (ca <= 5)  return { label: '✓ Excelente', color: '#15803d', bg: '#f0fdf4' };
+  if (ca <= 7)  return { label: '⚠ Adequado', color: '#b45309', bg: '#fffbeb' };
+  if (ca <= 9)  return { label: '⚑ Alto', color: '#b91c1c', bg: '#fef2f2' };
+  return           { label: '✕ Revisar Dieta', color: '#7c3aed', bg: '#f5f3ff' };
+}
+
+/** Label de base de arroba com tooltip */
+const ARROBA_BASES = [
+  { value: 'viva',   label: '@ Peso Vivo (15 kg/@)'   },
+  { value: 'carcaca', label: '@ Carcaça (30 kg/@)'     },
+];
+
+// ─── Motor de Simulação ───────────────────────────────────────────────────────
+
+function calcSimulation(params: {
+  cabecas: number;
+  pesoEntrada: number;
+  diasTrato: number;
+  gmd: number;
+  percPV: number;
+  preco: number;
+  custoAquisicaoArroba: number;
+  outrosCustosCabeca: number;
+  costPerKg: number;
+  percentualMS: number;
+  arrobaBase: 'viva' | 'carcaca';
+}) {
+  const {
+    cabecas, pesoEntrada, diasTrato, gmd, percPV,
+    preco, custoAquisicaoArroba, outrosCustosCabeca,
+    costPerKg, percentualMS, arrobaBase,
+  } = params;
+
+  // ─── Projeção de peso com GMD progressivo ──────────────────────────────
+  // Usa o peso médio do período para consumo mais preciso
+  const pesoFinal    = pesoEntrada + gmd * diasTrato;
+  const pesoMedioPeriodo = (pesoEntrada + pesoFinal) / 2;
+
+  // ─── Consumo (Matéria Natural) ─────────────────────────────────────────
+  const consumoMNDia     = pesoMedioPeriodo * (percPV / 100);  // kg MN/cab/dia
+  const consumoMSDia     = consumoMNDia * (percentualMS / 100); // kg MS/cab/dia
+  const consumoMNLoteDia = consumoMNDia * cabecas;
+  const consumoMSTotalCab = consumoMSDia * diasTrato;           // total MS no período
+
+  // ─── Custos ───────────────────────────────────────────────────────────
+  const custoDiarioCab  = consumoMNDia * costPerKg;
+  const custoDiarioLote = custoDiarioCab * cabecas;
+  const custoAlimCabPeriodo = custoDiarioCab * diasTrato;
+  const custoAlimLotePeriodo = custoAlimCabPeriodo * cabecas;
+
+  // ─── Zootecnia ────────────────────────────────────────────────────────
+  const ganhoPesoCabPeriodo = gmd * diasTrato;           // kg ganho total
+  const divisorArroba       = arrobaBase === 'viva' ? 15 : 30;
+  const arrobasProduzidasCab = ganhoPesoCabPeriodo / divisorArroba;
+  const arrobasProduzidasLote = arrobasProduzidasCab * cabecas;
+
+  // ─── Conversão Alimentar (base MS — padrão técnico) ───────────────────
+  const conversaoAlimentar = gmd > 0 ? consumoMSDia / gmd : 0;
+  const caAvaliacao = avaliarCA(conversaoAlimentar);
+
+  // ─── Custo por @ produzida ────────────────────────────────────────────
+  const custoArrobaProduzida =
+    arrobasProduzidasCab > 0 ? custoAlimCabPeriodo / arrobasProduzidasCab : 0;
+
+  // ─── Margem de Alimentação (não é lucro líquido) ──────────────────────
+  const receitaVendaArroba      = arrobasProduzidasCab * preco;
+  const margemAlimentacaoCab    = receitaVendaArroba - custoAlimCabPeriodo;
+  const margemAlimentacaoLote   = margemAlimentacaoCab * cabecas;
+
+  // ─── Lucro Real (se custo de aquisição informado) ────────────────────
+  const pesoEntradaArrobas    = pesoEntrada / divisorArroba;
+  const custoCompraAnimal     = pesoEntradaArrobas * custoAquisicaoArroba;
+  const totalCustosCab        = custoAlimCabPeriodo + custoCompraAnimal + outrosCustosCabeca;
+  const receitaBrutaCab       = (pesoFinal / divisorArroba) * preco; // vende o animal inteiro na saída
+  const lucroRealCab          = receitaBrutaCab - totalCustosCab;
+  const lucroRealLote         = lucroRealCab * cabecas;
+  const temLucroReal          = custoAquisicaoArroba > 0;
+
+  return {
+    pesoFinal, pesoMedioPeriodo,
+    consumoMNDia, consumoMSDia, consumoMNLoteDia, consumoMSTotalCab,
+    custoDiarioCab, custoDiarioLote, custoAlimCabPeriodo, custoAlimLotePeriodo,
+    ganhoPesoCabPeriodo, arrobasProduzidasCab, arrobasProduzidasLote,
+    conversaoAlimentar, caAvaliacao,
+    custoArrobaProduzida,
+    margemAlimentacaoCab, margemAlimentacaoLote,
+    lucroRealCab, lucroRealLote, temLucroReal,
+    divisorArroba,
+  };
+}
+
+// ─── Componente de Tooltip ────────────────────────────────────────────────────
+
+const InfoTip: React.FC<{ text: string }> = ({ text }) => (
+  <span
+    title={text}
+    style={{
+      marginLeft: '4px', cursor: 'help',
+      color: 'hsl(var(--text-muted))', verticalAlign: 'middle',
+      display: 'inline-flex', alignItems: 'center',
+    }}
+  >
+    <Info size={12} />
+  </span>
+);
+
+// ─── Componente de KPI ────────────────────────────────────────────────────────
+
+const SimKPI: React.FC<{
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+  bg?: string;
+  border?: string;
+  size?: 'sm' | 'lg';
+}> = ({ label, value, sub, color = 'hsl(var(--text-main))', bg = 'hsl(var(--bg-main))', border = 'hsl(var(--border))', size = 'sm' }) => (
+  <div style={{ padding: '14px 16px', background: bg, border: `1px solid ${border}`, borderRadius: '12px' }}>
+    <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+      {label}
+    </div>
+    <div style={{ fontSize: size === 'lg' ? '22px' : '16px', fontWeight: 900, color, lineHeight: 1.1 }}>
+      {value}
+    </div>
+    {sub && <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px', fontWeight: 600 }}>{sub}</div>}
+  </div>
+);
+
+// ─── Componente Principal ─────────────────────────────────────────────────────
+
 export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = ({
-  isOpen,
-  onClose,
-  diets,
+  isOpen, onClose, diets, lotes = [],
 }) => {
-  const [selectedDietId, setSelectedDietId] = useState('');
+  // ─── Parâmetros persistentes ──────────────────────────────────────────
+  const [selectedDietId,   setSelectedDietId]   = usePersistentState('sim_dietId',    '');
+  const [selectedDiet2Id,  setSelectedDiet2Id]  = usePersistentState('sim_diet2Id',   '');
+  const [loteId,           setLoteId]           = usePersistentState('sim_loteId',    '');
+  const [animalCount,      setAnimalCount]      = usePersistentState('sim_cabecas',   '100');
+  const [pesoEntrada,      setPesoEntrada]      = usePersistentState('sim_peso',      '350');
+  const [diasTrato,        setDiasTrato]        = usePersistentState('sim_dias',      '90');
+  const [percPV,           setPercPV]           = usePersistentState('sim_percPV',    '2.5');
+  const [gmd,              setGmd]              = usePersistentState('sim_gmd',       '1.5');
+  const [preco,            setPreco]            = usePersistentState('sim_preco',     '240');
+  const [custoAquis,       setCustoAquis]       = usePersistentState('sim_custoAq',   '');
+  const [outrosCustos,     setOutrosCustos]     = usePersistentState('sim_outros',    '');
+  const [arrobaBase,       setArrobaBase]       = usePersistentState<'viva'|'carcaca'>('sim_arroba', 'viva');
+  const [modoComparacao,   setModoComparacao]   = usePersistentState('sim_compare',   false);
+  const [exportando,       setExportando]       = useState(false);
 
-  // Parâmetros do Lote
-  const [animalCount, setAnimalCount] = useState('100');
-  const [pesoMedio, setPesoMedio] = useState('350');
-  const [diasTrato, setDiasTrato] = useState('90');
+  // ─── Dietas derivadas ─────────────────────────────────────────────────
+  const diet1 = diets.find(d => String(d.id) === String(selectedDietId));
+  const diet2 = diets.find(d => String(d.id) === String(selectedDiet2Id));
 
-  // Parâmetros Zootécnicos
-  const [consumoPV, setConsumoPV] = useState('2.5');
-  const [expectedGMD, setExpectedGMD] = useState('1.5');
+  const costPerKg1 = diet1 ? Number(diet1.custo_por_kg) || 0 : 0;
+  const costPerKg2 = diet2 ? Number(diet2.custo_por_kg) || 0 : 0;
+  const pms1 = diet1 ? Number(diet1.percentual_ms) || 88 : 88;
+  const pms2 = diet2 ? Number(diet2.percentual_ms) || 88 : 88;
 
-  // Econômico
-  const [precoArroba, setPrecoArroba] = useState('240');
+  const baseParams = {
+    cabecas:             Number(animalCount) || 0,
+    pesoEntrada:         Number(pesoEntrada) || 0,
+    diasTrato:           Number(diasTrato)   || 0,
+    gmd:                 Number(gmd)         || 0,
+    percPV:              Number(percPV)      || 0,
+    preco:               Number(preco)       || 0,
+    custoAquisicaoArroba: Number(custoAquis) || 0,
+    outrosCustosCabeca:  Number(outrosCustos)|| 0,
+    arrobaBase,
+  };
 
-  const selectedDiet = diets.find((d) => d.id === selectedDietId);
-  const costPerKg = selectedDiet ? Number(selectedDiet.custo_por_kg) : 0;
+  // ─── Engine ───────────────────────────────────────────────────────────
+  const sim1 = useMemo(() => calcSimulation({ ...baseParams, costPerKg: costPerKg1, percentualMS: pms1 }), [JSON.stringify(baseParams), costPerKg1, pms1]);
+  const sim2 = useMemo(() => calcSimulation({ ...baseParams, costPerKg: costPerKg2, percentualMS: pms2 }), [JSON.stringify(baseParams), costPerKg2, pms2]);
 
-  // --- ENGINE DE SIMULAÇÃO ---
-  const sim = useMemo(() => {
-    const cabecas = Number(animalCount) || 0;
-    const peso = Number(pesoMedio) || 0;
-    const dias = Number(diasTrato) || 0;
-    const gmd = Number(expectedGMD) || 0;
-    const percPV = Number(consumoPV) || 0;
-    const preco = Number(precoArroba) || 0;
+  // ─── Preencher com lote real ──────────────────────────────────────────
+  const handleSelectLote = (id: string) => {
+    setLoteId(id);
+    const lote = lotes.find((l: any) => String(l.id) === String(id));
+    if (!lote) return;
+    if (lote.num_animais) setAnimalCount(String(lote.num_animais));
+    if (lote.peso_medio)  setPesoEntrada(String(Math.round(lote.peso_medio)));
+  };
 
-    // Consumo e Custo Diário
-    const consumoDiarioCabeca = peso * (percPV / 100);
-    const custoDiarioCabeca = consumoDiarioCabeca * costPerKg;
-    const consumoDiarioLote = consumoDiarioCabeca * cabecas;
-    const custoDiarioLote = custoDiarioCabeca * cabecas;
+  // ─── Export PDF ───────────────────────────────────────────────────────
+  const handleExportPDF = useCallback(async () => {
+    if (!diet1) { toast.error('Selecione uma dieta antes de exportar.'); return; }
+    setExportando(true);
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const GREEN = [22, 163, 74] as [number, number, number];
+      const NAVY  = [15, 23, 42]  as [number, number, number];
+      const MUTED = [100, 116, 139] as [number, number, number];
 
-    // Projeções do Período (Dias de Trato)
-    const custoTotalCabecaPeriodo = custoDiarioCabeca * dias;
-    const custoTotalLotePeriodo = custoTotalCabecaPeriodo * cabecas;
+      // ── Cabeçalho ────────────────────────────────────────────────────
+      doc.setFillColor(...GREEN);
+      doc.rect(0, 0, 210, 7, 'F');
 
-    // Zootecnia
-    const ganhoPesoTotalCabeca = gmd * dias;
-    const arrobasProduzidasCabeca = ganhoPesoTotalCabeca / 30; // 30kg vivo = 1@ produzida
-    const conversaoAlimentar = gmd > 0 ? consumoDiarioCabeca / gmd : 0;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...NAVY);
+      doc.text('TAUZE PECUÁRIA', 14, 22);
 
-    // KPIs Financeiros
-    const custoArrobaProduzida =
-      arrobasProduzidasCabeca > 0 ? custoTotalCabecaPeriodo / arrobasProduzidasCabeca : 0;
-    const receitaBrutaCabecaPeriodo = arrobasProduzidasCabeca * preco;
-    const lucroLiquidoCabecaPeriodo = receitaBrutaCabecaPeriodo - custoTotalCabecaPeriodo;
-    const lucroLiquidoLotePeriodo = lucroLiquidoCabecaPeriodo * cabecas;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text('Simulação Nutricional — Relatório Técnico', 14, 28);
 
-    return {
-      consumoDiarioCabeca,
-      custoDiarioCabeca,
-      consumoDiarioLote,
-      custoDiarioLote,
-      custoTotalLotePeriodo,
-      ganhoPesoTotalCabeca,
-      arrobasProduzidasCabeca,
-      conversaoAlimentar,
-      custoArrobaProduzida,
-      lucroLiquidoLotePeriodo,
-    };
-  }, [animalCount, pesoMedio, diasTrato, expectedGMD, consumoPV, precoArroba, costPerKg]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTED);
+      doc.text(`Emissão: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 148, 22);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 33, 196, 33);
+
+      // ── Parâmetros de Entrada ────────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...GREEN);
+      doc.text('1. PARÂMETROS DA SIMULAÇÃO', 14, 42);
+
+      autoTable(doc, {
+        startY: 46,
+        head: [['Parâmetro', 'Valor']],
+        body: [
+          ['Dieta Selecionada', diet1.nome],
+          ['Custo da Dieta (R$/kg)', `R$ ${costPerKg1.toFixed(2)}`],
+          ['Matéria Seca da Dieta', `${pms1}%`],
+          ['Efetivo (Cabeças)', animalCount],
+          ['Peso de Entrada Médio', `${pesoEntrada} kg`],
+          ['Peso Final Projetado', `${fmtNum(sim1.pesoFinal, 1)} kg`],
+          ['Peso Médio do Período', `${fmtNum(sim1.pesoMedioPeriodo, 1)} kg`],
+          ['Janela de Simulação', `${diasTrato} dias`],
+          ['Consumo (% PV)', `${percPV}%`],
+          ['GMD Alvo', `${gmd} kg/dia`],
+          ['Preço de Venda da @', `R$ ${preco}`],
+          ['Base da Arroba', arrobaBase === 'viva' ? 'Peso Vivo (15 kg/@)' : 'Carcaça (30 kg/@)'],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: GREEN, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: { 0: { textColor: [...MUTED] as [number,number,number], fontStyle: 'bold' }, 1: { fontStyle: 'bold', textColor: [...NAVY] as [number,number,number] } },
+        margin: { left: 14, right: 14 },
+      });
+
+      // ── Indicadores Zootécnicos ──────────────────────────────────────
+      const finalY1 = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...GREEN);
+      doc.text('2. INDICADORES ZOOTÉCNICOS', 14, finalY1);
+
+      autoTable(doc, {
+        startY: finalY1 + 4,
+        head: [['Indicador', 'Por Cabeça', 'Lote Total']],
+        body: [
+          ['Consumo MN/dia', `${fmtNum(sim1.consumoMNDia, 1)} kg`, `${fmtNum(sim1.consumoMNLoteDia, 1)} kg`],
+          ['Consumo MS/dia (corrigido)', `${fmtNum(sim1.consumoMSDia, 2)} kg MS`, '—'],
+          ['Ganho de Peso no Período', `${fmtNum(sim1.ganhoPesoCabPeriodo, 1)} kg`, '—'],
+          ['Arrobas Produzidas', `${fmtNum(sim1.arrobasProduzidasCab, 2)} @`, `${fmtNum(sim1.arrobasProduzidasLote, 1)} @`],
+          [`Conversão Alimentar (MS)`, `${fmtNum(sim1.conversaoAlimentar, 2)} : 1`, sim1.caAvaliacao.label],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: GREEN, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      // ── Resultados Financeiros ───────────────────────────────────────
+      const finalY2 = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...GREEN);
+      doc.text('3. RESULTADOS FINANCEIROS', 14, finalY2);
+
+      autoTable(doc, {
+        startY: finalY2 + 4,
+        head: [['Indicador', 'Por Cabeça', 'Lote Total']],
+        body: [
+          ['Custo Alimentar/dia', fmtBrl(sim1.custoDiarioCab), fmtBrl(sim1.custoDiarioLote)],
+          ['Custo Alimentar no Período', fmtBrl(sim1.custoAlimCabPeriodo), fmtBrl(sim1.custoAlimLotePeriodo)],
+          ['Custo da @ Produzida', fmtBrl(sim1.custoArrobaProduzida), '—'],
+          ['Margem de Alimentação', fmtBrl(sim1.margemAlimentacaoCab), fmtBrl(sim1.margemAlimentacaoLote)],
+          ...(sim1.temLucroReal ? [
+            ['Lucro Real Projetado', fmtBrl(sim1.lucroRealCab), fmtBrl(sim1.lucroRealLote)],
+          ] : []),
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: GREEN, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      // ── Rodapé ────────────────────────────────────────────────────────
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        doc.text('Relatório gerado pelo Tauze ERP — Nutrição de Precisão. Este documento é uma projeção técnica e pode variar conforme as condições de campo.', 14, 288, { maxWidth: 182 });
+      }
+
+      doc.save(`simulacao-nutricional-${diet1.nome.replace(/\s/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF exportado com sucesso!');
+    } catch (err: any) {
+      toast.error(`Erro ao gerar PDF: ${err.message}`);
+    } finally {
+      setExportando(false);
+    }
+  }, [diet1, sim1, animalCount, pesoEntrada, diasTrato, percPV, gmd, preco, arrobaBase, costPerKg1, pms1, custoAquis, outrosCustos]);
+
+  // ─── Render ───────────────────────────────────────────────────────────
+  const caEval1 = sim1.caAvaliacao;
+  const caEval2 = sim2.caAvaliacao;
+
+  const melhorDieta: 'dieta1' | 'dieta2' | null = modoComparacao && diet1 && diet2
+    ? (sim1.margemAlimentacaoLote >= sim2.margemAlimentacaoLote ? 'dieta1' : 'dieta2')
+    : null;
 
   return (
-    <>
-      <SidePanel
-        size="large"
-        isOpen={isOpen}
-        onClose={onClose}
-        onSubmit={(e) => {
-          e.preventDefault();
-          window.print();
-        }}
-        title="Simulador Nutricional"
-        subtitle="Projeção de consumo, custo e ganho de peso"
-        icon={Zap}
-        submitLabel="Exportar Relatório"
-        iconSubmit={FileText}
-      >
-        <div className="form-grid">
-          {/* SEÇÃO 1: CONFIGURAÇÃO DA DIETA */}
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label">Qual dieta será servida no cocho?</label>
-            <SearchableSelect
-              value={selectedDietId}
-              onChange={setSelectedDietId}
-              placeholder="Escolha uma formulação..."
-              options={[
-                { value: '', label: 'Escolha uma formulação...' },
-                ...diets
-                  .filter((d) => d.tipo !== 'MATERIA_PRIMA')
-                  .map((diet) => ({
-                    value: diet.id,
-                    label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)} / kg)`,
-                  })),
-              ]}
-            />
-          </div>
+    <SidePanel
+      size="xlarge"
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); handleExportPDF(); }}
+      title="Simulador Nutricional"
+      subtitle="Projeção de consumo, custo e ganho de peso com cálculos corrigidos de MS"
+      icon={Zap}
+      submitLabel={exportando ? 'Gerando PDF...' : 'Exportar Relatório PDF'}
+      iconSubmit={FileText}
+      loading={exportando}
+    >
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
 
-          {/* SEÇÃO 2: DADOS DO LOTE */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Beef size={14} /> Cabeças
-            </label>
-            <input
-              type="number"
-              className="tauze-input"
-              value={animalCount}
-              onChange={(e) => setAnimalCount(e.target.value)}
-            />
-          </div>
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Scale size={14} /> Peso Médio Entrada (kg)
-            </label>
-            <input
-              type="number"
-              className="tauze-input"
-              value={pesoMedio}
-              onChange={(e) => setPesoMedio(e.target.value)}
-            />
-          </div>
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label">
-              <Calendar size={14} /> Dias de Trato (Janela de Simulação)
-            </label>
-            <input
-              type="number"
-              className="tauze-input"
-              value={diasTrato}
-              onChange={(e) => setDiasTrato(e.target.value)}
-            />
-          </div>
+        {/* ── Painel Esquerdo: Parâmetros ─────────────────────────────── */}
+        <div style={{ flex: '0 0 340px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* SEÇÃO 3: METAS ZOOTÉCNICAS E ECONÔMICAS */}
-          <div
-            className="tauze-field-group"
-            style={{
-              borderTop: '1px solid hsl(var(--border))',
-              paddingTop: '16px',
-              gridColumn: 'span 2',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: '16px',
-            }}
-          >
-            <div>
-              <label className="tauze-label">
-                <Utensils size={14} /> Consumo (% PV)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                className="tauze-input"
-                value={consumoPV}
-                onChange={(e) => setConsumoPV(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="tauze-label">
-                <TrendingUp size={14} /> GMD Alvo (kg/dia)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                className="tauze-input"
-                value={expectedGMD}
-                onChange={(e) => setExpectedGMD(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="tauze-label">
-                <DollarSign size={14} /> Venda da @ (R$)
-              </label>
-              <input
-                type="number"
-                step="1"
-                className="tauze-input"
-                value={precoArroba}
-                onChange={(e) => setPrecoArroba(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* DASHBOARD DE RESULTADOS (O ORÁCULO) */}
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
-            <label className="tauze-label">Resultados da Simulação Zootécnica & Financeira</label>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px',
-                marginBottom: '12px',
-              }}
-            >
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'hsl(var(--bg-main)/0.5)',
-                  borderRadius: '16px',
-                  border: '1px solid hsl(var(--border))',
-                }}
+          {/* Seleção de Dieta(s) */}
+          <div style={{ padding: '16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Dieta(s)</span>
+              <button
+                type="button"
+                onClick={() => setModoComparacao(!modoComparacao)}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', border: '1px solid', borderColor: modoComparacao ? 'hsl(217 91% 50%)' : 'hsl(var(--border))', background: modoComparacao ? 'hsl(217 91% 50% / 0.1)' : 'transparent', color: modoComparacao ? 'hsl(217 91% 50%)' : 'hsl(var(--text-muted))', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
               >
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    color: 'hsl(var(--text-muted))',
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Consumo Auto-Calculado
+                <GitCompare size={12} /> Comparar Dietas
+              </button>
+            </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Layers size={13} /> {modoComparacao ? 'Dieta A' : 'Dieta'}</label>
+              <SearchableSelect
+                value={selectedDietId}
+                onChange={setSelectedDietId}
+                placeholder="Escolha uma formulação..."
+                options={diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(d => ({
+                  value: d.id,
+                  label: `${d.nome} (R$ ${Number(d.custo_por_kg).toFixed(2)}/kg · ${Number(d.percentual_ms) || 88}% MS)`,
+                }))}
+              />
+              {diet1 && (
+                <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(217 91% 50% / 0.1)', color: 'hsl(217 91% 50%)' }}>{diet1.tipo}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(161 64% 39% / 0.1)', color: 'hsl(161 64% 39%)' }}>R$ {costPerKg1.toFixed(2)}/kg</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(38 92% 50% / 0.1)', color: 'hsl(38 92% 40%)' }}>{pms1}% MS</span>
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-                  {sim.consumoDiarioCabeca.toFixed(1)} kg / cab / dia
-                </div>
+              )}
+            </div>
+
+            {modoComparacao && (
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Layers size={13} /> Dieta B</label>
+                <SearchableSelect
+                  value={selectedDiet2Id}
+                  onChange={setSelectedDiet2Id}
+                  placeholder="Escolha para comparar..."
+                  options={diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(d => ({
+                    value: d.id,
+                    label: `${d.nome} (R$ ${Number(d.custo_por_kg).toFixed(2)}/kg · ${Number(d.percentual_ms) || 88}% MS)`,
+                  }))}
+                />
+                {diet2 && (
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(217 91% 50% / 0.1)', color: 'hsl(217 91% 50%)' }}>{diet2.tipo}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(161 64% 39% / 0.1)', color: 'hsl(161 64% 39%)' }}>R$ {costPerKg2.toFixed(2)}/kg</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: 'hsl(38 92% 50% / 0.1)', color: 'hsl(38 92% 40%)' }}>{pms2}% MS</span>
+                  </div>
+                )}
               </div>
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'hsl(var(--bg-main)/0.5)',
-                  borderRadius: '16px',
-                  border: '1px solid hsl(var(--border))',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    color: 'hsl(var(--text-muted))',
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Custo Diário Total (Lote)
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-                  R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
+            )}
+          </div>
+
+          {/* Lote Real (opcional) */}
+          {lotes.length > 0 && (
+            <div style={{ padding: '14px 16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
+                <Users size={12} style={{ display: 'inline', marginRight: 5 }} />Simular com Lote Real
+              </span>
+              <SearchableSelect
+                value={loteId}
+                onChange={handleSelectLote}
+                placeholder="Selecione um lote (preenche campos automaticamente)..."
+                options={lotes.map((l: any) => ({ value: l.id, label: `${l.nome} — ${l.num_animais ?? '?'} cab · ${l.peso_medio ? Math.round(l.peso_medio) + ' kg médio' : 'sem pesagem'}` }))}
+              />
+            </div>
+          )}
+
+          {/* Parâmetros do Lote */}
+          <div style={{ padding: '16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Parâmetros do Lote</span>
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Beef size={13} /> Cabeças</label>
+                <input type="number" min="1" className="tauze-input" value={animalCount} onChange={e => setAnimalCount(e.target.value)} />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Scale size={13} /> Peso Entrada (kg)
+                  <InfoTip text="Peso médio de entrada do lote. O simulador calcula o consumo sobre o peso médio do período (entrada + saída) / 2 — metodologia correta para projeções." />
+                </label>
+                <input type="number" min="0" className="tauze-input" value={pesoEntrada} onChange={e => setPesoEntrada(e.target.value)} />
               </div>
             </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Calendar size={13} /> Dias de Trato (janela)</label>
+              <input type="number" min="1" className="tauze-input" value={diasTrato} onChange={e => setDiasTrato(e.target.value)} />
+            </div>
+          </div>
 
+          {/* Metas Zootécnicas */}
+          <div style={{ padding: '16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Metas Zootécnicas & Econômicas</span>
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Utensils size={13} /> Consumo (% PV)
+                  <InfoTip text="Percentual do Peso Vivo consumido diariamente em Matéria Natural. Bovinos em confinamento: 2,0–3,0% PV. Zebuínos tendem ao limite inferior." />
+                </label>
+                <input type="number" step="0.1" className="tauze-input" value={percPV} onChange={e => setPercPV(e.target.value)} />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <TrendingUp size={13} /> GMD Alvo (kg/dia)
+                  <InfoTip text="Ganho Médio Diário esperado. Confinamento padrão: 1,2–1,8 kg/dia. Touros de raça taurina podem atingir 2,0+ kg/dia com dietas de alto grão." />
+                </label>
+                <input type="number" step="0.1" className="tauze-input" value={gmd} onChange={e => setGmd(e.target.value)} />
+              </div>
+            </div>
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <DollarSign size={13} /> Venda da @ (R$)
+                </label>
+                <input type="number" step="1" className="tauze-input" value={preco} onChange={e => setPreco(e.target.value)} />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Award size={13} /> Base da @
+                  <InfoTip text="Arroba viva (15 kg) = padrão de mercado para cálculo de arrobas produzidas. Arroba carcaça (30 kg) é usada em negociações frigorífico-produtor." />
+                </label>
+                <select className="tauze-input" value={arrobaBase} onChange={e => setArrobaBase(e.target.value as 'viva' | 'carcaca')} style={{ cursor: 'pointer' }}>
+                  {ARROBA_BASES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Custos Opcionais (Lucro Real) */}
+          <div style={{ padding: '16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Custo de Aquisição</span>
+              <span style={{ marginLeft: '6px', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>(opcional — para calcular lucro real)</span>
+            </div>
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <DollarSign size={13} /> Compra do animal (R$/@)
+                  <InfoTip text="Preço pago na compra do animal em R$ por arroba. Se informado, o simulador calculará o Lucro Real além da Margem de Alimentação." />
+                </label>
+                <input type="number" step="1" className="tauze-input" placeholder="Ex: 220 — deixe vazio para omitir" value={custoAquis} onChange={e => setCustoAquis(e.target.value)} />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Activity size={13} /> Outros custos (R$/cab)
+                  <InfoTip text="Custo fixo por cabeça no período: sanidade, frete, rastreabilidade, etc. Soma ao custo de aquisição no cálculo de Lucro Real." />
+                </label>
+                <input type="number" step="1" className="tauze-input" placeholder="Ex: 150 — deixe vazio para omitir" value={outrosCustos} onChange={e => setOutrosCustos(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Painel Direito: Resultados (fixo, sempre visível) ──────── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0 }}>
+
+          {/* Header de resultados */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Resultados em Tempo Real
+            </span>
+            {!diet1 && (
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontStyle: 'italic' }}>
+                Selecione uma dieta →
+              </span>
+            )}
+          </div>
+
+          {/* Peso projetado */}
+          <div style={{ padding: '12px 14px', background: 'hsl(217 91% 50% / 0.08)', border: '1px solid hsl(217 91% 50% / 0.2)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '11px', color: 'hsl(217 91% 50%)', fontWeight: 700 }}>
+              📈 Peso Projetado na Saída
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(217 91% 50%)' }}>
+              {fmtNum(sim1.pesoFinal, 1)} kg
+            </div>
+            <div style={{ fontSize: '10px', color: 'hsl(217 91% 50% / 0.7)', fontWeight: 600 }}>
+              Peso médio do período: {fmtNum(sim1.pesoMedioPeriodo, 1)} kg
+            </div>
+          </div>
+
+          {/* Layout: 1 dieta ou 2 dietas em comparação */}
+          {!modoComparacao ? (
+            <>
+              {/* ── Consumo ─────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <SimKPI label="Consumo MN / cab / dia" value={`${fmtNum(sim1.consumoMNDia, 1)} kg`} sub={`${fmtNum(sim1.consumoMSDia, 2)} kg MS corrigido`} />
+                <SimKPI label="Consumo Total do Lote / dia" value={`${fmtNum(sim1.consumoMNLoteDia, 1)} kg`} />
+              </div>
+
+              {/* ── Custo ─────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <SimKPI label="Custo Alimentar / cab / dia" value={fmtBrl(sim1.custoDiarioCab)} />
+                <SimKPI label="Custo Alimentar Total / dia" value={fmtBrl(sim1.custoDiarioLote)} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <SimKPI label={`Custo Alimentar em ${diasTrato} dias`} value={fmtBrl(sim1.custoAlimLotePeriodo)} sub={`${fmtBrl(sim1.custoAlimCabPeriodo)}/cab`} />
+                <div style={{ padding: '14px 16px', background: caEval1.bg, border: `1px solid ${caEval1.color}40`, borderRadius: '12px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                    Conversão Alimentar (MS)
+                    <InfoTip text="Calculado sobre a Matéria Seca, que é o padrão técnico correto. CA = kg MS consumido / kg de ganho de peso." />
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: caEval1.color }}>
+                    {fmtNum(sim1.conversaoAlimentar, 2)} : 1
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: caEval1.color, marginTop: '4px' }}>
+                    {caEval1.label}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Zootecnia ─────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <SimKPI label="Ganho de Peso / cab" value={`+${fmtNum(sim1.ganhoPesoCabPeriodo, 1)} kg`} sub={`em ${diasTrato} dias`} color="hsl(217 91% 50%)" />
+                <SimKPI label={`Arrobas produzidas / cab (${arrobaBase === 'viva' ? '15 kg/@' : '30 kg/@'})`} value={`${fmtNum(sim1.arrobasProduzidasCab, 2)} @`} sub={`${fmtNum(sim1.arrobasProduzidasLote, 1)} @ no lote`} color="hsl(38 92% 40%)" bg="hsl(38 92% 50% / 0.08)" border="hsl(38 92% 50% / 0.25)" />
+              </div>
+
+              {/* ── Custo @ produzida ─────────────────── */}
+              <SimKPI label="Custo da @ Produzida (alimentação)" value={fmtBrl(sim1.custoArrobaProduzida)} sub="Custo de alimentação ÷ arrobas ganhas no período" color="hsl(38 92% 40%)" bg="hsl(38 92% 50% / 0.08)" border="hsl(38 92% 50% / 0.25)" size="lg" />
+
+              {/* ── Margem / Lucro ─────────────────────── */}
+              <div style={{ padding: '16px', background: sim1.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 39% / 0.08)' : 'hsl(0 84% 60% / 0.08)', border: `1px solid ${sim1.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 39% / 0.3)' : 'hsl(0 84% 60% / 0.3)'}`, borderRadius: '12px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Margem de Alimentação
+                  <InfoTip text="Receita de venda das arrobas ganhas minus o custo de alimentação. NÃO inclui o custo de aquisição do animal. Para lucro real, informe o custo de aquisição no painel esquerdo." />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 900, color: sim1.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 35%)' : 'hsl(0 84% 45%)' }}>
+                      {fmtBrl(sim1.margemAlimentacaoLote)}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '3px' }}>
+                      {fmtBrl(sim1.margemAlimentacaoCab)} / cabeça · ao final de {diasTrato} dias
+                    </div>
+                  </div>
+                  {sim1.margemAlimentacaoLote >= 0 ? <CheckCircle2 size={28} color="hsl(161 64% 39%)" /> : <XCircle size={28} color="hsl(0 84% 55%)" />}
+                </div>
+              </div>
+
+              {/* ── Lucro Real (se custo de aquisição informado) ── */}
+              {sim1.temLucroReal && (
+                <div style={{ padding: '16px', background: sim1.lucroRealLote >= 0 ? 'hsl(217 91% 50% / 0.08)' : 'hsl(0 84% 60% / 0.08)', border: `1.5px solid ${sim1.lucroRealLote >= 0 ? 'hsl(217 91% 50% / 0.4)' : 'hsl(0 84% 60% / 0.4)'}`, borderRadius: '12px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Lucro Real Projetado (inclui compra + outros custos)
+                  </div>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: sim1.lucroRealLote >= 0 ? 'hsl(217 91% 50%)' : 'hsl(0 84% 50%)' }}>
+                    {fmtBrl(sim1.lucroRealLote)}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '3px' }}>
+                    {fmtBrl(sim1.lucroRealCab)} / cabeça · receita na venda do animal completo
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* ── Modo Comparação ──────────────────────── */
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div
-                style={{
-                  padding: '16px',
-                  background: 'hsl(38 92% 50% / 0.1)',
-                  borderRadius: '16px',
-                  border: '1px solid hsl(38 92% 50% / 0.3)',
-                }}
-              >
+              {([
+                { label: diet1?.nome || 'Dieta A', sim: sim1, cost: costPerKg1, ms: pms1, id: 'dieta1', caEval: caEval1 },
+                { label: diet2?.nome || 'Dieta B', sim: sim2, cost: costPerKg2, ms: pms2, id: 'dieta2', caEval: caEval2 },
+              ] as const).map(col => (
                 <div
+                  key={col.id}
                   style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    color: 'hsl(38 92% 40%)',
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
+                    padding: '16px', borderRadius: '14px',
+                    border: `2px solid ${melhorDieta === col.id ? 'hsl(161 64% 39%)' : 'hsl(var(--border))'}`,
+                    background: melhorDieta === col.id ? 'hsl(161 64% 39% / 0.06)' : 'hsl(var(--bg-card))',
+                    display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative',
                   }}
                 >
-                  Custo da @ Produzida
+                  {melhorDieta === col.id && (
+                    <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)', background: 'hsl(161 64% 39%)', color: '#fff', fontSize: '10px', fontWeight: 800, padding: '2px 12px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                      ✓ MELHOR OPÇÃO
+                    </div>
+                  )}
+                  <div style={{ fontSize: '13px', fontWeight: 800, textAlign: 'center', color: 'hsl(var(--text-main))' }}>{col.label}</div>
+                  <div style={{ fontSize: '10px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
+                    R$ {col.cost.toFixed(2)}/kg · {col.ms}% MS
+                  </div>
+                  {[
+                    { l: 'Consumo MN/dia/cab', v: `${fmtNum(col.sim.consumoMNDia, 1)} kg` },
+                    { l: 'Consumo MS/dia/cab', v: `${fmtNum(col.sim.consumoMSDia, 2)} kg MS` },
+                    { l: 'Custo Alim./dia/lote', v: fmtBrl(col.sim.custoDiarioLote) },
+                    { l: `Custo ${diasTrato}d/lote`, v: fmtBrl(col.sim.custoAlimLotePeriodo) },
+                    { l: 'Custo @ produzida', v: fmtBrl(col.sim.custoArrobaProduzida) },
+                    { l: 'CA (MS)', v: `${fmtNum(col.sim.conversaoAlimentar, 2)} : 1` },
+                  ].map(row => (
+                    <div key={row.l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '6px' }}>
+                      <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{row.l}</span>
+                      <span style={{ fontWeight: 900, color: 'hsl(var(--text-main))' }}>{row.v}</span>
+                    </div>
+                  ))}
+                  <div style={{ padding: '10px', background: col.sim.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 39% / 0.08)' : 'hsl(0 84% 60% / 0.08)', borderRadius: '8px', textAlign: 'center', border: `1px solid ${col.sim.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 39% / 0.3)' : 'hsl(0 84% 60% / 0.3)'}` }}>
+                    <div style={{ fontSize: '9px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '4px' }}>Margem de Alimentação</div>
+                    <div style={{ fontSize: '16px', fontWeight: 900, color: col.sim.margemAlimentacaoLote >= 0 ? 'hsl(161 64% 35%)' : 'hsl(0 84% 50%)' }}>
+                      {fmtBrl(col.sim.margemAlimentacaoLote)}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(38 92% 40%)' }}>
-                  R${' '}
-                  {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
-                <div style={{ fontSize: '11px', color: 'hsl(38 92% 40%/0.7)', marginTop: '4px' }}>
-                  Conversão: {sim.conversaoAlimentar.toFixed(2)} : 1
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: '16px',
-                  background:
-                    sim.lucroLiquidoLotePeriodo >= 0
-                      ? 'hsl(var(--brand)/0.1)'
-                      : 'hsl(0 84% 60% / 0.1)',
-                  borderRadius: '16px',
-                  border: `1px solid ${sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.3)' : 'hsl(0 84% 60% / 0.3)'}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    color:
-                      sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand))' : 'hsl(0 84% 60%)',
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
-                  }}
-                >
-                  {sim.lucroLiquidoLotePeriodo >= 0
-                    ? 'Lucro Líquido Projetado (Lote)'
-                    : 'Prejuízo Projetado (Lote)'}
-                </div>
-                <div
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: 900,
-                    color:
-                      sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--text-main))' : 'hsl(0 84% 60%)',
-                  }}
-                >
-                  R${' '}
-                  {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                  })}
-                </div>
-                <div
-                  style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}
-                >
-                  Ao final de {diasTrato} dias.
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
-      </SidePanel>
+          )}
 
-      {/* Versão para Impressão Profissional */}
-      <div className="print-report-container">
-        <div className="print-header">
-          <div className="farm-info">
-            <div className="print-logo">TAUZE LIVESTOCK v5.0</div>
-            <h1>Relatório de Simulação Nutricional</h1>
-          </div>
-          <div className="report-date">Emissão: {new Date().toLocaleDateString()}</div>
-        </div>
-
-        <div className="print-summary-banner">
-          <div className="s-item">
-            <span className="s-label">DIETA SELECIONADA</span>
-            <span className="s-value">{selectedDiet?.nome || 'Não informada'}</span>
-          </div>
-          <div className="s-item">
-            <span className="s-label">EFETIVO TOTAL</span>
-            <span className="s-value">{animalCount} Animais</span>
-          </div>
-        </div>
-
-        <div className="print-columns-wrapper">
-          <div className="print-section">
-            <h2>Configuração Técnica</h2>
-            <table className="print-table">
-              <tbody>
-                <tr>
-                  <td>Período de Simulação</td>
-                  <td>{diasTrato} Dias</td>
-                </tr>
-                <tr>
-                  <td>Consumo Individual Estimado</td>
-                  <td>
-                    {sim.consumoDiarioCabeca.toFixed(1)} kg/dia ({consumoPV}% PV)
-                  </td>
-                </tr>
-                <tr>
-                  <td>GMD Alvo</td>
-                  <td>{expectedGMD} kg/dia</td>
-                </tr>
-                <tr>
-                  <td>Custo da Dieta</td>
-                  <td>R$ {costPerKg.toFixed(2)} / kg</td>
-                </tr>
-              </tbody>
-            </table>
+          {/* Nota de rodapé técnica */}
+          <div style={{ padding: '10px 12px', background: 'hsl(var(--bg-main))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+            <p style={{ margin: 0, fontSize: '10px', color: 'hsl(var(--text-muted))', lineHeight: '1.5', fontWeight: 600 }}>
+              ⚠ Este simulador usa <strong>peso médio do período</strong> para o consumo, <strong>CA corrigida por MS</strong> ({pms1}% MS), e <strong>Margem de Alimentação</strong> (não Lucro Líquido). Resultados são projeções técnicas sujeitas às condições de campo.
+            </p>
           </div>
 
-          <div className="print-section">
-            <h2>Indicadores de Eficiência</h2>
-            <table className="print-table">
-              <tbody>
-                <tr>
-                  <td>Conversão Alimentar</td>
-                  <td>{sim.conversaoAlimentar.toFixed(2)} : 1</td>
-                </tr>
-                <tr>
-                  <td>Custo da @ Produzida</td>
-                  <td>
-                    R${' '}
-                    {sim.custoArrobaProduzida.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="print-section">
-          <h2>Projeção de Performance e Custos Financeiros</h2>
-          <div className="print-stats-grid">
-            <div className="p-stat">
-              <span className="ps-label">Custo Diário Total</span>
-              <span className="ps-value">
-                R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="p-stat">
-              <span className="ps-label">Arrobas Produzidas (@) / Cab</span>
-              <span className="ps-value">{sim.arrobasProduzidasCabeca.toFixed(2)} @</span>
-            </div>
-            <div className="p-stat">
-              <span className="ps-label">Preço @ Venda</span>
-              <span className="ps-value">
-                R$ {Number(precoArroba).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="p-stat highlight">
-              <span className="ps-label">Lucro Líquido Final do Lote (Projetado)</span>
-              <span className="ps-value">
-                R${' '}
-                {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="print-footer">
-          <p>Relatório gerado pelo módulo de Nutrição de Precisão do Tauze ERP.</p>
-          <p>Este documento é uma projeção técnica e pode variar conforme as condições de campo.</p>
         </div>
       </div>
-
-      <style>{`
-
-            .print-report-container { display: none; }
-
-            /* Estilos de Impressão Profissional */
-            @media print {
-              @page { size: A4; margin: 1.5cm; }
-              
-              /* Esconder o App e UI do Modal */
-              #root, .sidebar, .header, .page-header, .tauze-controls-row, .management-content, .next-gen-kpi-grid,
-              .simulator-header, .simulator-body, .simulator-footer, .close-btn { 
-                display: none !important; 
-              }
-
-              /* Configurar Container do Relatório */
-              .modal-overlay {
-                position: absolute !important;
-                inset: 0 !important;
-                background: hsl(var(--bg-card)) !important;
-                display: block !important;
-                padding: 0 !important;
-                z-index: auto !important;
-                backdrop-filter: none !important;
-              }
-
-              .simulator-modal-container {
-                position: static !important;
-                max-width: 100% !important;
-                max-height: none !important;
-                box-shadow: none !important;
-                border: none !important;
-                background: hsl(var(--bg-card)) !important;
-                display: block !important;
-                overflow: visible !important;
-              }
-
-              .print-report-container {
-                display: block !important;
-                visibility: visible !important;
-                width: 100%;
-                color: black !important;
-                font-family: 'Inter', sans-serif !important;
-              }
-
-              .print-header {
-                display: flex; justify-content: space-between; align-items: flex-end;
-                border-bottom: 3px solid #16a34a; padding-bottom: 15px; margin-bottom: 30px;
-              }
-
-              .print-logo { font-weight: 900; color: #16a34a; font-size: 14px; text-transform: uppercase; }
-              .print-header h1 { font-size: 22px; margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; color: #0f172a; }
-              .report-date { font-size: 11px; color: #64748b; font-weight: 600; }
-
-              .print-summary-banner {
-                background: hsl(var(--bg-main)); padding: 20px; border-radius: 12px; border: 1px solid hsl(var(--border));
-                display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 20px;
-                margin-bottom: 30px;
-              }
-
-              .s-label { display: block; font-size: 9px; font-weight: 900; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-              .s-value { font-size: 15px; font-weight: 800; color: #0f172a; }
-
-              .print-columns-wrapper {
-                display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 30px;
-                margin-bottom: 30px;
-              }
-
-              .print-section { margin-bottom: 30px; }
-              .print-section h2 { font-size: 12px; color: #16a34a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase; font-weight: 900; }
-
-              .print-table { width: 100%; border-collapse: collapse; }
-              .print-table tr { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 8px 0; }
-              .print-table td { font-size: 11px; font-weight: 600; }
-              .print-table td:first-child { color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: 800; }
-              .print-table td:last-child { text-align: right; color: #0f172a; font-weight: 800; }
-
-              .print-stats-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px; }
-              .p-stat { padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 12px; display: flex !important; flex-direction: column !important; gap: 8px !important; }
-              .p-stat.highlight { grid-column: span 3; flex-direction: row !important; justify-content: space-between; align-items: center; background: #f0fdf4; border-color: #bbf7d0; }
-              .ps-label { display: block; font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase; }
-              .ps-value { display: block; font-size: 14px; font-weight: 900; color: #0f172a; }
-              .p-stat.highlight .ps-value { color: #15803d; font-size: 18px; }
-
-              .print-footer {
-                margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0;
-                font-size: 10px; color: #94a3b8; text-align: center;
-              }
-            }
-          `}</style>
-    </>
+    </SidePanel>
   );
 };

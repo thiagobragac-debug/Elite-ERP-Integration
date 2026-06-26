@@ -10,7 +10,6 @@ import {
   Filter,
   TrendingUp,
   History,
-  Wifi,
   Trash2,
   Edit3,
   ChevronRight,
@@ -37,6 +36,7 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { hasDraftForKey } from '../../hooks/useFormDraft';
+import { useScale } from '../../contexts/ScaleContext';
 
 interface WeightRecord {
   id: string;
@@ -642,10 +642,8 @@ export const WeightManagement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWeight, setSelectedWeight] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
-    'WeightManagement_isHistoryModalOpen',
-    false
-  );
+  // Modais: useState simples — estado de abertura não deve ser persistido entre sessões
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [selectedAnimalBrinco, setSelectedAnimalBrinco] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -674,14 +672,9 @@ export const WeightManagement: React.FC = () => {
     performanceLevel: 'all',
     daysSinceLastWeighing: 0,
   });
-  const [isScaleModalOpen, setIsScaleModalOpen] = usePersistentState(
-    'WeightManagement_isScaleModalOpen',
-    false
-  );
-  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState(
-    'WeightManagement_isBatchModalOpen',
-    false
-  );
+  const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const { state: scaleState } = useScale();
 
   const [selectedLotId, setSelectedLotId] = useState<string>('all');
 
@@ -767,7 +760,7 @@ export const WeightManagement: React.FC = () => {
   }, [rawHistoryItems]);
 
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const pageSize = 12;
 
   const {
     data: rawWeighings,
@@ -806,6 +799,7 @@ export const WeightManagement: React.FC = () => {
           .from('pesagens')
           .update(payload)
           .eq('id', id)
+          .eq('tenant_id', activeTenantId)
           .select();
         if (error) {
           throw error;
@@ -877,7 +871,11 @@ export const WeightManagement: React.FC = () => {
 
   const deleteWeightMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('pesagens').delete().eq('id', id);
+      const { error } = await supabase
+        .from('pesagens')
+        .delete()
+        .eq('id', id)
+        .eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -1034,18 +1032,28 @@ export const WeightManagement: React.FC = () => {
     });
   }, [weighings, searchTerm, filterValues, selectedLotId]);
 
+  // Helper: parse de data seguro com timezone (evita deslocamento UTC→local)
+  const formatDate = (raw?: string) => {
+    if (!raw) return 'N/A';
+    // Adiciona T12:00:00 para que o parse não sofra offset de fuso horário
+    const d = new Date(`${raw}T12:00:00`);
+    if (isNaN(d.getTime())) return 'Data inválida';
+    // Alerta visual para datas biologicamente impossíveis
+    const year = d.getFullYear();
+    const isAnomaly = year < 2000 || year > new Date().getFullYear() + 1;
+    const formatted = d.toLocaleDateString('pt-BR');
+    return isAnomaly ? `⚠ ${formatted}` : formatted;
+  };
+
   const columns = useMemo(() => [
     {
       header: 'Animal / Brinco',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>
             #{item.animais?.brinco || 'N/A'}
           </span>
-          <span
-            className="sub-meta"
-            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
-          >
+          <span className="sub-meta" style={{ color: 'hsl(var(--text-muted))', fontSize: '10px', fontWeight: 600 }}>
             ID: {item.animal_id?.slice(0, 8).toUpperCase() || item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
@@ -1054,72 +1062,85 @@ export const WeightManagement: React.FC = () => {
     },
     {
       header: 'Data da Pesagem',
-      accessor: (item: any) => (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            color: '#64748b',
-            fontWeight: 600,
-            fontSize: '12px',
-          }}
-        >
-          <Calendar size={14} />
-          <span>
-            {item.data_pesagem ? new Date(item.data_pesagem).toLocaleDateString() : 'N/A'}
-          </span>
-        </div>
-      ),
+      accessor: (item: any) => {
+        const label = formatDate(item.data_pesagem);
+        const isAnomaly = label.startsWith('⚠');
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 600, fontSize: '12px', color: isAnomaly ? 'hsl(38 92% 50%)' : 'hsl(var(--text-muted))' }}>
+            <Calendar size={14} />
+            <span title={isAnomaly ? 'Data possivelmente incorreta — verifique o registro' : undefined}>{label}</span>
+          </div>
+        );
+      },
       align: 'center' as const,
     },
     {
       header: 'Peso Atual',
       accessor: (item: any) => (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            color: '#1e293b',
-            fontWeight: 800,
-          }}
-        >
-          <Scale size={14} color="#6366f1" />
-          <span>{Number(item.peso).toFixed(2)} kg</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'hsl(var(--text-main))', fontWeight: 800 }}>
+          <Scale size={14} color="hsl(var(--brand))" />
+          <span>{Number(item.peso).toFixed(1)} kg</span>
         </div>
       ),
       align: 'center' as const,
     },
     {
       header: 'GMD Médio Real',
-      accessor: (item: any) => (
-        <div
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-        >
-          <TrendingUp size={14} color={item.gmd > 0.8 ? '#10b981' : '#f59e0b'} />
-          <span style={{ fontWeight: 800, color: item.gmd > 0.8 ? '#059669' : '#d97706' }}>
-            {item.gmd ? `${item.gmd.toFixed(2)} kg/dia` : '-'}
-          </span>
-        </div>
-      ),
+      accessor: (item: any) => {
+        const gmd = item.gmd;
+        const hasGmd = gmd !== null && gmd !== undefined && gmd > 0;
+        const color = !hasGmd
+          ? 'hsl(var(--text-muted))'
+          : gmd >= 0.8 ? 'hsl(142 71% 45%)'
+          : gmd >= 0.4 ? 'hsl(38 92% 50%)'
+          : 'hsl(0 84% 60%)';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <TrendingUp size={14} color={color} />
+            <span style={{ fontWeight: 800, color }}>
+              {hasGmd ? `${gmd.toFixed(2)} kg/dia` : '—'}
+            </span>
+          </div>
+        );
+      },
       align: 'center' as const,
     },
     {
       header: 'Projeção Abate',
       accessor: (item: any) => {
-        const targetWeight = 520;
-        const remaining = targetWeight - Number(item.peso);
-        const daysToAbate = item.gmd > 0 ? Math.ceil(remaining / item.gmd) : 0;
+        const peso = Number(item.peso);
+        const gmd = item.gmd;
+        // Target por raça do animal (fallback 500 kg quando raça desconhecida)
+        const racaKey = getLotBreedKey(item.animais?.raca);
+        const targetWeight = LOT_SLAUGHTER_TARGET_BREED[racaKey] || LOT_SLAUGHTER_TARGET_BREED.default;
+        const remaining = targetWeight - peso;
 
+        // Sem GMD real: não é possível calcular projeção
+        if (!gmd || gmd <= 0) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <span className="status-pill stopped" title="Sem GMD calculado — registre ao menos 2 pesagens">
+                Sem GMD
+              </span>
+            </div>
+          );
+        }
+
+        // Animal já atingiu ou ultrapassou o peso alvo
+        if (remaining <= 0) {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <span className="status-pill success">Pronto ✓</span>
+            </div>
+          );
+        }
+
+        const daysToAbate = Math.ceil(remaining / gmd);
+        const pillClass = daysToAbate <= 30 ? 'warning' : 'active';
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <span
-              className={`status-pill ${daysToAbate > 0 && daysToAbate < 30 ? 'warning' : daysToAbate > 30 ? 'info' : 'success'}`}
-            >
-              {daysToAbate > 0 ? `~${daysToAbate} dias` : 'Pronto'}
+            <span className={`status-pill ${pillClass}`}>
+              ~{daysToAbate} dias
             </span>
           </div>
         );
@@ -1129,20 +1150,9 @@ export const WeightManagement: React.FC = () => {
     {
       header: 'Observação',
       accessor: (item: any) => (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2px',
-            textAlign: 'left',
-            maxWidth: '150px',
-          }}
-        >
-          <span
-            style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}
-            className="truncate"
-          >
-            {item.observacao || 'Sem observações'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', maxWidth: '150px' }}>
+          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 500 }} className="truncate">
+            {item.observacao || '—'}
           </span>
         </div>
       ),
@@ -1166,14 +1176,7 @@ export const WeightManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {/* Ícone de configuração de balança — não conta como botão de ação principal */}
-          <button
-            className="icon-btn-secondary"
-            title="Configurar Balança"
-            onClick={() => setIsScaleModalOpen(true)}
-          >
-            <Wifi size={20} />
-          </button>
+          {/* Máx. 2 botões conforme padrão do sistema */}
           <button
             className="glass-btn secondary"
             style={{
@@ -1277,6 +1280,14 @@ export const WeightManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
+          {/* Configurar Balança — no grupo de filtros para não exceder 2 botões no page-actions */}
+          <button
+            className={`icon-btn-secondary ${scaleState.status === 'CONNECTED' ? 'active' : ''}`}
+            title={scaleState.status === 'CONNECTED' ? `Balança ${scaleState.brand} conectada` : 'Configurar Balança'}
+            onClick={() => setIsScaleModalOpen(true)}
+          >
+            <Scale size={20} />
+          </button>
           <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

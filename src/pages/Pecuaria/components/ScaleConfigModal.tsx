@@ -1,177 +1,92 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
-  Wifi,
   Bluetooth,
   Usb,
+  Wifi,
   CheckCircle2,
   AlertCircle,
-  Settings2,
   Cpu,
   RefreshCw,
-  Search,
   Terminal,
-  Play,
+  Zap,
+  X,
+  Copy,
 } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
+import { useScale } from '../../../contexts/ScaleContext';
+import type { ScaleBrand, ScaleConnectionType } from '../../../contexts/ScaleContext';
+import './ScaleConfigModal.css';
 
 interface ScaleConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type ConnectionType = 'WIFI' | 'BLUETOOTH' | 'USB';
-type ScaleBrand = 'TRUTEST' | 'GALLAGHER' | 'COIMMA' | 'DIGISTAR' | 'OUTRO';
+const BRANDS: ScaleBrand[] = ['TRUTEST', 'GALLAGHER', 'COIMMA', 'DIGISTAR', 'OUTRO'];
 
-export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onClose }) => {
-  const [connectionType, setConnectionType] = useState<ConnectionType>(
-    (localStorage.getItem('tauze_scale_type') as ConnectionType) || 'BLUETOOTH'
-  );
-  const [brand, setBrand] = useState<ScaleBrand>(
-    (localStorage.getItem('tauze_scale_brand') as ScaleBrand) || 'TRUTEST'
-  );
+const BAUD_RATES = ['1200', '2400', '4800', '9600', '19200', '38400', '115200'];
 
-  // Connection Flow State
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [status, setStatus] = useState<'IDLE' | 'CONNECTING' | 'CONNECTED' | 'ERROR'>(
-    localStorage.getItem('tauze_scale_connected') === 'true' ? 'CONNECTED' : 'IDLE'
-  );
-  const [connectionStep, setConnectionStep] = useState<string>('');
+const BT_SUPPORT = 'bluetooth' in navigator;
+const SERIAL_SUPPORT = 'serial' in navigator;
 
-  // Forms states
-  const [ipAddress, setIpAddress] = useState('192.168.1.100');
-  const [port, setPort] = useState('8080');
-  const [comPort, setComPort] = useState('COM3');
-  const [baudRate, setBaudRate] = useState('9600');
+export function ScaleConfigModal({ isOpen, onClose }: ScaleConfigModalProps) {
+  const { state, setBrand, setConnectionType, connectBluetooth, connectSerial, disconnect } = useScale();
+  const { status, brand, connectionType, deviceName, currentWeight, rawLog, errorMessage } = state;
 
-  const [isScanning, setIsScanning] = useState(false);
-  const [scannedDevice, setScannedDevice] = useState<string | null>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const baudRateRef = useRef<string>('9600');
 
-  // Terminal State
-  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
-  const terminalEndRef = useRef<HTMLDivElement>(null);
-
-  // Simulate Terminal Data when connected
+  // Auto-scroll terminal
   useEffect(() => {
-    let interval: number;
-    if (status === 'CONNECTED') {
-      const generateWeight = () => (Math.random() * (550 - 250) + 250).toFixed(1);
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [rawLog]);
 
-      setTerminalLogs((prev) => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] LINK ESTABLISHED. WAITING DATA...`,
-      ]);
+  const isConnected = status === 'CONNECTED';
+  const isConnecting = status === 'CONNECTING';
+  const isDisabled = isConnected || isConnecting;
 
-      interval = window.setInterval(() => {
-        const header = brand === 'GALLAGHER' ? '$W' : brand === 'TRUTEST' ? 'RW' : 'WT';
-        const rawString = `${header},00${generateWeight()},KG\\r\\n`;
-        setTerminalLogs((prev) => {
-          const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] RAW: ${rawString}`];
-          return newLogs.slice(-15); // keep last 15
-        });
-      }, 1500);
+  const handleConnect = async () => {
+    if (connectionType === 'BLUETOOTH') {
+      await connectBluetooth();
     } else {
-      setTerminalLogs([]);
+      await connectSerial(parseInt(baudRateRef.current, 10));
     }
-
-    return () => clearInterval(interval);
-  }, [status, brand]);
-
-  useEffect(() => {
-    if (terminalEndRef.current) {
-      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [terminalLogs]);
-
-  const handleScanBluetooth = () => {
-    setIsScanning(true);
-    setScannedDevice(null);
-    setTimeout(() => {
-      setScannedDevice(`${brand}-XR-${Math.floor(Math.random() * 9000) + 1000}`);
-      setIsScanning(false);
-    }, 2500);
   };
 
-  const handleConnect = () => {
-    setIsConnecting(true);
-    setStatus('CONNECTING');
-    setConnectionStep('Pingando interface de rede...');
-    setTerminalLogs([`[${new Date().toLocaleTimeString()}] INIT CONNECTION SEQUENCE...`]);
-
-    // Step 2
-    setTimeout(() => {
-      setConnectionStep(`Autenticando protocolo ${brand}...`);
-    }, 1000);
-
-    // Step 3
-    setTimeout(() => {
-      setConnectionStep('Aguardando string de dados...');
-    }, 2500);
-
-    // Concluded
-    setTimeout(() => {
-      setIsConnecting(false);
-      setStatus('CONNECTED');
-      setConnectionStep('');
-      localStorage.setItem('tauze_scale_connected', 'true');
-      localStorage.setItem('tauze_scale_brand', brand);
-      localStorage.setItem('tauze_scale_type', connectionType);
-    }, 3800);
+  const handleCopyLogs = () => {
+    navigator.clipboard.writeText(rawLog.join('\n'));
   };
 
-  const handleDisconnect = () => {
-    setStatus('IDLE');
-    setConnectionStep('');
-    localStorage.removeItem('tauze_scale_connected');
-    localStorage.removeItem('tauze_scale_brand');
-    localStorage.removeItem('tauze_scale_type');
-  };
+  const submitLabel = isConnecting ? 'Conectando...' : isConnected ? 'Salvar Configuração' : 'Conectar Balança';
 
   return (
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleConnect();
-      }}
       title="Configuração de Balança"
       subtitle="Integração em tempo real com troncos e balanças eletrônicas"
-      icon={Settings2}
-      submitLabel={
-        isConnecting
-          ? 'Conectando...'
-          : status === 'CONNECTED'
-            ? 'Salvar Configuração'
-            : 'Testar Conexão'
-      }
+      icon={Zap}
+      submitLabel={submitLabel}
+      onSubmit={isConnected ? onClose : handleConnect}
       loading={isConnecting}
       size="medium"
     >
-      <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div className="tauze-field-group">
-          <label className="tauze-label">Marca/Fabricante do Equipamento</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-            {(['TRUTEST', 'GALLAGHER', 'COIMMA', 'DIGISTAR', 'OUTRO'] as ScaleBrand[]).map((b) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* ── Marca / Fabricante ──────────────────────────────── */}
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            Marca / Fabricante do Equipamento
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {BRANDS.map((b) => (
               <button
                 key={b}
-                type="button"
-                className="brand-config-btn"
-                disabled={status === 'CONNECTED' || isConnecting}
-                style={{
-                  padding: '14px 10px',
-                  borderRadius: '12px',
-                  border: `1.5px solid ${brand === b ? 'hsl(var(--brand))' : 'hsl(var(--border) / 0.6)'}`,
-                  background:
-                    brand === b ? 'hsl(var(--brand) / 0.12)' : 'hsl(var(--bg-main) / 0.3)',
-                  color: brand === b ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  cursor: status === 'CONNECTED' || isConnecting ? 'not-allowed' : 'pointer',
-                  opacity: status === 'CONNECTED' || isConnecting ? (brand === b ? 1 : 0.5) : 1,
-                  transition: 'all 0.2s ease',
-                  boxShadow: brand === b ? '0 4px 12px hsl(var(--brand) / 0.08)' : 'none',
-                }}
+                className={`scale-brand-btn ${brand === b ? 'active' : ''}`}
                 onClick={() => setBrand(b)}
+                disabled={isDisabled}
               >
                 {b}
               </button>
@@ -179,535 +94,193 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        <div className="tauze-field-group">
-          <label className="tauze-label">Tipo de Comunicação</label>
-          <div style={{ display: 'flex', gap: '12px' }}>
+        {/* ── Tipo de Comunicação ─────────────────────────────── */}
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            Tipo de Comunicação
+          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {/* Bluetooth */}
             <button
-              type="button"
-              className="conn-config-btn"
-              disabled={status === 'CONNECTED' || isConnecting}
-              style={{
-                flex: 1,
-                padding: '16px 10px',
-                borderRadius: '16px',
-                border: `1.5px solid ${connectionType === 'BLUETOOTH' ? 'hsl(var(--brand))' : 'hsl(var(--border) / 0.6)'}`,
-                background:
-                  connectionType === 'BLUETOOTH'
-                    ? 'hsl(var(--brand) / 0.12)'
-                    : 'hsl(var(--bg-main) / 0.3)',
-                color:
-                  connectionType === 'BLUETOOTH'
-                    ? 'hsl(var(--text-main))'
-                    : 'hsl(var(--text-muted))',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: status === 'CONNECTED' || isConnecting ? 'not-allowed' : 'pointer',
-                opacity:
-                  status === 'CONNECTED' || isConnecting
-                    ? connectionType === 'BLUETOOTH'
-                      ? 1
-                      : 0.5
-                    : 1,
-                transition: 'all 0.2s ease',
-                boxShadow:
-                  connectionType === 'BLUETOOTH' ? '0 6px 16px hsl(var(--brand) / 0.08)' : 'none',
-              }}
-              onClick={() => {
-                setConnectionType('BLUETOOTH');
-                setScannedDevice(null);
-              }}
+              className={`scale-conn-btn ${connectionType === 'BLUETOOTH' ? 'active' : ''}`}
+              onClick={() => setConnectionType('BLUETOOTH')}
+              disabled={isDisabled || !BT_SUPPORT}
+              title={!BT_SUPPORT ? 'Requer Chrome ou Edge no desktop' : undefined}
             >
-              <Bluetooth
-                size={22}
-                style={{
-                  color:
-                    connectionType === 'BLUETOOTH'
-                      ? 'hsl(var(--brand))'
-                      : 'hsl(var(--text-muted) / 0.8)',
-                }}
-              />
-              <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                BLUETOOTH
-              </span>
+              <Bluetooth size={22} />
+              BLUETOOTH
+              {!BT_SUPPORT && <span className="scale-conn-soon">CHROME</span>}
             </button>
+
+            {/* Wi-Fi — Em breve */}
             <button
-              type="button"
-              className="conn-config-btn"
-              disabled={status === 'CONNECTED' || isConnecting}
-              style={{
-                flex: 1,
-                padding: '16px 10px',
-                borderRadius: '16px',
-                border: `1.5px solid ${connectionType === 'WIFI' ? 'hsl(var(--brand))' : 'hsl(var(--border) / 0.6)'}`,
-                background:
-                  connectionType === 'WIFI'
-                    ? 'hsl(var(--brand) / 0.12)'
-                    : 'hsl(var(--bg-main) / 0.3)',
-                color:
-                  connectionType === 'WIFI' ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: status === 'CONNECTED' || isConnecting ? 'not-allowed' : 'pointer',
-                opacity:
-                  status === 'CONNECTED' || isConnecting
-                    ? connectionType === 'WIFI'
-                      ? 1
-                      : 0.5
-                    : 1,
-                transition: 'all 0.2s ease',
-                boxShadow:
-                  connectionType === 'WIFI' ? '0 6px 16px hsl(var(--brand) / 0.08)' : 'none',
-              }}
-              onClick={() => setConnectionType('WIFI')}
+              className="scale-conn-btn"
+              disabled
+              title="Integração Wi-Fi disponível em breve"
             >
-              <Wifi
-                size={22}
-                style={{
-                  color:
-                    connectionType === 'WIFI'
-                      ? 'hsl(var(--brand))'
-                      : 'hsl(var(--text-muted) / 0.8)',
-                }}
-              />
-              <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                WI-FI / IP
-              </span>
+              <Wifi size={22} />
+              WI-FI / IP
+              <span className="scale-conn-soon">EM BREVE</span>
             </button>
+
+            {/* USB */}
             <button
-              type="button"
-              className="conn-config-btn"
-              disabled={status === 'CONNECTED' || isConnecting}
-              style={{
-                flex: 1,
-                padding: '16px 10px',
-                borderRadius: '16px',
-                border: `1.5px solid ${connectionType === 'USB' ? 'hsl(var(--brand))' : 'hsl(var(--border) / 0.6)'}`,
-                background:
-                  connectionType === 'USB'
-                    ? 'hsl(var(--brand) / 0.12)'
-                    : 'hsl(var(--bg-main) / 0.3)',
-                color:
-                  connectionType === 'USB' ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: status === 'CONNECTED' || isConnecting ? 'not-allowed' : 'pointer',
-                opacity:
-                  status === 'CONNECTED' || isConnecting ? (connectionType === 'USB' ? 1 : 0.5) : 1,
-                transition: 'all 0.2s ease',
-                boxShadow:
-                  connectionType === 'USB' ? '0 6px 16px hsl(var(--brand) / 0.08)' : 'none',
-              }}
+              className={`scale-conn-btn ${connectionType === 'USB' ? 'active' : ''}`}
               onClick={() => setConnectionType('USB')}
+              disabled={isDisabled || !SERIAL_SUPPORT}
+              title={!SERIAL_SUPPORT ? 'Requer Chrome ou Edge no desktop' : undefined}
             >
-              <Usb
-                size={22}
-                style={{
-                  color:
-                    connectionType === 'USB' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted) / 0.8)',
-                }}
-              />
-              <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                USB / SERIAL
-              </span>
+              <Usb size={22} />
+              USB / SERIAL
+              {!SERIAL_SUPPORT && <span className="scale-conn-soon">CHROME</span>}
             </button>
           </div>
         </div>
 
-        {/* Dynamic Fields based on Connection Type */}
-        <div
-          style={{
-            background: 'hsl(var(--bg-card) / 0.5)',
-            border: '1px dashed hsl(var(--border))',
-            borderRadius: '16px',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
-          {connectionType === 'BLUETOOTH' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        {/* ── Campos por tipo ─────────────────────────────────── */}
+        {connectionType === 'BLUETOOTH' && !isConnected && (
+          <div style={{ padding: 14, background: 'hsl(var(--bg-secondary))', borderRadius: 12, border: '1px solid hsl(var(--border))' }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 6 }}>
+              Dispositivo Pareado
+            </p>
+            {deviceName ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <CheckCircle2 size={16} color="hsl(142 76% 45%)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--text-main))' }}>{deviceName}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'hsl(var(--text-muted))' }}>
+                <Bluetooth size={14} />
+                <span style={{ fontSize: 13 }}>Nenhum dispositivo selecionado — clique em "Conectar Balança"</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {connectionType === 'USB' && !isConnected && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="scale-input-group">
+              <label className="scale-input-label">Baud Rate</label>
+              <select
+                className="tauze-input"
+                defaultValue="9600"
+                onChange={(e) => { baudRateRef.current = e.target.value; }}
+                disabled={isDisabled}
               >
-                <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-                  Dispositivo Pareado
-                </span>
-                {status !== 'CONNECTED' && (
-                  <button
-                    type="button"
-                    onClick={handleScanBluetooth}
-                    disabled={isScanning}
-                    className="glass-btn secondary"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '11px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      gap: '6px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {isScanning ? (
-                      <RefreshCw size={14} className="spin-slow" />
-                    ) : (
-                      <Search size={14} />
-                    )}
-                    {isScanning ? 'Procurando...' : 'Escanear'}
-                  </button>
-                )}
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'hsl(var(--bg-main))',
-                  borderRadius: '8px',
-                  border: '1px solid hsl(var(--border) / 0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                <Bluetooth
-                  size={18}
-                  style={{ color: scannedDevice ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}
-                />
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: scannedDevice ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted) / 0.7)',
-                  }}
-                >
-                  {scannedDevice || 'Nenhum dispositivo selecionado'}
-                </span>
-                {scannedDevice && (
-                  <CheckCircle2 size={16} style={{ color: '#10b981', marginLeft: 'auto' }} />
-                )}
+                {BAUD_RATES.map((r) => (
+                  <option key={r} value={r}>{r} baud</option>
+                ))}
+              </select>
+            </div>
+            <div className="scale-input-group">
+              <label className="scale-input-label">Protocolo</label>
+              <div style={{ padding: '8px 12px', background: 'hsl(var(--bg-secondary))', borderRadius: 8, border: '1px solid hsl(var(--border))', fontSize: 12, color: 'hsl(var(--text-muted))' }}>
+                8N1 — seleção automática
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {connectionType === 'WIFI' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="tauze-field-group">
-                <label className="tauze-label">Endereço IP Local</label>
-                <input
-                  type="text"
-                  className="tauze-input"
-                  value={ipAddress}
-                  onChange={(e) => setIpAddress(e.target.value)}
-                  placeholder="Ex: 192.168.1.100"
-                  disabled={status === 'CONNECTED'}
-                />
-              </div>
-              <div className="tauze-field-group">
-                <label className="tauze-label">Porta TCP</label>
-                <input
-                  type="text"
-                  className="tauze-input"
-                  value={port}
-                  onChange={(e) => setPort(e.target.value)}
-                  placeholder="Ex: 8080"
-                  disabled={status === 'CONNECTED'}
-                />
-              </div>
+        {/* ── Painel de status ────────────────────────────────── */}
+        {status === 'IDLE' && !deviceName && (
+          <div className="scale-status-panel">
+            <Cpu size={18} style={{ flexShrink: 0 }} />
+            <span>Selecione o fabricante e o tipo de conexão, depois clique em "Conectar Balança".</span>
+          </div>
+        )}
+
+        {status === 'CONNECTING' && (
+          <div className="scale-status-panel connecting">
+            <RefreshCw size={18} className="scale-spin" style={{ flexShrink: 0 }} />
+            <span>Aguardando autorização do browser para acessar o hardware...</span>
+          </div>
+        )}
+
+        {status === 'ERROR' && (
+          <div className="scale-status-panel error">
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 700 }}>Erro de conexão</div>
+              <div style={{ fontSize: 12, marginTop: 2, opacity: 0.8 }}>{errorMessage}</div>
             </div>
-          )}
+          </div>
+        )}
 
-          {connectionType === 'USB' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="tauze-field-group">
-                <label className="tauze-label">Porta COM</label>
-                <select
-                  className="tauze-input"
-                  value={comPort}
-                  onChange={(e) => setComPort(e.target.value)}
-                  disabled={status === 'CONNECTED'}
-                >
-                  <option value="COM1">COM1</option>
-                  <option value="COM2">COM2</option>
-                  <option value="COM3">COM3</option>
-                  <option value="COM4">COM4</option>
-                  <option value="/dev/ttyUSB0">/dev/ttyUSB0</option>
-                </select>
-              </div>
-              <div className="tauze-field-group">
-                <label className="tauze-label">Baud Rate</label>
-                <select
-                  className="tauze-input"
-                  value={baudRate}
-                  onChange={(e) => setBaudRate(e.target.value)}
-                  disabled={status === 'CONNECTED'}
-                >
-                  <option value="4800">4800</option>
-                  <option value="9600">9600</option>
-                  <option value="19200">19200</option>
-                  <option value="38400">38400</option>
-                  <option value="115200">115200</option>
-                </select>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Live Terminal & Diagnostics */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderRadius: '16px',
-            background:
-              status === 'CONNECTED'
-                ? 'rgba(16, 185, 129, 0.06)'
-                : status === 'ERROR'
-                  ? 'rgba(239, 68, 68, 0.06)'
-                  : 'hsl(var(--bg-main) / 0.4)',
-            border:
-              status === 'CONNECTED'
-                ? '1.5px solid rgba(16, 185, 129, 0.25)'
-                : status === 'ERROR'
-                  ? '1.5px solid rgba(239, 68, 68, 0.25)'
-                  : '1px solid hsl(var(--border) / 0.5)',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          {status === 'IDLE' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                color: 'hsl(var(--text-muted))',
-                padding: '4px 0',
-              }}
-            >
-              <Cpu size={22} style={{ color: 'hsl(var(--brand))' }} />
-              <span style={{ fontSize: '13px', fontWeight: 700 }}>
-                Aguardando parâmetros para iniciar pareamento...
-              </span>
-            </div>
-          )}
-
-          {status === 'CONNECTING' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                color: 'hsl(var(--brand))',
-                padding: '4px 0',
-              }}
-            >
-              <RefreshCw size={22} className="spin-slow" />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800 }}>Diagnosticando...</span>
-                <span style={{ fontSize: '11px', fontWeight: 600, opacity: 0.8 }}>
-                  {connectionStep}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {status === 'CONNECTED' && (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '14px',
-                  color: '#10b981',
-                  padding: '4px 0',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
-                  <div style={{ position: 'relative' }}>
-                    <CheckCircle2 size={24} style={{ color: '#10b981' }} />
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: -2,
-                        right: -2,
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        boxShadow: '0 0 8px #10b981',
-                        animation: 'pulse 1.5s infinite',
-                      }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: '13.5px',
-                        fontWeight: 900,
-                        color: 'hsl(var(--text-main))',
-                      }}
-                    >
-                      Ligação Estabelecida ({brand})
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        color: '#10b981',
-                        marginTop: '2px',
-                      }}
-                    >
-                      Streaming de porta ativo • {connectionType}
-                    </div>
-                  </div>
+        {status === 'CONNECTED' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Status badge */}
+            <div className="scale-status-panel connected">
+              <div className="scale-live-dot" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700 }}>Ligação Estabelecida — {deviceName}</div>
+                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
+                  {brand} · {connectionType === 'BLUETOOTH' ? 'Bluetooth BLE' : 'USB Serial'}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              </div>
+              <button
+                onClick={disconnect}
+                style={{ padding: '4px 12px', background: 'hsl(0 84% 60% / 0.15)', border: '1px solid hsl(0 84% 60% / 0.4)', borderRadius: 8, color: 'hsl(0 84% 60%)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+              >
+                <X size={12} style={{ display: 'inline', marginRight: 4 }} />
+                DESCONECTAR
+              </button>
+            </div>
+
+            {/* Último peso capturado */}
+            {currentWeight !== null && (
+              <div className="scale-weight-display">
+                <Zap size={18} color="hsl(var(--brand))" />
+                <span className="scale-weight-value">{currentWeight.toFixed(1)}</span>
+                <span className="scale-weight-unit">kg</span>
+                <span style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginLeft: 'auto' }}>Último peso recebido</span>
+              </div>
+            )}
+
+            {/* Terminal */}
+            <div className="scale-terminal">
+              <div className="scale-terminal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Terminal size={14} color="hsl(120 50% 55%)" />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(120 50% 55%)' }}>Raw Data Console</span>
+                  <span className="scale-live-badge">LIVE</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
                   <button
-                    type="button"
-                    onClick={handleDisconnect}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                      color: '#ef4444',
-                      padding: '6px 16px',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-                    }}
+                    onClick={handleCopyLogs}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(120 30% 40%)' }}
+                    title="Copiar logs"
                   >
-                    Desconectar
+                    <Copy size={13} />
                   </button>
                 </div>
               </div>
-
-              {/* LIVE TERMINAL */}
-              <div
-                style={{
-                  background: '#050505',
-                  borderRadius: '8px',
-                  border: '1px solid #333',
-                  marginTop: '8px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 12px',
-                    background: '#111',
-                    borderBottom: '1px solid #333',
-                  }}
-                >
-                  <Terminal size={12} color="#888" />
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      color: '#888',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    Raw Data Console
-                  </span>
+              <div className="scale-terminal-body" ref={terminalRef}>
+                {rawLog.length === 0 && (
+                  <span style={{ opacity: 0.4 }}>Aguardando dados da balança...</span>
+                )}
+                {rawLog.map((line, i) => (
                   <div
-                    style={{
-                      marginLeft: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
+                    key={i}
+                    className={line.includes('PESO') ? 'scale-log-weight' : line.includes('ERRO') ? 'scale-log-error' : ''}
                   >
-                    <Play size={10} color="#10b981" />
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981' }}>LIVE</span>
+                    {line}
                   </div>
-                </div>
-                <div
-                  style={{
-                    height: '110px',
-                    padding: '12px',
-                    overflowY: 'auto',
-                    fontFamily: '"Fira Code", monospace',
-                    fontSize: '11px',
-                    lineHeight: '1.6',
-                    color: '#10b981',
-                  }}
-                >
-                  {terminalLogs.length === 0 ? (
-                    <div style={{ color: '#555', fontStyle: 'italic' }}>
-                      Aguardando transmissão...
-                    </div>
-                  ) : (
-                    terminalLogs.map((log, i) => (
-                      <div key={i} style={{ wordBreak: 'break-all' }}>
-                        {log}
-                      </div>
-                    ))
-                  )}
-                  <div ref={terminalEndRef} />
-                </div>
+                ))}
               </div>
-            </>
-          )}
-
-          {status === 'ERROR' && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                color: '#ef4444',
-                padding: '4px 0',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <AlertCircle size={22} />
-                <span style={{ fontSize: '13px', fontWeight: 800 }}>
-                  Falha ao localizar dispositivo.
-                </span>
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 600, opacity: 0.9, marginLeft: '36px' }}>
-                Dica: Verifique se a balança {brand} está no mesmo segmento de rede e configurada no
-                modo Servidor/Streaming.
-              </span>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      <style>{`
-        .spin-slow { animation: spin 2s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 0; } }
-        .brand-config-btn:not(:disabled):hover {
-          border-color: hsl(var(--brand) / 0.7) !important;
-          background: hsl(var(--brand) / 0.05) !important;
-          color: hsl(var(--brand)) !important;
-        }
-        .conn-config-btn:not(:disabled):hover {
-          border-color: hsl(var(--brand) / 0.7) !important;
-          background: hsl(var(--brand) / 0.05) !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px hsl(var(--brand) / 0.05);
-        }
-      `}</style>
+        {/* ── Nota de compatibilidade ─────────────────────────── */}
+        <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'flex-start', gap: 6, padding: '8px 12px', background: 'hsl(var(--bg-secondary))', borderRadius: 8 }}>
+          <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Requer <strong>Chrome</strong> ou <strong>Edge</strong> no desktop. Firefox e Safari iOS não suportam Web Bluetooth/Serial.
+            {connectionType === 'USB' && ' Certifique-se de que o driver USB-Serial está instalado.'}
+          </span>
+        </div>
+
+      </div>
     </SidePanel>
   );
-};
+}

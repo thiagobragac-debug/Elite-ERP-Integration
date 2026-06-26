@@ -698,25 +698,94 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
             background: 'hsl(var(--bg-main)/0.3)',
             borderTop: '1px solid hsl(var(--border))',
             display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            gap: '16px',
+            flexDirection: 'column',
+            gap: '10px',
           }}
         >
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: 'hsl(var(--text-muted))',
-              textTransform: 'uppercase',
-            }}
-          >
-            Custo Total Estimado
-          </div>
-          <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
-            {items
-              .reduce((acc, curr) => acc + (curr.custo_medio || 0) * (curr.quantidade || 0), 0)
-              .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          {/* ── Barra de proporção — apenas modo formulation ── */}
+          {mode === 'formulation' && (() => {
+            const totalPct = items.reduce((acc, curr) => acc + (Number(curr.quantidade) || 0), 0);
+            const isOk = totalPct >= 95 && totalPct <= 105;
+            const isOver = totalPct > 105;
+            const barColor = isOk ? '#10b981' : isOver ? '#ef4444' : '#f59e0b';
+            const barWidth = Math.min(totalPct, 110);
+
+            return (
+              <div>
+                {/* Label + valor */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Proporção Total da Formulação
+                  </span>
+                  <span style={{ fontSize: '14px', fontWeight: 900, color: barColor }}>
+                    {totalPct.toFixed(1)}%
+                  </span>
+                </div>
+
+                {/* Barra de progresso */}
+                <div
+                  style={{
+                    height: '6px',
+                    borderRadius: '4px',
+                    background: 'hsl(var(--border))',
+                    overflow: 'hidden',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${barWidth}%`,
+                      background: barColor,
+                      borderRadius: '4px',
+                      transition: 'width 0.3s ease, background 0.3s ease',
+                    }}
+                  />
+                </div>
+
+                {/* Aviso se fora da faixa */}
+                {!isOk && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 10px',
+                      borderRadius: '7px',
+                      background: isOver ? '#fef2f2' : '#fffbeb',
+                      border: `1px solid ${isOver ? '#fecaca' : '#fde68a'}`,
+                      color: isOver ? '#b91c1c' : '#92400e',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <AlertTriangle size={13} />
+                    {isOver
+                      ? `Formulação acima de 100% (${totalPct.toFixed(1)}%) — revise as proporções.`
+                      : `Formulação incompleta (${totalPct.toFixed(1)}%) — adicione mais ingredientes para atingir 100%.`}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Custo Total ── */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                color: 'hsl(var(--text-muted))',
+                textTransform: 'uppercase',
+              }}
+            >
+              Custo Total Estimado
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--brand))' }}>
+              {items
+                .reduce((acc, curr) => acc + (curr.custo_medio || 0) * (curr.quantidade || 0), 0)
+                .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
           </div>
         </div>
       )}
