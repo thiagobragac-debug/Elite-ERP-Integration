@@ -1149,6 +1149,7 @@ export type Database = {
           tenant_id: string | null
           uf: string | null
           unidade_id: string | null
+          configuracoes: Json | null
         }
         Insert: {
           area_ha?: number | null
@@ -1163,6 +1164,7 @@ export type Database = {
           tenant_id?: string | null
           uf?: string | null
           unidade_id?: string | null
+          configuracoes?: Json | null
         }
         Update: {
           area_ha?: number | null
@@ -1177,6 +1179,7 @@ export type Database = {
           tenant_id?: string | null
           uf?: string | null
           unidade_id?: string | null
+          configuracoes?: Json | null
         }
         Relationships: [
           {
@@ -3244,10 +3247,15 @@ export type Database = {
           animais_qtd: number
           codigo: string
           comprador: string
+          comprador_cnpj: string | null
+          composicao_carga: Json | null
+          data_chegada: string | null
           created_at: string | null
           data: string
           destino: string
           fazenda_id: string
+          gta_numero: string | null
+          gta_serie: string | null
           id: string
           motorista: string | null
           nfe: string | null
@@ -3255,17 +3263,25 @@ export type Database = {
           placa: string | null
           status: string
           tenant_id: string
+          tipo_destino: string | null
+          tipo_veiculo: string | null
           updated_at: string | null
+          preco_por_arroba: number | null
           valor_estimado: number
         }
         Insert: {
           animais_qtd?: number
           codigo?: string
           comprador: string
+          comprador_cnpj?: string | null
+          composicao_carga?: Json | null
+          data_chegada?: string | null
           created_at?: string | null
           data?: string
           destino: string
           fazenda_id: string
+          gta_numero?: string | null
+          gta_serie?: string | null
           id?: string
           motorista?: string | null
           nfe?: string | null
@@ -3273,17 +3289,25 @@ export type Database = {
           placa?: string | null
           status?: string
           tenant_id: string
+          tipo_destino?: string | null
+          tipo_veiculo?: string | null
           updated_at?: string | null
+          preco_por_arroba?: number | null
           valor_estimado?: number
         }
         Update: {
           animais_qtd?: number
           codigo?: string
           comprador?: string
+          comprador_cnpj?: string | null
+          composicao_carga?: Json | null
+          data_chegada?: string | null
           created_at?: string | null
           data?: string
           destino?: string
           fazenda_id?: string
+          gta_numero?: string | null
+          gta_serie?: string | null
           id?: string
           motorista?: string | null
           nfe?: string | null
@@ -3291,7 +3315,10 @@ export type Database = {
           placa?: string | null
           status?: string
           tenant_id?: string
+          tipo_destino?: string | null
+          tipo_veiculo?: string | null
           updated_at?: string | null
+          preco_por_arroba?: number | null
           valor_estimado?: number
         }
         Relationships: [

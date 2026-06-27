@@ -15,6 +15,8 @@ import {
   Leaf,
   Briefcase,
   Landmark,
+  Truck,
+  Scale
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
@@ -51,6 +53,13 @@ export const FarmForm: React.FC<FarmFormProps> = ({
     uf: '',
     companyId: '',
     description: '',
+    configuracoes: {
+      peso_minimo_abate_kg: '',
+      capacidade_max_truck: '',
+      capacidade_max_carreta: '',
+      capacidade_max_bitrem: '',
+      capacidade_max_rodotrem: ''
+    }
   };
   const { formData, setFormData, clearDraft } = useFormDraft({
     key: `farm_form_${activeTenantId}`,
@@ -62,6 +71,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [locOpen, setLocOpen] = useState(false);
   const [obsOpen, setObsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isOpen || !initialData) return;
@@ -79,6 +89,13 @@ export const FarmForm: React.FC<FarmFormProps> = ({
       uf: initialData.uf || '',
       companyId: initialData.unidade_id || initialData.companyId || '',
       description: initialData.description || '',
+      configuracoes: {
+        peso_minimo_abate_kg: initialData.configuracoes?.peso_minimo_abate_kg || '',
+        capacidade_max_truck: initialData.configuracoes?.capacidade_max_truck || '',
+        capacidade_max_carreta: initialData.configuracoes?.capacidade_max_carreta || '',
+        capacidade_max_bitrem: initialData.configuracoes?.capacidade_max_bitrem || '',
+        capacidade_max_rodotrem: initialData.configuracoes?.capacidade_max_rodotrem || ''
+      }
     });
   }, [isOpen, initialData]);
 
@@ -435,6 +452,102 @@ export const FarmForm: React.FC<FarmFormProps> = ({
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <FormSection
+          title="Configurações Operacionais & Logística"
+          badge="PASSO 07"
+          marginTop={0}
+          onClick={() => setConfigOpen(!configOpen)}
+          rightElement={
+            <div style={{ color: 'hsl(var(--text-muted))' }}>
+              {configOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
+          }
+          className="interactive-header"
+        />
+
+        {configOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Scale size={14} /> Peso Mín. Abate (kg/cbç)
+                </label>
+                <input
+                  type="number"
+                  className="tauze-input"
+                  placeholder="Ex: 500"
+                  step="0.1"
+                  value={formData.configuracoes.peso_minimo_abate_kg}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    configuracoes: { ...formData.configuracoes, peso_minimo_abate_kg: e.target.value ? Number(e.target.value) : '' } 
+                  })}
+                />
+              </div>
+            </div>
+            
+            <label className="tauze-label" style={{ marginTop: '16px', display: 'block', borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '16px' }}>
+              <Truck size={14} /> Capacidade Máxima de Frota (Cabeças)
+            </label>
+            <div className="tauze-input-grid grid-col-4">
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ fontSize: '11px' }}>TRUCK</label>
+                <input
+                  type="number"
+                  className="tauze-input"
+                  placeholder="Ex: 18"
+                  value={formData.configuracoes.capacidade_max_truck}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    configuracoes: { ...formData.configuracoes, capacidade_max_truck: e.target.value ? Number(e.target.value) : '' } 
+                  })}
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ fontSize: '11px' }}>CARRETA</label>
+                <input
+                  type="number"
+                  className="tauze-input"
+                  placeholder="Ex: 25"
+                  value={formData.configuracoes.capacidade_max_carreta}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    configuracoes: { ...formData.configuracoes, capacidade_max_carreta: e.target.value ? Number(e.target.value) : '' } 
+                  })}
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ fontSize: '11px' }}>BI-TREM</label>
+                <input
+                  type="number"
+                  className="tauze-input"
+                  placeholder="Ex: 32"
+                  value={formData.configuracoes.capacidade_max_bitrem}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    configuracoes: { ...formData.configuracoes, capacidade_max_bitrem: e.target.value ? Number(e.target.value) : '' } 
+                  })}
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ fontSize: '11px' }}>RODO-TREM</label>
+                <input
+                  type="number"
+                  className="tauze-input"
+                  placeholder="Ex: 45"
+                  value={formData.configuracoes.capacidade_max_rodotrem}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    configuracoes: { ...formData.configuracoes, capacidade_max_rodotrem: e.target.value ? Number(e.target.value) : '' } 
+                  })}
                 />
               </div>
             </div>

@@ -444,6 +444,7 @@ export const CompanyManagement: React.FC = () => {
         municipio: formData.municipio || null,
         uf: formData.uf || null,
         unidade_id: formData.companyId,
+        configuracoes: formData.configuracoes || {},
       };
 
       if (editingItem) {

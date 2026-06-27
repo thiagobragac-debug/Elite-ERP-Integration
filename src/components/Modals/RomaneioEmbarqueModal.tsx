@@ -211,6 +211,22 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const { activeFarmId, activeTenantId } = useFarmFilter();
   const queryClient = useQueryClient();
 
+  // ── Fetch Fazenda Settings ───────────────────────────────────────────────
+  const { data: fazendaSettings } = useQuery({
+    queryKey: ['fazenda_settings', activeFarmId],
+    queryFn: async () => {
+      if (!activeFarmId) return null;
+      const { data, error } = await supabase
+        .from('fazendas')
+        .select('configuracoes')
+        .eq('id', activeFarmId)
+        .single();
+      if (error) throw error;
+      return (data?.configuracoes as any) || {};
+    },
+    enabled: !!activeFarmId && isOpen,
+  });
+
   // ── Fetch lotes ──────────────────────────────────────────────────────────
   const { data: realLotes = [] } = useQuery<Lote[]>({
     queryKey: ['lotes_embarque', activeFarmId, activeTenantId],
@@ -260,7 +276,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
         `)
         .eq('tenant_id', activeTenantId)
         .eq('fazenda_id', activeFarmId)
-        /* Status filter removed temporarily to allow all animals */
+        .in('status', ['ATIVO', 'Ativo', 'ativo', 'ATIVO_CONFINAMENTO'])
         .is('romaneio_id', null);
 
       if (error) throw error;
@@ -451,6 +467,27 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       return;
     }
 
+    // Validações de configuração da fazenda
+    if (fazendaSettings) {
+      const pesoMinimoConfig = fazendaSettings.peso_minimo_abate_kg;
+      if (pesoMinimoConfig && (pesoTotal / animaisSelecionados.length) < pesoMinimoConfig) {
+        toast.error(`O peso médio (${(pesoTotal / animaisSelecionados.length).toFixed(1)} kg) está abaixo do mínimo configurado (${pesoMinimoConfig} kg).`);
+        return;
+      }
+
+      const maxVeiculos: Record<string, number> = {
+        'TRUCK': fazendaSettings.capacidade_max_truck || 18,
+        'CARRETA': fazendaSettings.capacidade_max_carreta || 25,
+        'BI_TREM': fazendaSettings.capacidade_max_bitrem || 32,
+        'RODO_TREM': fazendaSettings.capacidade_max_rodotrem || 45,
+      };
+      const maxPermitido = maxVeiculos[formData.tipo_veiculo];
+      if (maxPermitido && animaisSelecionados.length > maxPermitido) {
+        toast.error(`A capacidade máxima configurada para o veículo ${formData.tipo_veiculo} é de ${maxPermitido} animais. Foram selecionados ${animaisSelecionados.length}.`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const preco = parseFloat(formData.preco_por_arroba) || 330;
@@ -478,6 +515,17 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           gta_serie: formData.gta_serie.trim() || null,
           nfe: formData.nfe_numero.trim() || null,
           observacoes: formData.observacoes.trim() || null,
+          composicao_carga: animaisSelecionados.map((a) => ({
+            animal_id: a.id,
+            brinco: a.brinco,
+            raca: a.raca,
+            sexo: a.sexo,
+            categoria: a.categoria,
+            peso_kg: a.peso_atual,
+            arrobas: (a.peso_atual / 30).toFixed(1),
+            lote: a.lote_nome || null,
+            em_carencia: a.em_carencia || false,
+          })),
         })
         .select()
         .single();

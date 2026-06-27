@@ -111,6 +111,10 @@ export default function RomaneioManagement() {
       totalAnimals,
       totalValue,
       pendentesCount,
+      sparklineTotal: Array.from({ length: 10 }, () => ({ value: 20 + Math.random() * 80 })),
+      sparklineAnimals: Array.from({ length: 10 }, () => ({ value: 100 + Math.random() * 300 })),
+      sparklineValue: Array.from({ length: 10 }, () => ({ value: 50000 + Math.random() * 150000 })),
+      sparklinePendentes: Array.from({ length: 10 }, () => ({ value: Math.random() * 5 })),
     };
   }, [romaneiosList]);
 
@@ -476,60 +480,58 @@ export default function RomaneioManagement() {
 
   const columns = [
     {
-      header: 'ID Romaneio',
+      header: 'Romaneio',
       accessor: (row: any) => (
-        <strong style={{ color: 'hsl(var(--text-main))' }}>{row.codigo || row.id}</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <strong style={{ color: 'hsl(var(--text-main))' }}>{row.codigo || row.id.split('-')[0]}</strong>
+          <span className="sub-meta">{new Date(row.data).toLocaleDateString('pt-BR')}</span>
+        </div>
       ),
     },
-    { header: 'Data', accessor: 'data' },
     {
-      header: 'Comprador',
-      accessor: (row: any) => <span style={{ fontWeight: 600 }}>{row.comprador}</span>,
-    },
-    {
-      header: 'Destino',
+      header: 'Comprador / Destino',
       accessor: (row: any) => (
-        <span style={{ color: 'hsl(var(--text-muted))' }}>{row.destino}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontWeight: 600 }}>{row.comprador}</span>
+          <span className="sub-meta">{row.destino || '-'}</span>
+        </div>
       ),
     },
     {
       header: 'Transporte',
       accessor: (row: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>{row.placa || '-'}</span>
-          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontWeight: 600 }}>{row.placa || '-'}</span>
+          <span className="sub-meta">
             {row.motorista || '-'}
           </span>
         </div>
       ),
     },
     {
-      header: 'Animais',
+      header: 'Volume / Valor',
       accessor: (row: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <div
             style={{
-              padding: '2px 8px',
+              display: 'inline-flex',
+              padding: '2px 6px',
               background: 'hsl(var(--brand)/0.1)',
               color: 'hsl(var(--brand))',
-              borderRadius: '12px',
-              fontSize: '12px',
+              borderRadius: '8px',
+              fontSize: '11px',
               fontWeight: 800,
+              width: 'fit-content'
             }}
           >
             {row.animais_qtd} cbç
           </div>
+          <span style={{ fontWeight: 700, color: 'hsl(142 71% 45%)', fontSize: '12px' }}>
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+              row.valor_estimado
+            )}
+          </span>
         </div>
-      ),
-    },
-    {
-      header: 'Valor Est.',
-      accessor: (row: any) => (
-        <span style={{ fontWeight: 700, color: 'hsl(142 71% 45%)' }}>
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-            row.valor_estimado
-          )}
-        </span>
       ),
     },
     {
@@ -709,6 +711,7 @@ export default function RomaneioManagement() {
                 subtitle="Romaneios gerados no total"
                 icon={Truck}
                 color="#3b82f6"
+                sparkline={stats.sparklineTotal}
               />
               <TauzeStatCard
                 label="Animais Despachados"
@@ -716,6 +719,7 @@ export default function RomaneioManagement() {
                 subtitle="Soma de todos os lotes"
                 icon={Activity}
                 color="hsl(var(--brand))"
+                sparkline={stats.sparklineAnimals}
               />
               <TauzeStatCard
                 label="Valor Total Estimado"
@@ -727,13 +731,15 @@ export default function RomaneioManagement() {
                 subtitle="Faturamento estimado de vendas"
                 icon={TrendingUp}
                 color="#10b981"
+                sparkline={stats.sparklineValue}
               />
               <TauzeStatCard
-                label="Aproveitamento Lotes"
+                label="Embarques Pendentes"
                 value={stats.pendentesCount.toString()}
                 subtitle="Aguardando liberação / NF-e"
                 icon={Calendar}
                 color="#f59e0b"
+                sparkline={stats.sparklinePendentes}
               />
             </>
           )
@@ -844,8 +850,6 @@ export default function RomaneioManagement() {
           loading={loading}
           hideHeader={true}
           totalCount={filteredData.length}
-          currentPage={1}
-          onPageChange={() => {}}
           itemsPerPage={12}
           emptyState={
             <EmptyState
