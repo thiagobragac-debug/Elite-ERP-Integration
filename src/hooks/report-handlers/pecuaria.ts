@@ -708,7 +708,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           applyScope(
             supabase
               .from('sanidade')
-              .select('id, produto, titulo, lotes:lote_id(nome), data_manejo, tipo_manejo')
+              .select('id, produto, titulo, lotes:lote_id(nome), data_manejo, tipo')
               .in('status', ['PENDENTE', 'AGENDADO'])
               .gte('data_manejo', today)
               .order('data_manejo', { ascending: true })
@@ -729,7 +729,6 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     const animalCount = animalRes.count || 0;
     const gmdGlobal = Number(gmdRes.data || 0);
     const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0);
-    const lotacaoPercent = Number(lotacaoRes.data?.taxa_ocupacao || 0);
 
     const _lastWeighDateOv =
       pesagensRes.data?.length > 0 ? latestDate(pesagensRes.data, 'data_pesagem') : null;
@@ -765,39 +764,33 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
         {
           label: 'Estoque Biológico',
           subtitle: `Inventário em ${todayBR()}`,
-          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
           value: animalCount > 0 ? `${animalCount.toLocaleString()} Cabeças` : '---',
           change: animalCount > 0 ? 'Rebanho cadastrado' : 'Sem animais',
           trend: 'neutral' as const,
           icon: Beef,
           color: '#10b981',
-          progress: animalCount > 0 ? 100 : 0,
           periodLabel: 'Total em Pátio',
         },
         {
           label: 'GMD Médio (Rebanho)',
           subtitle: _lastWeighDateOv
             ? `Última pesagem em ${_lastWeighDateOv}`
-            : 'Sem pesagens registradas',
-          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
+            : gmdGlobal > 0 ? 'Média do histórico' : 'Sem pesagens registradas',
           value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
           change: gmdGlobal > 0 ? 'Performance global' : 'Sem pesagens',
           trend: gmdGlobal > 0 ? ('up' as const) : ('neutral' as const),
           icon: TrendingUp,
           color: '#3b82f6',
-          progress: gmdGlobal > 0 ? Math.min(100, gmdGlobal * 80) : 0,
           periodLabel: 'Calculado de pesagens',
         },
         {
           label: 'Taxa de Lotação',
           subtitle: `Verificado em ${todayBR()}`,
-          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
           value: avgLotation > 0 ? `${avgLotation.toFixed(2)} UA/ha` : '---',
           change: avgLotation > 0 ? 'Pressão de pastejo' : 'Sem dados de pasto',
           trend: 'neutral' as const,
           icon: MapIcon,
           color: '#f59e0b',
-          progress: Math.min(100, lotacaoPercent),
           periodLabel: 'Capacidade Suporte',
         },
         {
@@ -805,13 +798,11 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           subtitle: _lastHealthDateOv
             ? `Último manejo em ${_lastHealthDateOv}`
             : `Status em ${todayBR()}`,
-          sparkline: buildSparkline(healthRes.data || [], 'data_manejo', null),
           value: String(activeWithdrawals),
           change: activeWithdrawals > 0 ? 'Consumo bloqueado' : 'Todos liberados',
           trend: activeWithdrawals > 0 ? ('down' as const) : ('up' as const),
           icon: Activity,
           color: activeWithdrawals > 0 ? '#ef4444' : '#10b981',
-          progress: activeWithdrawals > 0 ? 30 : 100,
           periodLabel: 'Alertas de Carência',
         },
       ],
@@ -1517,7 +1508,7 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
+
 
     const [pesagensRes, gmdRes, weightRes] = await Promise.all([
       withTimeout(

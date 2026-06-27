@@ -1,34 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Beef,
   TrendingUp,
   Activity,
-  AlertCircle,
-  Calendar,
   ShieldCheck,
   PieChart,
   Scale,
   Clock,
   ArrowUpRight,
-  ArrowDownRight,
   ChevronRight,
-  Zap,
-  Sparkles,
-  Search,
-  Filter,
-  Plus,
   RefreshCw,
+  Plus,
+  Sparkles,
   Utensils,
-  History,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
-import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -37,12 +29,13 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const LivestockDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { data: rawQueue, stats, loading, error, refresh } = useReportData('livestock-overview');
+  const { data: rawQueue, stats, loading, error } = useReportData('livestock-overview');
   const operationalQueue = rawQueue || [];
 
   const { activeFarmId, activeTenantId, isGlobalMode, applyFarmFilter } = useFarmFilter();
   const { tenant } = useTenant();
   const queryClient = useQueryClient();
+  const [chartPeriod, setChartPeriod] = useState<30 | 90>(30);
 
   const planModules = tenant?.plan_details?.modules || [];
   const hasPlanRestriction = tenant && tenant.plan !== 'BETA_FREE' && planModules.length > 0;
@@ -80,7 +73,7 @@ export const LivestockDashboard: React.FC = () => {
   const { data: autonomyDays = 0 } = useQuery({
     queryKey: ['silo_autonomy', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let prodQuery = supabase.from('produtos').select('nome, estoque_atual, categoria');
+      let prodQuery = supabase.from('produtos').select('nome, estoque_atual, categoria:categoria_id(nome)');
       prodQuery = applyFarmFilter(prodQuery);
       const { data: products, error: prodError } = await prodQuery;
       if (prodError) {
@@ -96,7 +89,7 @@ export const LivestockDashboard: React.FC = () => {
 
       const nutritionStock = (products || []).reduce((sum: number, p: any) => {
         const isNut =
-          p.categoria === 'Nutrição' ||
+          p.categoria?.nome === 'Nutrição' ||
           p.nome?.toLowerCase().includes('silo') ||
           p.nome?.toLowerCase().includes('ração') ||
           p.nome?.toLowerCase().includes('racao');
@@ -113,14 +106,16 @@ export const LivestockDashboard: React.FC = () => {
 
   // Query 3: Weekly GMD calculation
   const { data: performanceData = [] } = useQuery({
-    queryKey: ['weekly_gmd_performance', activeFarmId, activeTenantId, isGlobalMode],
+    queryKey: ['weekly_gmd_performance', activeFarmId, activeTenantId, isGlobalMode, chartPeriod],
     queryFn: async () => {
-      const sixWeeksAgo = new Date();
-      sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
+      const numWeeks = chartPeriod === 90 ? 12 : 6;
+      const days = numWeeks * 7;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
       let weighingQuery = supabase
         .from('pesagens')
         .select('data_pesagem, peso')
-        .gte('data_pesagem', sixWeeksAgo.toISOString().split('T')[0])
+        .gte('data_pesagem', startDate.toISOString().split('T')[0])
         .order('data_pesagem', { ascending: true });
       weighingQuery = applyFarmFilter(weighingQuery);
       const { data: weighings, error: weighError } = await weighingQuery;
@@ -128,13 +123,13 @@ export const LivestockDashboard: React.FC = () => {
         throw weighError;
       }
 
-      const weeklyData = Array(6)
+      const weeklyData = Array(numWeeks)
         .fill(0)
         .map((_, i) => {
           const start = new Date();
-          start.setDate(start.getDate() - (6 - i) * 7);
+          start.setDate(start.getDate() - (numWeeks - i) * 7);
           const end = new Date();
-          end.setDate(end.getDate() - (5 - i) * 7);
+          end.setDate(end.getDate() - (numWeeks - 1 - i) * 7);
           return { start, end, label: `Sem 0${i + 1}`, weights: [] as number[] };
         });
 
@@ -254,8 +249,18 @@ export const LivestockDashboard: React.FC = () => {
                 <span>Performance do Rebanho (GMD)</span>
               </div>
               <div className="chart-actions">
-                <button className="active">30 DIAS</button>
-                <button>90 DIAS</button>
+                <button 
+                  className={chartPeriod === 30 ? "active" : ""} 
+                  onClick={() => setChartPeriod(30)}
+                >
+                  30 DIAS
+                </button>
+                <button 
+                  className={chartPeriod === 90 ? "active" : ""} 
+                  onClick={() => setChartPeriod(90)}
+                >
+                  90 DIAS
+                </button>
               </div>
             </div>
             <div className="chart-container">

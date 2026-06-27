@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react';
 import { normalizeSparkline } from './sparklineUtils';
 
 interface TauzeStatCardProps {
@@ -31,7 +30,7 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
   color,
   change,
   trend,
-  progress = 70,
+  progress,
   sparkline = [],
   loading = false,
   periodLabel = 'Histórico',
@@ -71,17 +70,21 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
       <div className="kpi-main-content">
         <div className="viz-circle-wrapper">
           <svg className="viz-svg-ring">
-            <circle className="ring-bg" cx="40" cy="40" r="36" />
-            <motion.circle
-              className="ring-fill"
-              cx="40"
-              cy="40"
-              r="36"
-              stroke={color}
-              initial={{ strokeDasharray: '0 226' }}
-              animate={{ strokeDasharray: `${(progress / 100) * 226} 226` }}
-              transition={{ duration: 1.5, ease: 'easeOut' }}
-            />
+            {progress !== undefined && (
+              <>
+                <circle className="ring-bg" cx="40" cy="40" r="36" />
+                <motion.circle
+                  className="ring-fill"
+                  cx="40"
+                  cy="40"
+                  r="36"
+                  stroke={color}
+                  initial={{ strokeDasharray: '0 226' }}
+                  animate={{ strokeDasharray: `${(progress / 100) * 226} 226` }}
+                  transition={{ duration: 1.5, ease: 'easeOut' }}
+                />
+              </>
+            )}
           </svg>
           <div className="icon-center" style={{ color }}>
             {Icon && <Icon size={28} />}
@@ -96,7 +99,7 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
               style={{
                 fontSize: '10px',
                 fontWeight: 600,
-                color: 'hsl(var(--text-muted, #94a3b8))',
+                color: 'hsl(var(--text-muted, 215 25% 27%))',
                 letterSpacing: '0.02em',
                 marginTop: 2,
                 display: 'block',
