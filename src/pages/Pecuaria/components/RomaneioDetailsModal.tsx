@@ -400,20 +400,42 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  style={{
-                    borderBottom: '1px solid hsl(var(--border))',
-                    color: 'hsl(var(--text-main))',
-                  }}
-                >
-                  <td style={{ padding: '10px 12px', fontWeight: 700 }}>Boi Gordo (Nelore)</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
-                    {romaneio.animais_qtd} cbç
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
-                    520 kg
-                  </td>
-                </tr>
+                {romaneio.composicao_carga && Array.isArray(romaneio.composicao_carga) && romaneio.composicao_carga.length > 0 ? (
+                  romaneio.composicao_carga.map((item: any, idx: number) => (
+                    <tr
+                      key={idx}
+                      style={{
+                        borderBottom: '1px solid hsl(var(--border))',
+                        color: 'hsl(var(--text-main))',
+                      }}
+                    >
+                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>
+                        {item.categoria} <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>({item.raca})</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
+                        {item.qtd} cbç
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
+                        {item.peso_medio.toFixed(1)} kg
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr
+                    style={{
+                      borderBottom: '1px solid hsl(var(--border))',
+                      color: 'hsl(var(--text-main))',
+                    }}
+                  >
+                    <td style={{ padding: '10px 12px', fontWeight: 700 }}>Misto / Não Especificado</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
+                      {romaneio.animais_qtd} cbç
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
+                      —
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

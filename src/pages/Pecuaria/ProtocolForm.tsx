@@ -3,7 +3,7 @@ import {
   FlaskConical, ChevronLeft, ChevronRight, Check,
   Dna, Beef, Calendar, ListChecks, Settings2,
   Plus, Trash2, Search, X, GripVertical, Edit2,
-  ChevronDown, Syringe,
+  ChevronDown, Syringe, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -99,6 +99,30 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
 
   const [step, setStep] = useState(1);
 
+  // Reset de estado ao abrir
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setSelectedTemplate(null);
+      setEditingTemplate(null);
+      setExpandedEtapas(new Set());
+      setConfig({
+        nome: '',
+        tipo: 'IATF',
+        data_inicio: new Date().toISOString().split('T')[0],
+        tecnico_resp: '',
+        touro_id: '',
+        data_fim_monta: '',
+        observacoes: '',
+      });
+      setSelMode('lote');
+      setSelectedLoteId('');
+      setSelectedAnimais([]);
+      setAnimalSearch('');
+      setEtapas([]);
+    }
+  }, [isOpen]);
+
   // Step 1 — Template
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateFormOpen, setTemplateFormOpen] = useState(false);
@@ -129,11 +153,13 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: templates = [] } = useQuery<Template[]>({
-    queryKey: ['protocolo_templates'],
+    queryKey: ['protocolo_templates', activeTenantId],
+    enabled: !!activeTenantId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('protocolo_templates')
-        .select('*, protocolo_template_etapas(*)');
+        .select('*, protocolo_template_etapas(*)')
+        .or(`tenant_id.eq.${activeTenantId},is_sistema.eq.true`);
       if (error) throw error;
       return data as Template[];
     },
@@ -145,7 +171,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lotes')
-        .select('id, nome, quantidade_animais')
+        .select('id, nome')
         .eq('tenant_id', activeTenantId!)
         .order('nome');
       if (error) throw error;
@@ -233,111 +259,37 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
   // ── Salvar ─────────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // 1. Criar protocolo
-      const { data: proto, error: protoErr } = await supabase
-        .from('protocolos_reprodutivos')
-        .insert([{
-          ...insertPayload,
-          template_id: selectedTemplate?.nome === 'Protocolo Livre' ? null : selectedTemplate?.id,
-          nome: config.nome,
-          tipo: config.tipo,
-          data_inicio: config.data_inicio,
-          tecnico_resp: config.tecnico_resp || null,
-          touro_id: config.touro_id || null,
-          data_fim_monta: config.data_fim_monta || null,
-          observacoes: config.observacoes || null,
-          status: 'ativo',
-        }])
-        .select()
-        .single();
-      if (protoErr) throw protoErr;
-
-      // 2. Criar etapas do protocolo (cronograma geral)
-      if (etapas.length > 0) {
-        const etapasPayload = etapas.map((e, idx) => ({
-          protocolo_id: proto.id,
+      // Chamada atômica e transacional via RPC (Edge Function / Stored Procedure)
+      const payload = {
+        p_tenant_id: activeTenantId,
+        p_farm_id: activeFarmId,
+        p_template_id: selectedTemplate?.nome === 'Protocolo Livre' ? null : selectedTemplate?.id,
+        p_nome: config.nome,
+        p_tipo: config.tipo,
+        p_data_inicio: config.data_inicio,
+        p_tecnico_resp: config.tecnico_resp || null,
+        p_touro_id: config.touro_id || null,
+        p_data_fim_monta: config.data_fim_monta || null,
+        p_observacoes: config.observacoes || null,
+        p_etapas: etapas.map((e, idx) => ({
           nome_etapa: e.nome_etapa,
           dia_relativo: e.dia_relativo,
-          data_prevista: e.data_prevista!,
+          data_prevista: e.data_prevista,
           tipo_acao: e.tipo_acao,
           instrucao: e.instrucao || null,
           obrigatorio: e.obrigatorio,
-          ordem: idx + 1,
-          status: 'pendente',
-        }));
-        const { error: etErr } = await supabase
-          .from('protocolo_etapas')
-          .insert(etapasPayload);
-        if (etErr) throw etErr;
+          ordem: idx + 1
+        })),
+        p_animais: selectedAnimais.map(a => a.id)
+      };
+
+      const { data, error } = await supabase.rpc('iniciar_protocolo_reprodutivo', payload);
+      
+      if (error) {
+        throw new Error(`Falha ao iniciar protocolo: ${error.message}`);
       }
 
-      // 3. Inserir animais vinculados ao protocolo
-      if (selectedAnimais.length > 0) {
-        const animaisPayload = selectedAnimais.map((a) => ({
-          protocolo_id: proto.id,
-          animal_id: a.id,
-          lote_id: a.lote_id || null,
-        }));
-        const { error: aniErr } = await supabase
-          .from('protocolo_animais')
-          .insert(animaisPayload);
-        if (aniErr) throw aniErr;
-      }
-
-      // 4. ── EXPLOSÃO DE EVENTOS INDIVIDUAIS ────────────────────────────────
-      // Gera (N animais × M etapas) eventos pendentes nas DUAS tabelas:
-      //   → eventos_reprodutivos  (Módulo Reprodução)
-      //   → sanidade              (Módulo Sanidade — fármacos e procedimentos)
-      if (selectedAnimais.length > 0 && etapas.length > 0) {
-        const refLabel = `[PROTOCOLO:${proto.id}]`;
-
-        // 4a. eventos_reprodutivos ───────────────────────────────────────────
-        const eventosRepro = selectedAnimais.flatMap((animal) =>
-          etapas.map((etapa) => ({
-            ...insertPayload,
-            animal_id:    animal.id,
-            tipo_evento:  config.tipo || 'IATF',
-            data_evento:  etapa.data_prevista ?? config.data_inicio,
-            status:       'pendente',
-            resultado:    '',
-            observacoes:  `${etapa.nome_etapa} — ${refLabel}`,
-            tecnico:      config.tecnico_resp || null,
-            protocolo_id: proto.id,
-          }))
-        );
-        const { error: reproErr } = await supabase
-          .from('eventos_reprodutivos')
-          .insert(eventosRepro);
-        if (reproErr) {
-          // Não bloqueia o fluxo — loga no console para diagnóstico
-          console.error('Aviso: erro ao gerar eventos_reprodutivos:', reproErr.message);
-        }
-
-        // 4b. sanidade ───────────────────────────────────────────────────────
-        const eventosSanidade = selectedAnimais.flatMap((animal) =>
-          etapas.map((etapa) => ({
-            ...insertPayload,
-            animal_id:   animal.id,
-            titulo:      etapa.nome_etapa,
-            tipo:        etapa.tipo_acao === 'farmaco' ? 'medicamento' : 'procedimento',
-            produto:     etapa.instrucao ? etapa.instrucao.split('\n')[0] : null,
-            dose:        null,
-            data_manejo: etapa.data_prevista ?? config.data_inicio,
-            status:      'PENDENTE',
-            observacao:  `Protocolo Reprodutivo: ${config.nome} ${refLabel}`,
-            veterinario: config.tecnico_resp || null,
-          }))
-        );
-        const { error: sanErr } = await supabase
-          .from('sanidade')
-          .insert(eventosSanidade);
-        if (sanErr) {
-          // Não bloqueia o fluxo — loga no console para diagnóstico
-          console.error('Aviso: erro ao gerar sanidade:', sanErr.message);
-        }
-      }
-
-      return proto;
+      return data;
     },
     onSuccess: () => {
       const total = selectedAnimais.length * etapas.length;
@@ -418,6 +370,18 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
     setEtapas((prev) => prev.map((e) =>
       e.id !== etapaId ? e : { ...e, farmacos: (e.farmacos || []).filter((f) => f.id !== farmacoId) }
     ));
+  };
+
+  const moveEtapa = (index: number, direction: 'up' | 'down') => {
+    setEtapas((prev) => {
+      const newEtapas = [...prev];
+      if (direction === 'up' && index > 0) {
+        [newEtapas[index - 1], newEtapas[index]] = [newEtapas[index], newEtapas[index - 1]];
+      } else if (direction === 'down' && index < newEtapas.length - 1) {
+        [newEtapas[index + 1], newEtapas[index]] = [newEtapas[index], newEtapas[index + 1]];
+      }
+      return newEtapas;
+    });
   };
 
   const toggleAnimal = (animal: Animal) => {
@@ -566,7 +530,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: 800 }}>
                     {STEPS.find((s) => s.id === step)?.label}
                   </h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'hsl(var(--text-muted))' }}>
+<p style={{ margin: 0, fontSize: '13px', color: 'hsl(var(--text-muted))' }}>
                     {step === 1 && 'Escolha um protocolo padrão da indústria ou um template personalizado.'}
                     {step === 2 && 'Defina o nome, data de início D0 e responsável técnico.'}
                     {step === 3 && 'Adicione matrizes ao protocolo por lote ou individualmente.'}
@@ -588,43 +552,64 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                             const cor = TIPO_COLOR[t.tipo] || 'hsl(var(--brand))';
                             const isSelected = selectedTemplate?.id === t.id;
                             return (
-                              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedTemplate(t)}
-                                  style={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    background: isSelected ? `${cor}10` : 'var(--bg-main)',
-                                    border: `1.5px solid ${isSelected ? cor : 'var(--border)'}`,
-                                    borderRadius: '10px',
-                                    padding: '10px 14px',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    transition: 'all 0.15s',
-                                  }}
-                                >
-                                  <div style={{ width: 34, height: 34, borderRadius: '8px', background: `${cor}18`, border: `1px solid ${cor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <Dna size={16} style={{ color: cor }} />
-                                  </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                                      <span style={{ fontWeight: 700, fontSize: '13px' }}>{t.nome}</span>
-                                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px', background: `${cor}18`, color: cor, flexShrink: 0 }}>
-                                        {t.tipo}
-                                      </span>
+                              <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedTemplate(t)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      gap: '12px',
+                                      background: isSelected ? `${cor}10` : 'var(--bg-main)',
+                                      border: `1.5px solid ${isSelected ? cor : 'var(--border)'}`,
+                                      borderRadius: '10px',
+                                      padding: '10px 14px',
+                                      cursor: 'pointer',
+                                      textAlign: 'left',
+                                      transition: 'all 0.15s',
+                                    }}
+                                  >
+                                    <div style={{ width: 34, height: 34, borderRadius: '8px', background: `${cor}18`, border: `1px solid ${cor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      {t.tipo === 'IATF' ? <Dna size={16} style={{ color: cor }} /> : t.tipo === 'Monta' ? <Beef size={16} style={{ color: cor }} /> : <Settings2 size={16} style={{ color: cor }} />}
                                     </div>
-                                    <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {t.descricao}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                        <span style={{ fontWeight: 700, fontSize: '13px' }}>{t.nome}</span>
+                                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '99px', background: `${cor}18`, color: cor, flexShrink: 0 }}>
+                                          {t.tipo}
+                                        </span>
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {t.descricao}
+                                      </div>
+                                      <AnimatePresence>
+                                        {isSelected && t.protocolo_template_etapas && t.protocolo_template_etapas.length > 0 && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                                            animate={{ height: 'auto', opacity: 1, marginTop: 12 }}
+                                            exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                                            style={{ overflow: 'hidden' }}
+                                          >
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                                              {t.protocolo_template_etapas.slice().sort((a, b) => a.ordem - b.ordem).map((e, idx, arr) => (
+                                                <React.Fragment key={e.id}>
+                                                  <div style={{ padding: '2px 6px', background: `${cor}20`, borderRadius: '4px', fontSize: '10px', fontWeight: 600, color: cor }}>
+                                                    D+{e.dia_relativo}: {e.nome_etapa}
+                                                  </div>
+                                                  {idx < arr.length - 1 && <ChevronRight size={10} style={{ color: 'hsl(var(--border))' }} />}
+                                                </React.Fragment>
+                                              ))}
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
                                     </div>
-                                  </div>
-                                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: isSelected ? cor : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                                    <Check size={11} color="white" />
-                                  </div>
-                                </button>
-                                {/* Botão editar — só para templates personalizados */}
+                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: isSelected ? cor : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s', marginTop: '7px' }}>
+                                      <Check size={11} color="white" />
+                                    </div>
+                                  </button>
+                                </div>
                                 {!t.is_sistema && (
                                   <button
                                     type="button"
@@ -700,9 +685,16 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                         ✓ {selectedAnimais.length} animais selecionados
                       </div>
                     )}
-                    <div className="tauze-tab-group" style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: 'var(--bg-main)', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid var(--border)' }}>
                       {[{ id: 'lote', label: 'Por Lote' }, { id: 'individual', label: 'Individual' }, { id: 'hibrido', label: 'Lote + Ajuste' }].map((m) => (
-                        <button type="button" key={m.id} className={`tauze-tab-item ${selMode === m.id ? 'active' : ''}`} onClick={() => { setSelMode(m.id as any); setSelectedAnimais([]); setSelectedLoteId(''); }}>
+                        <button type="button" key={m.id} 
+                          style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer', border: 'none', background: selMode === m.id ? 'var(--bg-card)' : 'transparent', color: selMode === m.id ? 'hsl(var(--text-primary))' : 'hsl(var(--text-muted))', boxShadow: selMode === m.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                          onClick={() => { 
+                            if (selectedAnimais.length > 0) {
+                              if (!window.confirm('Mudar o modo de seleção limpará os animais selecionados. Continuar?')) return;
+                            }
+                            setSelMode(m.id as any); setSelectedAnimais([]); setSelectedLoteId(''); 
+                          }}>
                           {m.label}
                         </button>
                       ))}
@@ -783,7 +775,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                           return (
                             <div key={e.id} style={{ borderRadius: '10px', border: `1px solid ${isFarmaco && isExpanded ? 'hsl(258 90% 66% / 0.35)' : 'hsl(var(--border))'}`, overflow: 'hidden', transition: 'border-color 0.2s' }}>
                               {/* Linha principal */}
-                              <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 90px 145px 130px 36px', gap: '8px', alignItems: 'center', padding: '10px 14px', background: isFarmaco && isExpanded ? 'hsl(258 90% 66% / 0.04)' : 'hsl(var(--bg-main))' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 90px 145px 130px 60px', gap: '8px', alignItems: 'center', padding: '10px 14px', background: isFarmaco && isExpanded ? 'hsl(258 90% 66% / 0.04)' : 'hsl(var(--bg-main))' }}>
                                 <span style={{ fontWeight: 800, fontSize: '12px', color: 'hsl(var(--text-muted))', textAlign: 'center' }}>{idx + 1}</span>
                                 <input type="text" className="form-input" style={{ fontWeight: 700, fontSize: '13px' }} value={e.nome_etapa} placeholder="Nome da etapa..." onChange={(ev) => updateEtapa(e.id, 'nome_etapa', ev.target.value)} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -826,9 +818,19 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                                     </button>
                                   )}
                                 </div>
-                                <button type="button" onClick={() => removeEtapa(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(0 84% 55%)', padding: '4px' }}>
-                                  <Trash2 size={15} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <button type="button" onClick={() => moveEtapa(idx, 'up')} disabled={idx === 0} style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer', color: idx === 0 ? 'hsl(var(--border))' : 'hsl(var(--text-muted))', padding: '2px' }}>
+                                      <ArrowUp size={13} />
+                                    </button>
+                                    <button type="button" onClick={() => moveEtapa(idx, 'down')} disabled={idx === etapas.length - 1} style={{ background: 'none', border: 'none', cursor: idx === etapas.length - 1 ? 'not-allowed' : 'pointer', color: idx === etapas.length - 1 ? 'hsl(var(--border))' : 'hsl(var(--text-muted))', padding: '2px' }}>
+                                      <ArrowDown size={13} />
+                                    </button>
+                                  </div>
+                                  <button type="button" onClick={() => removeEtapa(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(0 84% 55%)', padding: '4px', marginLeft: '4px' }}>
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Painel de insumos — apenas para etapas Fármaco */}
@@ -933,7 +935,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
 
                 {/* STEP 5 — Confirmação */}
                 {step === 5 && (
-                  <div style={{ maxWidth: '480px' }}>
+                  <div style={{ maxWidth: '520px' }}>
                     <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'hsl(var(--brand) / 0.15)', border: '1.5px solid hsl(var(--brand) / 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -957,6 +959,14 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                           <span style={{ fontWeight: 700 }}>{row.value}</span>
                         </div>
                       ))}
+                      <div style={{ marginTop: '12px', padding: '12px', background: 'hsl(var(--brand) / 0.08)', border: '1px solid hsl(var(--brand) / 0.2)', borderRadius: '8px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--brand))', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <ListChecks size={14} /> Explosão de Eventos
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', lineHeight: 1.5 }}>
+                          Este protocolo gerará <strong>{selectedAnimais.length * etapas.length}</strong> eventos pendentes no sistema (<strong>{selectedAnimais.length}</strong> matrizes × <strong>{etapas.length}</strong> etapas). Os eventos serão distribuídos nos módulos de <em>Sanidade</em> e <em>Reprodução</em>.
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

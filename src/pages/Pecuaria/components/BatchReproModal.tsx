@@ -15,7 +15,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
+import { AsyncSearchableSelect, type Option } from '../../../components/Forms/AsyncSearchableSelect';
 import { DateInput } from '../../../components/Form/DateInput';
+import toast from 'react-hot-toast';
+import { useFarmFilter } from '../../../hooks/useFarmFilter';
 
 interface BatchReproModalProps {
   isOpen: boolean;
@@ -32,6 +35,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   activeFarmId,
   tenantId,
 }) => {
+  const { applyFarmFilter } = useFarmFilter();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLotId, setSelectedLotId] = useState('');
   const [eventType, setEventType] = useState('IATF');
@@ -40,11 +44,9 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   );
 
   // Mutantes
-  const [result, setResult] = useState('Pendente');
   const [protocolo, setProtocolo] = useState('Ovsynch');
   const [touro, setTouro] = useState('');
   const [inseminador, setInseminador] = useState('');
-  const [diasGestacao, setDiasGestacao] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -59,54 +61,119 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   }, [isOpen]);
 
   const fetchLots = async () => {
-    const { data } = await supabase.from('lotes').select('id, nome').eq('fazenda_id', activeFarmId);
+    // Buscar todos os lotes da fazenda e filtrar no frontend para evitar problemas com nulos no Supabase
+    const { data } = await applyFarmFilter(
+      supabase
+        .from('lotes')
+        .select('id, nome, sexo_permitido, status')
+    );
+      
     if (data) {
-      setLots(data);
+      const activeLots = data.filter(lot => 
+        (lot.status === 'ATIVO' || !lot.status) && 
+        ['Fêmea', 'MISTO', 'Misto', 'Ambos'].includes(lot.sexo_permitido)
+      );
+      setLots(activeLots);
     }
+  };
+
+  const [lotAnimals, setLotAnimals] = useState<any[]>([]);
+
+  const loadProtocolos = async (inputValue: string): Promise<Option[]> => {
+    if (!tenantId) return [];
+    let q = supabase
+      .from('protocolos_reprodutivos')
+      .select('id, nome')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'ativo')
+      .order('nome')
+      .limit(20);
+    if (inputValue) q = q.ilike('nome', `%${inputValue}%`);
+    const { data } = await q;
+    return (data || []).map((p) => ({ value: p.nome, label: p.nome }));
   };
 
   const handleLotSelect = async (lotId: string) => {
     setSelectedLotId(lotId);
-    const { count } = await supabase
+    setLotAnimals([]);
+    const { data, count } = await supabase
       .from('animais')
-      .select('*', { count: 'exact', head: true })
-      .eq('lote_id', lotId);
+      .select('id, brinco, raca, categoria, idade_meses', { count: 'exact' })
+      .eq('lote_id', lotId)
+      .eq('status', 'ativo')
+      .eq('sexo', 'Fêmea')
+      .order('brinco');
     setLotAnimalCount(count || 0);
+    if (data) {
+      setLotAnimals(data.map(animal => ({ 
+        ...animal, 
+        selected: true,
+        diagnostico: 'Prenha', 
+        dias_gestacao: '',
+        condicao_parto: 'Normal'
+      })));
+    }
   };
 
   const handleSubmit = async () => {
     if (!selectedLotId) {
       return;
     }
+    
+    const selectedAnimals = lotAnimals.filter(a => a.selected);
+    if (selectedAnimals.length === 0) {
+      toast.error('Nenhuma matriz selecionada para o lote.');
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const { data: animals } = await supabase
-        .from('animais')
-        .select('id')
-        .eq('lote_id', selectedLotId);
-
-      if (animals && animals.length > 0) {
-        const batchData = animals.map((animal) => ({
+      let batchData: any[] = [];
+      if (eventType === 'Palpação') {
+        batchData = selectedAnimals.map((animal) => ({
           animal_id: animal.id,
           tipo_evento: eventType,
           data_evento: eventDate,
-          resultado: result,
-          touro,
-          observacoes: protocolo ? `Protocolo: ${protocolo} | Insem: ${inseminador}` : '',
+          resultado_diagnostico: animal.diagnostico,
+          dias_gestacao: animal.dias_gestacao,
+          tecnico: inseminador,
           status: 'completed',
           fazenda_id: activeFarmId,
           tenant_id: tenantId,
         }));
+      } else if (eventType === 'Parto') {
+        batchData = selectedAnimals.map((animal) => ({
+          animal_id: animal.id,
+          tipo_evento: eventType,
+          data_evento: eventDate,
+          resultado: animal.condicao_parto,
+          tecnico: inseminador,
+          status: 'completed',
+          fazenda_id: activeFarmId,
+          tenant_id: tenantId,
+        }));
+      } else {
+        batchData = selectedAnimals.map((animal) => ({
+          animal_id: animal.id,
+          tipo_evento: eventType,
+          data_evento: eventDate,
+          resultado: eventType === 'IATF' ? protocolo : '',
+          touro: eventType === 'IATF' ? touro : '',
+          tecnico: inseminador,
+          status: 'completed',
+          fazenda_id: activeFarmId,
+          tenant_id: tenantId,
+        }));
+      }
 
+      if (batchData.length > 0) {
         await onBatchSubmit(batchData);
         setStep(3);
-        setTimeout(() => {
-          onClose();
-        }, 3000); // Dar tempo para ler
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || 'Erro ao registrar eventos em lote.');
     } finally {
       setLoading(false);
     }
@@ -117,20 +184,17 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
     let predictedDate = '';
     const lotName = lots.find((l) => l.id === selectedLotId)?.nome || 'Lote';
 
+    const selectedCount = lotAnimals.filter(a => a.selected).length;
+
     if (eventType === 'IATF') {
-      summary = `Você está prestes a aplicar IATF${protocolo ? ` (${protocolo})` : ''} em ${lotAnimalCount} matrizes do ${lotName}${touro ? ` usando sêmen ${touro}` : ''}.`;
+      summary = `Você está prestes a aplicar IATF${protocolo ? ` (${protocolo})` : ''} em ${selectedCount} matrizes selecionadas do ${lotName}${touro ? ` usando sêmen ${touro}` : ''}.`;
       const prev = new Date(eventDate);
       prev.setDate(prev.getDate() + 30);
       predictedDate = `Previsão de Toque coletivo: ${prev.toLocaleDateString('pt-BR')}`;
     } else if (eventType === 'Palpação') {
-      summary = `Lançamento em massa de toque para ${lotAnimalCount} matrizes do ${lotName}. Diagnóstico: ${result}.`;
-      if (result === 'Prenha' && diasGestacao) {
-        const prev = new Date();
-        prev.setDate(prev.getDate() + (285 - parseInt(diasGestacao)));
-        predictedDate = `Previsão de Parto coletivo: ${prev.toLocaleDateString('pt-BR')}`;
-      }
+      summary = `Lançamento de diagnóstico individualizado para ${selectedCount} matrizes selecionadas do ${lotName}.`;
     } else {
-      summary = `Você vai registrar ${eventType} em massa para ${lotAnimalCount} matrizes do ${lotName}.`;
+      summary = `Você vai registrar ${eventType} em lote para ${selectedCount} matrizes selecionadas do ${lotName}.`;
     }
 
     return { summary, predictedDate };
@@ -140,11 +204,8 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
     protocolo,
     touro,
     inseminador,
-    lotAnimalCount,
-    selectedLotId,
     lots,
-    result,
-    diasGestacao,
+    lotAnimals,
   ]);
 
   return (
@@ -158,6 +219,8 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
           setStep(2);
         } else if (step === 2) {
           handleSubmit();
+        } else {
+          onClose();
         }
       }}
       title="Lançamento em Lote"
@@ -165,15 +228,30 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
       icon={ClipboardCheck}
       submitLabel={
         step === 1
-          ? `Configurar para ${lotAnimalCount} Animais`
+          ? selectedLotId ? `Configurar para ${lotAnimalCount} Animais` : 'Selecione um lote'
           : step === 2
-            ? 'Lançar para todo o lote'
-            : 'Fechar'
+            ? `Lançar para ${lotAnimals.filter(a => a.selected).length} matrizes selecionadas`
+            : 'Concluir e Fechar'
       }
-      hideSubmit={step === 3 || (step === 1 && !selectedLotId)}
+      hideSubmit={step === 1 && !selectedLotId}
       loading={loading}
     >
       <div style={{ gridColumn: 'span 2' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              style={{
+                flex: 1,
+                height: '4px',
+                borderRadius: '2px',
+                background: s === step ? 'hsl(var(--brand))' : s < step ? 'hsl(var(--brand)/0.4)' : 'hsl(var(--border))',
+                transition: 'all 0.3s'
+              }}
+            />
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
@@ -195,36 +273,42 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                   paddingRight: '4px',
                 }}
               >
-                {lots.map((lot) => (
-                  <button
-                    key={lot.id}
-                    type="button"
-                    style={{
-                      padding: '16px',
-                      borderRadius: '16px',
-                      border: `1.5px solid ${selectedLotId === lot.id ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                      background: selectedLotId === lot.id ? 'hsl(var(--brand)/0.05)' : 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '16px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleLotSelect(lot.id)}
-                  >
-                    <Layers
-                      size={18}
+                {lots.map((lot) => {
+                  // Como já filtramos na query, isEligible sempre será true,
+                  // mas vamos manter a lógica visual caso decidam mostrar os inelegíveis depois
+                  const isEligible = ['Fêmea', 'MISTO', 'Misto', 'Ambos'].includes(lot.sexo_permitido);
+                  const isSelected = selectedLotId === lot.id;
+                  return (
+                    <button
+                      key={lot.id}
+                      type="button"
+                      disabled={!isEligible}
                       style={{
-                        color:
-                          selectedLotId === lot.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+                        padding: '16px',
+                        borderRadius: '16px',
+                        border: `1.5px solid ${isSelected ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
+                        background: isSelected ? 'hsl(var(--brand)/0.05)' : 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        textAlign: 'left',
+                        cursor: isEligible ? 'pointer' : 'not-allowed',
+                        opacity: isEligible ? 1 : 0.5,
                       }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>{lot.nome}</div>
-                      <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.6 }}>
-                        LOTE OPERACIONAL
+                      onClick={() => isEligible && handleLotSelect(lot.id)}
+                    >
+                      <Layers
+                        size={18}
+                        style={{
+                          color: isSelected ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 800 }}>{lot.nome}</div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.6 }}>
+                          {lot.sexo_permitido === 'Macho' ? 'LOTE DE MACHOS (INELEGÍVEL)' : 'LOTE DE MATRIZES'}
+                        </div>
                       </div>
-                    </div>
                     <div
                       style={{
                         width: '18px',
@@ -248,7 +332,8 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                       )}
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -330,15 +415,12 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                       <label className="tauze-label">
                         <Activity size={14} /> Protocolo Hormonal
                       </label>
-                      <SearchableSelect
+                      <AsyncSearchableSelect
                         value={protocolo}
                         onChange={setProtocolo}
-                        options={[
-                          { value: `Ovsynch`, label: `Ovsynch` },
-                          { value: `J-Synch`, label: `J-Synch` },
-                          { value: `Presynch`, label: `Presynch` },
-                          { value: `Outro`, label: `Outro Protocolo` },
-                        ]}
+                        loadOptions={loadProtocolos}
+                        defaultOptions={true}
+                        placeholder="Busque o protocolo..."
                       />
                     </div>
                     <div className="tauze-field-group">
@@ -366,38 +448,144 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                   </>
                 )}
 
-                {/* Mutantes TOQUE */}
-                {eventType === 'Palpação' && (
-                  <>
-                    <div className="tauze-field-group">
+                {/* TÉCNICO PARA PALPAÇÃO/PARTO/SECAGEM */}
+                {eventType !== 'IATF' && (
+                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="tauze-label">
+                      <Users size={14} /> Técnico / Responsável
+                    </label>
+                    <input
+                      className="tauze-input"
+                      placeholder="Nome do responsável pelo procedimento..."
+                      value={inseminador}
+                      onChange={(e) => setInseminador(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* TABELA DE CHECKLIST INDIVIDUAL */}
+                {lotAnimals.length > 0 && (
+                  <div style={{ gridColumn: 'span 2', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <label className="tauze-label">
-                        <Target size={14} /> Diagnóstico Geral do Lote
+                        <Target size={14} /> Lista de Matrizes ({lotAnimals.filter(a => a.selected).length} de {lotAnimals.length} selecionadas)
                       </label>
-                      <SearchableSelect
-                        value={result}
-                        onChange={setResult}
-                        options={[
-                          { value: 'Pendente', label: 'Pendente (Ainda a verificar)' },
-                          { value: 'Prenha', label: 'Lote Prenhe (Positivo)' },
-                          { value: 'Vazia', label: 'Lote Vazio (Negativo)' },
-                        ]}
-                      />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const allSelected = lotAnimals.every(a => a.selected);
+                          setLotAnimals(lotAnimals.map(a => ({ ...a, selected: !allSelected })));
+                        }}
+                        style={{
+                          background: 'none', border: 'none', color: 'hsl(var(--primary))', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+                        }}
+                      >
+                        {lotAnimals.every(a => a.selected) ? 'Desmarcar Todas' : 'Selecionar Todas'}
+                      </button>
                     </div>
-                    {result === 'Prenha' && (
-                      <div className="tauze-field-group">
-                        <label className="tauze-label">
-                          <CalendarDays size={14} /> Dias de Gestação (Média)
-                        </label>
-                        <input
-                          type="number"
-                          className="tauze-input"
-                          placeholder="Ex: 45"
-                          value={diasGestacao}
-                          onChange={(e) => setDiasGestacao(e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </>
+                    
+                    <div style={{ 
+                      maxHeight: '300px', 
+                      overflowY: 'auto', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      background: 'white'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead style={{ position: 'sticky', top: 0, background: 'hsl(var(--bg-main))', zIndex: 1 }}>
+                          <tr>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid hsl(var(--border))', width: '40px' }}></th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid hsl(var(--border))' }}>Animal</th>
+                            {eventType === 'Palpação' && (
+                              <>
+                                <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid hsl(var(--border))', width: '130px' }}>Resultado</th>
+                                <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Gestação</th>
+                              </>
+                            )}
+                            {eventType === 'Parto' && (
+                              <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid hsl(var(--border))', width: '160px' }}>Condição do Parto</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lotAnimals.map((animal, idx) => (
+                            <tr key={animal.id} style={{ borderBottom: '1px solid hsl(var(--border))', opacity: animal.selected ? 1 : 0.5 }}>
+                              <td style={{ padding: '8px 12px' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={animal.selected}
+                                  onChange={(e) => {
+                                    const newAnimals = [...lotAnimals];
+                                    newAnimals[idx].selected = e.target.checked;
+                                    setLotAnimals(newAnimals);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                              </td>
+                              <td style={{ padding: '8px 12px', fontWeight: 600 }}>{animal.brinco} <span style={{fontWeight: 400, color: 'hsl(var(--text-muted))'}}>({animal.categoria || '-'})</span></td>
+                              
+                              {eventType === 'Palpação' && (
+                                <>
+                                  <td style={{ padding: '8px 12px' }}>
+                                    <select 
+                                      className="tauze-input"
+                                      style={{ padding: '4px', height: '30px', fontSize: '12px' }}
+                                      value={animal.diagnostico}
+                                      disabled={!animal.selected}
+                                      onChange={(e) => {
+                                        const newAnimals = [...lotAnimals];
+                                        newAnimals[idx].diagnostico = e.target.value;
+                                        setLotAnimals(newAnimals);
+                                      }}
+                                    >
+                                      <option value="Prenha">Prenha</option>
+                                      <option value="Vazia">Vazia</option>
+                                      <option value="Pendente">Pendente</option>
+                                    </select>
+                                  </td>
+                                  <td style={{ padding: '8px 12px' }}>
+                                    <input 
+                                      type="number"
+                                      className="tauze-input"
+                                      style={{ padding: '4px', height: '30px', fontSize: '12px' }}
+                                      placeholder="Dias"
+                                      disabled={animal.diagnostico !== 'Prenha' || !animal.selected}
+                                      value={animal.diagnostico === 'Prenha' ? animal.dias_gestacao : ''}
+                                      onChange={(e) => {
+                                        const newAnimals = [...lotAnimals];
+                                        newAnimals[idx].dias_gestacao = e.target.value;
+                                        setLotAnimals(newAnimals);
+                                      }}
+                                    />
+                                  </td>
+                                </>
+                              )}
+                              
+                              {eventType === 'Parto' && (
+                                <td style={{ padding: '8px 12px' }}>
+                                  <select 
+                                    className="tauze-input"
+                                    style={{ padding: '4px', height: '30px', fontSize: '12px' }}
+                                    value={animal.condicao_parto}
+                                    disabled={!animal.selected}
+                                    onChange={(e) => {
+                                      const newAnimals = [...lotAnimals];
+                                      newAnimals[idx].condicao_parto = e.target.value;
+                                      setLotAnimals(newAnimals);
+                                    }}
+                                  >
+                                    <option value="Normal">Normal</option>
+                                    <option value="Distocia">Distocia (Difícil)</option>
+                                    <option value="Aborto">Aborto</option>
+                                  </select>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 )}
               </div>
 

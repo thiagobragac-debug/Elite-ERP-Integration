@@ -218,6 +218,21 @@ export const sanidadeAnimal: ReportHandler = async (
     const custoUA = Number(statsRes.data?.custo_ua || 0);
     const totalAnimais = animalTotalRes.count || 0;
 
+    // Fetch product names since sanidade.produto stores UUIDs but lacks FK
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const productIds = registros.map((r: any) => r.produto).filter((p: string) => p && uuidRegex.test(p));
+    const uniqueProductIds = [...new Set(productIds)];
+    const produtosMap: Record<string, string> = {};
+    
+    if (uniqueProductIds.length > 0) {
+      const prodRes = await supabase.from('produtos').select('id, nome').in('id', uniqueProductIds);
+      if (prodRes.data) {
+        prodRes.data.forEach((p: any) => {
+          produtosMap[p.id] = p.nome;
+        });
+      }
+    }
+
     // Alertas de carência reais: registros REALIZADOS que ainda estão em período de carência
     const alertasCarencia = registros.filter((s: any) => {
       if (!s.carencia_dias || s.carencia_dias === 0) {
@@ -241,16 +256,22 @@ export const sanidadeAnimal: ReportHandler = async (
         const isBlocked = diasRestantes > 0 && s.status === 'REALIZADO';
         const animal = Array.isArray(s.animais) ? s.animais[0] : s.animais;
         const lote = Array.isArray(s.lotes) ? s.lotes[0] : s.lotes;
+        
+        // Resolve product name from map, fallback to literal
+        const produtoNome = (s.produto && produtosMap[s.produto]) ? produtosMap[s.produto] : s.produto || s.titulo || '---';
+        const animalNomeStr = animal?.nome ? `${animal.nome} #${animal.brinco}` : animal?.brinco ? `#${animal.brinco}` : null;
+        
         return {
           ...s,
-          vacina: s.produto || s.titulo || '---',
+          produto: produtoNome,
+          vacina: produtoNome,
           lote: lote?.nome || '---',
           data: dataManejo.toLocaleDateString('pt-BR'),
           dataLiberacao,
           diasRestantes,
           isBlocked,
-          targetName: animal?.brinco ? `#${animal.brinco}` : lote?.nome || 'Manejo Geral',
-          targetType: animal?.brinco ? 'Individual' : 'Lote',
+          targetName: animalNomeStr || lote?.nome || 'Manejo Geral',
+          targetType: animal ? 'INDIVIDUAL' : lote ? 'LOTE' : 'GERAL',
         };
       }),
       columns,
@@ -291,7 +312,7 @@ export const sanidadeAnimal: ReportHandler = async (
           label: 'Custo Sanitário / UA',
           subtitle: `Per\u00edodo: ${monthYearBR()}`,
           sparkline: buildSparkline(registros, 'data_manejo', null),
-          value: custoUA > 0 ? `R$ ${custoUA.toFixed(2)}` : '---',
+          value: custoUA > 0 ? `R$ ${custoUA.toFixed(2)}` : 'R$ 0,00',
           change: custoUA > 0 ? 'Por unidade animal' : 'Sem dados de custo',
           trend: 'neutral' as const,
           icon: Skull,
@@ -520,10 +541,10 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
       ),
       withTimeout(
         supabase
-          .from('nutricao_diaria')
-          .select('custo_total, data')
+          .from('nutricao_animais')
+          .select('valor_total_consumido, data_consumo')
           .match(scope)
-          .order('data', { ascending: false })
+          .order('data_consumo', { ascending: false })
           .limit(30) as unknown as Promise<any>
       ),
     ]);
@@ -539,25 +560,16 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
     const nutricao = nutricaoRes.data || [];
     const cpdReal =
       nutricao.length > 0
-        ? nutricao.reduce((acc: number, n: any) => acc + Number(n.custo_total || 0), 0) /
+        ? nutricao.reduce((acc: number, n: any) => acc + Number(n.valor_total_consumido || 0), 0) /
           nutricao.length
         : null;
 
-    // Animais confinados reais: count de animais nos lotes de confinamento
-    const animaisConfinados = conf.reduce((acc: number, c: any) => {
-      const lotes = Array.isArray(c.lotes) ? c.lotes : [c.lotes].filter(Boolean);
-      return (
-        acc +
-        lotes.reduce((la: number, l: any) => {
-          const animCount = Array.isArray(l?.animais)
-            ? l.animais[0]?.count || 0
-            : l?.animais?.count || 0;
-          return la + animCount;
-        }, 0)
-      );
-    }, 0);
+    // Animais confinados reais: sum of capacidade_animais for active pens
+    const animaisConfinados = conf
+      .filter((c: any) => c.status !== 'archived')
+      .reduce((acc: number, c: any) => acc + (c.capacidade_animais || 0), 0);
 
-    const _lastNutricaoDate = nutricao.length > 0 ? fmtDateBR(nutricao[0].data) : null;
+    const _lastNutricaoDate = nutricao.length > 0 ? fmtDateBR(nutricao[0].data_consumo) : null;
     const _lastConfDate = conf.length > 0 ? latestDate(conf, 'data_inicio') : null;
 
     return {
@@ -611,7 +623,7 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
           subtitle: _lastNutricaoDate
             ? `Última nutrição: ${_lastNutricaoDate}`
             : 'Sem registro de nutrição',
-          sparkline: buildSparkline(nutricao, 'data', 'custo_total'),
+          sparkline: buildSparkline(nutricao, 'data_consumo', 'valor_total_consumido'),
           value: cpdReal ? `R$ ${cpdReal.toFixed(2)}` : '---',
           change: cpdReal ? 'Média 30 dias' : 'Sem nutrição registrada',
           trend: 'neutral' as const,

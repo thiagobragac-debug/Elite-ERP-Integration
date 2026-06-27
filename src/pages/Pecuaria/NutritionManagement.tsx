@@ -67,8 +67,8 @@ export const NutritionManagement: React.FC = () => {
     if (!activeFarm?.id) return;
     const fetchLotes = async () => {
       const [lotesRes, animaisRes] = await Promise.all([
-        supabase.from('lotes').select('id, nome').eq('fazenda_id', activeFarm.id).eq('status', 'ATIVO'),
-        supabase.from('animais').select('id, lote_id, peso_atual').eq('fazenda_id', activeFarm.id).eq('status', 'Ativo'),
+        applyFarmFilter(supabase.from('lotes').select('id, nome')).eq('status', 'ATIVO'),
+        applyFarmFilter(supabase.from('animais').select('id, lote_id, peso_atual')).eq('status', 'Ativo'),
       ]);
       const animaisData: any[] = animaisRes.data || [];
       const enriched = (lotesRes.data || []).map((l: any) => {

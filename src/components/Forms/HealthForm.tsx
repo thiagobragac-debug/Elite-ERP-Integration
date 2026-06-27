@@ -26,6 +26,7 @@ import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -45,7 +46,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
   const [activeEtapa, setActiveEtapa] = useState('contexto');
   const { formData, setFormData, clearDraft } = useFormDraft({
     key: `health_form_${activeTenantId}`,
@@ -124,53 +126,34 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 
   const fetchAnimalsAndLots = async () => {
     try {
-      if (!activeTenantId) {
-        return;
-      }
+      if (!activeTenantId) return;
 
       // 1. Fetch Animals
-      let animalQuery = supabase
-        .from('animais')
-        .select('id, brinco, raca, categoria, sexo')
-        .eq('tenant_id', activeTenantId)
-        .ilike('status', 'ativo');
-      if (!isGlobalMode && activeFarm?.id) {
-        animalQuery = animalQuery.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
-      }
-      const { data: animalData } = await animalQuery;
-      if (animalData) {
-        setAnimals(animalData);
-      }
+      const { data: animalData } = await applyFarmFilter(
+        supabase
+          .from('animais')
+          .select('id, brinco, raca, categoria, sexo')
+          .ilike('status', 'ativo')
+      );
+      if (animalData) setAnimals(animalData);
 
       // 2. Fetch Lots
-      let loteQuery = supabase
-        .from('lotes')
-        .select('id, nome, status')
-        .eq('tenant_id', activeTenantId)
-        .ilike('status', 'ativo');
-      if (!isGlobalMode && activeFarm?.id) {
-        loteQuery = loteQuery.eq('fazenda_id', activeFarm.id);
-      }
-      const { data: loteData } = await loteQuery;
-      if (loteData) {
-        setLots(loteData);
-      }
+      const { data: loteData } = await applyFarmFilter(
+        supabase
+          .from('lotes')
+          .select('id, nome, status')
+          .ilike('status', 'ativo')
+      );
+      if (loteData) setLots(loteData);
 
-      // 3. Fetch Products from inventory (medicamento/vacina/insumo) including custo_medio from saldos_estoque
-      let productQuery = supabase
-        .from('produtos')
-        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_abate_dias, carencia_leite_dias')
-        .eq('tenant_id', activeTenantId)
-        .eq('is_storable', true);
-
-      if (!isGlobalMode && activeFarm?.id) {
-        productQuery = productQuery.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
-      }
-
-      const { data: prodData } = await productQuery;
-      if (prodData) {
-        setAvailableProducts(prodData);
-      }
+      // 3. Fetch Products from inventory
+      const { data: prodData } = await applyFarmFilter(
+        supabase
+          .from('produtos')
+          .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_abate_dias, carencia_leite_dias')
+          .eq('is_storable', true)
+      );
+      if (prodData) setAvailableProducts(prodData);
     } catch (err) {
       console.error('Error fetching animals or lots or products:', err);
     }
@@ -180,7 +163,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
     if (isOpen && activeTenantId) {
       fetchAnimalsAndLots();
     }
-  }, [isOpen, activeFarm, activeTenantId]);
+  }, [isOpen, activeTenantId]);
 
   React.useEffect(() => {
     if (!actionId) {

@@ -22,7 +22,10 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { AsyncSearchableSelect, type Option } from './AsyncSearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
+import { toast } from 'react-hot-toast';
+import { reproductionEventSchema } from '../../schemas/reproduction';
 import { DateInput } from '../../components/Form/DateInput';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -50,31 +53,26 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
   const [animais, setAnimais] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && activeFarm) {
-      fetchAnimais();
-    }
-  }, [isOpen, activeFarm]);
-
-  const fetchAnimais = async () => {
+  const loadAnimais = async (inputValue: string): Promise<Option[]> => {
     try {
       let query = supabase
         .from('animais')
         .select('id, brinco, raca, sexo, categoria')
         .neq('status', 'vendido')
         .neq('status', 'morto');
+        
       query = applyFarmFilter(query);
-      const { data, error } = await query.limit(1000);
-      if (error) {
-        console.error('fetchAnimais error:', error);
+      
+      if (inputValue) {
+        query = query.ilike('brinco', `%${inputValue}%`);
       }
+      
+      const { data, error } = await query.limit(50);
+      if (error) throw error;
+      
       if (data) {
-        // Filter females locally to avoid strict equality issues in DB just in case, but usually ilike works.
-        // We will just do a local filter to be absolutely safe against any accent/case variation.
         const females = data.filter((a) => {
-          if (!a.sexo) {
-            return false;
-          } // Some DB rows might not have it
+          if (!a.sexo) return false;
           const s = a.sexo.toLowerCase();
           return (
             s.includes('femea') ||
@@ -85,15 +83,40 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
             a.categoria?.toLowerCase() === 'novilha'
           );
         });
-        setAnimais(
-          females.map((a) => ({
-            value: a.id,
-            label: `${a.brinco} - ${a.raca || 'Sem Raça Especificada'}`,
-          }))
-        );
+        return females.map((a) => ({
+          value: a.id,
+          label: `${a.brinco} - ${a.raca || 'Sem Raça Especificada'}`,
+        }));
       }
+      return [];
     } catch (err) {
       console.error('Error fetching animals:', err);
+      return [];
+    }
+  };
+
+  const loadProtocolos = async (inputValue: string): Promise<Option[]> => {
+    try {
+      let query = supabase
+        .from('protocolos_reprodutivos')
+        .select('id, nome, tipo')
+        .eq('tenant_id', activeTenantId)
+        .eq('status', 'active');
+        
+      if (inputValue) {
+        query = query.ilike('nome', `%${inputValue}%`);
+      }
+      
+      const { data, error } = await query.limit(50);
+      if (error) throw error;
+      
+      return (data || []).map(p => ({
+        value: p.nome, // using name for compatibility with existing schema/DB or id if we change DB
+        label: p.nome,
+      }));
+    } catch (err) {
+      console.error('Error fetching protocols:', err);
+      return [];
     }
   };
 
@@ -171,8 +194,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
 
   const ETAPAS_CONFIG = [
     { id: 'dados', label: '1. Dados do Evento', icon: Calendar, color: '#3b82f6' },
-    { id: 'produtos', label: '2. Fármacos', icon: Syringe, color: '#f59e0b' },
-    { id: 'resultados', label: '3. Resultados', icon: Activity, color: '#10b981' },
+    { id: 'resultados', label: '2. Resultados', icon: Activity, color: '#10b981' },
+    { id: 'produtos', label: '3. Fármacos', icon: Syringe, color: '#f59e0b' },
   ];
 
   const isDadosDone = formData.animal_id.trim().length > 0;
@@ -185,6 +208,17 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar com Zod
+    const result = reproductionEventSchema.safeParse(formData);
+    
+    if (!result.success) {
+      // Exibir o primeiro erro encontrado
+      const firstError = result.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
     setLoading(true);
     try {
       await onSubmit({ ...formData, produtos: produtosAplicados });
@@ -196,21 +230,23 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
 
   // --- REPRODUCTION ENGINE ---
   const reproductionStats = useMemo(() => {
-    const dataEvento = new Date(formData.data_evento);
+    // Evita timezone shift criando a data com ano, mes, dia explicitamente
+    const [year, month, day] = formData.data_evento.split('-').map(Number);
+    const dataEvento = new Date(year, month - 1, day);
+    
     let prevDataStr = '';
     let prevLabel = '';
     let warningMsg = '';
 
     if (formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') {
-      const prevToque = new Date(dataEvento);
+      const prevToque = new Date(year, month - 1, day);
       prevToque.setDate(prevToque.getDate() + 30);
       prevDataStr = prevToque.toLocaleDateString('pt-BR');
       prevLabel = 'Previsão de Toque';
     } else if (formData.tipo_evento === 'Palpação' && formData.resultado_diagnostico === 'Prenha') {
       const diasG = parseInt(formData.dias_gestacao) || 0;
       if (diasG > 0) {
-        const prevParto = new Date();
-        // Assume gestação média de 285 dias
+        const prevParto = new Date(); // Parto é baseado em hoje - dias_gestacao ou no manejo
         const diasFaltantes = 285 - diasG;
         prevParto.setDate(prevParto.getDate() + diasFaltantes);
         prevDataStr = prevParto.toLocaleDateString('pt-BR');
@@ -284,7 +320,10 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
               Status Atual
             </span>
             <span style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-              Realizado
+              {formData.status === 'completed' && 'Realizado'}
+              {formData.status === 'pending' && 'Agendado'}
+              {formData.status === 'cancelled' && 'Cancelado'}
+              {formData.status === 'draft' && 'Em Andamento'}
             </span>
             <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
               Manejo dia {new Date(formData.data_evento).toLocaleDateString('pt-BR')}
@@ -502,6 +541,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                       options={[
                         { value: `completed`, label: `Concluído` },
                         { value: `pending`, label: `Agendado` },
+                        { value: `cancelled`, label: `Cancelado` },
+                        { value: `draft`, label: `Em Andamento` },
                       ]}
                     />
                   </div>
@@ -510,48 +551,77 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                 <div className="tauze-input-grid grid-col-2">
                   <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                     <label className="tauze-label">
-                      <Beef size={14} /> Animal / Matriz
+                      <Activity size={14} /> Técnico / Inseminador Responsável
                     </label>
-                    <SearchableSelect
-                      value={formData.animal_id}
-                      onChange={(val: any) => setFormData({ ...formData, animal_id: val })}
-                      options={animais}
-                      placeholder="Busque pelo brinco ou ID..."
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Nome do profissional..."
+                      value={formData.tecnico}
+                      onChange={(e) => setFormData({ ...formData, tecnico: e.target.value })}
                     />
                   </div>
                   <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>
-                        <Activity size={14} /> ECC (Escore de Condição Corporal)
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                        1 (Muito Magra) a 5 (Obesa)
-                      </span>
+                    <label className="tauze-label">
+                      <Beef size={14} /> Animal / Matriz
                     </label>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                      {[1, 2, 3, 4, 5].map((score) => (
-                        <button
-                          key={score}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, ecc: score.toString() })}
-                          style={{
-                            flex: 1,
-                            padding: '12px 0',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            background: formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
-                            color: formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
-                            border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                          }}
-                        >
-                          {score}
-                        </button>
-                      ))}
-                    </div>
+                    <AsyncSearchableSelect
+                      value={formData.animal_id}
+                      onChange={(val: any) => setFormData({ ...formData, animal_id: val })}
+                      loadOptions={loadAnimais}
+                      defaultOptions={true}
+                      placeholder="Busque pelo brinco ou ID..."
+                    />
                   </div>
+                  {formData.tipo_evento !== 'Secagem' && (
+                    <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>
+                          <Activity size={14} /> ECC (Escore de Condição Corporal)
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                          1 (Magra) a 5 (Obesa)
+                        </span>
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        {[
+                          { val: 1, label: 'Caquética', color: '#ef4444' },
+                          { val: 2, label: 'Magra', color: '#f97316' },
+                          { val: 3, label: 'Ideal', color: '#22c55e' },
+                          { val: 4, label: 'Gorda', color: '#f97316' },
+                          { val: 5, label: 'Obesa', color: '#ef4444' },
+                        ].map((score) => {
+                          const isSelected = formData.ecc === score.val.toString();
+                          return (
+                            <button
+                              key={score.val}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, ecc: score.val.toString() })}
+                              style={{
+                                flex: 1,
+                                padding: '8px 4px',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                background: isSelected ? score.color : 'hsl(var(--bg-main))',
+                                color: isSelected ? 'white' : 'hsl(var(--text-main))',
+                                border: `1.5px solid ${isSelected ? score.color : 'hsl(var(--border))'}`,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '2px',
+                              }}
+                            >
+                              <span style={{ fontWeight: 800, fontSize: '16px' }}>{score.val}</span>
+                              <span style={{ fontSize: '10px', opacity: isSelected ? 1 : 0.6, fontWeight: isSelected ? 700 : 500 }}>
+                                {score.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -587,15 +657,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                         <label className="tauze-label">
                           <Activity size={14} /> Protocolo Hormonal
                         </label>
-                        <SearchableSelect
+                        <AsyncSearchableSelect
                           value={formData.resultado}
                           onChange={(val: any) => setFormData({ ...formData, resultado: val })}
-                          options={[
-                            { value: `Ovsynch`, label: `Ovsynch` },
-                            { value: `J-Synch`, label: `J-Synch` },
-                            { value: `Presynch`, label: `Presynch` },
-                            { value: `Outro`, label: `Outro Protocolo` },
-                          ]}
+                          loadOptions={loadProtocolos}
+                          defaultOptions={true}
+                          placeholder="Busque o protocolo..."
                         />
                       </div>
                       <div className="tauze-field-group">
@@ -620,18 +687,6 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                           placeholder="Código do lote/partida..."
                           value={formData.partida_semen}
                           onChange={(e) => setFormData({ ...formData, partida_semen: e.target.value })}
-                        />
-                      </div>
-                      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                        <label className="tauze-label">
-                          <Activity size={14} /> Técnico / Inseminador Responsável
-                        </label>
-                        <input
-                          className="tauze-input"
-                          type="text"
-                          placeholder="Nome do profissional..."
-                          value={formData.tecnico}
-                          onChange={(e) => setFormData({ ...formData, tecnico: e.target.value })}
                         />
                       </div>
                     </>

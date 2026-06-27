@@ -408,6 +408,9 @@ export const SystemSettingsTab: React.FC<{
     sanidade: true,
     configuracoes: true,
   });
+  const [bloquearCarencia, setBloquearCarencia] = useState<boolean>(
+    tenant?.settings?.bloquear_embarque_carencia ?? false
+  );
 
   useEffect(() => {
     // O roteamento interno de tabs agora é controlado pelo ModuleSettings.
@@ -435,6 +438,10 @@ export const SystemSettingsTab: React.FC<{
         sanidade: dbAlerts.sanidade ?? true,
         configuracoes: dbAlerts.configuracoes ?? true,
       });
+    }
+    
+    if (tenant?.settings?.bloquear_embarque_carencia !== undefined) {
+      setBloquearCarencia(tenant.settings.bloquear_embarque_carencia);
     }
   }, [location.pathname, tenant, userProfile]);
 
@@ -468,6 +475,7 @@ export const SystemSettingsTab: React.FC<{
         selected_metrics: selectedMetrics,
         metric_targets: metricTargets,
         sidebar_alerts: sidebarAlerts,
+        bloquear_embarque_carencia: bloquearCarencia,
         updated_at: new Date().toISOString(),
       };
 
@@ -847,6 +855,13 @@ export const SystemSettingsTab: React.FC<{
                     </div>
                     <div className="premium-switch">
                       <div className="info">
+                        <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Bloqueio de Carência (Sanidade)</span>
+                        <span className="d">Bloquear embarque de animais em período de carência.</span>
+                      </div>
+                      <div className={`toggle-box ${bloquearCarencia ? 'active' : ''}`} onClick={toggleBloquearCarencia} />
+                    </div>
                         <span className="t">Validação de CNPJ Sefaz</span>
                         <span className="d">
                           Verificação automática em tempo real de fornecedores.
@@ -890,6 +905,18 @@ export const SystemSettingsTab: React.FC<{
                     <div className="tauze-field">
                       <label>Tolerância de Pesagem (%)</label>
                       <input type="number" defaultValue="2" />
+                    </div>
+                  </div>
+                  <div className="switch-list" style={{ marginTop: '16px' }}>
+                    <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Bloquear Embarque em Carência</span>
+                        <span className="d">Impede a adição de animais no romaneio se estiverem em carência (não permite assumir risco).</span>
+                      </div>
+                      <div
+                        className={`toggle-box ${bloquearCarencia ? 'active' : ''}`}
+                        onClick={() => setBloquearCarencia(!bloquearCarencia)}
+                      />
                     </div>
                   </div>
                 </section>

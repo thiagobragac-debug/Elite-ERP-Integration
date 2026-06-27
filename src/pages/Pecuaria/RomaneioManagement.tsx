@@ -45,22 +45,6 @@ const getStatusColor = (status: string) => {
   return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
 };
 
-// Dead code below kept for backwards compat — replaced by getStatusColor above
-const _getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Concluído':
-      return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
-    case 'Em Trânsito':
-      return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };
-    case 'Pendente':
-      return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };
-    case 'Cancelado':
-      return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };
-    default:
-      return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
-  }
-};
-
 export default function RomaneioManagement() {
   const { confirm } = useConfirm();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
@@ -70,7 +54,7 @@ export default function RomaneioManagement() {
   const [searchTerm, setSearchTerm] = usePersistentState('RomaneioManagement_searchTerm', '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = usePersistentState<
-    'TODOS' | 'Concluído' | 'Em Trânsito' | 'Pendente'
+    'TODOS' | 'Concluído' | 'Em Trânsito' | 'Pendente' | 'Rascunho'
   >('RomaneioManagement_activeTab', 'TODOS');
 
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
@@ -135,17 +119,23 @@ export default function RomaneioManagement() {
     setShowDetailsModal(true);
   };
 
-  const handleDownloadPDF = (row: any) => {
+  const handleDownloadPDF = async (row: any) => {
     toast.loading(`Gerando documento oficial do Romaneio ${row.codigo || row.id}...`, {
       id: 'pdf-gen',
     });
-    setTimeout(() => {
-      try {
-        const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
+
+    try {
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('document')
+        .eq('id', activeTenantId)
+        .single();
+        
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
         // ─── CABEÇALHO DO DOCUMENTO ─────────────────────────────────────────
         doc.setFillColor(16, 185, 129); // #10b981
@@ -160,7 +150,9 @@ export default function RomaneioManagement() {
         doc.setFontSize(8);
         doc.setTextColor(100, 116, 139);
         doc.text('TECNOLOGIA E GESTÃO AGROPECUÁRIA PREMIUM', 14, 29);
-        doc.text('CNPJ: 00.000.000/0001-00 | INSCRIÇÃO ESTADUAL: 000.000.000', 14, 33);
+        const docCnpj = tenantData?.document || 'Não informado';
+        const docIe = activeFarm?.ie_produtor || 'Não informado';
+        doc.text(`CNPJ: ${docCnpj} | INSCRIÇÃO ESTADUAL: ${docIe}`, 14, 33);
 
         // Caixa de Metadados do Romaneio (Lado Direito)
         doc.setDrawColor(226, 232, 240);
@@ -246,6 +238,29 @@ export default function RomaneioManagement() {
         doc.setTextColor(16, 185, 129);
         doc.text('3. COMPOSIÇÃO E DADOS DA CARGA', 14, 106);
 
+        let tableBody: any[] = [];
+        if (row.composicao_carga && Array.isArray(row.composicao_carga) && row.composicao_carga.length > 0) {
+          tableBody = row.composicao_carga.map((item: any) => [
+            item.categoria,
+            item.raca,
+            `${item.qtd} cbç`,
+            `${item.peso_medio.toFixed(1)} kg`,
+            '—',
+            '—',
+          ]);
+        } else {
+          tableBody = [
+            [
+              'Misto / Não Especificado',
+              'Diversas',
+              `${row.animais_qtd} cbç`,
+              '—',
+              `R$ ${(row.valor_estimado / (row.animais_qtd || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              `R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            ],
+          ];
+        }
+
         autoTable(doc, {
           head: [
             [
@@ -257,16 +272,7 @@ export default function RomaneioManagement() {
               'Valor Total Lote',
             ],
           ],
-          body: [
-            [
-              'Lote Confinamento A - Boi Gordo',
-              'Nelore',
-              `${row.animais_qtd} cbç`,
-              '520 kg',
-              `R$ ${(row.valor_estimado / (row.animais_qtd || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              `R$ ${Number(row.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            ],
-          ],
+          body: tableBody,
           startY: 110,
           theme: 'striped',
           headStyles: {
@@ -339,7 +345,6 @@ export default function RomaneioManagement() {
         console.error(err);
         toast.error(`Erro ao gerar documento PDF: ${err.message}`, { id: 'pdf-gen' });
       }
-    }, 800);
   };
 
   // ── Status Transitions ───────────────────────────────────────────────────
@@ -366,17 +371,25 @@ export default function RomaneioManagement() {
   });
 
   const concludeMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (row: any) => {
       const { error } = await supabase
         .from('romaneios')
         .update({ status: 'Concluído', data_chegada: new Date().toISOString().split('T')[0] })
-        .eq('id', id);
+        .eq('id', row.id);
       if (error) throw error;
-      // On conclusion: animals → Abatido (arrived at slaughterhouse)
+      
+      // Handle animals based on tipo_destino
+      let novoStatus = 'Abatido';
+      if (row.tipo_destino === 'TRANSFERENCIA') {
+        novoStatus = 'INATIVO';
+      } else if (row.tipo_destino === 'VENDA') {
+        novoStatus = 'VENDIDO';
+      }
+
       const { error: animalError } = await supabase
         .from('animais')
-        .update({ status: 'Abatido' })
-        .eq('romaneio_id', id);
+        .update({ status: novoStatus })
+        .eq('romaneio_id', row.id);
       if (animalError) throw animalError;
     },
     onSuccess: () => {
@@ -401,12 +414,14 @@ export default function RomaneioManagement() {
   const handleConclude = async (row: any) => {
     const ok = await confirm({
       title: 'Confirmar Chegada e Concluir',
-      description: `Confirma a chegada do Romaneio ${row.codigo || row.id} ao destino? Os animais serão marcados como Abatidos.`,
-      confirmText: 'Confirmar Chegada',
+      description: `Confirma a chegada do Romaneio ${row.codigo || row.id} no destino final? Os animais serão marcados como ${
+        row.tipo_destino === 'TRANSFERENCIA' ? 'INATIVO' : row.tipo_destino === 'VENDA' ? 'VENDIDO' : 'Abatido'
+      }.`,
+      confirmText: 'Confirmar Conclusão',
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (ok) concludeMutation.mutate(row.id);
+    if (ok) concludeMutation.mutate(row);
   };
 
   const cancelMutation = useMutation({
@@ -452,6 +467,11 @@ export default function RomaneioManagement() {
     if (isConfirmed) {
       cancelMutation.mutate(row.id);
     }
+  };
+
+  const handleOpenEdit = (row: any) => {
+    setSelectedRomaneio(row);
+    setIsModalOpen(true);
   };
 
   const columns = [
@@ -576,6 +596,15 @@ export default function RomaneioManagement() {
           >
             <FileText size={14} />
           </button>
+          {(row.status === 'Pendente' || row.status === 'Rascunho') && (
+            <button
+              onClick={() => handleOpenEdit(row)}
+              className="action-dot edit"
+              title="Editar Romaneio"
+            >
+              <Navigation size={14} style={{ transform: 'rotate(45deg)' }} />
+            </button>
+          )}
           {row.status === 'Pendente' && (
             <button
               onClick={() => handleConfirmTransit(row)}
@@ -689,7 +718,7 @@ export default function RomaneioManagement() {
                 color="hsl(var(--brand))"
               />
               <TauzeStatCard
-                label="Custo Estimado (Frete)"
+                label="Valor Total Estimado"
                 value={new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -737,6 +766,12 @@ export default function RomaneioManagement() {
             onClick={() => setActiveTab('Pendente')}
           >
             Pendentes
+          </button>
+          <button
+            className={`tauze-tab-item ${activeTab === 'Rascunho' ? 'active' : ''}`}
+            onClick={() => setActiveTab('Rascunho')}
+          >
+            Rascunhos
           </button>
         </div>
 
@@ -827,11 +862,16 @@ export default function RomaneioManagement() {
       {/* ─── Modals ────────────────────────────────────────────────────────── */}
       <RomaneioEmbarqueModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        initialData={selectedRomaneio}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedRomaneio(null);
+        }}
         onGerarNF={(romaneioData) => {
           setIsModalOpen(false);
+          setSelectedRomaneio(null);
           toast.success(
-            `✅ Romaneio de Embarque criado para ${romaneioData.comprador || 'Comprador'}! Nota Fiscal de Saída emitida com sucesso.`
+            `✅ Romaneio de Embarque salvo com sucesso para ${romaneioData.comprador || 'Comprador'}!`
           );
           queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
         }}

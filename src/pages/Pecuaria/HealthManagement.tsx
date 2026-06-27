@@ -22,6 +22,7 @@ import {
   History,
   FileText,
 } from 'lucide-react';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
@@ -63,6 +64,7 @@ interface HealthRecord {
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } =
     useFarmFilter();
+  const { confirm } = useConfirm();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -166,17 +168,17 @@ export const HealthManagement: React.FC = () => {
     deleteHealthMutation.mutate(id);
   };
 
-  const handleDelete = (id: string) => {
-    toast((t) => (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '4px' }}>
-        <span style={{ fontWeight: 700, fontSize: '14px' }}>Excluir registro sanitário?</span>
-        <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Remove também a movimentação de estoque vinculada.</span>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-          <button onClick={() => { toast.dismiss(t.id); handleDeleteConfirmed(id); }} style={{ flex: 1, padding: '6px', background: 'hsl(0 84% 60%)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
-          <button onClick={() => toast.dismiss(t.id)} style={{ flex: 1, padding: '6px', background: 'transparent', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Cancelar</button>
-        </div>
-      </div>
-    ), { duration: 8000, style: { maxWidth: '320px' } });
+  const handleDelete = async (id: string) => {
+    const isConfirmed = await confirm({
+      title: 'Excluir registro sanitário?',
+      description: 'Remove também a movimentação de estoque vinculada. Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (isConfirmed) {
+      deleteHealthMutation.mutate(id);
+    }
   };
 
   const handleViewDetails = (event: any) => {
@@ -302,7 +304,7 @@ export const HealthManagement: React.FC = () => {
             }}
           >
             <HeartPulse size={12} color={item.tipo === 'VACINA' ? '#6366f1' : '#10b981'} />
-            {item.tipo} • {item.via_aplicacao || 'S/V'}
+            {item.tipo} {item.via_aplicacao ? `• ${item.via_aplicacao}` : ''}
           </div>
         </div>
       ),
@@ -348,18 +350,6 @@ export const HealthManagement: React.FC = () => {
             <FlaskConical size={14} color="#3b82f6" />
             <span>{item.dose || 'N/A'}</span>
           </div>
-          {item.local_aplicacao && (
-            <span
-              style={{
-                fontSize: '9px',
-                fontWeight: 800,
-                color: '#94a3b8',
-                textTransform: 'uppercase',
-              }}
-            >
-              Local: {item.local_aplicacao}
-            </span>
-          )}
         </div>
       ),
       align: 'left' as const,
@@ -744,7 +734,9 @@ export const HealthManagement: React.FC = () => {
       (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (e.produto || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
+    
+    // Se aba = MANEJOS, mostra tudo. Se aba = PROTOCOLOS, filtra apenas tipo PROTOCOLO ou eventos agrupados.
+    const matchesTab = activeTab === 'MANEJOS' ? true : e.tipo === 'PROTOCOLO';
 
     const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;
     const matchesTipo = filterValues.tipo === 'all' || e.tipo === filterValues.tipo;

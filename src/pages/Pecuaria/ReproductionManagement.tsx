@@ -391,6 +391,7 @@ export const ReproductionManagement: React.FC = () => {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
+    if (!isConfirmed) return;
     deleteReproMutation.mutate(id);
   };
 
@@ -416,41 +417,42 @@ export const ReproductionManagement: React.FC = () => {
     }
   };
 
-  const handleViewDetails = (event: any) => {
-    const nextStep =
-      event.tipo_evento === 'IATF'
-        ? 'Palpação em 60 dias'
-        : event.tipo_evento === 'Palpação' && event.resultado === 'Prenha'
-          ? `Monitorar Parição em ${event.previsaoParto instanceof Date ? event.previsaoParto.toLocaleDateString() : '---'}`
-          : 'Novo Ciclo';
-
+  const handleViewDetails = async (event: any) => {
     setIsHistoryModalOpen(true);
-    setHistoryItems([
-      {
-        id: '1',
-        date: event.data_evento,
-        title: `Tipo de Evento: ${event.tipo_evento}`,
-        subtitle: `Identificação: ${event.animais?.brinco || event.animal_id}`,
-        value: event.resultado || 'Pendente',
-        status: event.status === 'completed' ? 'success' : 'pending',
-      },
-      {
-        id: '2',
-        date: event.data_evento,
-        title: 'Observações',
-        subtitle: event.observacoes || 'Nenhuma observação registrada',
-        value: 'Info',
-        status: 'info',
-      },
-      {
-        id: '3',
-        date: event.data_evento,
-        title: 'Próximo Passo',
-        subtitle: nextStep,
-        value: 'Agendado',
-        status: 'warning',
-      },
-    ]);
+    setHistoryLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('eventos_reprodutivos')
+        .select('*')
+        .eq('animal_id', event.animal_id || event.animais?.id)
+        .order('data_evento', { ascending: false });
+
+      if (error) throw error;
+
+      const items = (data || []).map((e: any) => {
+        let nextStep = 'Novo Ciclo';
+        if (e.tipo_evento === 'IATF') nextStep = 'Palpação em 60 dias';
+        else if (e.tipo_evento === 'Palpação' && e.resultado === 'Prenha') {
+          nextStep = e.previsaoParto ? `Parição em ${new Date(e.previsaoParto).toLocaleDateString()}` : 'Monitorar Parição';
+        }
+
+        return {
+          id: e.id,
+          date: e.data_evento,
+          title: `Evento: ${e.tipo_evento}`,
+          subtitle: `Próximo Passo: ${nextStep} | ECC: ${e.ecc || '-'}`,
+          value: e.resultado || 'Pendente',
+          status: e.status === 'completed' ? 'success' : 'pending',
+        };
+      });
+      setHistoryItems(items);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao carregar histórico reprodutivo.');
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const filteredEvents = events.filter((e) => {
@@ -458,7 +460,7 @@ export const ReproductionManagement: React.FC = () => {
       (e.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (e.tipo_evento || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab =
-      activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.tipo_evento === 'Parto';
+      activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.resultado === 'Prenha';
 
     const matchesTipo =
       filterValues.tipo_evento === 'all' || e.tipo_evento === filterValues.tipo_evento;
@@ -538,37 +540,7 @@ export const ReproductionManagement: React.FC = () => {
       ),
       align: 'left' as const,
     },
-    {
-      header: 'E.C.C',
-      accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span
-            style={{
-              padding: '2px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 800,
-              background:
-                item.ecc >= 3 && item.ecc <= 4
-                  ? '#ecfdf5'
-                  : item.ecc && item.ecc < 2.5
-                    ? '#fef2f2'
-                    : '#f8fafc',
-              color:
-                item.ecc >= 3 && item.ecc <= 4
-                  ? '#10b981'
-                  : item.ecc && item.ecc < 2.5
-                    ? '#ef4444'
-                    : '#64748b',
-              border: `1px solid ${item.ecc >= 3 && item.ecc <= 4 ? '#a7f3d0' : item.ecc && item.ecc < 2.5 ? '#fecaca' : '#e2e8f0'}`,
-            }}
-          >
-            {item.ecc ? Number(item.ecc).toFixed(1) : '-'}
-          </span>
-        </div>
-      ),
-      align: 'center' as const,
-    },
+
     {
       header: 'Data do Evento',
       accessor: (item: any) => (
@@ -688,53 +660,28 @@ export const ReproductionManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsBatchModalOpen(true)}>
-            <ClipboardCheck size={18} />
-            LANÇAMENTO LOTE
-          </button>
+          {activeTab !== 'PROTOCOLOS' && activeTab !== 'TEMPLATES' && (
+            <button className="glass-btn secondary" onClick={() => setIsBatchModalOpen(true)}>
+              <ClipboardCheck size={18} />
+              LANÇAMENTO LOTE
+            </button>
+          )}
           
           {activeTab === 'TEMPLATES' ? (
             <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
               <Plus size={18} />
               NOVO TEMPLATE
             </button>
-          ) : (
-          <div className="export-dropdown-container" style={{ position: 'relative' }}>
-            <button
-              className="primary-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                document.getElementById('new-record-menu')?.classList.toggle('active');
-              }}
-            >
+          ) : activeTab === 'PROTOCOLOS' ? (
+            <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
               <Plus size={18} />
-              NOVO REGISTRO
+              NOVO PROTOCOLO
             </button>
-            <div
-              id="new-record-menu"
-              className="export-menu"
-              style={{ right: 0, top: '100%', marginTop: '8px', minWidth: '180px' }}
-            >
-              <button
-                onClick={() => {
-                  setIsProtocolModalOpen(true);
-                  document.getElementById('new-record-menu')?.classList.remove('active');
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <FlaskConical size={16} /> Novo Protocolo
-              </button>
-              <button
-                onClick={() => {
-                  handleOpenCreate();
-                  document.getElementById('new-record-menu')?.classList.remove('active');
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Activity size={16} /> Evento Avulso
-              </button>
-            </div>
-          </div>
+          ) : (
+            <button className="primary-btn" onClick={handleOpenCreate}>
+              <Plus size={18} />
+              NOVO EVENTO
+            </button>
           )}
         </div>
       </header>

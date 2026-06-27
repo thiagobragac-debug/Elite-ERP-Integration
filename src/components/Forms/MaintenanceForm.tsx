@@ -20,6 +20,7 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { SearchableSelect } from './SearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
 
@@ -38,7 +39,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm, activeTenantId } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
 
   const INITIAL_MAINTENANCE_FORM = {
     maquina_id: '',
@@ -122,17 +124,16 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   }, [formData.custo_pecas, formData.custo_mao_obra, items]);
 
   useEffect(() => {
-    if (isOpen && activeFarm) {
+    if (isOpen) {
       fetchData();
     }
-  }, [isOpen, activeFarm]);
+  }, [isOpen]);
 
   const fetchData = async () => {
     // Fetch Machines
-    const { data: mData } = await supabase
-      .from('maquinas')
-      .select('*')
-      .eq('fazenda_id', activeFarm?.id);
+    const { data: mData } = await applyFarmFilter(
+      supabase.from('maquinas').select('*')
+    );
     if (mData) {
       const transformed = mData.map((m) => ({
         ...m,

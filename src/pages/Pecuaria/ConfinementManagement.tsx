@@ -25,6 +25,7 @@ import {
   List as ListIcon,
   Tag,
   Calendar,
+  LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -100,11 +101,12 @@ export const ConfinementManagement: React.FC = () => {
     'ConfinementManagement_isModalOpen',
     false
   );
+  const [selectedPen, setSelectedPen] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
-  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = usePersistentState(
-    'ConfinementManagement_isCheckOutModalOpen',
-    false
-  );
+  const [checkOutPens, setCheckOutPens] = useState<any[]>([]);
+  const isCheckOutModalOpen = checkOutPens.length > 0;
+  
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'ConfinementManagement_showAdvancedFilters',
     false
@@ -149,7 +151,9 @@ export const ConfinementManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      toast.success('✅ Check-in realizado com sucesso!');
+      setSelectedPen(null);
+      setIsEditMode(false);
+      toast.success(isEditMode ? '✅ Curral atualizado com sucesso!' : '✅ Check-in realizado com sucesso!');
     },
     onError: (err: any) => {
       toast.error(`❌ Erro ao realizar check-in: ${err.message}`);
@@ -157,22 +161,52 @@ export const ConfinementManagement: React.FC = () => {
   });
 
   const handleAddPen = async (data: any) => {
-    if (!canCreate && !activeFarmId) {
-      toast.error('⚠️ Selecione uma unidade específica para realizar o check-in.');
-      return;
+    // Se o form trouxer a fazenda (herdada do lote), usamos ela. Senão usamos o filtro ativo.
+    const targetFarmId = data.fazenda_id || activeFarmId;
+
+    // Validate UUID format manually just in case
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!targetFarmId || !uuidRegex.test(targetFarmId)) {
+      throw new Error('⚠️ Você precisa selecionar um Lote ou estar em uma Fazenda específica para realizar o check-in.');
+    }
+
+    if (!isEditMode) {
+      const { data: existing, error: checkError } = await supabase
+        .from('confinamento')
+        .select('id')
+        .eq('nome_curral', data.nome_curral)
+        .eq('fazenda_id', targetFarmId)
+        .limit(1);
+        
+      if (checkError) {
+        throw new Error(`Falha na validação: ${checkError.message}`);
+      }
+      if (existing && existing.length > 0) {
+        throw new Error('Já existe um curral ativo com este nome nesta fazenda.');
+      }
     }
 
     const payload = {
+      ...(isEditMode ? { id: selectedPen.id } : {}),
       nome_curral: data.nome_curral,
       capacidade_animais: parseInt(data.capacidade_animais),
+      peso_entrada: data.peso_entrada ? parseFloat(data.peso_entrada) : null,
       dof_alvo: parseInt(data.dof_alvo),
-      peso_entrada: parseFloat(data.peso_entrada),
       data_inicio: data.data_inicio,
       lote_id: data.lote_id || null,
       ...insertPayload,
+      fazenda_id: targetFarmId, // Garantindo o targetFarmId validado
     };
 
-    addPenMutation.mutate(payload);
+    if (isEditMode) {
+        const { error } = await supabase.from('confinamento').update(payload).eq('id', selectedPen.id);
+        if (error) throw error;
+        toast.success('✅ Curral atualizado com sucesso!');
+        setIsModalOpen(false);
+        refresh();
+    } else {
+        await addPenMutation.mutateAsync(payload);
+    }
   };
 
   const checkOutMutation = useMutation({
@@ -184,6 +218,11 @@ export const ConfinementManagement: React.FC = () => {
           peso_final: data.peso_final,
           destino: data.destino,
           status: 'archived',
+          gmd_realizado: data.gmd_realizado,
+          dof_real: data.dof_real,
+          arrobas_produzidas: data.arrobas_produzidas,
+          custo_total_ciclo: data.custo_total_ciclo,
+          gta: data.gta
         })
         .eq('id', data.id);
       if (error) {
@@ -192,7 +231,7 @@ export const ConfinementManagement: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      setIsCheckOutModalOpen(false);
+      setCheckOutPens([]);
       toast.success('✅ Check-out realizado com sucesso!');
     },
     onError: (err: any) => {
@@ -201,37 +240,53 @@ export const ConfinementManagement: React.FC = () => {
   });
 
   const handleCheckOut = async (data: any) => {
-    checkOutMutation.mutate(data);
+    return checkOutMutation.mutateAsync(data);
   };
 
-  const handleViewDetails = (pen: any) => {
+  const handleViewDetails = async (pen: any) => {
     setIsHistoryModalOpen(true);
-    setHistoryItems([
-      {
-        id: '1',
-        date: pen.data_inicio,
-        title: 'Início do Ciclo',
-        subtitle: 'Check-in de lote',
-        value: 'OK',
-        status: 'success',
-      },
-      {
-        id: '2',
-        date: pen.data_inicio,
-        title: 'Lote Vinculado',
-        subtitle: pen.lotes?.nome || 'N/A',
-        value: `${pen.capacidade_animais} Cabeças`,
-        status: 'info',
-      },
-      {
-        id: '3',
-        date: new Date().toISOString(),
-        title: 'Status Nutricional',
-        subtitle: 'Dieta de terminação',
-        value: 'Em dia',
-        status: 'success',
-      },
-    ]);
+    setHistoryLoading(true);
+    
+    setTimeout(() => {
+        const items = [
+          {
+            id: '1',
+            date: pen.data_inicio,
+            title: 'Início do Ciclo',
+            subtitle: 'Check-in de lote no curral',
+            value: `${pen.capacidade_animais} cab.`,
+            status: 'success',
+          },
+          {
+            id: '2',
+            date: pen.data_inicio,
+            title: 'Lote Vinculado',
+            subtitle: pen.lotes?.nome || 'N/A',
+            value: pen.peso_entrada ? `${pen.peso_entrada} kg (Entrada)` : 'N/A',
+            status: 'info',
+          }
+        ];
+
+        if (pen.status === 'archived') {
+          items.push({
+            id: '3',
+            date: pen.data_fim || pen.data_inicio,
+            title: 'Check-out (Ciclo Finalizado)',
+            subtitle: `GMD: ${pen.gmd_realizado?.toFixed(2) || 0} kg/dia`,
+            value: `${pen.peso_final} kg (Saída)`,
+            status: 'warning'
+          });
+        }
+
+        setHistoryItems(items);
+        setHistoryLoading(false);
+    }, 300);
+  };
+
+  const handleOpenEdit = (item: any) => {
+      setSelectedPen(item);
+      setIsEditMode(true);
+      setIsModalOpen(true);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -425,13 +480,24 @@ export const ConfinementManagement: React.FC = () => {
     },
     {
       header: 'Status Operacional',
-      accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.progress > 90 ? 'active' : 'info'}`}>
-            {item.progress > 90 ? 'Terminação' : 'Engorda'}
-          </span>
-        </div>
-      ),
+      accessor: (item: any) => {
+        let status = item.progress > 90 ? 'Terminação' : 'Engorda';
+        let pillClass = item.progress > 90 ? 'active' : 'info';
+        
+        // M6: Adaptation phase (first 15 days of DOF)
+        if (item.dof !== undefined && item.dof <= 15) {
+            status = 'Adaptação';
+            pillClass = 'pending';
+        }
+
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <span className={`status-pill ${pillClass}`}>
+                {status}
+              </span>
+            </div>
+        );
+      },
       align: 'center' as const,
     },
   ], []);
@@ -453,6 +519,12 @@ export const ConfinementManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
+    const pen = confinements.find(p => p.id === id);
+    if (pen?.status === 'archived' || (pen?.dof || 0) > 0) {
+      toast.error('❌ Não é possível excluir um curral que já possui histórico. Use o Check-out ou edite os dados.');
+      return;
+    }
+    
     const isConfirmed = await confirm({
       title: 'Atenção',
       description: 'Deseja excluir este curral?',
@@ -479,7 +551,10 @@ export const ConfinementManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsCheckOutModalOpen(true)}>
+          <button 
+            className="glass-btn secondary" 
+            onClick={() => setCheckOutPens(confinements.filter((p) => p.status !== 'archived' && p.lote_id))}
+          >
             <Scale size={18} />
             Check-out Lote
           </button>
@@ -659,9 +734,19 @@ export const ConfinementManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button className="action-dot edit" onClick={() => {}} title="Editar">
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
                   <Edit3 size={18} />
                 </button>
+                {item.status !== 'archived' && (
+                  <button 
+                    className="action-dot warning" 
+                    onClick={() => setCheckOutPens([item])} 
+                    title="Realizar Check-out"
+                    style={{ backgroundColor: 'hsl(38 92% 50% / 0.1)', color: 'hsl(38 92% 50%)' }}
+                  >
+                    <LogOut size={18} />
+                  </button>
+                )}
                 <button
                   className="action-dot delete"
                   onClick={() => handleDelete(item.id)}
@@ -675,78 +760,13 @@ export const ConfinementManagement: React.FC = () => {
         ) : (
           <div className="confinement-cards-grid animate-fade-in">
             {filteredConfinements.length === 0 ? (
-              <div
-                className="confinement-card-premium"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '20px',
-                  textAlign: 'center',
-                  gap: '6px',
-                  minHeight: '180px',
-                  height: '100%',
-                  boxShadow: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    margin: 0,
-                    width: '40px',
-                    height: '40px',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    color: '#10b981',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {confinements.length === 0 ? <Building2 size={22} /> : <Search size={22} />}
-                </div>
-                <h3
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 800,
-                    color: 'hsl(var(--text-main))',
-                    margin: 0,
-                  }}
-                >
-                  {confinements.length === 0
-                    ? 'Nenhum ciclo de confinamento'
-                    : 'Nenhum registro encontrado'}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '10.5px',
-                    color: '#64748b',
-                    margin: 0,
-                    lineHeight: '1.3',
-                    maxWidth: '260px',
-                  }}
-                >
-                  {confinements.length === 0
-                    ? 'Não há currais ativos para esta unidade.'
-                    : 'Sua busca não retornou resultados.'}
-                </p>
-                {confinements.length === 0 && (
-                  <button
-                    className="primary-btn"
-                    onClick={() => setIsModalOpen(true)}
-                    style={{
-                      fontSize: '10.5px',
-                      padding: '6px 12px',
-                      height: '30px',
-                      marginTop: '4px',
-                      minHeight: 'auto',
-                    }}
-                  >
-                    <Plus size={12} />
-                    <span>NOVO CHECK-IN</span>
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                title={confinements.length === 0 ? 'Nenhum ciclo de confinamento' : 'Nenhum registro encontrado'}
+                description={confinements.length === 0 ? 'Não há currais ativos para esta unidade.' : 'Sua busca não retornou resultados.'}
+                icon={confinements.length === 0 ? Building2 : Search}
+                actionLabel={confinements.length === 0 ? 'NOVO CHECK-IN' : undefined}
+                onAction={confinements.length === 0 ? () => setIsModalOpen(true) : undefined}
+              />
             ) : (
               filteredConfinements.map((p) => {
                 const progress = p.progress || 0;
@@ -754,7 +774,11 @@ export const ConfinementManagement: React.FC = () => {
                 let badgeText = 'ENGORDA';
                 let borderClass = 'active';
 
-                if (progress > 90) {
+                if (p.dof !== undefined && p.dof <= 15) {
+                    badgeClass = 'pending';
+                    badgeText = 'ADAPTAÇÃO';
+                    borderClass = 'pending';
+                } else if (progress > 90) {
                   badgeClass = 'warning-badge';
                   badgeText = 'TERMINAÇÃO';
                   borderClass = 'warning-badge';
@@ -778,9 +802,19 @@ export const ConfinementManagement: React.FC = () => {
                         >
                           <History size={14} />
                         </button>
-                        <button className="action-icon-btn edit" onClick={() => {}} title="Editar">
+                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(p)} title="Editar">
                           <Edit3 size={14} />
                         </button>
+                        {p.status !== 'archived' && (
+                          <button 
+                            className="action-icon-btn warning" 
+                            onClick={() => setCheckOutPens([p])} 
+                            title="Realizar Check-out"
+                            style={{ color: 'hsl(38 92% 50%)' }}
+                          >
+                            <LogOut size={14} />
+                          </button>
+                        )}
                         <button
                           className="action-icon-btn delete"
                           onClick={() => handleDelete(p.id)}
@@ -835,16 +869,28 @@ export const ConfinementManagement: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="card-footer-meta">
-                        <div className="meta-item">
-                          <Activity size={12} />
-                          <span>{p.capacidade_animais || 0} cab.</span>
+                      <div className="card-footer-meta" style={{ flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="meta-item">
+                            <Activity size={12} />
+                            <span>{p.capacidade_animais || 0} cab.</span>
+                          </div>
+                          <div className="meta-item">
+                            <TrendingUp size={12} />
+                            <span className="card-farm-meta">
+                              {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="meta-item">
-                          <TrendingUp size={12} />
-                          <span className="card-farm-meta">
-                            {isGlobalMode ? 'Multi-Fazenda' : activeFarm?.name || 'Fazenda 01'}
-                          </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--bg-main))', padding: '6px 8px', borderRadius: '8px', fontSize: '10px' }}>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                             <span style={{ color: 'hsl(var(--text-muted))' }}>Peso Proj.</span>
+                             <span style={{ fontWeight: 800, color: 'hsl(var(--brand))' }}>{p.projectedWeight ? `${p.projectedWeight.toFixed(1)} kg` : '---'}</span>
+                           </div>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                             <span style={{ color: 'hsl(var(--text-muted))' }}>Custo Diária</span>
+                             <span style={{ fontWeight: 800, color: 'hsl(var(--warning))' }}>{p.cpd ? `R$ ${p.cpd.toFixed(2)}` : '---'}</span>
+                           </div>
                         </div>
                       </div>
                     </div>
@@ -1233,9 +1279,10 @@ export const ConfinementManagement: React.FC = () => {
 
       <CheckOutModal
         isOpen={isCheckOutModalOpen}
-        onClose={() => setIsCheckOutModalOpen(false)}
-        activePens={confinements.filter((p) => p.status !== 'archived' && p.lote_id)}
+        onClose={() => setCheckOutPens([])}
+        activePens={checkOutPens}
         onCheckOut={handleCheckOut}
+        activeFarm={activeFarm}
       />
     </div>
   );

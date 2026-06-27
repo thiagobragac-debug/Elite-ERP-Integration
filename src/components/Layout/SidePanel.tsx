@@ -253,8 +253,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 </button>
                 {!hideSubmit && !isReadOnly && (
                   <button
-                    type="submit"
-                    formNoValidate
+                    type="button"
+                    onClick={onSubmit}
                     className="primary-btn"
                     disabled={loading || submitDisabled}
                     style={{

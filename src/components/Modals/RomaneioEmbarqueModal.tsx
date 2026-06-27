@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 import toast from 'react-hot-toast';
 import {
   Truck,
@@ -72,6 +73,7 @@ interface RomaneioEmbarqueModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGerarNF: (romaneioData: any) => void;
+  initialData?: any;
 }
 
 const getTodayStr = () => {
@@ -199,6 +201,8 @@ const AnimalCard: React.FC<{
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+import { SidePanel } from '../Layout/SidePanel';
+
 export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   isOpen,
   onClose,
@@ -254,9 +258,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           lotes ( nome ),
           pesagens ( peso, data_pesagem )
         `)
-        .eq('fazenda_id', activeFarmId)
-        .eq('tenant_id', activeTenantId)
-        .eq('status', 'ATIVO')
+        .in('status', ['ATIVO', 'Ativo', 'ativo'])
         .is('romaneio_id', null);
 
       if (error) throw error;
@@ -514,233 +516,122 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   // ── Render ───────────────────────────────────────────────────────────────
   if (!isOpen) return null;
 
-  return createPortal(
-    <>
-      <style>{`
-        @keyframes romaneioSlideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes romaneioFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .romaneio-animal-card:hover {
-          border-color: hsl(var(--brand) / 0.5) !important;
-          background: hsl(var(--brand) / 0.03) !important;
-        }
-      `}</style>
+  return (
+    <SidePanel isOpen={isOpen} onClose={onClose} size="1024px" title="Romaneio & Embarque" icon={Truck}>
+      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <p style={{ color: 'hsl(var(--text-muted))', margin: '2px 0 20px', fontSize: '13px' }}>
+          Selecione os animais, preencha a GTA e confirme o embarque.
+        </p>
 
-      {/* Overlay */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 10000,
-          background: 'rgba(2, 6, 23, 0.65)',
-          backdropFilter: 'blur(6px)',
-          animation: 'romaneioFadeIn 0.2s ease',
-        }}
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          bottom: 0,
-          right: 0,
-          width: '960px',
-          maxWidth: '100vw',
-          background: 'hsl(var(--bg-main))',
-          boxShadow: '-16px 0 60px rgba(0,0,0,0.35)',
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'romaneioSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-          zIndex: 10001,
-          borderLeft: '1px solid hsl(var(--border))',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ── HEADER ─────────────────────────────────────────────────── */}
-        <div
-          style={{
-            padding: '24px 32px',
-            borderBottom: '1px solid hsl(var(--border))',
-            background: 'hsl(var(--bg-card))',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: 'hsl(var(--brand) / 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'hsl(var(--brand))',
-                }}
-              >
-                <Truck size={22} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--text-main))', margin: 0, lineHeight: 1.2 }}>
-                  Romaneio de Embarque
-                </h2>
-                <p style={{ color: 'hsl(var(--text-muted))', margin: '2px 0 0', fontSize: '13px' }}>
-                  Selecione os animais, preencha a GTA e confirme o embarque.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'hsl(var(--text-muted))',
-                cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <X size={20} />
-            </button>
+        {/* Live summary strip */}
+        {animaisSelecionados.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              background: 'hsl(var(--bg-main))',
+              border: '1px solid hsl(var(--border))',
+              marginBottom: '24px',
+              flexShrink: 0
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+              <strong style={{ color: 'hsl(var(--text-main))' }}>{animaisSelecionados.length}</strong> animais
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+              <strong style={{ color: '#10b981' }}>{pesoTotal.toLocaleString('pt-BR')} kg</strong>
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+              <strong style={{ color: 'hsl(var(--brand))' }}>{arrobasTotal} @</strong>
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginLeft: 'auto' }}>
+              est.{' '}
+              <strong style={{ color: 'hsl(var(--text-main))' }}>
+                R${' '}
+                {parseFloat(valorEstimado).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </strong>
+            </span>
           </div>
+        )}
 
-          {/* Stepper */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+        {/* Content Layout */}
+        <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+          {/* Sidebar */}
+          <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              { num: 1, label: 'Seleção de Animais', icon: Beef },
-              { num: 2, label: 'Documentação e GTA', icon: FileText },
-            ].map((step, idx) => {
+              { num: 1, label: 'Seleção de Animais', icon: Beef, desc: 'Escolha dos bovinos' },
+              { num: 2, label: 'Documentação e GTA', icon: FileText, desc: 'Emissão e Destino' },
+            ].map((step) => {
               const isActive = currentStep === step.num;
-              const isDone = currentStep > step.num;
+              const isCompleted = step.num === 1 ? animaisSelecionados.length > 0 : false;
+              const Icon = step.icon;
+              
               return (
-                <React.Fragment key={step.num}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (step.num === 2 && animaisSelecionados.length === 0) return;
-                      setCurrentStep(step.num as 1 | 2);
-                    }}
+                <button
+                  key={step.num}
+                  type="button"
+                  onClick={() => {
+                    if (step.num === 2 && animaisSelecionados.length === 0) return;
+                    setCurrentStep(step.num as 1 | 2);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: isActive ? `hsl(var(--brand) / 0.15)` : 'transparent',
+                    color: isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-secondary))',
+                    cursor: (step.num === 2 && animaisSelecionados.length === 0) ? 'not-allowed' : 'pointer',
+                    opacity: (step.num === 2 && animaisSelecionados.length === 0) ? 0.4 : 1,
+                    textAlign: 'left',
+                    fontWeight: isActive ? 700 : 500,
+                    transition: 'all 0.2s',
+                    boxShadow: isActive ? `inset 3px 0 0 hsl(var(--brand))` : 'none',
+                  }}
+                >
+                  <div
                     style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: isCompleted && !isActive
+                        ? '#10b981'
+                        : isActive
+                          ? `hsl(var(--brand) / 0.2)`
+                          : 'hsl(var(--bg-main))',
+                      color: isCompleted && !isActive ? '#fff' : isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 16px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: isActive
-                        ? 'hsl(var(--brand) / 0.1)'
-                        : isDone
-                        ? 'hsl(142 71% 45% / 0.08)'
-                        : 'transparent',
-                      cursor: step.num === 2 && animaisSelecionados.length === 0 ? 'not-allowed' : 'pointer',
-                      opacity: step.num === 2 && animaisSelecionados.length === 0 ? 0.4 : 1,
-                      transition: 'all 0.2s',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}
                   >
-                    <div
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '50%',
-                        background: isActive ? 'hsl(var(--brand))' : isDone ? '#10b981' : 'hsl(var(--bg-main))',
-                        border: isActive || isDone ? 'none' : '1px solid hsl(var(--border))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        fontWeight: 900,
-                        color: isActive || isDone ? '#fff' : 'hsl(var(--text-muted))',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {isDone ? <Check size={13} /> : step.num}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: isActive
-                          ? 'hsl(var(--brand))'
-                          : isDone
-                          ? '#10b981'
-                          : 'hsl(var(--text-muted))',
-                      }}
-                    >
-                      {step.label}
-                    </span>
-                    {isActive && animaisSelecionados.length > 0 && step.num === 1 && (
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          background: '#10b981',
-                          color: '#fff',
-                          padding: '2px 7px',
-                          borderRadius: '10px',
-                        }}
-                      >
-                        {animaisSelecionados.length}
-                      </span>
-                    )}
-                  </button>
-                  {idx < 1 && (
-                    <div style={{ width: '32px', height: '1px', background: 'hsl(var(--border))', flexShrink: 0 }} />
-                  )}
-                </React.Fragment>
+                    {isCompleted && !isActive ? <CheckCircle2 size={16} /> : <Icon size={16} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px' }}>{step.label}</span>
+                    {isActive && <span style={{ fontSize: '10px', color: 'inherit', opacity: 0.8, marginTop: '2px', lineHeight: '1.2' }}>{step.desc}</span>}
+                  </div>
+                </button>
               );
             })}
-
-            {/* Live summary strip */}
-            {animaisSelecionados.length > 0 && (
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  background: 'hsl(var(--bg-main))',
-                  border: '1px solid hsl(var(--border))',
-                }}
-              >
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-                  <strong style={{ color: 'hsl(var(--text-main))' }}>{animaisSelecionados.length}</strong> animais
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-                  <strong style={{ color: '#10b981' }}>{pesoTotal.toLocaleString('pt-BR')} kg</strong>
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-                  <strong style={{ color: 'hsl(var(--brand))' }}>{arrobasTotal} @</strong>
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-                  est.{' '}
-                  <strong style={{ color: 'hsl(var(--text-main))' }}>
-                    R${' '}
-                    {parseFloat(valorEstimado).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </strong>
-                </span>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* ── CONTENT ────────────────────────────────────────────────── */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-
-          {/* ════ STEP 1 — Animal Selection ════════════════════════════ */}
-          {currentStep === 1 && (
+          {/* Right Panel Content */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '16px', overflow: 'hidden' }}>
+            {currentStep === 1 && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, margin: '0', color: 'hsl(var(--text-main))' }}>
+                    1. Seleção de Animais
+                  </h3>
+                  <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>Escolha dos bovinos para embarque</p>
+                </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
               {/* Toolbar */}
@@ -1141,9 +1032,18 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                         )}
                       </div>
                     ) : (
-                      animaisDisponiveis.map((animal) => (
-                        <AnimalCard key={animal.id} animal={animal} onAdd={handleAddAnimal} />
-                      ))
+                      <>
+                        {animaisDisponiveis.slice(0, 100).map((animal) => (
+                          <AnimalCard key={animal.id} animal={animal} onAdd={handleAddAnimal} />
+                        ))}
+                        {animaisDisponiveis.length > 100 && (
+                          <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))', background: 'hsl(var(--bg-main))', borderRadius: '8px', border: '1px dashed hsl(var(--border))' }}>
+                            Mostrando os primeiros 100 de {animaisDisponiveis.length} animais disponíveis. 
+                            <br/>
+                            Use a busca e os filtros acima para refinar.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -1376,12 +1276,18 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                 </div>
               </div>
             </div>
-          )}
+              </div>
+            )}
 
-          {/* ════ STEP 2 — Documentação ════════════════════════════════ */}
-          {currentStep === 2 && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
+            {currentStep === 2 && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, margin: '0', color: 'hsl(var(--text-main))' }}>
+                    2. Documentação e Destino (GTA)
+                  </h3>
+                  <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>Emissão de GTA e NFe</p>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'hsl(var(--bg-main))' }}>
               {/* Summary card */}
               <div
                 style={{
@@ -1706,122 +1612,22 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                 />
               </div>
             </div>
-          )}
-        </div>
-
-        {/* ── FOOTER ─────────────────────────────────────────────────── */}
-        <div
-          style={{
-            padding: '20px 32px',
-            borderTop: '1px solid hsl(var(--border))',
-            background: 'hsl(var(--bg-card))',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexShrink: 0,
-            gap: '12px',
-          }}
-        >
-          {/* Left */}
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '10px 22px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: 'hsl(var(--text-muted))',
-              background: 'transparent',
-              border: '1px solid hsl(var(--border))',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-          >
-            Cancelar
-          </button>
-
-          {/* Right */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {currentStep === 2 && (
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'hsl(var(--text-main))',
-                  background: 'hsl(var(--bg-main))',
-                  border: '1px solid hsl(var(--border))',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <ChevronLeft size={15} /> Voltar
-              </button>
-            )}
-
-            {currentStep === 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrentStep(2)}
-                disabled={animaisSelecionados.length === 0}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  color: '#fff',
-                  background: 'hsl(var(--brand))',
-                  border: 'none',
-                  cursor: animaisSelecionados.length === 0 ? 'not-allowed' : 'pointer',
-                  opacity: animaisSelecionados.length === 0 ? 0.45 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s',
-                  boxShadow: animaisSelecionados.length > 0 ? '0 4px 14px hsl(var(--brand) / 0.35)' : 'none',
-                }}
-              >
-                Próximo: Documentação
-                <ArrowRight size={15} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={saveRomaneio}
-                disabled={saving || !formData.gta_numero.trim()}
-                style={{
-                  padding: '10px 26px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 900,
-                  color: '#fff',
-                  background: !formData.gta_numero.trim()
-                    ? 'hsl(var(--text-muted))'
-                    : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                  border: 'none',
-                  cursor: saving || !formData.gta_numero.trim() ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s',
-                  boxShadow: formData.gta_numero.trim() && !saving ? '0 4px 16px rgba(16, 185, 129, 0.4)' : 'none',
-                }}
-              >
-                <Truck size={15} />
-                {saving ? 'Confirmando Embarque...' : 'Confirmar Embarque'}
-              </button>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Modal Footer inside SidePanel */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '24px', paddingBottom: '24px', justifyContent: 'flex-end', flexShrink: 0 }}>
+          <button type="button" onClick={onClose} className="glass-btn" disabled={saving}>
+            CANCELAR
+          </button>
+          <button type="button" onClick={saveRomaneio} className="primary-btn" disabled={saving || (currentStep === 2 && (!formData.gta_numero || !formData.destino || !formData.comprador))}>
+            {saving ? 'SALVANDO...' : 'CONFIRMAR EMBARQUE'}
+            <ArrowRight size={16} />
+          </button>
+        </div>
       </div>
-    </>,
-    document.body
+    </SidePanel>
   );
 };

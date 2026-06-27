@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { supabase } from '../../lib/supabase';
 import { SearchableSelect } from './SearchableSelect';
 import { Plus, Trash2, Package, Layers, Activity, AlertTriangle } from 'lucide-react';
@@ -52,28 +53,25 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
   isEntry = false,
   hideDeposit = false,
 }) => {
-  const { activeTenantId, activeFarm } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
   const [products, setProducts] = useState<any[]>([]);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (activeTenantId && activeFarm?.id) {
+    if (activeTenantId) {
       fetchData();
     }
-  }, [activeTenantId, activeFarm]);
+  }, [activeTenantId]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       // 1. Fetch Deposits
-      const { data: depData } = await supabase
-        .from('depositos')
-        .select('id, nome')
-        .eq('tenant_id', activeTenantId)
-        .eq('fazenda_id', activeFarm?.id)
-        .eq('status', 'ativo')
-        .order('nome');
+      const { data: depData } = await applyFarmFilter(
+        supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId)
+      ).eq('status', 'ativo').order('nome');
       if (depData) {
         setDeposits(depData);
       }

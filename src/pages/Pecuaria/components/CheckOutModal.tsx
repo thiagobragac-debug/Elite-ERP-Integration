@@ -22,6 +22,7 @@ interface CheckOutModalProps {
   onClose: () => void;
   activePens: any[];
   onCheckOut: (data: any) => void;
+  activeFarm?: any;
 }
 
 export const CheckOutModal: React.FC<CheckOutModalProps> = ({
@@ -29,6 +30,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   onClose,
   activePens,
   onCheckOut,
+  activeFarm,
 }) => {
   const [selectedPenId, setSelectedPenId] = useState('');
   const [checkOutDate, setCheckOutDate] = useState(
@@ -36,16 +38,23 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   );
   const [finalWeight, setFinalWeight] = useState('');
   const [destination, setDestination] = useState('ABATE');
+  const [gta, setGta] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
 
   useEffect(() => {
     if (isOpen) {
       setStep(1);
-      setSelectedPenId('');
+      if (activePens.length === 1) {
+        setSelectedPenId(activePens[0].id);
+        setStep(2);
+      } else {
+        setSelectedPenId('');
+      }
       setFinalWeight('');
+      setGta('');
     }
-  }, [isOpen]);
+  }, [isOpen, activePens]);
 
   const selectedPen = activePens.find((p) => p.id === selectedPenId);
   const getDOF = (pen: any) =>
@@ -63,11 +72,13 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         peso_final: parseFloat(finalWeight),
         destino: destination,
         status: 'archived',
+        gmd_realizado: fechamentoStats?.gmdRealizado || 0,
+        dof_real: fechamentoStats?.dofReal || 0,
+        arrobas_produzidas: fechamentoStats?.arrobasProduzidas || 0,
+        custo_total_ciclo: (selectedPen.custo_por_dia || 0) * (fechamentoStats?.dofReal || 0) * (selectedPen.capacidade_animais || 0),
+        gta: gta || null
       });
       setStep(3);
-      setTimeout(() => {
-        onClose();
-      }, 2000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,21 +91,25 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
       return null;
     }
 
-    const dInicio = new Date(selectedPen.data_inicio);
-    const dFim = new Date(checkOutDate);
+    const dInicio = new Date(`${selectedPen.data_inicio}T00:00:00`);
+    const dFim = new Date(`${checkOutDate}T00:00:00`);
     // Para evitar divisão por zero, DOF mínimo = 1
     const dofReal = Math.max(1, Math.floor((dFim.getTime() - dInicio.getTime()) / 86400000));
 
-    const pesoEntrada = selectedPen.peso_medio_entrada || 0;
+    const pesoEntrada = selectedPen.peso_entrada || 0;
     const pesoSaida = parseFloat(finalWeight) || 0;
     const gmdRealizado = pesoSaida > 0 ? (pesoSaida - pesoEntrada) / dofReal : 0;
 
     const cabecas = selectedPen.capacidade_animais || 0;
     const pesoGanhoTotal = (pesoSaida - pesoEntrada) * cabecas;
-    const arrobasProduzidas = pesoSaida > 0 ? pesoGanhoTotal / 30 : 0; // @ carcaça rendimento 50%
+    
+    const rendimentoCarcaca = activeFarm?.rendimento_carcaca || 52;
+    // Arrobas Produzidas (Ganho em @ Carcaça)
+    const arrobasProduzidas = pesoSaida > 0 ? (pesoGanhoTotal * (rendimentoCarcaca / 100)) / 15 : 0;
 
-    const isDateValid = dFim >= dInicio;
+    const isDateValid = checkOutDate >= selectedPen.data_inicio;
     const isWeightValid = pesoSaida >= pesoEntrada;
+    const isWeightReasonable = pesoSaida > 0 && pesoSaida <= 1500; // Alerta biológico
 
     return {
       dofReal,
@@ -102,13 +117,18 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
       arrobasProduzidas,
       isDateValid,
       isWeightValid,
+      isWeightReasonable,
       pesoSaida,
       pesoEntrada,
+      rendimentoCarcaca
     };
-  }, [selectedPen, checkOutDate, finalWeight, step]);
+  }, [selectedPen, checkOutDate, finalWeight, step, activeFarm]);
+
+  const needsGta = destination === 'ABATE' || destination === 'VENDA';
+  const hasValidGta = !needsGta || gta.trim().length > 0;
 
   const canSubmitStep2 = fechamentoStats
-    ? fechamentoStats.isDateValid && fechamentoStats.isWeightValid && fechamentoStats.pesoSaida > 0
+    ? fechamentoStats.isDateValid && fechamentoStats.isWeightValid && fechamentoStats.pesoSaida > 0 && hasValidGta
     : false;
 
   const stats = selectedPen
@@ -118,7 +138,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
         {
           Icon: Scale,
           label: 'Peso Ent.',
-          value: selectedPen.peso_medio_entrada ? `${selectedPen.peso_medio_entrada} kg` : '—',
+          value: selectedPen.peso_entrada ? `${selectedPen.peso_entrada} kg` : '—',
         },
         {
           Icon: TrendingUp,
@@ -159,7 +179,8 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
       submitLabel={
         step === 1 ? 'Continuar para Dados de Saída' : step === 2 ? 'Confirmar Check-out' : 'Fechar'
       }
-      hideSubmit={step === 3 || (step === 1 && !selectedPenId) || (step === 2 && !canSubmitStep2)}
+      hideSubmit={step === 3}
+      submitDisabled={(step === 1 && !selectedPenId) || (step === 2 && !canSubmitStep2)}
       loading={loading}
     >
       {/* wrapper ocupa as 4 colunas do tauze-input-grid */}
@@ -499,6 +520,18 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
                     ]}
                   />
                 </div>
+                {needsGta && (
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">Nº GTA <span style={{color: 'hsl(0 84% 60%)'}}>*</span></label>
+                    <input
+                      type="text"
+                      className="tauze-input"
+                      placeholder="Ex: 123456"
+                      value={gta}
+                      onChange={(e) => setGta(e.target.value)}
+                    />
+                  </div>
+                )}
                 <div
                   style={{
                     gridColumn: 'span 2',
@@ -548,7 +581,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
                     Resumo do Fechamento
                   </div>
 
-                  {!fechamentoStats.isDateValid || !fechamentoStats.isWeightValid ? (
+                  {!fechamentoStats.isDateValid || !fechamentoStats.isWeightValid || !hasValidGta ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {!fechamentoStats.isDateValid && (
                         <div
@@ -579,9 +612,43 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
                           ({fechamentoStats.pesoEntrada} kg).
                         </div>
                       )}
+                      {!hasValidGta && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            color: 'hsl(0 84% 60%)',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          <XCircle size={16} /> GTA é obrigatória para o destino selecionado.
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      
+                      {/* Warnings biológicos não-bloqueantes */}
+                      {(!fechamentoStats.isWeightReasonable || fechamentoStats.dofReal < 30) && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                          {!fechamentoStats.isWeightReasonable && (
+                             <div style={{ display: 'flex', gap: 8, color: 'hsl(38 92% 50%)', fontSize: 12, fontWeight: 700 }}>
+                               <AlertTriangle size={14} style={{marginTop: 1}}/>
+                               Atenção: Peso de saída parece fora do padrão biológico comercial.
+                             </div>
+                          )}
+                          {fechamentoStats.dofReal < 30 && (
+                             <div style={{ display: 'flex', gap: 8, color: 'hsl(38 92% 50%)', fontSize: 12, fontWeight: 700 }}>
+                               <AlertTriangle size={14} style={{marginTop: 1}}/>
+                               Atenção: Ciclo de terminação muito curto ({fechamentoStats.dofReal} dias).
+                             </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: 16 }}>
                       <div
                         style={{
                           flex: 1,
@@ -644,6 +711,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
                         </div>
                       </div>
                     </div>
+                  </div>
                   )}
                 </div>
               )}

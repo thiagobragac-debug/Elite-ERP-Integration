@@ -72,15 +72,15 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
     latitude: null as number | null,
     longitude: null as number | null,
   };
+  const { farms, activeTenantId, activeFarm } = useTenant();
+  const [isFarmDropdownOpen, setIsFarmDropdownOpen] = useState(false);
+
   const { formData, setFormData, clearDraft } = useFormDraft({
     key: `supplier_form_${activeTenantId}`,
     initialState: INITIAL_FORM,
     isOpen,
     isEditMode: !!initialData,
   });
-
-  const { farms, activeTenantId, activeFarm } = useTenant();
-  const [isFarmDropdownOpen, setIsFarmDropdownOpen] = useState(false);
 
   // Validação em tempo real de CPF/CNPJ
   const docStatus = (() => {

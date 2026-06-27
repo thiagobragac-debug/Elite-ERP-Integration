@@ -3,6 +3,7 @@ import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -100,7 +101,8 @@ function calcSugerido(lote: LoteData, dieta: Dieta | null): number | null {
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, onSubmit }) => {
-  const { activeFarm } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
 
   // ─── Step state ────────────────────────────────────────────────────────────
   const [etapa, setEtapa] = useState<Etapa>(0);
@@ -159,34 +161,24 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
 
   // ─── Fetch all reference data ──────────────────────────────────────────────
   const fetchData = async () => {
-    if (!activeFarm?.id) return;
     setLoadingLotes(true);
     try {
       const [lotesRes, animaisRes, dietasRes, depRes, prodRes] = await Promise.all([
-        supabase
-          .from('lotes')
-          .select('id, nome, capacidade')
-          .eq('fazenda_id', activeFarm.id)
-          .eq('status', 'ATIVO'),
-        supabase
-          .from('animais')
-          .select('id, brinco, brinco_eletronico, raca, categoria, lote_id, peso_atual')
-          .eq('fazenda_id', activeFarm.id)
-          .eq('status', 'Ativo'),
-        supabase
-          .from('dietas')
-          .select('id, nome, tipo, consumo_esperado, percentual_ms, custo_por_kg, ingredientes')
-          .eq('fazenda_id', activeFarm.id)
-          .eq('status', 'active'),
-        supabase
-          .from('depositos')
-          .select('id, nome')
-          .eq('fazenda_id', activeFarm.id)
-          .eq('status', 'ativo'),
-        supabase
-          .from('produtos')
-          .select('id, nome, estoque_atual, unidade_medida')
-          .eq('fazenda_id', activeFarm.id),
+        applyFarmFilter(
+          supabase.from('lotes').select('id, nome, capacidade').eq('status', 'ATIVO')
+        ),
+        applyFarmFilter(
+          supabase.from('animais').select('id, brinco, brinco_eletronico, raca, categoria, lote_id, peso_atual').eq('status', 'Ativo')
+        ),
+        applyFarmFilter(
+          supabase.from('dietas').select('id, nome, tipo, consumo_esperado, percentual_ms, custo_por_kg, ingredientes').eq('status', 'active')
+        ),
+        applyFarmFilter(
+          supabase.from('depositos').select('id, nome').eq('status', 'ativo')
+        ),
+        applyFarmFilter(
+          supabase.from('produtos').select('id, nome, estoque_atual, unidade_medida')
+        ),
       ]);
 
       const animaisData: any[] = animaisRes.data || [];

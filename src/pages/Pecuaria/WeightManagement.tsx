@@ -692,12 +692,7 @@ export const WeightManagement: React.FC = () => {
         return [];
       }
       let query = supabase.from('lotes').select('id, nome, status');
-      if (activeFarmId) {
-        query = query.eq('fazenda_id', activeFarmId);
-      } else {
-        query = query.eq('tenant_id', activeTenantId);
-      }
-      const { data, error } = await query;
+      const { data, error } = await applyFarmFilter(query);
       if (error) {
         throw error;
       }

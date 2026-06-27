@@ -391,14 +391,15 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '280px 1fr',
+          gridTemplateColumns: '320px 1fr',
           gap: '24px',
-          height: '500px',
+          minHeight: '500px',
           gridColumn: 'span 4',
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         <div
+          className="no-scrollbar"
           style={{
             borderRight: '1px solid hsl(var(--border))',
             paddingRight: '20px',
@@ -406,6 +407,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
             flexDirection: 'column',
             gap: '12px',
             overflowY: 'auto',
+            maxHeight: 'calc(100vh - 180px)',
           }}
         >
           <div
@@ -445,14 +447,15 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
               const isActive = selectedProtocol?.id === p.id && !isCreating;
               return (
                 <div key={p.id} style={{ position: 'relative' }} className="group">
-                  <button
+                  <motion.button
+                    whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     type="button"
                     style={{
                       width: '100%',
                       padding: '12px',
                       borderRadius: '12px',
-                      border: 'none',
-                      background: isActive ? 'hsl(var(--brand)/0.15)' : 'transparent',
+                      border: isActive ? '1px solid transparent' : '1px solid hsl(var(--border)/0.5)',
+                      background: isActive ? 'hsl(var(--brand)/0.15)' : 'rgba(255, 255, 255, 0.02)',
                       color: isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-secondary))',
                       display: 'flex',
                       alignItems: 'center',
@@ -509,7 +512,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                   {!p.is_sistema && (
                     <button
                       type="button"
@@ -643,20 +646,43 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                     </div>
                   </div>
 
-                  {smartSchedule.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginTop: '16px' }}>
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 900,
+                        color: 'hsl(var(--text-muted))',
+                        textTransform: 'uppercase',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      Projeção do Calendário Zootécnico
+                    </div>
+                    
+                    {smartSchedule.length === 0 ? (
                       <div
                         style={{
-                          fontSize: '10px',
-                          fontWeight: 900,
-                          color: 'hsl(var(--text-muted))',
-                          textTransform: 'uppercase',
-                          marginBottom: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '32px 16px',
+                          background: 'hsl(var(--bg-card))',
+                          border: '1px dashed hsl(var(--border))',
+                          borderRadius: '12px',
+                          textAlign: 'center',
+                          opacity: 0.6
                         }}
                       >
-                        Projeção do Calendário Zootécnico
+                        <CalendarCheck size={24} style={{ color: 'hsl(var(--text-muted))', marginBottom: '8px' }} />
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+                          O calendário será gerado aqui
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                          Preencha a data inicial e defina os fármacos do protocolo
+                        </span>
                       </div>
-
+                    ) : (
                       <div style={{ position: 'relative', paddingLeft: '16px' }}>
                         {/* Linha da Timeline */}
                         <div
@@ -722,11 +748,13 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                                 >
                                   <span
                                     style={{
-                                      fontSize: '11px',
+                                      fontSize: '10px',
                                       fontWeight: 900,
-                                      color: step.isToday
-                                        ? 'hsl(var(--brand))'
-                                        : 'hsl(var(--text-muted))',
+                                      background: step.isToday ? 'hsl(var(--brand)/0.2)' : 'hsl(var(--brand)/0.1)',
+                                      color: step.isToday ? 'hsl(var(--brand))' : 'hsl(var(--brand))',
+                                      padding: '4px 10px',
+                                      borderRadius: '12px',
+                                      letterSpacing: '0.5px',
                                     }}
                                   >
                                     D{step.day}
@@ -758,8 +786,8 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                           ))}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {smartSchedule.length > 0 && (
                     <div
@@ -850,17 +878,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                     </div>
                   </div>
                   
-                  <div className="tauze-field-group animate-slide-up">
-                    <label className="tauze-label">Descrição do Protocolo</label>
-                    <textarea
-                      className="tauze-input"
-                      value={newProtocol.description || ''}
-                      onChange={(e) => setNewProtocol({ ...newProtocol, description: e.target.value })}
-                      placeholder="Descreva o objetivo deste protocolo..."
-                      rows={2}
-                      style={{ resize: 'none' }}
-                    />
-                  </div>
+
 
                   <div style={{ marginTop: '12px' }}>
                     <div
@@ -1091,6 +1109,18 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
                         </tbody>
                       </table>
                     </div>
+                  </div>
+
+                  <div className="tauze-field-group animate-slide-up" style={{ marginTop: '8px' }}>
+                    <label className="tauze-label">Descrição do Protocolo</label>
+                    <textarea
+                      className="tauze-input"
+                      value={newProtocol.description || ''}
+                      onChange={(e) => setNewProtocol({ ...newProtocol, description: e.target.value })}
+                      placeholder="Descreva o objetivo deste protocolo (opcional)..."
+                      rows={2}
+                      style={{ resize: 'none' }}
+                    />
                   </div>
                 </div>
               </motion.div>

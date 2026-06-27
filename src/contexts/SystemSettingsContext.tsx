@@ -32,6 +32,7 @@ interface SystemSettings {
   landing_mockup_video_embed: string | null;
   broadcast_active: boolean;
   broadcast_message: string;
+  bloquear_embarque_carencia: boolean;
   login_hero_title: string;
   login_hero_subtitle: string;
   login_kpis: Array<{
@@ -81,6 +82,7 @@ const defaultSettings: SystemSettings = {
   landing_mockup_video_embed: null,
   broadcast_active: false,
   broadcast_message: '',
+  bloquear_embarque_carencia: false,
   login_hero_title: 'Bem-vindo de volta à sua operação.',
   login_hero_subtitle: 'Acompanhe rebanho, frota, finanças e colheita em tempo real — tudo em um único painel unificado.',
   login_kpis: [
@@ -198,6 +200,7 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
           landing_mockup_video_embed: data.landing_mockup_video_embed || null,
           broadcast_active: data.broadcast_active ?? false,
           broadcast_message: data.broadcast_message || '',
+          bloquear_embarque_carencia: data.bloquear_embarque_carencia ?? false,
           login_hero_title: data.login_hero_title || 'Bem-vindo de volta à sua operação.',
           login_hero_subtitle: data.login_hero_subtitle || 'Acompanhe rebanho, frota, finanças e colheita em tempo real — tudo em um único painel unificado.',
           login_kpis: Array.isArray(data.login_kpis) ? data.login_kpis : defaultSettings.login_kpis,

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -54,6 +55,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
 }) => {
   const { confirm } = useConfirm();
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
   const { state: scaleState } = useScale();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
@@ -127,17 +129,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
   const fetchLots = async () => {
     setLoadingLots(true);
     try {
-      let query = supabase
-        .from('lotes')
-        .select('id, nome')
-        .eq('tenant_id', activeTenantId)
-        .eq('status', 'ATIVO');
-
-      if (!isGlobalMode && activeFarm?.id) {
-        query = query.eq('fazenda_id', activeFarm.id);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await applyFarmFilter(
+        supabase.from('lotes').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'ATIVO')
+      );
       if (error) {
         throw error;
       }

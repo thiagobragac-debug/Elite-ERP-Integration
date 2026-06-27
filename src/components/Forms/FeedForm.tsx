@@ -5,6 +5,7 @@ import { ConsumptionCart } from './ConsumptionCart';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import {
   Wheat,
   Calendar,
@@ -26,7 +27,8 @@ interface FeedFormProps {
 }
 
 export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, actionId }) => {
-  const { activeFarm, activeTenantId } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
   const { formData, setFormData, clearDraft } = useFormDraft({
     key: `feed_form_${activeTenantId}`,
     initialState: {
@@ -58,28 +60,24 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
   ];
 
   useEffect(() => {
-    if (isOpen && activeFarm) {
+    if (isOpen) {
       fetchData();
     }
-  }, [isOpen, activeFarm]);
+  }, [isOpen, applyFarmFilter]);
 
   const fetchData = async () => {
     // Buscar lotes
-    const { data: lotesData } = await supabase
-      .from('lotes')
-      .select('id, nome')
-      .eq('fazenda_id', activeFarm?.id || '')
-      .eq('status', 'ATIVO');
+    const { data: lotesData } = await applyFarmFilter(
+      supabase.from('lotes').select('id, nome').eq('status', 'ATIVO')
+    );
     if (lotesData) {
       setLotes(lotesData);
     }
 
     // Buscar dietas
-    const { data: dietasData } = await supabase
-      .from('dietas')
-      .select('id, nome')
-      .eq('fazenda_id', activeFarm?.id || '')
-      .eq('status', 'active');
+    const { data: dietasData } = await applyFarmFilter(
+      supabase.from('dietas').select('id, nome').eq('status', 'active')
+    );
     if (dietasData) {
       setDietas(dietasData);
     }

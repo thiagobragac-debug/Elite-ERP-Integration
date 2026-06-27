@@ -496,6 +496,7 @@ export type Database = {
           id: string
           lote_id: string | null
           nome_curral: string
+          peso_entrada: number | null
           tenant_id: string | null
         }
         Insert: {
@@ -507,6 +508,7 @@ export type Database = {
           id?: string
           lote_id?: string | null
           nome_curral: string
+          peso_entrada?: number | null
           tenant_id?: string | null
         }
         Update: {
@@ -518,6 +520,7 @@ export type Database = {
           id?: string
           lote_id?: string | null
           nome_curral?: string
+          peso_entrada?: number | null
           tenant_id?: string | null
         }
         Relationships: [

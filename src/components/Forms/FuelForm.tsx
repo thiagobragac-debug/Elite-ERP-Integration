@@ -23,6 +23,7 @@ import { SearchableSelect } from './SearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 interface FuelFormProps {
   isOpen: boolean;
@@ -39,7 +40,8 @@ export const FuelForm: React.FC<FuelFormProps> = ({
   initialData,
   actionId,
 }) => {
-  const { activeFarm, activeTenantId } = useTenant();
+  const { activeTenantId } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
 
   const INITIAL_FUEL_FORM = {
     machine_id: '',
@@ -74,22 +76,17 @@ export const FuelForm: React.FC<FuelFormProps> = ({
   }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
-    if (isOpen && activeFarm) {
+    if (isOpen) {
       fetchData();
     }
-  }, [isOpen, activeFarm]);
+  }, [isOpen]);
 
   const fetchData = async () => {
-    if (!activeFarm?.id) {
-      return;
-    }
 
     // Fetch Machines with specs, only active
-    const { data: mData } = await supabase
-      .from('maquinas')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id)
-      .eq('status', 'active');
+    const { data: mData } = await applyFarmFilter(
+      supabase.from('maquinas').select('*')
+    ).eq('status', 'active');
     if (mData) {
       // Add mock fields for UI compatibility based on what DB has or fallback
       const transformed = mData.map((m) => ({
@@ -103,12 +100,9 @@ export const FuelForm: React.FC<FuelFormProps> = ({
     }
 
     // Fetch Inventory Locations (Tanks), active and type Tanque
-    const { data: lData } = await supabase
-      .from('depositos')
-      .select('id, nome')
-      .eq('fazenda_id', activeFarm.id)
-      .eq('status', 'ativo')
-      .eq('tipo', 'Tanque');
+    const { data: lData } = await applyFarmFilter(
+      supabase.from('depositos').select('id, nome')
+    ).eq('status', 'ativo').eq('tipo', 'Tanque');
     if (lData) {
       setLocations(lData);
     }
