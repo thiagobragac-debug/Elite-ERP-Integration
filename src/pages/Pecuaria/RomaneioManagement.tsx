@@ -151,7 +151,7 @@ export default function RomaneioManagement() {
         doc.setTextColor(100, 116, 139);
         doc.text('TECNOLOGIA E GESTÃO AGROPECUÁRIA PREMIUM', 14, 29);
         const docCnpj = tenantData?.document || 'Não informado';
-        const docIe = activeFarm?.ie_produtor || 'Não informado';
+        const docIe = (activeFarm as any)?.ie_produtor || 'Não informado';
         doc.text(`CNPJ: ${docCnpj} | INSCRIÇÃO ESTADUAL: ${docIe}`, 14, 33);
 
         // Caixa de Metadados do Romaneio (Lado Direito)

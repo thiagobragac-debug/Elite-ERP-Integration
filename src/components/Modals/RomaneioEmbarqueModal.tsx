@@ -258,7 +258,9 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           lotes ( nome ),
           pesagens ( peso, data_pesagem )
         `)
-        .in('status', ['ATIVO', 'Ativo', 'ativo'])
+        .eq('tenant_id', activeTenantId)
+        .eq('fazenda_id', activeFarmId)
+        /* Status filter removed temporarily to allow all animals */
         .is('romaneio_id', null);
 
       if (error) throw error;
@@ -517,50 +519,33 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <SidePanel isOpen={isOpen} onClose={onClose} size="1024px" title="Romaneio & Embarque" icon={Truck}>
-      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <p style={{ color: 'hsl(var(--text-muted))', margin: '2px 0 20px', fontSize: '13px' }}>
-          Selecione os animais, preencha a GTA e confirme o embarque.
-        </p>
-
-        {/* Live summary strip */}
-        {animaisSelecionados.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              padding: '12px 16px',
-              borderRadius: '10px',
-              background: 'hsl(var(--bg-main))',
-              border: '1px solid hsl(var(--border))',
-              marginBottom: '24px',
-              flexShrink: 0
-            }}
-          >
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-              <strong style={{ color: 'hsl(var(--text-main))' }}>{animaisSelecionados.length}</strong> animais
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-              <strong style={{ color: '#10b981' }}>{pesoTotal.toLocaleString('pt-BR')} kg</strong>
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-              <strong style={{ color: 'hsl(var(--brand))' }}>{arrobasTotal} @</strong>
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginLeft: 'auto' }}>
-              est.{' '}
-              <strong style={{ color: 'hsl(var(--text-main))' }}>
-                R${' '}
-                {parseFloat(valorEstimado).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </strong>
-            </span>
-          </div>
-        )}
+    <SidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      size="1024px"
+      title="Romaneio & Embarque"
+      icon={Truck}
+      customFooter={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, padding: '16px 24px', borderTop: '1px solid hsl(var(--border))', justifyContent: 'flex-end', background: 'hsl(var(--bg-main))' }}>
+          <button type="button" onClick={onClose} className="glass-btn" disabled={saving}>CANCELAR</button>
+          {currentStep === 1 ? (
+            <button type="button" onClick={() => setCurrentStep(2)} className="primary-btn" disabled={animaisSelecionados.length === 0}>
+              CONTINUAR <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button type="button" onClick={saveRomaneio} className="primary-btn" disabled={saving || (!formData.gta_numero || !formData.destino || !formData.comprador)}>
+              {saving ? 'SALVANDO...' : 'CONFIRMAR EMBARQUE'} <ArrowRight size={16} />
+            </button>
+          )}
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         {/* Content Layout */}
-        <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'flex', gap: '0', flex: 1, minHeight: 0 }}>
           {/* Sidebar */}
-          <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px', padding: '24px 16px', borderRight: '1px solid hsl(var(--border))' }}>
             {[
               { num: 1, label: 'Seleção de Animais', icon: Beef, desc: 'Escolha dos bovinos' },
               { num: 2, label: 'Documentação e GTA', icon: FileText, desc: 'Emissão e Destino' },
@@ -626,26 +611,30 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '16px', overflow: 'hidden' }}>
             {currentStep === 1 && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, margin: '0', color: 'hsl(var(--text-main))' }}>
-                    1. Seleção de Animais
-                  </h3>
-                  <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>Escolha dos bovinos para embarque</p>
-                </div>
+                {/* Title removed, moved to Toolbar */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
               {/* Toolbar */}
               <div
                 style={{
-                  padding: '16px 32px',
+                  padding: '12px 24px',
                   borderBottom: '1px solid hsl(var(--border))',
                   display: 'flex',
-                  gap: '10px',
+                  gap: '12px',
                   alignItems: 'center',
                   flexShrink: 0,
                   background: 'hsl(var(--bg-card))',
+                  position: 'relative',
+                  zIndex: 20,
                 }}
               >
+                {/* Title inside Toolbar */}
+                <div style={{ flexShrink: 0, paddingRight: '16px', borderRight: '1px solid hsl(var(--border))' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: '0', color: 'hsl(var(--text-main))' }}>
+                    1. Seleção de Animais
+                  </h3>
+                  <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', margin: '2px 0 0 0' }}>Escolha os bovinos</p>
+                </div>
                 {/* Search */}
                 <div style={{ position: 'relative', flex: 1 }}>
                   <Search
@@ -740,20 +729,23 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                     <Plus size={15} /> Adicionar todos ({animaisDisponiveis.length})
                   </button>
                 )}
-              </div>
-
-              {/* Filter Panel (inline collapsible) */}
+              {/* Filter Panel (overlay absolute) */}
               {showFilters && (
                 <div
                   style={{
-                    padding: '16px 32px',
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    padding: '16px 24px',
                     borderBottom: '1px solid hsl(var(--border))',
-                    background: 'hsl(var(--bg-card) / 0.6)',
+                    background: 'hsl(var(--bg-card))',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
                     display: 'flex',
                     gap: '16px',
                     flexWrap: 'wrap',
                     alignItems: 'flex-end',
-                    flexShrink: 0,
+                    zIndex: 30,
                   }}
                 >
                   {/* Lote */}
@@ -915,6 +907,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                   )}
                 </div>
               )}
+              </div> {/* End Toolbar */}
 
               {/* Dual Panel */}
               <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -1617,16 +1610,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer inside SidePanel */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '24px', paddingBottom: '24px', justifyContent: 'flex-end', flexShrink: 0 }}>
-          <button type="button" onClick={onClose} className="glass-btn" disabled={saving}>
-            CANCELAR
-          </button>
-          <button type="button" onClick={saveRomaneio} className="primary-btn" disabled={saving || (currentStep === 2 && (!formData.gta_numero || !formData.destino || !formData.comprador))}>
-            {saving ? 'SALVANDO...' : 'CONFIRMAR EMBARQUE'}
-            <ArrowRight size={16} />
-          </button>
-        </div>
+        {/* Modal Footer inside SidePanel removed */}
       </div>
     </SidePanel>
   );
