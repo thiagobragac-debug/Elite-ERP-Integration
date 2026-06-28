@@ -307,69 +307,60 @@ export const AnimalDetail: React.FC = () => {
     return gmdHistoryData;
   }, [weights]);
 
+  const { data: timelineData = [], isLoading: timelineLoading } = useQuery({
+    queryKey: ['animal_timeline', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_animal_timeline', { p_animal_id: id, p_limit: 50 });
+      if (error) {
+        throw error;
+      }
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   const events = React.useMemo(() => {
-    if (!animal) {
+    if (!timelineData || timelineData.length === 0) {
+      if (animal) {
+        return [
+          {
+            date: animal.created_at,
+            type: 'ENTRADA',
+            category: 'entrada',
+            desc: 'Entrada na fazenda (Compra/Nascimento)',
+          }
+        ];
+      }
       return [];
     }
-
-    // Pesagens
-    const weightEvents = weights.map((w: any) => ({
-      date: w.data_pesagem,
-      type: 'PESAGEM',
-      category: 'weight',
-      desc: `Pesagem: ${w.peso}kg${w.observacao ? ` — ${w.observacao}` : ''}`,
-    }));
-
-    // Sanidade (via sanidade_animais com join em sanidade)
-    const sanidadeEvents = (financialData?.health || []).map((sa: any) => ({
-      date: sa.data_aplicacao,
-      type: (sa.sanidade?.tipo || 'SANIDADE').toUpperCase(),
-      category: 'sanidade',
-      desc: `${sa.sanidade?.titulo || sa.produtos?.nome || 'Manejo Sanitário'}${
-        sa.quantidade_dose > 0 ? ` — Dose: ${sa.quantidade_dose}` : ''
-      }${sa.sanidade?.carencia_dias > 0 ? ` (Carência: ${sa.sanidade.carencia_dias}d)` : ''}`,
-      custo: Number(sa.valor_total_aplicado || 0),
-    }));
-
-    // Nutrição / Custeio
-    const nutricaoEvents = (financialData?.costs || []).map((c: any) => ({
-      date: c.data_consumo,
-      type: 'NUTRIÇÃO',
-      category: 'nutricao',
-      desc: `Trato: ${c.dietas?.nome || 'Insumo'} — ${Number(c.quantidade_kg).toFixed(2)}kg — ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_total_consumido || 0))}`,
-      custo: Number(c.valor_total_consumido || 0),
-    }));
-
-    // Reprodução
-    const reproEvents = (financialData?.reproduction || []).map((r: any) => ({
-      date: r.data_evento,
-      type: r.tipo_evento?.toUpperCase() || 'REPROD.',
-      category: 'reproducao',
-      desc: `${r.tipo_evento || 'Evento Reprodutivo'}${r.resultado ? ` — Resultado: ${r.resultado}` : ''}${r.observacoes ? ` — ${r.observacoes}` : ''}`,
-    }));
-
-    // Movimentações de lote
-    const moveEvents = (financialData?.lotMovements || []).map((m: any) => ({
-      date: m.data_movimentacao,
-      type: 'TRANSFERÊNCIA',
-      category: 'lote',
-      desc: `Movimentação de lote${m.lotes_origem?.nome ? ` de ${m.lotes_origem.nome}` : ''}${m.lotes_destino?.nome ? ` para ${m.lotes_destino.nome}` : ''}${m.motivo ? ` — ${m.motivo}` : ''}`,
-    }));
-
-    return [
-      {
+    
+    // Convert the database RPC format to the frontend format
+    const mappedEvents = timelineData.map((ev: any) => {
+      let category = 'misc';
+      if (ev.event_type === 'PESAGEM') category = 'weight';
+      else if (ev.event_type === 'SANIDADE') category = 'sanidade';
+      else if (ev.event_type === 'NUTRIÇÃO' || ev.event_type === 'NUTRICAO') category = 'nutricao';
+      else if (ev.event_type === 'REPRODUCAO') category = 'reproducao';
+      
+      return {
+        date: ev.event_date,
+        type: ev.event_type,
+        category: category,
+        desc: ev.description ? `${ev.title} — ${ev.description}` : ev.title,
+      };
+    });
+    
+    if (animal) {
+      mappedEvents.push({
         date: animal.created_at,
         type: 'ENTRADA',
         category: 'entrada',
         desc: 'Entrada na fazenda (Compra/Nascimento)',
-      },
-      ...weightEvents,
-      ...sanidadeEvents,
-      ...nutricaoEvents,
-      ...reproEvents,
-      ...moveEvents,
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [animal, weights, financialData]);
+      });
+    }
+
+    return mappedEvents.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [animal, timelineData]);
 
   const editAnimalMutation = useMutation({
     mutationFn: async (payload: any) => {

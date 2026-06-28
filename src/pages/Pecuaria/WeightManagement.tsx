@@ -16,6 +16,9 @@ import {
   Calendar,
   FileText,
   Layers,
+  Bluetooth,
+  Wifi,
+  Link,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -1175,7 +1178,7 @@ export const WeightManagement: React.FC = () => {
             title={scaleState.status === 'CONNECTED' ? `Balança ${scaleState.brand} conectada` : 'Configurar Balança'}
             onClick={() => setIsScaleModalOpen(true)}
           >
-            <Scale size={20} />
+            <Wifi size={20} />
           </button>
           <button
             className="glass-btn secondary"

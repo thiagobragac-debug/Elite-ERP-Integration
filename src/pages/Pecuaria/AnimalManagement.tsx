@@ -331,23 +331,49 @@ export const AnimalManagement: React.FC = () => {
 
   // Client-side filter was removed. All filtering is now handled server-side via `serverFilters`
   // passed to useReportData to ensure pagination works correctly.
-  const filteredAnimals = animals || [];
+  const processedAnimals = useMemo(() => {
+    const rawList = animals || [];
+    return rawList.map(item => {
+      const currentWeight = item.peso_atual || item.peso_inicial || 0;
+      const ageMonths = calculateIdadeMeses(item.data_nascimento);
+      const category = calculateAnimalCategory(item.sexo, currentWeight, ageMonths);
+      const gain = currentWeight - (item.peso_inicial || 0);
+      
+      let ageStr = 'N/I';
+      if (item.data_nascimento) {
+        ageStr = `${ageMonths} meses`;
+      }
+      
+      let daysOnFarm = 0;
+      if (item.created_at) {
+        daysOnFarm = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
+      }
+
+      return {
+        ...item,
+        computedWeight: currentWeight,
+        computedAgeMonths: ageMonths,
+        computedCategory: category,
+        computedGain: gain,
+        computedAgeStr: ageStr,
+        computedDaysOnFarm: daysOnFarm,
+      };
+    });
+  }, [animals]);
+
+  const filteredAnimals = processedAnimals;
 
   const tableColumns = useMemo(() => [
     {
       header: 'Brinco / Identificação',
       accessor: (item: any) => {
-        const currentWeight = item.peso_atual || item.peso_inicial || 0;
-        const ageMonths = calculateIdadeMeses(item.data_nascimento);
-        const category = calculateAnimalCategory(item.sexo, currentWeight, ageMonths);
-
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
                 #{item.brinco}
               </span>
-              {item.status === 'Ativo' && currentWeight > 500 && (
+              {item.status === 'Ativo' && item.computedWeight > 500 && (
                 <span className="status-chip warning">
                   <div className="dot" />
                   PRONTO
@@ -358,7 +384,7 @@ export const AnimalManagement: React.FC = () => {
               className="sub-meta"
               style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
             >
-              {item.raca} • {category}
+              {item.raca} • {item.computedCategory}
             </span>
           </div>
         );
@@ -390,23 +416,9 @@ export const AnimalManagement: React.FC = () => {
     {
       header: 'Idade & Ciclo',
       accessor: (item: any) => {
-        let ageStr = 'N/I';
-        if (item.data_nascimento) {
-          const months = Math.floor(
-            (new Date().getTime() - new Date(item.data_nascimento).getTime()) /
-              (1000 * 3600 * 24 * 30.44)
-          );
-          ageStr = `${months} meses`;
-        }
-        let days = 0;
-        if (item.created_at) {
-          days = Math.floor(
-            (new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24)
-          );
-        }
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{ageStr}</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{item.computedAgeStr}</span>
             <span
               className="sub-meta"
               style={{
@@ -416,7 +428,7 @@ export const AnimalManagement: React.FC = () => {
                 color: '#94a3b8',
               }}
             >
-              {days} dias na fazenda
+              {item.computedDaysOnFarm} dias na fazenda
             </span>
           </div>
         );
@@ -426,7 +438,7 @@ export const AnimalManagement: React.FC = () => {
     {
       header: 'Peso Atual',
       accessor: (item: any) => {
-        const weight = item.peso_atual || item.peso_inicial || 0;
+        const weight = item.computedWeight;
         const semPesagem = weight === 0;
         return (
           <div
@@ -450,8 +462,7 @@ export const AnimalManagement: React.FC = () => {
     {
       header: 'Ganho de Peso',
       accessor: (item: any) => {
-        const weight = item.peso_atual || item.peso_inicial || 0;
-        const gain = weight - (item.peso_inicial || 0);
+        const gain = item.computedGain;
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <span
@@ -780,19 +791,12 @@ export const AnimalManagement: React.FC = () => {
                 }
 
                 // Calcular idade em meses
-                let ageText = 'Idade N/I';
-                if (a.data_nascimento) {
-                  const months = Math.floor(
-                    (new Date().getTime() - new Date(a.data_nascimento).getTime()) /
-                      (1000 * 3600 * 24 * 30.44)
-                  );
-                  ageText = `${months}m`;
-                }
+                let ageText = a.computedAgeStr;
 
                 // Calcular performance (Ganho de peso)
-                const currentWeight = a.peso_atual || a.peso_inicial || 0;
+                const currentWeight = a.computedWeight;
                 const semPesagemCard = currentWeight === 0;
-                const weightGain = currentWeight - (a.peso_inicial || 0);
+                const weightGain = a.computedGain;
                 const performanceText =
                   weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
                 const isPositiveGain = weightGain >= 0;
@@ -804,8 +808,7 @@ export const AnimalManagement: React.FC = () => {
                   progressGradient = 'linear-gradient(90deg, #10b981, #059669)'; // Engorda/Pronto
                 }
 
-                const ageMonths = calculateIdadeMeses(a.data_nascimento);
-                const category = calculateAnimalCategory(a.sexo, currentWeight, ageMonths);
+                const category = a.computedCategory;
 
                 return (
                   <div key={a.id} className={`animal-card-premium ${borderClass}`}>

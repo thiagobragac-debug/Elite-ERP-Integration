@@ -147,14 +147,6 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         throw error;
       }
 
-      // Update animal's current weight
-      await supabase
-        .from('animais')
-        .update({
-          peso_atual: parseFloat(weightData.peso),
-        })
-        .eq('id', animal.id);
-
       onSuccess();
       onClose();
     } catch (err: any) {
