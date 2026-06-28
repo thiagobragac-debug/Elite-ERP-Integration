@@ -100,19 +100,24 @@ const AnimalCard: React.FC<{
         borderRadius: '10px',
         border: '1px solid hsl(var(--border))',
         background: 'hsl(var(--bg-card))',
-        cursor: 'pointer',
+        cursor: animal.em_carencia ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',
         gap: '10px',
+        opacity: animal.em_carencia ? 0.6 : 1,
       }}
       onMouseEnter={(e) => {
+        if (animal.em_carencia) return;
         e.currentTarget.style.borderColor = 'hsl(var(--brand) / 0.5)';
         e.currentTarget.style.background = 'hsl(var(--brand) / 0.03)';
       }}
       onMouseLeave={(e) => {
+        if (animal.em_carencia) return;
         e.currentTarget.style.borderColor = 'hsl(var(--border))';
         e.currentTarget.style.background = 'hsl(var(--bg-card))';
       }}
-      onClick={() => onAdd(animal)}
+      onClick={() => {
+        if (!animal.em_carencia) onAdd(animal);
+      }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         <div
@@ -180,20 +185,22 @@ const AnimalCard: React.FC<{
           </div>
           <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>{arrobas} @</div>
         </div>
-        <div
-          style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
-            background: 'hsl(var(--brand) / 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'hsl(var(--brand))',
-          }}
-        >
-          <Plus size={14} />
-        </div>
+        {!animal.em_carencia && (
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'hsl(var(--brand) / 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'hsl(var(--brand))',
+            }}
+          >
+            <Plus size={14} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -253,18 +260,23 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       // Carência check
       const { data: sanidades } = await supabase
         .from('sanidade')
-        .select('lote_id, data_manejo, carencia_dias')
+        .select('lote_id, animal_id, data_manejo, carencia_dias')
         .eq('tenant_id', activeTenantId)
         .eq('fazenda_id', activeFarmId)
         .gt('carencia_dias', 0);
 
       const carenciaLotes = new Set<string>();
+      const carenciaAnimais = new Set<string>();
       const today = new Date();
       sanidades?.forEach((s: any) => {
-        if (!s.lote_id || !s.data_manejo || !s.carencia_dias) return;
+        if (!s.data_manejo || !s.carencia_dias) return;
+        if (!s.lote_id && !s.animal_id) return;
         const limitDate = new Date(s.data_manejo);
         limitDate.setDate(limitDate.getDate() + s.carencia_dias);
-        if (limitDate >= today) carenciaLotes.add(s.lote_id);
+        if (limitDate >= today) {
+          if (s.lote_id) carenciaLotes.add(s.lote_id);
+          if (s.animal_id) carenciaAnimais.add(s.animal_id);
+        }
       });
 
       const { data, error } = await supabase
@@ -309,7 +321,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           lote_nome: a.lotes?.nome,
           peso_atual,
           categoria,
-          em_carencia: a.lote_id ? carenciaLotes.has(a.lote_id) : false,
+          em_carencia: carenciaAnimais.has(a.id) || (a.lote_id ? carenciaLotes.has(a.lote_id) : false),
         };
       });
     },

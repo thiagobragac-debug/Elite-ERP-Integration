@@ -18,7 +18,7 @@ import { DateInput } from '../../../components/Form/DateInput';
 interface QuickManejoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  animal: any;
+  animals: any[];
   activeTenantId: string;
   activeFarmId: string;
   insertPayload: any;
@@ -28,7 +28,7 @@ interface QuickManejoModalProps {
 export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   isOpen,
   onClose,
-  animal,
+  animals,
   activeTenantId,
   activeFarmId,
   insertPayload,
@@ -70,10 +70,12 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
   // Reset forms on open/change animal
   useEffect(() => {
-    if (isOpen && animal) {
+    if (isOpen && animals && animals.length > 0) {
       setErrorMsg(null);
+      // Se for apenas 1 animal, pré-preenche o peso. Se for em lote, deixa em branco (aplicará o mesmo peso a todos).
+      const defaultPeso = animals.length === 1 && animals[0].peso_atual ? animals[0].peso_atual.toString() : '';
       setWeightData({
-        peso: animal.peso_atual?.toString() || '',
+        peso: defaultPeso,
         data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
           .toISOString()
           .split('T')[0],
@@ -109,9 +111,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
           }
         });
     }
-  }, [isOpen, animal, activeTenantId]);
+  }, [isOpen, animals, activeTenantId]);
 
-  if (!isOpen || !animal) {
+  if (!isOpen || !animals || animals.length === 0) {
     return null;
   }
 
@@ -134,15 +136,15 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const payload = {
-        animal_id: animal.id,
+      const payloads = animals.map(anim => ({
+        animal_id: anim.id,
         peso: parseFloat(weightData.peso),
         data_pesagem: weightData.data_pesagem,
-        observacao: weightData.observacao || 'Registrado via Manejo Rápido',
+        observacao: weightData.observacao || (animals.length > 1 ? 'Manejo Rápido em Lote' : 'Registrado via Manejo Rápido'),
         ...insertPayload,
-      };
+      }));
 
-      const { error } = await supabase.from('pesagens').insert([payload]);
+      const { error } = await supabase.from('pesagens').insert(payloads);
       if (error) {
         throw error;
       }
@@ -171,9 +173,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const sanidadePayload = {
-        animal_id: animal.id,
-        lote_id: animal.lote_id || null,
+      const sanidadePayloads = animals.map(anim => ({
+        animal_id: anim.id,
+        lote_id: anim.lote_id || null,
         tipo: healthData.tipo,
         titulo: healthData.titulo,
         data_manejo: healthData.data_manejo,
@@ -182,14 +184,14 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         via_aplicacao: healthData.via_aplicacao || null,
         local_aplicacao: healthData.local_aplicacao || null,
         carencia_dias: parseInt(healthData.carencia_dias) || 0,
-        observacao: healthData.observacao || 'Registrado via Manejo Rápido',
+        observacao: healthData.observacao || (animals.length > 1 ? 'Manejo Rápido em Lote' : 'Registrado via Manejo Rápido'),
         status: healthData.status,
         ...insertPayload,
-      };
+      }));
 
       const { data: sanidadeData, error } = await supabase
         .from('sanidade')
-        .insert([sanidadePayload])
+        .insert(sanidadePayloads)
         .select();
       if (error) {
         throw error;
@@ -208,20 +210,20 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         const parsedDose = Number(String(healthData.dose || '1').replace(/[^0-9.]/g, '')) || 1;
         const totalCost = parsedDose * custoMedio;
 
-        const { error: saError } = await supabase.from('sanidade_animais').insert([
-          {
-            tenant_id: activeTenantId,
-            fazenda_id: activeFarmId,
-            sanidade_id: sanidadeData[0].id,
-            animal_id: animal.id,
-            produto_id: healthData.produto_id,
-            quantidade_dose: parsedDose,
-            valor_unitario_aplicado: custoMedio,
-            valor_total_aplicado: totalCost,
-            data_aplicacao: healthData.data_manejo,
-            fase: 'RECRIA',
-          },
-        ]);
+        const saPayloads = sanidadeData.map(sd => ({
+          tenant_id: activeTenantId,
+          fazenda_id: activeFarmId,
+          sanidade_id: sd.id,
+          animal_id: sd.animal_id,
+          produto_id: healthData.produto_id,
+          quantidade_dose: parsedDose,
+          valor_unitario_aplicado: custoMedio,
+          valor_total_aplicado: totalCost,
+          data_aplicacao: healthData.data_manejo,
+          fase: 'RECRIA',
+        }));
+
+        const { error: saError } = await supabase.from('sanidade_animais').insert(saPayloads);
 
         if (saError) {
           console.error('Erro na cascata sanidade_animais:', saError);
@@ -244,7 +246,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       onClose={onClose}
       onSubmit={handleSubmit}
       title="Manejo Rápido"
-      subtitle={`Registrar evento zootécnico para o animal de brinco #${animal.brinco}`}
+      subtitle={animals.length === 1 ? `Registrar evento zootécnico para o animal #${animals[0].brinco}` : `Registrar evento em lote para ${animals.length} animais selecionados`}
       icon={Activity}
       loading={isSubmitting}
       submitLabel={activeTab === 'PESO' ? 'Registrar Pesagem' : 'Registrar Manejo Sanitário'}

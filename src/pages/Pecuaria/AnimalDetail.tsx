@@ -14,8 +14,11 @@ import {
   Trash2,
   FileText,
   QrCode,
+  MapPin,
+  Info,
   DollarSign,
 } from 'lucide-react';
+import { calculateGMD, calculateDiasParaAbate, calculateCustoArrobaProduzida } from '../../utils/animalUtils';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
@@ -99,6 +102,7 @@ export const AnimalDetail: React.FC = () => {
         .from('animais')
         .select('*, lotes(nome)')
         .eq('id', id)
+        .eq('tenant_id', activeTenantId)
         .single();
       if (error) {
         throw error;
@@ -563,22 +567,19 @@ export const AnimalDetail: React.FC = () => {
     }
     const first = weightHistory[0];
     const last = weightHistory[weightHistory.length - 1];
-    const weightDiff = last.value - first.value;
 
-    // Parse dates of the actual weigh-ins
     const d1 = new Date(first.date);
     const d2 = new Date(last.date);
     const dayDiff = Math.max(1, Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
 
-    return weightDiff / dayDiff;
+    return calculateGMD(first.value, last.value, dayDiff);
   };
 
   const realGmd = calculateRealGMD();
 
-  // Projeção de Abate (Meta: 20@ ou 600kg)
   const targetWeight = 600;
   const remainingWeight = Math.max(0, targetWeight - currentWeight);
-  const daysToTarget = realGmd > 0 ? Math.ceil(remainingWeight / realGmd) : 0;
+  const daysToTarget = calculateDiasParaAbate(currentWeight, targetWeight, realGmd);
   const estimatedDate =
     daysToTarget > 0 ? new Date(Date.now() + daysToTarget * 24 * 60 * 60 * 1000) : null;
 
@@ -1383,6 +1384,55 @@ export const AnimalDetail: React.FC = () => {
                 </label>
                 <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 900 }}>
                   <AnimatedNumber value={animal.valor_venda || 0} isCurrency={true} />
+                </span>
+              </div>
+
+              <div
+                className="info-item"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.05)',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(245, 158, 11, 0.1)',
+                }}
+              >
+                <label
+                  style={{
+                    color: '#fcd34d',
+                    fontWeight: 800,
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Custo / @ Produzida
+                </label>
+                <span style={{ color: '#fbbf24', fontSize: '16px', fontWeight: 900 }}>
+                  <AnimatedNumber
+                    value={(() => {
+                      const custoNutricao = (financialData?.costs || []).reduce(
+                        (acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0),
+                        0
+                      );
+                      const custoSanidade = (financialData?.health || []).reduce(
+                        (acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0),
+                        0
+                      );
+                      const custoReproducao = (financialData?.reproduction || []).reduce(
+                        (acc: number, curr: any) => acc + Number(curr.custo || 0),
+                        0
+                      );
+                      const custoDiversos = (financialData?.miscellaneous || []).reduce(
+                        (acc: number, curr: any) => acc + Number(curr.custo_calculado || 0),
+                        0
+                      );
+                      const totalManejoCustos = custoNutricao + custoSanidade + custoReproducao + custoDiversos;
+                      const pesoGanho = (animal.peso_atual || 0) - (animal.peso_inicial || 0);
+                      return calculateCustoArrobaProduzida(totalManejoCustos, pesoGanho);
+                    })()}
+                    isCurrency={true}
+                  />
                 </span>
               </div>
 

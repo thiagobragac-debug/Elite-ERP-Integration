@@ -82,7 +82,8 @@ export const AnimalManagement: React.FC = () => {
     'AnimalManagement_isManejoModalOpen',
     false
   );
-  const [manejoAnimal, setManejoAnimal] = useState<any>(null);
+  const [manejoAnimals, setManejoAnimals] = useState<any[]>([]);
+  const [selectedAnimalIds, setSelectedAnimalIds] = useState<(string|number)[]>([]);
   const [activeTab, setActiveTab] = usePersistentState<'TODOS' | 'ATIVO' | 'ABATIDO' | 'EM_EMBARQUE' | 'EM_TRANSITO'>(
     'AnimalManagement_activeTab',
     'TODOS'
@@ -516,6 +517,22 @@ export const AnimalManagement: React.FC = () => {
             <Truck size={18} />
             Romaneio
           </button>
+          {selectedAnimalIds.length > 0 && (
+            <button
+              className="primary-btn"
+              style={{ background: 'hsl(var(--warning))', color: '#000' }}
+              onClick={() => {
+                const selected = filteredAnimals.filter((a) => selectedAnimalIds.includes(a.id));
+                if (selected.length > 0) {
+                  setManejoAnimals(selected);
+                  setIsManejoModalOpen(true);
+                }
+              }}
+            >
+              <Activity size={18} />
+              Manejo em Massa ({selectedAnimalIds.length})
+            </button>
+          )}
           {can('pecuaria', 'create') && (
             <button
               className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
@@ -658,6 +675,9 @@ export const AnimalManagement: React.FC = () => {
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
+            selectable={true}
+            selectedItems={selectedAnimalIds}
+            onSelectionChange={setSelectedAnimalIds}
             totalCount={totalCount}
             currentPage={page}
             onPageChange={setPage}
@@ -673,12 +693,12 @@ export const AnimalManagement: React.FC = () => {
                   <Eye size={18} />
                 </button>
                 <button
-                  className="action-dot success"
-                  title="Manejos"
+                  className="action-dot primary"
                   onClick={() => {
-                    setManejoAnimal(item);
+                    setManejoAnimals([item]);
                     setIsManejoModalOpen(true);
                   }}
+                  title="Manejo"
                 >
                   <Activity size={18} />
                 </button>
@@ -1080,9 +1100,9 @@ export const AnimalManagement: React.FC = () => {
         isOpen={isManejoModalOpen}
         onClose={() => {
           setIsManejoModalOpen(false);
-          setManejoAnimal(null);
+          setManejoAnimals([]);
         }}
-        animal={manejoAnimal}
+        animals={manejoAnimals}
         activeTenantId={activeTenantId || ''}
         activeFarmId={activeFarmId || ''}
         insertPayload={insertPayload}
