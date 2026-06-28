@@ -30,6 +30,7 @@ import {
   Download,
 } from 'lucide-react';
 import { DateInput } from '../../components/Form/DateInput';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ function calcSugerido(lote: LoteData, dieta: Dieta | null): number | null {
 export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, onSubmit }) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
+  const { confirm } = useConfirm();
 
   // ─── Step state ────────────────────────────────────────────────────────────
   const [etapa, setEtapa] = useState<Etapa>(0);
@@ -525,9 +527,18 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
                     <button
                       key={m}
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (m === mode) return;
-                        if (items.length > 0 && !window.confirm('Ao trocar o modo, os itens adicionados serão removidos. Continuar?')) return;
+                        if (items.length > 0) {
+                          const isConfirmed = await confirm({
+                            title: 'Atenção',
+                            description: 'Ao trocar o modo, os itens adicionados serão removidos. Continuar?',
+                            confirmText: 'Sim, continuar',
+                            cancelText: 'Cancelar',
+                            variant: 'danger',
+                          });
+                          if (!isConfirmed) return;
+                        }
                         setMode(m);
                         setItems([]);
                       }}

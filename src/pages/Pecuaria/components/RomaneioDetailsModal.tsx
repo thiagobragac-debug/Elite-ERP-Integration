@@ -12,6 +12,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
+import { ModernTable } from '../../../components/DataTable/ModernTable';
+import { EmptyState } from '../../../components/Feedback/EmptyState';
 
 interface RomaneioDetailsModalProps {
   isOpen: boolean;
@@ -61,6 +63,33 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
   }
 
   const colors = getStatusStyle(romaneio.status);
+
+  const columns = [
+    {
+      header: 'Categoria',
+      accessor: (item: any) => (
+        <span style={{ fontWeight: 700 }}>
+          {item.categoria} <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>({item.raca})</span>
+        </span>
+      ),
+      align: 'left' as const,
+    },
+    {
+      header: 'Qtd',
+      accessor: (item: any) => <span style={{ fontWeight: 700 }}>{item.qtd} cbç</span>,
+      align: 'center' as const,
+    },
+    {
+      header: 'Peso Médio',
+      accessor: (item: any) => <span style={{ fontWeight: 700 }}>{item.peso_medio?.toFixed(1)} kg</span>,
+      align: 'right' as const,
+    },
+  ];
+
+  const tableData =
+    romaneio.composicao_carga && Array.isArray(romaneio.composicao_carga) && romaneio.composicao_carga.length > 0
+      ? romaneio.composicao_carga
+      : [{ id: 'misto', categoria: 'Misto / Não Especificado', raca: '---', qtd: romaneio.animais_qtd, peso_medio: 0 }];
 
   const footer = (
     <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', width: '100%' }}>
@@ -376,68 +405,19 @@ export const RomaneioDetailsModal: React.FC<RomaneioDetailsModalProps> = ({
               overflow: 'hidden',
             }}
           >
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                textAlign: 'left',
-                fontSize: '12px',
-              }}
-            >
-              <thead>
-                <tr
-                  style={{
-                    background: 'hsl(var(--bg-main))',
-                    borderBottom: '1px solid hsl(var(--border))',
-                    color: 'hsl(var(--text-muted))',
-                  }}
-                >
-                  <th style={{ padding: '8px 12px', fontWeight: 800 }}>Categoria</th>
-                  <th style={{ padding: '8px 12px', fontWeight: 800, textAlign: 'center' }}>Qtd</th>
-                  <th style={{ padding: '8px 12px', fontWeight: 800, textAlign: 'right' }}>
-                    Peso Médio
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {romaneio.composicao_carga && Array.isArray(romaneio.composicao_carga) && romaneio.composicao_carga.length > 0 ? (
-                  romaneio.composicao_carga.map((item: any, idx: number) => (
-                    <tr
-                      key={idx}
-                      style={{
-                        borderBottom: '1px solid hsl(var(--border))',
-                        color: 'hsl(var(--text-main))',
-                      }}
-                    >
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>
-                        {item.categoria} <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>({item.raca})</span>
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
-                        {item.qtd} cbç
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
-                        {item.peso_medio.toFixed(1)} kg
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr
-                    style={{
-                      borderBottom: '1px solid hsl(var(--border))',
-                      color: 'hsl(var(--text-main))',
-                    }}
-                  >
-                    <td style={{ padding: '10px 12px', fontWeight: 700 }}>Misto / Não Especificado</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>
-                      {romaneio.animais_qtd} cbç
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
-                      —
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <ModernTable
+              columns={columns}
+              data={tableData}
+              loading={false}
+              hideHeader={true}
+              emptyState={
+                <EmptyState
+                  icon={Tag}
+                  title="Sem Composição"
+                  description="Nenhuma composição de carga detalhada encontrada."
+                />
+              }
+            />
           </div>
         </div>
       </div>

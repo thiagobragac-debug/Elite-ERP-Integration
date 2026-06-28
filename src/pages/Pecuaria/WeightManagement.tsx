@@ -37,6 +37,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { hasDraftForKey } from '../../hooks/useFormDraft';
 import { useScale } from '../../contexts/ScaleContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface WeightRecord {
   id: string;
@@ -629,6 +630,7 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
 
 export const WeightManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const {
     activeFarm,
     isGlobalMode,
@@ -1372,20 +1374,24 @@ export const WeightManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  onClick={() => handleOpenEdit(item)}
-                  title="Editar"
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />

@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useReportData } from '../../hooks/useReportData';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReproductionForm } from '../../components/Forms/ReproductionForm';
@@ -67,6 +68,7 @@ interface ReproductionRecord {
 
 export const ReproductionManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const {
     activeFarm,
     activeTenantId,
@@ -808,20 +810,24 @@ export const ReproductionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  onClick={() => handleOpenEdit(item)}
-                  title="Editar"
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />

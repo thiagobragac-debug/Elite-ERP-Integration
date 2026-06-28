@@ -5,7 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { ConfinementManagement } from './ConfinementManagement';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
-import { ConfirmProvider } from '../../contexts/ConfirmContext';
+
+const mockConfirm = vi.fn().mockResolvedValue(true);
+vi.mock('../../contexts/ConfirmContext', () => ({
+  useConfirm: () => ({ confirm: mockConfirm }),
+  ConfirmProvider: ({ children }: any) => <>{children}</>,
+}));
 
 vi.mock('../../hooks/useFarmFilter', () => ({
   useFarmFilter: () => ({
@@ -13,6 +18,13 @@ vi.mock('../../hooks/useFarmFilter', () => ({
     activeTenantId: 'tenant-1',
     canCreate: true,
     insertPayload: { tenant_id: 'tenant-1', fazenda_id: 'farm-1' },
+  }),
+}));
+
+vi.mock('../../hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    can: () => true,
+    hasRole: () => true,
   }),
 }));
 
@@ -137,7 +149,6 @@ describe('ConfinementManagement', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    window.confirm = vi.fn(() => true);
   });
 
   it('renders page headers and stats', () => {

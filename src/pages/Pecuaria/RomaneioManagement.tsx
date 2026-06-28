@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { usePermissions } from '../../hooks/usePermissions';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -47,6 +48,7 @@ const getStatusColor = (status: string) => {
 
 export default function RomaneioManagement() {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -598,7 +600,7 @@ export default function RomaneioManagement() {
           >
             <FileText size={14} />
           </button>
-          {(row.status === 'Pendente' || row.status === 'Rascunho') && (
+          {can('pecuaria', 'edit') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
             <button
               onClick={() => handleOpenEdit(row)}
               className="action-dot edit"
@@ -607,7 +609,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} style={{ transform: 'rotate(45deg)' }} />
             </button>
           )}
-          {row.status === 'Pendente' && (
+          {can('pecuaria', 'edit') && row.status === 'Pendente' && (
             <button
               onClick={() => handleConfirmTransit(row)}
               className="action-dot"
@@ -617,7 +619,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} />
             </button>
           )}
-          {row.status === 'Em Trânsito' && (
+          {can('pecuaria', 'edit') && row.status === 'Em Trânsito' && (
             <button
               onClick={() => handleConclude(row)}
               className="action-dot"
@@ -627,7 +629,7 @@ export default function RomaneioManagement() {
               <Flag size={14} />
             </button>
           )}
-          {row.status !== 'Cancelado' && row.status !== 'Concluído' && (
+          {can('pecuaria', 'delete') && row.status !== 'Cancelado' && row.status !== 'Concluído' && (
             <button
               onClick={() => handleCancelRomaneio(row)}
               className="action-dot delete"

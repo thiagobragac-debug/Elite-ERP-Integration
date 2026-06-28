@@ -6,12 +6,25 @@ import { NutritionManagement } from './NutritionManagement';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 
+const mockConfirm = vi.fn().mockResolvedValue(true);
+vi.mock('../../contexts/ConfirmContext', () => ({
+  useConfirm: () => ({ confirm: mockConfirm }),
+  ConfirmProvider: ({ children }: any) => <>{children}</>,
+}));
+
 vi.mock('../../hooks/useFarmFilter', () => ({
   useFarmFilter: () => ({
     activeFarmId: 'farm-1',
     activeTenantId: 'tenant-1',
     canCreate: true,
     insertPayload: { tenant_id: 'tenant-1', fazenda_id: 'farm-1' },
+  }),
+}));
+
+vi.mock('../../hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    can: () => true,
+    hasRole: () => true,
   }),
 }));
 
@@ -129,7 +142,6 @@ describe('NutritionManagement', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    window.confirm = vi.fn(() => true); // Auto-confirm deletions
   });
 
   it('renders page headers and stats', () => {

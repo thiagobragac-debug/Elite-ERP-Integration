@@ -28,6 +28,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useSuperAdmin } from '../../hooks/useSuperAdmin';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ProtocolFilterModal } from './components/ProtocolFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
@@ -107,6 +108,7 @@ export const ProtocolManagement: React.FC<{
 }> = ({ activeTab, setActiveTab, onOpenCreate, externalTemplateOpen, onExternalTemplateClose, searchTerm, showFilters, onCloseFilters }) => {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const { activeTenantId, activeFarmId, applyFarmFilter } = useFarmFilter();
   const queryClient = useQueryClient();
   const { isSuperAdmin } = useSuperAdmin();
@@ -643,20 +645,24 @@ export const ProtocolManagement: React.FC<{
                 </button>
               ) : (
                 <>
-                  <button
-                    className="action-dot edit"
-                    title={t.is_sistema ? "Editar Template do Sistema (Super Admin)" : "Editar Template"}
-                    onClick={() => { setEditingTemplate(t); setTemplateFormOpen(true); }}
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    className="action-dot delete"
-                    title={t.is_sistema ? "Excluir Template do Sistema (Super Admin)" : "Excluir Template"}
-                    onClick={() => handleDeleteTemplate(t)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {can('pecuaria', 'edit') && (
+                    <button
+                      className="action-dot edit"
+                      title={t.is_sistema ? "Editar Template do Sistema (Super Admin)" : "Editar Template"}
+                      onClick={() => { setEditingTemplate(t); setTemplateFormOpen(true); }}
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  )}
+                  {can('pecuaria', 'delete') && (
+                    <button
+                      className="action-dot delete"
+                      title="Excluir Template"
+                      onClick={() => handleDeleteTemplate(t)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -695,7 +701,7 @@ export const ProtocolManagement: React.FC<{
               >
                 <Eye size={16} />
               </button>
-              {p.status === 'ativo' && (
+              {can('pecuaria', 'edit') && p.status === 'ativo' && (
                 <button
                   className="action-dot edit"
                   title="Executar Próxima Etapa"
@@ -704,7 +710,7 @@ export const ProtocolManagement: React.FC<{
                   <Play size={16} />
                 </button>
               )}
-              {(p.status === 'ativo' || p.status === 'rascunho') && (
+              {can('pecuaria', 'delete') && (p.status === 'ativo' || p.status === 'rascunho') && (
                 <button
                   className="action-dot delete"
                   title="Cancelar Protocolo"

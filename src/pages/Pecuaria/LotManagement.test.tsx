@@ -18,6 +18,13 @@ vi.mock('../../hooks/useFarmFilter', () => ({
   }),
 }));
 
+vi.mock('../../hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    can: () => true,
+    hasRole: () => true,
+  }),
+}));
+
 const mockRefresh = vi.fn();
 const mockLots = [
   { id: 'lot-1', nome: 'Lote Ativo 1', status: 'ATIVO', capacidade: 100, quantidade_animais: 50 },
@@ -44,6 +51,13 @@ vi.mock('../../hooks/useReportData', () => ({
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'user-1' },
+  }),
+}));
+
+const mockConfirm = vi.fn().mockResolvedValue(true);
+vi.mock('../../contexts/ConfirmContext', () => ({
+  useConfirm: () => ({
+    confirm: mockConfirm,
   }),
 }));
 
@@ -200,13 +214,12 @@ describe('LotManagement', () => {
     fireEvent.click(listViewBtn);
 
     const archiveBtn = screen.getByTitle('Arquivar Lote');
-    window.confirm = vi.fn().mockReturnValue(true);
 
     fireEvent.click(archiveBtn);
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalledWith(
-        'Deseja realmente arquivar o lote "Lote Ativo 1"?'
-      );
+      expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({
+        description: 'Deseja realmente arquivar o lote "Lote Ativo 1"?'
+      }));
     });
   });
 
@@ -217,11 +230,12 @@ describe('LotManagement', () => {
     fireEvent.click(listViewBtn);
 
     const deleteBtn = screen.getByTitle('Excluir');
-    window.confirm = vi.fn().mockReturnValue(true);
 
     fireEvent.click(deleteBtn);
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalledWith('Deseja excluir este lote?');
+      expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({
+        description: 'Deseja excluir este lote?'
+      }));
     });
   });
 });

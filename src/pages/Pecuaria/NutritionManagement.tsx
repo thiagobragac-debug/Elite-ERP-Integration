@@ -26,6 +26,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { DietForm } from '../../components/Forms/DietForm';
 import { BatchFeedForm } from '../../components/Forms/BatchFeedForm';
+import { usePermissions } from '../../hooks/usePermissions';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
@@ -56,6 +57,7 @@ interface Diet {
 
 export const NutritionManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } =
     useFarmFilter();
   const queryClient = useQueryClient();
@@ -877,20 +879,24 @@ export const NutritionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  onClick={() => handleOpenEdit(item)}
-                  title="Editar"
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />

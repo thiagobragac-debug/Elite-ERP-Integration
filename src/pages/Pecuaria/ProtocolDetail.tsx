@@ -11,6 +11,8 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { ModernTable } from '../../components/DataTable/ModernTable';
 import toast from 'react-hot-toast';
 import { ProtocolStepExecutor } from './components/ProtocolStepExecutor';
 
@@ -99,6 +101,51 @@ export const ProtocolDetail: React.FC = () => {
   const pct = totalEtapas > 0 ? Math.round((etapasRealizadas / totalEtapas) * 100) : 0;
   const totalAnimais = animais.length;
   const prenhas = animais.filter((a) => a.resultado_final === 'Prenha').length;
+
+  const animalColumns = [
+    {
+      header: 'Brinco',
+      accessor: (pa: any) => (
+        <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>#{pa.animais?.brinco || '---'}</span>
+      ),
+    },
+    {
+      header: 'Categoria',
+      accessor: (pa: any) => (
+        <span style={{ color: 'hsl(var(--text-muted))' }}>{pa.animais?.categoria || '---'}</span>
+      ),
+    },
+    {
+      header: 'Fase Atual',
+      accessor: (pa: any) => (
+        <span className="status-pill info" style={{ fontSize: '10px' }}>
+          {pa.animais?.fase_atual || '---'}
+        </span>
+      ),
+    },
+    {
+      header: 'Resultado Final',
+      accessor: (pa: any) => {
+        const resultado = pa.resultado_final;
+        return resultado ? (
+          <span
+            className={`status-pill ${resultado === 'Prenha' ? 'success' : resultado === 'Vazia' ? 'warning' : 'stopped'}`}
+            style={{ fontSize: '10px' }}
+          >
+            {resultado}
+          </span>
+        ) : (
+          <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px' }}>Pendente</span>
+        );
+      },
+    },
+    {
+      header: 'Diagnóstico',
+      accessor: (pa: any) => (
+        <span style={{ color: 'hsl(var(--text-muted))' }}>{fmtDate(pa.data_diagnostico)}</span>
+      ),
+    },
+  ];
 
   return (
     <div className="repro-page animate-slide-up">
@@ -333,83 +380,19 @@ export const ProtocolDetail: React.FC = () => {
           <h3 style={{ fontWeight: 800, marginBottom: '20px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Beef size={18} /> Animais Participantes ({totalAnimais})
           </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Brinco', 'Categoria', 'Fase Atual', 'Resultado Final', 'Diagnóstico'].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '8px 12px',
-                        textAlign: 'left',
-                        fontWeight: 700,
-                        color: 'hsl(var(--text-muted))',
-                        fontSize: '11px',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {animais.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      style={{ padding: '32px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}
-                    >
-                      Nenhum animal inscrito neste protocolo.
-                    </td>
-                  </tr>
-                ) : (
-                  animais.map((pa: any) => {
-                    const animal = pa.animais;
-                    const resultado = pa.resultado_final;
-                    return (
-                      <tr
-                        key={pa.id}
-                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <td style={{ padding: '10px 12px', fontWeight: 800 }}>
-                          #{animal?.brinco || '---'}
-                        </td>
-                        <td style={{ padding: '10px 12px', color: 'hsl(var(--text-muted))' }}>
-                          {animal?.categoria || '---'}
-                        </td>
-                        <td style={{ padding: '10px 12px' }}>
-                          <span className="status-pill info" style={{ fontSize: '10px' }}>
-                            {animal?.fase_atual || '---'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 12px' }}>
-                          {resultado ? (
-                            <span
-                              className={`status-pill ${resultado === 'Prenha' ? 'success' : resultado === 'Vazia' ? 'warning' : 'stopped'}`}
-                              style={{ fontSize: '10px' }}
-                            >
-                              {resultado}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px' }}>
-                              Pendente
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 12px', color: 'hsl(var(--text-muted))' }}>
-                          {fmtDate(pa.data_diagnostico)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ModernTable
+            columns={animalColumns}
+            data={animais}
+            loading={isLoading}
+            hideHeader={true}
+            emptyState={
+              <EmptyState
+                icon={Beef}
+                title="Nenhum animal inscrito"
+                description="Nenhum animal foi inscrito neste protocolo ainda."
+              />
+            }
+          />
         </div>
       </div>
 

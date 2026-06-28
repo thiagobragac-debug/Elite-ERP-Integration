@@ -22,6 +22,23 @@ vi.mock('../../hooks/useFarmFilter', () => ({
   }),
 }));
 
+vi.mock('../../contexts/TenantContext', () => ({
+  useTenant: () => ({
+    activeTenantId: 'tenant-1',
+  }),
+  useTenantProfile: () => ({
+    profile: null,
+  }),
+  TenantProvider: ({ children }: any) => <>{children}</>,
+}));
+
+vi.mock('../../hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    can: () => true,
+    hasRole: () => true,
+  }),
+}));
+
 const mockRefresh = vi.fn();
 vi.mock('../../hooks/useReportData', () => ({
   useReportData: vi.fn(() => ({

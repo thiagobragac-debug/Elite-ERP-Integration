@@ -34,6 +34,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { ConfinementForm } from '../../components/Forms/ConfinementForm';
+import { usePermissions } from '../../hooks/usePermissions';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { CheckOutModal } from './components/CheckOutModal';
@@ -66,6 +67,7 @@ interface ConfinementLot {
 
 export const ConfinementManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const {
     activeFarm,
     activeFarmId,
@@ -734,10 +736,12 @@ export const ConfinementManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                  <Edit3 size={18} />
-                </button>
-                {item.status !== 'archived' && (
+                {can('pecuaria', 'edit') && (
+                  <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'edit') && item.status !== 'archived' && (
                   <button 
                     className="action-dot warning" 
                     onClick={() => setCheckOutPens([item])} 
@@ -747,13 +751,15 @@ export const ConfinementManagement: React.FC = () => {
                     <LogOut size={18} />
                   </button>
                 )}
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />
@@ -802,10 +808,16 @@ export const ConfinementManagement: React.FC = () => {
                         >
                           <History size={14} />
                         </button>
-                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(p)} title="Editar">
-                          <Edit3 size={14} />
-                        </button>
-                        {p.status !== 'archived' && (
+                        {can('pecuaria', 'edit') && (
+                          <button
+                            className="action-icon-btn edit"
+                            onClick={() => handleOpenEdit(p)}
+                            title="Editar"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        )}
+                        {can('pecuaria', 'edit') && p.status !== 'archived' && (
                           <button 
                             className="action-icon-btn warning" 
                             onClick={() => setCheckOutPens([p])} 
@@ -815,13 +827,15 @@ export const ConfinementManagement: React.FC = () => {
                             <LogOut size={14} />
                           </button>
                         )}
-                        <button
-                          className="action-icon-btn delete"
-                          onClick={() => handleDelete(p.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('pecuaria', 'delete') && (
+                          <button
+                            className="action-icon-btn delete"
+                            onClick={() => handleDelete(p.id)}
+                            title="Excluir"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { hasDraftForFullKey } from '../../hooks/useFormDraft';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -52,11 +53,12 @@ import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
-import { hasDraftForFullKey } from '../../hooks/useFormDraft';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const LotManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const {
     activeFarm,
     isGlobalMode,
@@ -814,33 +816,39 @@ export const LotManagement: React.FC = () => {
                 >
                   <Eye size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  onClick={() => handleOpenEdit(item)}
-                  title="Editar"
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className={`action-dot ${item.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
-                  onClick={() => handleToggleArchive(item)}
-                  title={
-                    item.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'
-                  }
-                >
-                  {item.status?.toUpperCase() === 'ARQUIVADO' ? (
-                    <RefreshCw size={18} />
-                  ) : (
-                    <Archive size={18} />
-                  )}
-                </button>
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className={`action-dot ${item.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
+                    onClick={() => handleToggleArchive(item)}
+                    title={
+                      item.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'
+                    }
+                  >
+                    {item.status?.toUpperCase() === 'ARQUIVADO' ? (
+                      <RefreshCw size={18} />
+                    ) : (
+                      <Archive size={18} />
+                    )}
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />
@@ -1171,40 +1179,58 @@ export const LotManagement: React.FC = () => {
                       <div className="card-bottom-actions">
                         <button
                           className="action-icon-btn info"
-                          onClick={() => handleViewDetails(l)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(l);
+                          }}
                           title="Detalhes"
                         >
                           <Eye size={14} />
                         </button>
-                        <button
-                          className="action-icon-btn edit"
-                          onClick={() => handleOpenEdit(l)}
-                          title="Editar"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
-                          onClick={() => handleToggleArchive(l)}
-                          title={
-                            l.status?.toUpperCase() === 'ARQUIVADO'
-                              ? 'Reativar Lote'
-                              : 'Arquivar Lote'
-                          }
-                        >
-                          {l.status?.toUpperCase() === 'ARQUIVADO' ? (
-                            <RefreshCw size={14} />
-                          ) : (
-                            <Archive size={14} />
-                          )}
-                        </button>
-                        <button
-                          className="action-icon-btn delete"
-                          onClick={() => handleDelete(l.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('pecuaria', 'edit') && (
+                          <button
+                            className="action-icon-btn edit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEdit(l);
+                            }}
+                            title="Editar"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        )}
+                        {can('pecuaria', 'edit') && (
+                          <button
+                            className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleArchive(l);
+                            }}
+                            title={
+                              l.status?.toUpperCase() === 'ARQUIVADO'
+                                ? 'Reativar Lote'
+                                : 'Arquivar Lote'
+                            }
+                          >
+                            {l.status?.toUpperCase() === 'ARQUIVADO' ? (
+                              <RefreshCw size={14} />
+                            ) : (
+                              <Archive size={14} />
+                            )}
+                          </button>
+                        )}
+                        {can('pecuaria', 'delete') && (
+                          <button
+                            className="action-icon-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(l.id);
+                            }}
+                            title="Excluir"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 

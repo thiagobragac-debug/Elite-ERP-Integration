@@ -43,6 +43,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { hasDraftForKey } from '../../hooks/useFormDraft';
 import { normalizePastureStatus, PASTURE_STATUS, ANIMAL_STATUS_ATIVO, CARENCIA_QUIMICA_DIAS } from '../../constants/livestock';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // ─── Helper: display unificado de status (usa enum — sem strings hardcoded) ───
 function getPastureDisplay(
@@ -61,6 +62,7 @@ function getPastureDisplay(
 
 const PastureManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } =
     useFarmFilter();
   const queryClient = useQueryClient();
@@ -1065,20 +1067,24 @@ const PastureManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  title="Editar"
-                  onClick={() => handleOpenEdit(item)}
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className="action-dot delete"
-                  title="Excluir"
-                  onClick={() => handleDelete(item)}
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    title="Editar"
+                    onClick={() => handleOpenEdit(item)}
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    title="Excluir"
+                    onClick={() => handleDelete(item)}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />
@@ -1207,20 +1213,24 @@ const PastureManagement: React.FC = () => {
                         >
                           <History size={14} />
                         </button>
-                        <button
-                          className="action-icon-btn"
-                          title="Editar"
-                          onClick={() => handleOpenEdit(p)}
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          className="action-icon-btn delete"
-                          title="Excluir"
-                          onClick={() => handleDelete(p)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('pecuaria', 'edit') && (
+                          <button
+                            className="action-icon-btn"
+                            title="Editar"
+                            onClick={() => handleOpenEdit(p)}
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        )}
+                        {can('pecuaria', 'delete') && (
+                          <button
+                            className="action-icon-btn delete"
+                            title="Excluir"
+                            onClick={() => handleDelete(p)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
