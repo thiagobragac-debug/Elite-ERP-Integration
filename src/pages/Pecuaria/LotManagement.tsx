@@ -206,7 +206,8 @@ export const LotManagement: React.FC = () => {
         .from('animais')
         .select('*', { count: 'exact', head: true })
         .eq('lote_id', lot.id)
-        .eq('status', 'ATIVO');
+        .eq('status', 'ATIVO')
+        .eq('tenant_id', activeTenantId);
 
       if (countError) {
         toast.error('Não foi possível verificar os animais do lote. Tente novamente.');

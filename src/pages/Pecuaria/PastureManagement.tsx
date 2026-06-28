@@ -275,7 +275,7 @@ const PastureManagement: React.FC = () => {
 
   const deletePastureMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('pastos').delete().eq('id', id);
+      const { error } = await supabase.from('pastos').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

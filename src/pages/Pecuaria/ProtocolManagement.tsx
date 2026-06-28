@@ -210,7 +210,7 @@ export const ProtocolManagement: React.FC<{
 
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('protocolo_templates').delete().eq('id', id);
+      const { error } = await supabase.from('protocolo_templates').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {

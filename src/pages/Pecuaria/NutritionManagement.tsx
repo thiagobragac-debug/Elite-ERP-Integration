@@ -163,7 +163,7 @@ export const NutritionManagement: React.FC = () => {
   const saveDietMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedDiet) {
-        const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id);
+        const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('dietas').insert([{ ...payload, ...insertPayload }]);
@@ -234,7 +234,7 @@ export const NutritionManagement: React.FC = () => {
 
   const archiveDietMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id);
+      const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -246,7 +246,7 @@ export const NutritionManagement: React.FC = () => {
 
   const deleteDietMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('dietas').delete().eq('id', id);
+      const { error } = await supabase.from('dietas').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {

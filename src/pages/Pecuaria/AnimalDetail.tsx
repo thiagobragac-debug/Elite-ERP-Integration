@@ -364,7 +364,7 @@ export const AnimalDetail: React.FC = () => {
 
   const editAnimalMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const { error } = await supabase.from('animais').update(payload).eq('id', id);
+      const { error } = await supabase.from('animais').update(payload).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

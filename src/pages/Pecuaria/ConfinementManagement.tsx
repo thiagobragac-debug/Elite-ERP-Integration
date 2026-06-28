@@ -201,7 +201,7 @@ export const ConfinementManagement: React.FC = () => {
     };
 
     if (isEditMode) {
-        const { error } = await supabase.from('confinamento').update(payload).eq('id', selectedPen.id);
+        const { error } = await supabase.from('confinamento').update(payload).eq('id', selectedPen.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
         toast.success('✅ Curral atualizado com sucesso!');
         setIsModalOpen(false);
@@ -506,7 +506,7 @@ export const ConfinementManagement: React.FC = () => {
 
   const deleteConfinementMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('confinamento').delete().eq('id', id);
+      const { error } = await supabase.from('confinamento').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

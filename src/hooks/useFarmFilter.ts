@@ -62,37 +62,34 @@ export const useFarmFilter = (): FarmFilterReturn => {
       }
     }
 
-    if (isGlobalMode) {
-      if (!activeTenantId) {
-        return query.is('tenant_id', null);
-      } // Silent during load
-      if (!isValidUUID(activeTenantId)) {
-        console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
-        return query.is('tenant_id', null);
-      }
+    // MANDATORY SECURITY: Always filter by tenant_id first
+    let safeQuery = query;
+    if (activeTenantId && isValidUUID(activeTenantId)) {
+      safeQuery = safeQuery.eq('tenant_id', activeTenantId);
+    } else {
+      safeQuery = safeQuery.is('tenant_id', null);
+    }
 
+    if (isGlobalMode) {
       if (hasGlobalPermission()) {
-        return query.eq('tenant_id', activeTenantId);
+        return safeQuery;
       }
       const farmIds = farms.map((f) => f.id);
       if (farmIds.length === 0) {
-        return query.is('fazenda_id', null);
+        return safeQuery.is('fazenda_id', null);
       }
-      return query.in('fazenda_id', farmIds);
+      return safeQuery.in('fazenda_id', farmIds);
     }
 
     if (!activeFarmId) {
-      return query.is('fazenda_id', null);
+      return safeQuery.is('fazenda_id', null);
     } // Silent during load
     if (!isValidUUID(activeFarmId)) {
       console.error('[useFarmFilter] Invalid activeFarmId format', { activeFarmId });
-      if (isValidUUID(activeTenantId)) {
-        return query.eq('tenant_id', activeTenantId);
-      }
-      return query.is('fazenda_id', null);
+      return safeQuery.is('fazenda_id', null);
     }
 
-    return query.eq('fazenda_id', activeFarmId);
+    return safeQuery.eq('fazenda_id', activeFarmId);
   };
 
   /**
