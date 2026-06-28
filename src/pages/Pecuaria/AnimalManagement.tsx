@@ -38,6 +38,7 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface Animal {
   id: string;
@@ -60,6 +61,7 @@ interface Animal {
 
 export const AnimalManagement: React.FC = () => {
   const { confirm } = useConfirm();
+  const { can } = usePermissions();
   const {
     activeFarm,
     isGlobalMode,
@@ -696,20 +698,24 @@ export const AnimalManagement: React.FC = () => {
                 >
                   <Activity size={18} />
                 </button>
-                <button
-                  className="action-dot edit"
-                  onClick={() => handleOpenEdit(item)}
-                  title="Editar"
-                >
-                  <Edit3 size={18} />
-                </button>
-                <button
-                  className="action-dot delete"
-                  onClick={() => handleDelete(item.id)}
-                  title="Excluir"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {can('pecuaria', 'edit') && (
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                )}
+                {can('pecuaria', 'delete') && (
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             )}
           />

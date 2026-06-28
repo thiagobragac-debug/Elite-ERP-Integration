@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import { SidePanel } from '../../components/Layout/SidePanel';
 import { TemplateForm } from './TemplateForm';
@@ -95,6 +96,7 @@ interface ProtocolFormProps {
 }
 
 export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) => {
+  const { confirm } = useConfirm();
   const { activeTenantId, activeFarmId, insertPayload } = useFarmFilter();
 
   const [step, setStep] = useState(1);
@@ -689,9 +691,10 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                       {[{ id: 'lote', label: 'Por Lote' }, { id: 'individual', label: 'Individual' }, { id: 'hibrido', label: 'Lote + Ajuste' }].map((m) => (
                         <button type="button" key={m.id} 
                           style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer', border: 'none', background: selMode === m.id ? 'var(--bg-card)' : 'transparent', color: selMode === m.id ? 'hsl(var(--text-primary))' : 'hsl(var(--text-muted))', boxShadow: selMode === m.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-                          onClick={() => { 
+                          onClick={async () => { 
                             if (selectedAnimais.length > 0) {
-                              if (!window.confirm('Mudar o modo de seleção limpará os animais selecionados. Continuar?')) return;
+                              const isConfirmed = await confirm('Mudar o modo de seleção limpará os animais selecionados. Continuar?');
+                              if (!isConfirmed) return;
                             }
                             setSelMode(m.id as any); setSelectedAnimais([]); setSelectedLoteId(''); 
                           }}>

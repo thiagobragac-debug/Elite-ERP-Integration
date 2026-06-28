@@ -40,6 +40,7 @@ import './HealthManagement.css';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface HealthRecord {
   id: string;
@@ -64,6 +65,7 @@ interface HealthRecord {
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } =
     useFarmFilter();
+  const { can } = usePermissions();
   const { confirm } = useConfirm();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -906,20 +908,24 @@ export const HealthManagement: React.FC = () => {
               >
                 <History size={18} />
               </button>
-              <button
-                className="action-dot edit"
-                onClick={() => handleOpenEdit(item)}
-                title="Editar"
-              >
-                <Edit3 size={18} />
-              </button>
-              <button
-                className="action-dot delete"
-                onClick={() => handleDelete(item.id)}
-                title="Excluir"
-              >
-                <Trash2 size={18} />
-              </button>
+              {can('pecuaria', 'edit') && (
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
+                  <Edit3 size={18} />
+                </button>
+              )}
+              {can('pecuaria', 'delete') && (
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           )}
         />
