@@ -302,7 +302,8 @@ export const AnimalManagement: React.FC = () => {
 
   const deleteAnimalMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('animais').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      // Soft-delete: atualiza o status para EXCLUIDO para manter o histórico (GMD, Financeiro)
+      const { error } = await supabase.from('animais').update({ status: 'EXCLUIDO' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

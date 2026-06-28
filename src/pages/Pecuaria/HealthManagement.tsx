@@ -134,10 +134,10 @@ export const HealthManagement: React.FC = () => {
 
   const deleteHealthMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Apaga movimentações de estoque geradas
-      await supabase.from('movimentacoes_estoque').delete().eq('tenant_id', activeTenantId).like('origem_destino', `%[REF:${id}]%`);
-      // Apaga o evento
-      const { error } = await supabase.from('sanidade').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.rpc('rpc_delete_health_event', {
+        p_id: id,
+        p_tenant_id: activeTenantId,
+      });
       if (error) {
         throw error;
       }

@@ -579,16 +579,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
         throw insertErr;
       }
 
-      const updatePromises = rowsToInsert.map((r) =>
-        supabase
-          .from('animais')
-          .update({ peso_atual: parseFloat(r.newWeight) })
-          .eq('id', r.animal_id)
-          .eq('tenant_id', activeTenantId)
-      );
-
-      await Promise.all(updatePromises);
-
       onSaveSuccess();
       onClose();
     } catch (err: any) {

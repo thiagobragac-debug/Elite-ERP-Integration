@@ -275,14 +275,14 @@ const PastureManagement: React.FC = () => {
 
   const deletePastureMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('pastos').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.from('pastos').update({ status: 'INATIVO' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Pasto excluído!');
+      toast.success('✅ Pasto inativado para manter histórico.');
     },
     onError: (err: any) => {
       toast.error(`❌ Erro ao excluir pasto: ${err.message}`);
@@ -320,8 +320,6 @@ const PastureManagement: React.FC = () => {
     });
     if (!isConfirmed) return;
 
-    // Optimistic delete
-    setLocalPastures((prev) => prev.filter((p) => p.id !== id));
     deletePastureMutation.mutate(id);
   };
 
@@ -379,32 +377,6 @@ const PastureManagement: React.FC = () => {
       fazenda_id: data.fazenda_id || activeFarmId,
       tenant_id: activeTenantId,
     };
-
-    if (selectedPasture) {
-      // Optimistic update
-      setLocalPastures((prev) =>
-        prev.map((p) =>
-          p.id === selectedPasture.id
-            ? {
-                ...p,
-                ...payload,
-                area: `${payload.area} ha`,
-              }
-            : p
-        )
-      );
-    } else {
-      const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
-      const newPasture = {
-        id: mockNewId,
-        ...payload,
-        area: `${payload.area} ha`,
-        lotacao: '0.00 UA',
-        created_at: new Date().toISOString(),
-      };
-      // Optimistic insert
-      setLocalPastures((prev) => [newPasture, ...prev]);
-    }
 
     savePastureMutation.mutate(payload);
   };
@@ -484,11 +456,6 @@ const PastureManagement: React.FC = () => {
     });
     if (!isConfirmed) return;
 
-    // Optimistic update
-    setLocalPastures((prev) =>
-      prev.map((p) => p.id === pasture.id ? { ...p, status: 'resting' } : p)
-    );
-
     vazioSanitarioMutation.mutate(pasture.id);
   };
 
@@ -501,15 +468,7 @@ const PastureManagement: React.FC = () => {
     refresh,
   } = useReportData('pastagens', { page, pageSize });
 
-  const [localPastures, setLocalPastures] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (fetchedPastures && fetchedPastures.length > 0) {
-      setLocalPastures(fetchedPastures);
-    }
-  }, [fetchedPastures]);
-
-  const filteredPastures = localPastures.filter((p) => {
+  const filteredPastures = fetchedPastures.filter((p) => {
     const matchesSearch = p.nome?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Parse values safely
@@ -584,7 +543,7 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = localPastures.map((p) => {
+    const exportData = filteredPastures.map((p) => {
       const area = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, '')) || 0;
       const uas = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, '')) || 0;
       const density = area > 0 ? (uas / area).toFixed(2) : '0';
@@ -931,7 +890,7 @@ const PastureManagement: React.FC = () => {
         {viewMode === 'list' ? (
           <ModernTable
             emptyState={
-              localPastures.length === 0 ? (
+              fetchedPastures.length === 0 ? (
                 <EmptyState
                   title="Nenhum pasto cadastrado"
                   description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
@@ -1030,7 +989,7 @@ const PastureManagement: React.FC = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  {localPastures.length === 0 ? <Trees size={22} /> : <Search size={22} />}
+                  {fetchedPastures.length === 0 ? <Trees size={22} /> : <Search size={22} />}
                 </div>
                 <h3
                   style={{
@@ -1040,7 +999,7 @@ const PastureManagement: React.FC = () => {
                     margin: 0,
                   }}
                 >
-                  {localPastures.length === 0
+                  {fetchedPastures.length === 0
                     ? 'Nenhum pasto cadastrado'
                     : 'Nenhum registro encontrado'}
                 </h3>
@@ -1053,11 +1012,11 @@ const PastureManagement: React.FC = () => {
                     maxWidth: '260px',
                   }}
                 >
-                  {localPastures.length === 0
+                  {fetchedPastures.length === 0
                     ? 'Não há áreas de pastagem registradas nesta unidade.'
                     : 'Sua busca não retornou resultados.'}
                 </p>
-                {localPastures.length === 0 && (
+                {fetchedPastures.length === 0 && (
                   <button
                     className="primary-btn"
                     onClick={handleOpenCreate}

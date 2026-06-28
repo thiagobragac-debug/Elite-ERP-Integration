@@ -506,14 +506,14 @@ export const ConfinementManagement: React.FC = () => {
 
   const deleteConfinementMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('confinamento').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.from('confinamento').update({ status: 'INATIVO' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Curral excluído!');
+      toast.success('✅ Curral inativado para manter histórico.');
     },
     onError: (err: any) => {
       toast.error(`❌ Erro ao excluir curral: ${err.message}`);

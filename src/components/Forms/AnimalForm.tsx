@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
 
 import {
   Beef,
@@ -43,6 +44,20 @@ const formatRFID = (value: string) => {
   if (limited.length > 11) formatted += ` ${limited.substring(11, 15)}`;
   return formatted;
 };
+
+// ─── Zod Schema para Validação de Regras de Negócio ──────────────────────────
+const animalSchema = z.object({
+  brinco: z.string().min(1, 'Identificação (Brinco) é obrigatória.'),
+  sexo: z.enum(['M', 'F'], { required_error: 'Sexo é obrigatório.' }),
+  peso_inicial: z.coerce.number().min(0, 'O peso não pode ser negativo.'),
+  data_nascimento: z.string().optional().refine((val) => {
+    if (!val) return true;
+    // Evita datas futuras mantendo no timezone local
+    const dataNascimento = new Date(val);
+    dataNascimento.setHours(23, 59, 59, 999);
+    return dataNascimento <= new Date();
+  }, { message: 'Data de nascimento não pode ser no futuro.' })
+});
 
 // ─── Initial State ────────────────────────────────────────────────────────────
 // FIX #1 — moved to a constant so the form is always cleanly reset on open
@@ -520,6 +535,14 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       toast.error('Este brinco já está cadastrado. Verifique o número antes de continuar.');
       return;
     }
+
+    // Validação de Regras de Negócio via Zod
+    const parsed = animalSchema.safeParse(formData);
+    if (!parsed.success) {
+      parsed.error.errors.forEach(err => toast.error(err.message, { id: err.message })); // Evita toast duplicado
+      return;
+    }
+
     setLoading(true);
     try {
       await onSubmit(formData);

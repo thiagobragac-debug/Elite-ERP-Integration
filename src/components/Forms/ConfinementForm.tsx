@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useFormDraft } from '../../hooks/useFormDraft';
+import { z } from 'zod';
 
 import {
   Building,
@@ -97,8 +98,26 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
     }
   };
 
+  const confinementSchema = z.object({
+    nome: z.string().min(3, "O nome do curral deve ter no mínimo 3 caracteres"),
+    capacidade_animais: z.coerce.number().min(1, "A capacidade deve ser maior que zero"),
+    dof_alvo: z.coerce.number().min(1, "Dias de confinamento (DOF) devem ser maiores que zero"),
+    gmd_projetado: z.coerce.number().min(0, "O GMD projetado não pode ser negativo"),
+    peso_entrada: z.coerce.number().min(0, "O peso de entrada estimado não pode ser negativo")
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    try {
+      confinementSchema.parse(formData);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error(`⚠️ ${err.errors[0].message}`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       let finalData = { ...formData };

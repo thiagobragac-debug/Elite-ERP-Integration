@@ -18,7 +18,7 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { useEffect } from 'react';
+
 import { SearchableSelect } from './SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
 

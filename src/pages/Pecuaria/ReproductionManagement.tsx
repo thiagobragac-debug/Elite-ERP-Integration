@@ -244,12 +244,10 @@ export const ReproductionManagement: React.FC = () => {
 
   const deleteReproMutation = useMutation({
     mutationFn: async (id: string) => {
-      // 1. Apaga sanidades geradas
-      await supabase.from('sanidade').delete().eq('tenant_id', activeTenantId).like('observacao', `%[REF:${id}]%`);
-      // 2. Apaga movimentações de estoque geradas
-      await supabase.from('movimentacoes_estoque').delete().eq('tenant_id', activeTenantId).like('origem_destino', `%[REF:${id}]%`);
-      // 3. Por fim apaga o evento
-      const { error } = await supabase.from('eventos_reprodutivos').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.rpc('rpc_delete_reproduction_event', {
+        p_event_id: id,
+        p_tenant_id: activeTenantId,
+      });
       if (error) {
         throw error;
       }

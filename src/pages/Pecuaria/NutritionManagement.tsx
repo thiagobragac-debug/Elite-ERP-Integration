@@ -68,22 +68,17 @@ export const NutritionManagement: React.FC = () => {
   useEffect(() => {
     if (!activeFarm?.id) return;
     const fetchLotes = async () => {
-      const [lotesRes, animaisRes] = await Promise.all([
-        applyFarmFilter(supabase.from('lotes').select('id, nome')).eq('status', 'ATIVO'),
-        applyFarmFilter(supabase.from('animais').select('id, lote_id, peso_atual')).eq('status', 'Ativo'),
-      ]);
-      const animaisData: any[] = animaisRes.data || [];
-      const enriched = (lotesRes.data || []).map((l: any) => {
-        const lotAnimais = animaisData.filter(a => String(a.lote_id) === String(l.id));
-        const weights = lotAnimais.map(a => Number(a.peso_atual || 0)).filter(w => w > 0);
-        return {
-          id: l.id,
-          nome: l.nome,
-          num_animais: lotAnimais.length,
-          peso_medio: weights.length > 0 ? weights.reduce((s, w) => s + w, 0) / weights.length : 0,
-        };
-      });
-      setLotesSimulador(enriched);
+      const { data, error } = await applyFarmFilter(
+        supabase.from('vw_lotes_simulador').select('lote_id, nome, num_animais, peso_medio')
+      );
+      if (!error && data) {
+        setLotesSimulador(data.map((row: any) => ({
+          id: row.lote_id,
+          nome: row.nome,
+          num_animais: Number(row.num_animais),
+          peso_medio: Number(row.peso_medio),
+        })));
+      }
     };
     fetchLotes();
   }, [activeFarm?.id]);
@@ -246,12 +241,12 @@ export const NutritionManagement: React.FC = () => {
 
   const deleteDietMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('dietas').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Dieta excluída definitivamente.');
+      toast.success('✅ Dieta excluída (arquivada para histórico).');
     },
     onError: (err: any) => toast.error(`❌ Erro ao excluir dieta: ${err.message}`),
   });

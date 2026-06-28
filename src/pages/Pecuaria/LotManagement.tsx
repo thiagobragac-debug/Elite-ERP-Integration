@@ -130,20 +130,7 @@ export const LotManagement: React.FC = () => {
     refresh,
   } = useReportData('lotes', { page, pageSize });
 
-  const [localLots, setLocalLots] = useState<any[]>([]);
 
-  // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
-  useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForFullKey(`draft_lot_${activeTenantId}_new`)) setIsModalOpen(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTenantId]);
-
-  useEffect(() => {
-    if (fetchedLots && fetchedLots.length > 0) {
-      setLocalLots(fetchedLots);
-    }
-  }, [fetchedLots]);
 
   const handleOpenCreate = () => {
     setSelectedLot(null);
@@ -233,15 +220,15 @@ export const LotManagement: React.FC = () => {
       return;
     }
 
-    // Optimistic update
-    setLocalLots((prev) => prev.map((l) => (l.id === lot.id ? { ...l, status: newStatus } : l)));
+    // Optimistic update removido para garantir SOT no React Query
 
     toggleArchiveMutation.mutate({ lot, newStatus, isArchived });
   };
 
   const deleteLotMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('lotes').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      // Soft delete
+      const { error } = await supabase.from('lotes').update({ status: 'FINALIZADO' }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -268,8 +255,7 @@ export const LotManagement: React.FC = () => {
       return;
     }
 
-    // Optimistic update
-    setLocalLots((prev) => prev.filter((l) => l.id !== id));
+    // Optimistic update removido
 
     deleteLotMutation.mutate(id);
   };
@@ -342,26 +328,13 @@ export const LotManagement: React.FC = () => {
     };
 
 
-    if (selectedLot) {
-      // Optimistic update
-      setLocalLots((prev) => prev.map((l) => (l.id === selectedLot.id ? { ...l, ...payload } : l)));
-    } else {
-      const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
-      const newLot = {
-        id: mockNewId,
-        ...payload,
-        ...insertPayload,
-        created_at: new Date().toISOString(),
-      };
-      // Optimistic insert
-      setLocalLots((prev) => [newLot, ...prev]);
-    }
+    // Optimistic insert/update removido
 
     saveLotMutation.mutate(payload);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = localLots.map((item) => ({
+    const exportData = fetchedLots.map((item) => ({
       Nome: item.nome,
       Status: item.status || 'ATIVO',
       Capacidade: item.capacidade,
@@ -379,14 +352,14 @@ export const LotManagement: React.FC = () => {
     }
   };
 
-  // PENDENTES são buscados do banco real via localLots (status = 'PENDENTE')
-  const pendingLots = localLots.filter((l) => (l.status || '').toUpperCase() === 'PENDENTE');
+  // PENDENTES são buscados do banco real via fetchedLots (status = 'PENDENTE')
+  const pendingLots = fetchedLots.filter((l) => (l.status || '').toUpperCase() === 'PENDENTE');
   const pendingAlertCount = pendingLots.filter((l) => {
     if (!l.data_limite) return false;
     return new Date(l.data_limite) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   }).length;
 
-  const filteredLots = localLots.filter((l) => {
+  const filteredLots = fetchedLots.filter((l) => {
     const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
     const status = (l.status || '').toUpperCase();
 
@@ -789,7 +762,7 @@ export const LotManagement: React.FC = () => {
         {viewMode === 'list' ? (
           <ModernTable
             emptyState={
-              localLots.length === 0 ? (
+              fetchedLots.length === 0 ? (
                 <EmptyState
                   title="Nenhum lote cadastrado"
                   description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
@@ -862,75 +835,14 @@ export const LotManagement: React.FC = () => {
         ) : (
           <div className="lot-cards-grid animate-fade-in">
             {filteredLots.length === 0 ? (
-              <div
-                className="lot-card-premium"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '20px',
-                  textAlign: 'center',
-                  gap: '6px',
-                  minHeight: '180px',
-                  height: '100%',
-                  boxShadow: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    margin: 0,
-                    width: '40px',
-                    height: '40px',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    color: '#10b981',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {localLots.length === 0 ? <Layers size={22} /> : <Search size={22} />}
-                </div>
-                <h3
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 800,
-                    color: 'hsl(var(--text-main))',
-                    margin: 0,
-                  }}
-                >
-                  {localLots.length === 0 ? 'Nenhum lote cadastrado' : 'Nenhum registro encontrado'}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '10.5px',
-                    color: '#64748b',
-                    margin: 0,
-                    lineHeight: '1.3',
-                    maxWidth: '260px',
-                  }}
-                >
-                  {localLots.length === 0
-                    ? 'Não há lotes operacionais registrados.'
-                    : 'Sua busca não retornou resultados.'}
-                </p>
-                {localLots.length === 0 && (
-                  <button
-                    className="primary-btn"
-                    onClick={handleOpenCreate}
-                    style={{
-                      fontSize: '10.5px',
-                      padding: '6px 12px',
-                      height: '30px',
-                      marginTop: '4px',
-                      minHeight: 'auto',
-                    }}
-                  >
-                    <Plus size={12} />
-                    <span>NOVO LOTE</span>
-                  </button>
-                )}
+              <div style={{ padding: '40px 0', width: '100%' }}>
+                <EmptyState
+                  title={fetchedLots.length === 0 ? "Nenhum lote cadastrado" : "Nenhum registro encontrado"}
+                  description={fetchedLots.length === 0 ? "Não há lotes operacionais registrados." : "Sua busca não retornou resultados."}
+                  actionLabel={fetchedLots.length === 0 ? "Novo Lote" : undefined}
+                  onAction={fetchedLots.length === 0 ? handleOpenCreate : undefined}
+                  icon={fetchedLots.length === 0 ? Layers : Search}
+                />
               </div>
             ) : (
               filteredLots.map((l) => {

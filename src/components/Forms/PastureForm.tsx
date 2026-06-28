@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
+import { z } from 'zod';
 import { useTenant } from '../../contexts/TenantContext';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
@@ -218,29 +219,23 @@ export const PastureForm: React.FC<PastureFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validação: fazenda obrigatória
-    if (!formData.fazenda_id) {
-      toast.error('Selecione a fazenda / unidade antes de salvar.');
-      return;
-    }
+    const pastureSchema = z.object({
+      nome: z.string().min(3, "O nome do pasto é obrigatório e deve ter no mínimo 3 letras"),
+      area: z.coerce.number().min(0.01, "A área do pasto deve ser maior que zero"),
+      capacidade_ua: z.coerce.number().min(0, "A capacidade em UA não pode ser negativa"),
+    });
 
-    // Validação: área > 0
-    const area = parseFloat(formData.area);
-    if (!formData.area || isNaN(area) || area <= 0) {
-      toast.error('A área do pasto deve ser maior que zero.');
-      return;
-    }
-
-    // Validação: nome obrigatório
-    if (!formData.nome?.trim()) {
-      toast.error('Informe o nome do pasto.');
-      return;
-    }
-
-    // Validação: coordenadas (se preenchidas)
-    if (formData.coordenadas && !COORDS_REGEX.test(formData.coordenadas.trim())) {
-      toast.error('Corrija o formato das coordenadas antes de salvar.');
-      return;
+    try {
+      pastureSchema.parse({
+        nome: formData.nome,
+        area: formData.area,
+        capacidade_ua: formData.capacidade_ua
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error(`⚠️ ${err.errors[0].message}`);
+        return;
+      }
     }
 
     setLoading(true);

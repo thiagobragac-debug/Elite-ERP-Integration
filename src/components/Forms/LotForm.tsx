@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
 
 import {
   Layers,
@@ -30,6 +31,16 @@ import { useTenant } from '../../contexts/TenantContext';
 import { DateInput } from '../../components/Form/DateInput';
 
 const getToday = () => new Date().toLocaleDateString('en-CA');
+
+// ─── Zod Schema para Validação de Regras de Negócio ──────────────────────────
+const lotSchema = z.object({
+  nome: z.string().min(1, 'Nome do lote é obrigatório.'),
+  fazenda_id: z.string().min(1, 'Fazenda de destino é obrigatória.'),
+  data_inicio: z.string().min(1, 'Data de início é obrigatória.'),
+  peso_entrada: z.union([z.coerce.number().min(0, 'Peso não pode ser negativo.'), z.literal('')]).optional(),
+  capacidade: z.union([z.coerce.number().min(0, 'Capacidade não pode ser negativa.'), z.literal('')]).optional(),
+  dias_ciclo: z.union([z.coerce.number().min(1, 'Dias de ciclo deve ser maior que 0.'), z.literal('')]).optional(),
+});
 
 const INITIAL_FORM = {
   nome: '',
@@ -301,6 +312,14 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
       toast.error('Informe o prazo limite (SLA) para o lote pendente.');
       return;
     }
+
+    // Validação de Regras de Negócio via Zod
+    const parsed = lotSchema.safeParse(formData);
+    if (!parsed.success) {
+      parsed.error.errors.forEach(err => toast.error(err.message, { id: err.message })); // Evita toast duplicado
+      return;
+    }
+
     setLoading(true);
     try { await onSubmit(formData); clearDraft(); toast.dismiss('draft-restore-lot'); }
     finally { setLoading(false); }
