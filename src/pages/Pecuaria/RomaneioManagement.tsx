@@ -356,17 +356,11 @@ export default function RomaneioManagement() {
   // ── Status Transitions ───────────────────────────────────────────────────
   const transitMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('romaneios')
-        .update({ status: 'Em Trânsito' })
-        .eq('id', id);
+      const { error } = await supabase.rpc('transit_romaneio', {
+        p_id: id,
+        p_tenant_id: activeTenantId
+      });
       if (error) throw error;
-      // Animals stay as EM_EMBARQUE during transit — they're physically in the truck
-      const { error: animalError } = await supabase
-        .from('animais')
-        .update({ status: 'EM_TRANSITO' })
-        .eq('romaneio_id', id);
-      if (animalError) throw animalError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
@@ -378,25 +372,12 @@ export default function RomaneioManagement() {
 
   const concludeMutation = useMutation({
     mutationFn: async (row: any) => {
-      const { error } = await supabase
-        .from('romaneios')
-        .update({ status: 'Concluído', data_chegada: new Date().toISOString().split('T')[0] })
-        .eq('id', row.id);
+      const { error } = await supabase.rpc('conclude_romaneio', {
+        p_id: row.id,
+        p_tipo_destino: row.tipo_destino,
+        p_tenant_id: activeTenantId
+      });
       if (error) throw error;
-      
-      // Handle animals based on tipo_destino
-      let novoStatus = 'Abatido';
-      if (row.tipo_destino === 'TRANSFERENCIA') {
-        novoStatus = 'INATIVO';
-      } else if (row.tipo_destino === 'VENDA') {
-        novoStatus = 'VENDIDO';
-      }
-
-      const { error: animalError } = await supabase
-        .from('animais')
-        .update({ status: novoStatus })
-        .eq('romaneio_id', row.id);
-      if (animalError) throw animalError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
@@ -432,22 +413,11 @@ export default function RomaneioManagement() {
 
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('romaneios')
-        .update({ status: 'Cancelado' })
-        .eq('id', id);
-      if (error) {
-        throw error;
-      }
-
-      // Update linked animals to reset their status to active and romaneio_id to null
-      const { error: animalError } = await supabase
-        .from('animais')
-        .update({ status: 'ATIVO', romaneio_id: null })
-        .eq('romaneio_id', id);
-      if (animalError) {
-        throw animalError;
-      }
+      const { error } = await supabase.rpc('cancel_romaneio', {
+        p_id: id,
+        p_tenant_id: activeTenantId
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
@@ -694,10 +664,12 @@ export default function RomaneioManagement() {
         </div>
 
         <div className="page-actions">
-          <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
-            <Truck size={16} />
-            Novo Embarque
-          </button>
+          {can('pecuaria', 'create') && (
+            <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
+              <Plus size={18} />
+              NOVO EMBARQUE
+            </button>
+          )}
         </div>
       </header>
 

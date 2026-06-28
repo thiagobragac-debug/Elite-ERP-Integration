@@ -229,7 +229,7 @@ Toda tela de listagem é composta por **6 blocos obrigatórios** nesta ordem:
 - `<Breadcrumb>` sempre acima do título
 - Botão primário sempre à direita, com ícone `lucide-react`
 - Botões secundários usam `className="glass-btn secondary"`
-- Máximo de **2 botões** no `page-actions`. Mais ações → dropdown
+- Ações adicionais podem ser incluídas conforme necessidade, mas mantenha o bom senso visual.
 
 ---
 

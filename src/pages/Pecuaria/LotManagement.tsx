@@ -167,7 +167,7 @@ export const LotManagement: React.FC = () => {
       newStatus: string;
       isArchived: boolean;
     }) => {
-      const { error } = await supabase.from('lotes').update({ status: newStatus }).eq('id', lot.id);
+      const { error } = await supabase.from('lotes').update({ status: newStatus }).eq('id', lot.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -240,7 +240,7 @@ export const LotManagement: React.FC = () => {
 
   const deleteLotMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('lotes').delete().eq('id', id);
+      const { error } = await supabase.from('lotes').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -281,7 +281,7 @@ export const LotManagement: React.FC = () => {
   const saveLotMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedLot) {
-        const { error } = await supabase.from('lotes').update(payload).eq('id', selectedLot.id);
+        const { error } = await supabase.from('lotes').update(payload).eq('id', selectedLot.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -632,18 +632,24 @@ export const LotManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
-            <UserPlus size={18} />
-            ASSOCIAR ANIMAIS
-          </button>
-          <button className="glass-btn secondary" onClick={() => setIsRelocateModalOpen(true)}>
-            <ArrowRightLeft size={18} />
-            REMANEJAR
-          </button>
-          <button className="primary-btn" onClick={handleOpenCreate}>
-            <Plus size={18} />
-            NOVO LOTE
-          </button>
+          {can('pecuaria', 'edit') && (
+            <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
+              <UserPlus size={18} />
+              ASSOCIAR ANIMAIS
+            </button>
+          )}
+          {can('pecuaria', 'edit') && (
+            <button className="glass-btn secondary" onClick={() => setIsRelocateModalOpen(true)}>
+              <ArrowRightLeft size={18} />
+              REMANEJAR
+            </button>
+          )}
+          {can('pecuaria', 'create') && (
+            <button className="primary-btn" onClick={handleOpenCreate}>
+              <Plus size={18} />
+              NOVO LOTE
+            </button>
+          )}
         </div>
       </header>
 

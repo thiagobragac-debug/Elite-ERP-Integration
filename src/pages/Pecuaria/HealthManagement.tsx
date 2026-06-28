@@ -137,7 +137,7 @@ export const HealthManagement: React.FC = () => {
       // Apaga movimentações de estoque geradas
       await supabase.from('movimentacoes_estoque').delete().eq('tenant_id', activeTenantId).like('origem_destino', `%[REF:${id}]%`);
       // Apaga o evento
-      const { error } = await supabase.from('sanidade').delete().eq('id', id);
+      const { error } = await supabase.from('sanidade').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -484,7 +484,8 @@ export const HealthManagement: React.FC = () => {
         const { error } = await supabase
           .from('sanidade')
           .update(updatePayload)
-          .eq('id', selectedEvent.id);
+          .eq('id', selectedEvent.id)
+          .eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -499,143 +500,15 @@ export const HealthManagement: React.FC = () => {
           return copy;
         });
 
-        const { data: sanidadeData, error } = await supabase
-          .from('sanidade')
-          .insert(recordsToInsert)
-          .select();
+        const { error } = await supabase.rpc('register_health_event', {
+          p_payload: recordsToInsert,
+          p_tenant_id: activeTenantId,
+          p_fazenda_id: activeFarmId,
+        });
+
         if (error) {
+          console.error('Erro ao registrar evento de sanidade via RPC:', error);
           throw error;
-        }
-
-        // Efeito Cascata: Inserir em sanidade_animais para o taxímetro individual
-        if (sanidadeData && sanidadeData.length > 0) {
-          for (let i = 0; i < sanidadeData.length; i++) {
-            const sanidade = sanidadeData[i];
-            if (sanidade.status !== 'REALIZADO') {
-              continue;
-            } // Só cascateia se a dose já foi aplicada!
-
-            const originalPayload = insertions[i];
-            let prodId = originalPayload.produto_id;
-
-            // Compatibilidade com protocolos antigos que só têm o nome
-            if (!prodId && originalPayload.produto) {
-              const { data: foundProd } = await supabase
-                .from('produtos')
-                .select('id')
-                .eq('nome', originalPayload.produto)
-                .eq('tenant_id', activeTenantId)
-                .limit(1)
-                .maybeSingle();
-              if (foundProd) {
-                prodId = foundProd.id;
-              }
-            }
-
-            // Obtem custo medio atual do produto e flag de controle de estoque
-            let custoMedio = 0;
-            let controleEstoque = false;
-            let depositoId = null;
-            if (prodId) {
-              const { data: prod } = await supabase
-                .from('produtos')
-                .select('custo_medio, is_storable')
-                .eq('id', prodId)
-                .maybeSingle();
-              if (prod) {
-                custoMedio = Number(prod.custo_medio || 0);
-                controleEstoque = prod.is_storable;
-              }
-              // Busca o primeiro deposito ativo da fazenda
-              const { data: dep } = await supabase
-                .from('depositos')
-                .select('id')
-                .eq('tenant_id', activeTenantId)
-                .or(`fazenda_id.eq.${activeFarmId},fazenda_id.is.null`)
-                .limit(1)
-                .maybeSingle();
-              if (dep) {
-                depositoId = dep.id;
-              }
-            }
-
-            // Descobre animais alvo
-            let animaisAlvo: any[] = [];
-            if (sanidade.animal_id) {
-              animaisAlvo = [{ id: sanidade.animal_id }];
-            } else if (sanidade.lote_id) {
-              const { data: animaisNoLote } = await supabase
-                .from('animais')
-                .select('id')
-                .eq('lote_id', sanidade.lote_id)
-                .eq('status', 'ATIVO');
-              animaisAlvo = animaisNoLote || [];
-            }
-
-            // Descobre se esta em confinamento (apenas para lotes)
-            let fase = 'RECRIA';
-            if (sanidade.lote_id) {
-              const { data: conf } = await supabase
-                .from('confinamento')
-                .select('id')
-                .eq('lote_id', sanidade.lote_id)
-                .eq('status', 'ATIVO')
-                .maybeSingle();
-              if (conf) {
-                fase = 'CONFINAMENTO';
-              }
-            }
-
-            // Insere
-            if (animaisAlvo.length > 0) {
-              const parsedDose = Number(String(sanidade.dose || '0').replace(/[^0-9.]/g, '')) || 1;
-              const totalDoseCost = parsedDose * custoMedio;
-
-              const sanidadeAnimaisInserts = animaisAlvo.map((a) => ({
-                tenant_id: activeTenantId,
-                fazenda_id: activeFarmId,
-                sanidade_id: sanidade.id,
-                animal_id: a.id,
-                produto_id: prodId || null,
-                quantidade_dose: parsedDose,
-                valor_unitario_aplicado: custoMedio,
-                valor_total_aplicado: totalDoseCost,
-                data_aplicacao: sanidade.data_manejo,
-                fase,
-              }));
-
-              const { error: saError } = await supabase
-                .from('sanidade_animais')
-                .insert(sanidadeAnimaisInserts);
-              if (saError) {
-                console.error('Erro na cascata sanidade_animais:', saError);
-                toast.error('Erro ao gerar custo do animal. Verifique o console.');
-              }
-
-              // Integração com o Estoque: Baixa automática se o produto for controlável
-              if (controleEstoque && prodId) {
-                const totalQuantityUsed = animaisAlvo.length * parsedDose;
-                const { error: stockError } = await supabase.from('movimentacoes_estoque').insert({
-                  produto_id: prodId,
-                  tipo: 'SAIDA',
-                  quantidade: totalQuantityUsed,
-                  custo_unitario: custoMedio,
-                  data_movimentacao: sanidade.data_manejo,
-                  origem_destino: `Manejo Sanitário [REF:${sanidade.id}]: ${sanidade.titulo || sanidade.produto || 'Aplicação'}`,
-                  responsavel: sanidade.veterinario || 'Sistema Pecuária',
-                  fazenda_id: activeFarmId,
-                  tenant_id: activeTenantId,
-                  deposito_id: depositoId,
-                });
-                if (stockError) {
-                  console.error('Erro ao baixar estoque:', stockError);
-                  toast.error(`Erro ao dar baixa no estoque: ${stockError.message}`);
-                } else {
-                  toast.success(`Baixa automática de ${totalQuantityUsed} no estoque do insumo.`);
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -779,14 +652,18 @@ export const HealthManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsProtocolsModalOpen(true)}>
-            <ShieldCheck size={18} />
-            PROTOCOLOS
-          </button>
-          <button className="primary-btn" onClick={handleOpenCreate}>
-            <Plus size={18} />
-            NOVO REGISTRO
-          </button>
+          {can('pecuaria', 'view') && (
+            <button className="glass-btn secondary" onClick={() => setIsProtocolsModalOpen(true)}>
+              <ShieldCheck size={18} />
+              PROTOCOLOS
+            </button>
+          )}
+          {can('pecuaria', 'create') && (
+            <button className="primary-btn" onClick={handleOpenCreate}>
+              <Plus size={18} />
+              NOVO REGISTRO
+            </button>
+          )}
         </div>
       </header>
 

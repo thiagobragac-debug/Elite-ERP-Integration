@@ -20,6 +20,7 @@ import {
   List as ListIcon,
   Truck,
 } from 'lucide-react';
+import { calculateIdadeMeses, calculateAnimalCategory } from '../../utils/animalUtils';
 
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
@@ -187,7 +188,8 @@ export const AnimalManagement: React.FC = () => {
         const { error } = await supabase
           .from('animais')
           .update(payload)
-          .eq('id', selectedAnimal.id);
+          .eq('id', selectedAnimal.id)
+          .eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -299,7 +301,7 @@ export const AnimalManagement: React.FC = () => {
 
   const deleteAnimalMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('animais').delete().eq('id', id);
+      const { error } = await supabase.from('animais').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -336,33 +338,8 @@ export const AnimalManagement: React.FC = () => {
       header: 'Brinco / Identificação',
       accessor: (item: any) => {
         const currentWeight = item.peso_atual || item.peso_inicial || 0;
-        let ageMonths = 0;
-        if (item.data_nascimento) {
-          ageMonths = Math.floor(
-            (new Date().getTime() - new Date(item.data_nascimento).getTime()) /
-              (1000 * 3600 * 24 * 30.44)
-          );
-        }
-        let category = '';
-        if (item.sexo === 'M') {
-          if (currentWeight > 500 || ageMonths > 36) {
-            category = 'Boi Gordo';
-          } else if (ageMonths <= 12) {
-            category = 'Bezerro';
-          } else {
-            category = 'Garrote';
-          }
-        } else if (item.sexo === 'F') {
-          if (currentWeight > 450 || ageMonths > 36) {
-            category = 'Vaca';
-          } else if (ageMonths <= 12) {
-            category = 'Bezerra';
-          } else {
-            category = 'Novilha';
-          }
-        } else {
-          category = 'N/I';
-        }
+        const ageMonths = calculateIdadeMeses(item.data_nascimento);
+        const category = calculateAnimalCategory(item.sexo, currentWeight, ageMonths);
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
@@ -528,14 +505,16 @@ export const AnimalManagement: React.FC = () => {
             <Truck size={18} />
             Romaneio
           </button>
-          <button
-            className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
-            onClick={handleOpenCreate}
-            style={isAnimalLimitReached ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-          >
-            <Plus size={18} />
-            Novo Animal
-          </button>
+          {can('pecuaria', 'create') && (
+            <button
+              className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
+              onClick={() => !isAnimalLimitReached && handleOpenCreate()}
+              title={isAnimalLimitReached ? 'Limite do plano atingido. Faça upgrade para registrar mais animais.' : ''}
+            >
+              <Plus size={18} />
+              Novo Animal
+            </button>
+          )}
         </div>
       </header>
 
@@ -768,20 +747,22 @@ export const AnimalManagement: React.FC = () => {
                   Não há animais registrados para esta unidade. Inicie o controle do rebanho
                   cadastrando o primeiro animal.
                 </p>
-                <button
-                  className="primary-btn"
-                  onClick={handleOpenCreate}
-                  style={{
-                    fontSize: '10.5px',
-                    padding: '6px 12px',
-                    height: '30px',
-                    marginTop: '4px',
-                    minHeight: 'auto',
-                  }}
-                >
-                  <Plus size={12} />
-                  <span>NOVO ANIMAL</span>
-                </button>
+                {can('pecuaria', 'create') && (
+                  <button
+                    className="primary-btn"
+                    onClick={handleOpenCreate}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO ANIMAL</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredAnimals.map((a) => {
@@ -816,13 +797,15 @@ export const AnimalManagement: React.FC = () => {
                   weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
                 const isPositiveGain = weightGain >= 0;
 
-                // Cor da barra de progresso inteligente com base no peso
                 let progressGradient = 'linear-gradient(90deg, #f59e0b, #ef4444)'; // Bezerro/Leve (<350kg)
                 if (currentWeight >= 350 && currentWeight <= 450) {
                   progressGradient = 'linear-gradient(90deg, #6366f1, #3b82f6)'; // Recria
                 } else if (currentWeight > 450) {
                   progressGradient = 'linear-gradient(90deg, #10b981, #059669)'; // Engorda/Pronto
                 }
+
+                const ageMonths = calculateIdadeMeses(a.data_nascimento);
+                const category = calculateAnimalCategory(a.sexo, currentWeight, ageMonths);
 
                 return (
                   <div key={a.id} className={`animal-card-premium ${borderClass}`}>
@@ -927,7 +910,7 @@ export const AnimalManagement: React.FC = () => {
                             >
                               {a.raca || 'Nelore'} • {ageText} •{' '}
                               <span style={{ color: 'hsl(var(--brand))' }}>
-                                {a.categoria || 'Recria'}
+                                {category}
                               </span>
                             </div>
                           </div>
@@ -1069,10 +1052,14 @@ export const AnimalManagement: React.FC = () => {
                 );
               })
             )}
-            <button className="add-animal-card-premium" onClick={handleOpenCreate}>
-              <Plus size={32} />
-              <span>NOVO ANIMAL</span>
-            </button>
+            {can('pecuaria', 'create') && (
+              <button className="add-animal-card-premium" onClick={handleOpenCreate}>
+                <Plus size={24} style={{ color: 'hsl(var(--brand))' }} />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b', marginTop: '4px' }}>
+                  Novo Animal
+                </span>
+              </button>
+            )}
           </div>
         )}
       </div>

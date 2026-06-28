@@ -1170,7 +1170,13 @@ export const WeightManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {/* Máx. 2 botões conforme padrão do sistema */}
+          <button
+            className={`icon-btn-secondary ${scaleState.status === 'CONNECTED' ? 'active' : ''}`}
+            title={scaleState.status === 'CONNECTED' ? `Balança ${scaleState.brand} conectada` : 'Configurar Balança'}
+            onClick={() => setIsScaleModalOpen(true)}
+          >
+            <Scale size={20} />
+          </button>
           <button
             className="glass-btn secondary"
             style={{
@@ -1274,14 +1280,6 @@ export const WeightManagement: React.FC = () => {
         </div>
 
         <div className="tauze-filter-group">
-          {/* Configurar Balança — no grupo de filtros para não exceder 2 botões no page-actions */}
-          <button
-            className={`icon-btn-secondary ${scaleState.status === 'CONNECTED' ? 'active' : ''}`}
-            title={scaleState.status === 'CONNECTED' ? `Balança ${scaleState.brand} conectada` : 'Configurar Balança'}
-            onClick={() => setIsScaleModalOpen(true)}
-          >
-            <Scale size={20} />
-          </button>
           <button
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
