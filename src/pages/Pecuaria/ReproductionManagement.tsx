@@ -548,20 +548,26 @@ export const ReproductionManagement: React.FC = () => {
           )}
           
           {activeTab === 'TEMPLATES' ? (
-            <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
-              <Plus size={18} />
-              NOVO TEMPLATE
-            </button>
+            can('pecuaria', 'create') && (
+              <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
+                <Plus size={18} />
+                NOVO TEMPLATE
+              </button>
+            )
           ) : activeTab === 'PROTOCOLOS' ? (
-            <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
-              <Plus size={18} />
-              NOVO PROTOCOLO
-            </button>
+            can('pecuaria', 'create') && (
+              <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
+                <Plus size={18} />
+                NOVO PROTOCOLO
+              </button>
+            )
           ) : (
-            <button className="primary-btn" onClick={handleOpenCreate}>
-              <Plus size={18} />
-              NOVO EVENTO
-            </button>
+            can('pecuaria', 'create') && (
+              <button className="primary-btn" onClick={handleOpenCreate}>
+                <Plus size={18} />
+                NOVO REGISTRO
+              </button>
+            )
           )}
         </div>
       </header>

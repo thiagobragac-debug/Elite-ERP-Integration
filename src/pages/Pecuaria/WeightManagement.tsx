@@ -1180,23 +1180,27 @@ export const WeightManagement: React.FC = () => {
           >
             <Wifi size={20} />
           </button>
-          <button
-            className="glass-btn secondary"
-            style={{
-              borderColor: 'hsl(var(--brand) / 0.3)',
-              color: 'hsl(var(--brand))',
-              fontWeight: 800,
-              background: 'hsl(var(--brand) / 0.08)',
-            }}
-            onClick={() => setIsBatchModalOpen(true)}
-          >
-            <Layers size={18} />
-            PESAGEM EM MASSA
-          </button>
-          <button className="primary-btn" onClick={handleOpenCreate}>
-            <Plus size={18} />
-            NOVA PESAGEM
-          </button>
+          {can('pecuaria', 'create') && (
+            <>
+              <button
+                className="glass-btn secondary"
+                style={{
+                  borderColor: 'hsl(var(--brand) / 0.3)',
+                  color: 'hsl(var(--brand))',
+                  fontWeight: 800,
+                  background: 'hsl(var(--brand) / 0.08)',
+                }}
+                onClick={() => setIsBatchModalOpen(true)}
+              >
+                <Layers size={18} />
+                PESAGEM EM MASSA
+              </button>
+              <button className="primary-btn" onClick={handleOpenCreate}>
+                <Plus size={18} />
+                NOVO REGISTRO
+              </button>
+            </>
+          )}
         </div>
 
       </header>

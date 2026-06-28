@@ -21,6 +21,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -197,7 +198,17 @@ export const LivestockDashboard: React.FC = () => {
               </div>
             </div>
             <div className="chart-container">
-              <TauzeMainChart data={performanceData} color="#10b981" height={320} mode="line" />
+              {performanceData && performanceData.length > 0 ? (
+                <TauzeMainChart data={performanceData} color="#10b981" height={320} mode="line" />
+              ) : (
+                <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <EmptyState 
+                    title="Sem dados de pesagem recentes"
+                    description="Registre pesagens para visualizar a evolução do GMD."
+                    icon={Scale}
+                  />
+                </div>
+              )}
             </div>
             <div className="chart-footer-insights">
               <div className="insight-pill">
@@ -217,30 +228,46 @@ export const LivestockDashboard: React.FC = () => {
               </div>
             </div>
             <div className="queue-list">
-              {operationalQueue.filter((item: any) => {
-                if (item.type === 'VACINA' && !hasSanidade) return false;
-                if (item.type === 'NUTRIÇÃO' && !hasNutricao) return false;
-                if (item.type === 'REPRODUÇÃO' && !hasReproducao) return false;
-                if (item.type === 'PESAGEM' && !hasPesagens) return false;
-                return true;
-              }).map((item: any) => (
-                <div key={item.id} className={`queue-item ${item.priority}`}>
-                  <div className="q-icon">
-                    {item.type === 'VACINA' && <ShieldCheck size={16} />}
-                    {item.type === 'PESAGEM' && <Scale size={16} />}
-                    {item.type === 'NUTRIÇÃO' && <Utensils size={16} />}
-                    {item.type === 'REPRODUÇÃO' && <Activity size={16} />}
+              {(() => {
+                const filteredQueue = operationalQueue.filter((item: any) => {
+                  if (item.type === 'VACINA' && !hasSanidade) return false;
+                  if (item.type === 'NUTRIÇÃO' && !hasNutricao) return false;
+                  if (item.type === 'REPRODUÇÃO' && !hasReproducao) return false;
+                  if (item.type === 'PESAGEM' && !hasPesagens) return false;
+                  return true;
+                });
+
+                if (filteredQueue.length === 0) {
+                  return (
+                    <div style={{ padding: '32px 16px' }}>
+                      <EmptyState 
+                        title="Agenda Livre"
+                        description="Nenhum manejo agendado para os próximos dias."
+                        icon={Clock}
+                      />
+                    </div>
+                  );
+                }
+
+                return filteredQueue.map((item: any) => (
+                  <div key={item.id} className={`queue-item ${item.priority}`}>
+                    <div className="q-icon">
+                      {item.type === 'VACINA' && <ShieldCheck size={16} />}
+                      {item.type === 'PESAGEM' && <Scale size={16} />}
+                      {item.type === 'NUTRIÇÃO' && <Utensils size={16} />}
+                      {item.type === 'REPRODUÇÃO' && <Activity size={16} />}
+                    </div>
+                    <div className="q-info">
+                      <span className="q-title">{item.title}</span>
+                      <span className="q-target">{item.target}</span>
+                    </div>
+                    <div className="q-meta">
+                      <span className="q-date">{item.date}</span>
+                      <ChevronRight size={14} />
+                    </div>
                   </div>
-                  <div className="q-info">
-                    <span className="q-title">{item.title}</span>
-                    <span className="q-target">{item.target}</span>
-                  </div>
-                  <div className="q-meta">
-                    <span className="q-date">{item.date}</span>
-                    <ChevronRight size={14} />
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
             <button className="view-all-btn">VER AGENDA COMPLETA</button>
           </div>

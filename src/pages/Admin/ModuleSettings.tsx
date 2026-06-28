@@ -7,6 +7,7 @@ import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
 import { CertificateSettingsTab } from './CertificateSettingsTab';
 import { PeriodManagementTab } from './PeriodManagementTab';
+import { PecuariaSettingsTab } from './PecuariaSettingsTab';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ModuleSettings: React.FC = () => {
@@ -83,6 +84,7 @@ export const ModuleSettings: React.FC = () => {
         ];
       case 'pecuaria':
         return [
+          { id: 'parametros', label: 'Parâmetros Zootécnicos' },
           { id: 'categorias', label: 'Categorias de Animais' },
           { id: 'racas', label: 'Raças' },
         ];
@@ -319,6 +321,16 @@ export const ModuleSettings: React.FC = () => {
               searchTerm={searchTerm}
               triggerCreate={triggerCreate}
               triggerImport={triggerImport}
+            />
+          )}
+          {activeSetting === 'parametros' && (
+            <PecuariaSettingsTab
+              activeTab={activeSetting}
+              triggerSave={triggerCreate}
+              onSaveStatus={(saving, success) => {
+                setSystemIsSaving(saving);
+                setSystemSaveSuccess(success);
+              }}
             />
           )}
           {(activeSetting === 'planos' ||

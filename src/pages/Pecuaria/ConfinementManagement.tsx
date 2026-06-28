@@ -553,17 +553,21 @@ export const ConfinementManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          <button 
-            className="glass-btn secondary" 
-            onClick={() => setCheckOutPens(confinements.filter((p) => p.status !== 'archived' && p.lote_id))}
-          >
-            <Scale size={18} />
-            Check-out Lote
-          </button>
-          <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
-            <Plus size={18} />
-            Novo Check-in
-          </button>
+          {can('pecuaria', 'create') && (
+            <>
+              <button 
+                className="glass-btn secondary" 
+                onClick={() => setCheckOutPens(confinements.filter((p) => p.status !== 'archived' && p.lote_id))}
+              >
+                <Scale size={18} />
+                Check-out Lote
+              </button>
+              <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
+                <Plus size={18} />
+                NOVO REGISTRO
+              </button>
+            </>
+          )}
         </div>
       </header>
 

@@ -19,14 +19,26 @@ export function calculateIdadeMeses(dataNascimento: string | null | undefined): 
 
 /**
  * Calcula a categoria zootécnica do animal com base no sexo, peso atual e idade.
+ * Os limites podem ser sobrescritos pelas configurações da fazenda.
  * @param sexo - 'M' ou 'F'
  * @param pesoAtual - peso do animal em Kg
  * @param idadeMeses - idade do animal em meses
+ * @param config - Configurações zootécnicas da fazenda (opcional)
  * @returns Categoria ('Boi Gordo', 'Bezerro', 'Garrote', 'Vaca', 'Bezerra', 'Novilha', 'N/I')
  */
-export function calculateAnimalCategory(sexo: string, pesoAtual: number, idadeMeses: number): string {
+export function calculateAnimalCategory(
+  sexo: string,
+  pesoAtual: number,
+  idadeMeses: number,
+  config?: { pesoBoiGordo?: number; idadeBoiGordo?: number; pesoVaca?: number; idadeVaca?: number }
+): string {
+  const pesoBoiGordo = config?.pesoBoiGordo || 500;
+  const idadeBoiGordo = config?.idadeBoiGordo || 36;
+  const pesoVaca = config?.pesoVaca || 450;
+  const idadeVaca = config?.idadeVaca || 36;
+
   if (sexo === 'M') {
-    if (pesoAtual > 500 || idadeMeses > 36) {
+    if (pesoAtual > pesoBoiGordo || idadeMeses > idadeBoiGordo) {
       return 'Boi Gordo';
     } else if (idadeMeses <= 12) {
       return 'Bezerro';
@@ -34,7 +46,7 @@ export function calculateAnimalCategory(sexo: string, pesoAtual: number, idadeMe
       return 'Garrote';
     }
   } else if (sexo === 'F') {
-    if (pesoAtual > 450 || idadeMeses > 36) {
+    if (pesoAtual > pesoVaca || idadeMeses > idadeVaca) {
       return 'Vaca';
     } else if (idadeMeses <= 12) {
       return 'Bezerra';
@@ -72,9 +84,15 @@ export function calculateDiasParaAbate(pesoAtual: number, pesoMeta: number, gmdM
  * Retorna o cálculo do Custo por Arroba (@) Produzida
  * @param custoTotal - soma dos custos (nutrição, sanidade, reprodução)
  * @param pesoGanhoKg - total de kg ganhos no período
+ * @param rendimentoCarcaca - Rendimento percentual da carcaça (ex: 50 para 50%). Padrão é 50.
  */
-export function calculateCustoArrobaProduzida(custoTotal: number, pesoGanhoKg: number): number {
+export function calculateCustoArrobaProduzida(custoTotal: number, pesoGanhoKg: number, rendimentoCarcaca: number = 50): number {
   if (pesoGanhoKg <= 0) return 0;
-  const arrobasPuxadas = pesoGanhoKg / 30; // Rendimento de carcaça aproximado (50% de 30kg = 15kg/arroba) -> Ganho em carcaça. Uma arroba = 15kg de carcaça ou 30kg de peso vivo.
+  
+  // Exemplo: se rendimento = 50%, multiplicador = 0.5. Arroba padrão = 15kg carcaça.
+  // 1 Arroba (15kg) / 0.5 = 30kg de peso vivo para gerar 1 Arroba.
+  const kgVivoPorArroba = 15 / (rendimentoCarcaca / 100); 
+  const arrobasPuxadas = pesoGanhoKg / kgVivoPorArroba;
+  
   return Number((custoTotal / arrobasPuxadas).toFixed(2));
 }

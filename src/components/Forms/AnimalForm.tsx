@@ -26,6 +26,10 @@ import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { DateInput } from '../../components/Form/DateInput';
+import { BasicInfoSection } from './AnimalFormSections/BasicInfoSection';
+import { LocationSection } from './AnimalFormSections/LocationSection';
+import { OriginSection } from './AnimalFormSections/OriginSection';
+import { ZootecnicaSection } from './AnimalFormSections/ZootecnicaSection';
 
 // ─── RFID Formatter ──────────────────────────────────────────────────────────
 const formatRFID = (value: string) => {
@@ -575,297 +579,18 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       <section className="tauze-form-section">
         <SectionBadge step="PASSO 01" label="Identificação Básica" complete={sectionProgress.s1} />
 
-        {/* Row 1 — Brinco Visual (1 col) | Nome (1 col) | RFID (1 col) */}
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Hash size={14} /> Brinco Visual (Manejo)
-            </label>
-            <input
-              className={`tauze-input${duplicateBrinco ? ' tauze-input-error' : ''}`}
-              type="text"
-              placeholder="Ex: 1234-A"
-              value={formData.brinco}
-              onChange={(e) => {
-                setFormData({ ...formData, brinco: e.target.value.toUpperCase() });
-                if (duplicateBrinco) setDuplicateBrinco(false);
-              }}
-              onBlur={handleBrincoBlur}
-              required
-            />
-            {duplicateBrinco && (
-              <span className="tauze-field-error">
-                ⚠ Brinco já cadastrado — verifique o número
-              </span>
-            )}
-          </div>
-
-          {/* Nome/apelido do animal — opcional, muito útil para matrizes e reprodutores */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Info size={14} /> Nome do Animal
-              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
-                (Opcional)
-              </span>
-            </label>
-            <input
-              className="tauze-input"
-              type="text"
-              placeholder="Ex: Maverick, Estrela..."
-              value={formData.nome}
-              onChange={(e) =>
-                setFormData({ ...formData, nome: e.target.value })
-              }
-            />
-          </div>
-
-          {/* RFID — 1 coluna igual às demais */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <CircleDot size={14} /> Brinco Eletrônico (RFID)
-            </label>
-            <div
-              className="tauze-input"
-              style={{ display: 'flex', alignItems: 'center', padding: '0 14px', position: 'relative' }}
-            >
-              {formData.brinco_eletronico.length <= 3 && (
-                <span
-                  style={{
-                    color:
-                      formData.brinco_eletronico.length > 0
-                        ? 'inherit'
-                        : 'hsl(var(--text-muted))',
-                    opacity: formData.brinco_eletronico.length > 0 ? 1 : 0.6,
-                    marginRight: '4px',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Ex:
-                </span>
-              )}
-              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  value={formData.brinco_eletronico}
-                  onChange={(e) =>
-                    setFormData({ ...formData, brinco_eletronico: formatRFID(e.target.value) })
-                  }
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    width: '100%',
-                    position: 'relative',
-                    zIndex: 2,
-                    color: 'inherit',
-                    padding: '9px 0',
-                    fontSize: 'inherit',
-                    fontFamily: 'inherit',
-                    fontWeight: 'inherit',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1,
-                    color: 'hsl(var(--text-muted))',
-                    pointerEvents: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    whiteSpace: 'pre',
-                    opacity: 0.6,
-                    fontWeight: 'inherit',
-                  }}
-                >
-                  <span style={{ color: 'transparent' }}>{formData.brinco_eletronico}</span>
-                  <span>{'076 0000 1234 5678'.substring(formData.brinco_eletronico.length)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Sexo | Nascimento+Idade | Status de Entrada */}
-        <div className="tauze-input-grid grid-col-3">
-          {/* FIX #9: Ícones ♂/♀ distintos */}
-          <div
-            className="tauze-field-group"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}
-          >
-            <label className="tauze-label">
-              <User2 size={14} /> Sexo
-            </label>
-            <div className="tauze-form-radio-group" style={{ height: '48px', marginTop: 0 }}>
-              <div
-                className={`tauze-form-radio-item ${formData.sexo === 'M' ? 'active-macho' : ''}`}
-                style={{
-                  height: '48px',
-                  padding: 0,
-                  boxSizing: 'border-box',
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-                onClick={() => setFormData({ ...formData, sexo: 'M' })}
-              >
-                {/* FIX #9: símbolo ♂ distinto */}
-                <span style={{ fontSize: '15px', lineHeight: 1 }}>♂</span>
-                <span>Macho</span>
-              </div>
-              <div
-                className={`tauze-form-radio-item ${formData.sexo === 'F' ? 'active-femea' : ''}`}
-                style={{
-                  height: '48px',
-                  padding: 0,
-                  boxSizing: 'border-box',
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-                onClick={() => setFormData({ ...formData, sexo: 'F' })}
-              >
-                {/* FIX #9: símbolo ♀ distinto */}
-                <span style={{ fontSize: '15px', lineHeight: 1 }}>♀</span>
-                <span>Fêmea</span>
-              </div>
-            </div>
-          </div>
-
-          {/* FIX #10: sufixo "meses" explícito no campo de idade */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Calendar size={14} /> Nascimento / Idade
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <DateInput
-                className="tauze-input"
-                style={{ flex: '2', minWidth: 0 }}
-                type="date"
-                title="Data de Nascimento"
-                value={formData.data_nascimento}
-                onChange={(e) => handleDataNascimentoChange(e.target.value)}
-              />
-              <div style={{ position: 'relative', flex: '0.8', minWidth: 0 }}>
-                <input
-                  className="tauze-input"
-                  style={{ width: '100%', paddingRight: '52px' }}
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  title="Idade em Meses"
-                  value={formData.idade_meses}
-                  onChange={(e) => handleIdadeChange(e.target.value)}
-                />
-                <span
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: 'hsl(var(--text-muted))',
-                    pointerEvents: 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  meses
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* FIX #12: Campo Status de Entrada */}
-          <div
-            className="tauze-field-group"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}
-          >
-            <label className="tauze-label">
-              <Activity size={14} /> Status de Entrada
-            </label>
-            <div className="tauze-form-radio-group" style={{ height: '48px', marginTop: 0 }}>
-              {(
-                [
-                  { value: 'Ativo', cls: 'active' },
-                  { value: 'Quarentena', cls: 'active-manutencao' },
-                ] as const
-              ).map(({ value, cls }) => (
-                <div
-                  key={value}
-                  className={`tauze-form-radio-item ${formData.status === value ? cls : ''}`}
-                  style={{
-                    height: '48px',
-                    padding: 0,
-                    boxSizing: 'border-box',
-                    margin: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                  }}
-                  onClick={() => setFormData({ ...formData, status: value })}
-                >
-                  {value}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Row 3: Raça | Pelagem | Peso de Entrada — FIX #11: peso movido para Passo 01 */}
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Tag size={14} /> Raça
-            </label>
-            <SearchableSelect
-              value={formData.raca}
-              onChange={handleRacaChange}
-              options={[
-                { value: '', label: 'Selecionar Raça...' },
-                ...racas.map((r) => ({ value: r.nome, label: r.nome })),
-              ]}
-              creatable={true}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Info size={14} /> Pelagem
-            </label>
-            <input
-              className="tauze-input"
-              type="text"
-              placeholder="Ex: Branco, Manchado"
-              value={formData.pelagem}
-              onChange={(e) => setFormData({ ...formData, pelagem: e.target.value })}
-            />
-          </div>
-
-          {/* FIX #11: Peso de Entrada aqui, no Passo 01 */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Scale size={14} /> Peso de Entrada (kg)
-            </label>
-            <input
-              className="tauze-input"
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="0.0"
-              value={formData.peso_inicial}
-              onChange={(e) => setFormData({ ...formData, peso_inicial: e.target.value })}
-            />
-          </div>
-        </div>
+        <BasicInfoSection
+          formData={formData}
+          setFormData={setFormData}
+          duplicateBrinco={duplicateBrinco}
+          setDuplicateBrinco={setDuplicateBrinco}
+          handleBrincoBlur={handleBrincoBlur}
+          formatRFID={formatRFID}
+          handleDataNascimentoChange={handleDataNascimentoChange}
+          handleIdadeChange={handleIdadeChange}
+          racas={racas}
+          handleRacaChange={handleRacaChange}
+        />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -874,71 +599,16 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       <section className="tauze-form-section">
         <SectionBadge step="PASSO 02" label="Localização do Animal" complete={sectionProgress.s2} />
 
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Building2 size={14} /> Fazenda de Destino
-            </label>
-            <SearchableSelect
-              value={formData.fazenda_id}
-              onChange={(val: any) =>
-                setFormData({ ...formData, fazenda_id: val, pasto_id: '', lote_id: '' })
-              }
-              disabled={loadingFazendas}
-              options={[
-                {
-                  value: '',
-                  label: loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...',
-                },
-                ...fazendas.map((f) => ({ value: String(f.id), label: f.nome })),
-              ]}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Award size={14} /> Lote de Destino (Opcional)
-            </label>
-            <SearchableSelect
-              value={formData.lote_id}
-              onChange={(val: any) => setFormData({ ...formData, lote_id: val })}
-              disabled={!formData.fazenda_id || loadingLotes}
-              options={[
-                {
-                  value: '',
-                  label: !formData.fazenda_id
-                    ? 'Selecione a fazenda'
-                    : loadingLotes
-                      ? 'Carregando lotes...'
-                      : 'Sem lote definido',
-                },
-                ...lotes.map((l) => ({ value: String(l.id), label: l.nome })),
-              ]}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <MapPin size={14} /> Pasto (Opcional)
-            </label>
-            <SearchableSelect
-              value={formData.pasto_id}
-              onChange={(val: any) => setFormData({ ...formData, pasto_id: val })}
-              disabled={!formData.fazenda_id || loadingPastos}
-              options={[
-                {
-                  value: '',
-                  label: !formData.fazenda_id
-                    ? 'Selecione a fazenda'
-                    : loadingPastos
-                      ? 'Carregando pastos...'
-                      : 'Sem pasto definido',
-                },
-                ...pastos.map((p) => ({ value: String(p.id), label: p.nome })),
-              ]}
-            />
-          </div>
-        </div>
+        <LocationSection
+          formData={formData}
+          setFormData={setFormData}
+          fazendas={fazendas}
+          lotes={lotes}
+          pastos={pastos}
+          loadingFazendas={loadingFazendas}
+          loadingLotes={loadingLotes}
+          loadingPastos={loadingPastos}
+        />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -947,156 +617,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       <section className="tauze-form-section">
         <SectionBadge step="PASSO 03" label="Origem e Genealogia" complete={sectionProgress.s3} />
 
-        {/* Seletor de origem */}
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Users size={14} /> Origem do Animal
-          </label>
-          <div
-            className="tauze-form-radio-group"
-            style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
-          >
-            <div
-              className={`tauze-form-radio-item ${formData.origem === 'Nascido' ? 'active' : ''}`}
-              onClick={() => setFormData({ ...formData, origem: 'Nascido' })}
-            >
-              <Home size={14} />
-              <span>Nascido na Fazenda</span>
-            </div>
-            <div
-              className={`tauze-form-radio-item ${formData.origem === 'Comprado' ? 'active-comprado' : ''}`}
-              onClick={() => setFormData({ ...formData, origem: 'Comprado' })}
-            >
-              <ShoppingCart size={14} />
-              <span>Comprado (Entrada)</span>
-            </div>
-            <div
-              className={`tauze-form-radio-item ${formData.origem === 'Doação' ? 'active-doacao' : ''}`}
-              onClick={() => setFormData({ ...formData, origem: 'Doação' })}
-            >
-              <Gift size={14} />
-              <span>Doação</span>
-            </div>
-          </div>
-        </div>
-
-        {/* FIX #8: Campos condicionais por origem */}
-
-        {/* Nascido na Fazenda → Genealogia */}
-        {formData.origem === 'Nascido' && (
-          <div className="tauze-input-grid grid-col-2">
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <Users size={14} /> Brinco da Mãe
-              </label>
-              <input
-                className="tauze-input"
-                type="text"
-                placeholder="Brinco da Matriz"
-                value={formData.mae_brinco}
-                onChange={(e) =>
-                  setFormData({ ...formData, mae_brinco: e.target.value.toUpperCase() })
-                }
-              />
-            </div>
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <Users size={14} /> Brinco do Pai
-              </label>
-              <input
-                className="tauze-input"
-                type="text"
-                placeholder="Brinco do Reprodutor"
-                value={formData.pai_brinco}
-                onChange={(e) =>
-                  setFormData({ ...formData, pai_brinco: e.target.value.toUpperCase() })
-                }
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Comprado → Dados da Compra */}
-        {formData.origem === 'Comprado' && (
-          <div className="tauze-input-grid grid-col-3">
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <FileText size={14} /> Fornecedor / Vendedor
-              </label>
-              <input
-                className="tauze-input"
-                type="text"
-                placeholder="Nome do fornecedor"
-                value={formData.fornecedor}
-                onChange={(e) => setFormData({ ...formData, fornecedor: e.target.value })}
-              />
-            </div>
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <FileText size={14} /> Nota Fiscal (NF)
-              </label>
-              <input
-                className="tauze-input"
-                type="text"
-                placeholder="Nº da Nota Fiscal"
-                value={formData.nota_fiscal}
-                onChange={(e) => setFormData({ ...formData, nota_fiscal: e.target.value })}
-              />
-            </div>
-            <div className="tauze-field-group">
-              {/* FIX #6: custo/arroba corrigido + exibição apenas em contexto de compra */}
-              <label
-                className="tauze-label"
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span>
-                  <DollarSign size={14} /> Valor de Compra (R$)
-                </span>
-                {custoArroba && (
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      fontSize: '10px',
-                      background: 'hsl(var(--brand)/0.1)',
-                      color: 'hsl(var(--brand))',
-                      borderRadius: '4px',
-                      fontWeight: 800,
-                    }}
-                  >
-                    {custoArroba} / @
-                  </span>
-                )}
-              </label>
-              <input
-                className="tauze-input"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={formData.valor_compra}
-                onChange={(e) => setFormData({ ...formData, valor_compra: e.target.value })}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Doação → Dados do Doador */}
-        {formData.origem === 'Doação' && (
-          <div className="tauze-input-grid grid-col-2">
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <Gift size={14} /> Doador
-              </label>
-              <input
-                className="tauze-input"
-                type="text"
-                placeholder="Nome do doador"
-                value={formData.doador}
-                onChange={(e) => setFormData({ ...formData, doador: e.target.value })}
-              />
-            </div>
-          </div>
-        )}
+        <OriginSection formData={formData} setFormData={setFormData} custoArroba={custoArroba} />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -1109,68 +630,13 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
           complete={sectionProgress.s4}
         />
 
-        <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group">
-            <label className="tauze-label" style={{ gap: '6px' }}>
-              <Beef size={14} /> Categoria
-              {/* FIX #4: indica o estado da categoria ao usuário */}
-              {!categoriaEditadaManualmente && formData.idade_meses ? (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    color: 'hsl(var(--brand))',
-                    background: 'hsl(var(--brand)/0.1)',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                  }}
-                >
-                  Auto-Sugerida
-                </span>
-              ) : categoriaEditadaManualmente ? (
-                <span
-                  style={{
-                    fontSize: '10px',
-                    color: '#10b981',
-                    background: 'rgba(16,185,129,0.1)',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                  }}
-                >
-                  Manual
-                </span>
-              ) : null}
-            </label>
-            <SearchableSelect
-              value={formData.categoria}
-              onChange={handleCategoriaChange}
-              options={[
-                { value: '', label: 'Selecionar Categoria...' },
-                ...categorias.map((c) => ({ value: c.nome, label: c.nome })),
-              ]}
-              creatable={true}
-            />
-          </div>
-
-          {/* FIX #15: opções expandidas de Finalidade */}
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <Beef size={14} /> Finalidade
-            </label>
-            <SearchableSelect
-              value={formData.finalidade}
-              onChange={(val: any) => setFormData({ ...formData, finalidade: val })}
-              options={[
-                { value: '', label: 'Selecionar...' },
-                { value: 'Corte', label: 'Corte' },
-                { value: 'Leite', label: 'Leite' },
-                { value: 'Reprodução', label: 'Reprodução' },
-                { value: 'Trabalho', label: 'Trabalho / Tração' },
-                { value: 'Exposição', label: 'Exposição / Show' },
-                { value: 'Descarte', label: 'Descarte' },
-              ]}
-            />
-          </div>
-        </div>
+        <ZootecnicaSection 
+          formData={formData} 
+          setFormData={setFormData} 
+          categorias={categorias} 
+          categoriaEditadaManualmente={categoriaEditadaManualmente} 
+          handleCategoriaChange={handleCategoriaChange} 
+        />
       </section>
     </SidePanel>
   );
