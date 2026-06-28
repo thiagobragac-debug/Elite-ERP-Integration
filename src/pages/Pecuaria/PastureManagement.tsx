@@ -411,103 +411,14 @@ const PastureManagement: React.FC = () => {
 
   const saveRenovationMutation = useMutation({
     mutationFn: async (payload: any) => {
-      let reformaId = payload.reforma.id;
+      const { error } = await supabase.rpc('register_pasture_renovation_step', {
+        p_payload: payload,
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: activeFarmId,
+      });
 
-      // 1. Insert/Update Reforma
-      if (reformaId) {
-        const { error } = await supabase
-          .from('reformas_pasto')
-          .update({
-            status: payload.reforma.status,
-            objetivo: payload.reforma.objetivo,
-            analise_v_percent: payload.reforma.analise_v_percent,
-            analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
-            analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
-            foto_antes_url: payload.reforma.foto_antes_url,
-            foto_depois_url: payload.reforma.foto_depois_url,
-            observacoes: payload.reforma.observacoes,
-          })
-          .eq('id', reformaId);
-        if (error) {
-          throw error;
-        }
-      } else {
-        const { data, error } = await supabase
-          .from('reformas_pasto')
-          .insert([
-            {
-              pasto_id: payload.reforma.pasto_id,
-              tenant_id: activeTenantId,
-              fazenda_id: activeFarmId,
-              data_inicio: payload.reforma.data_inicio,
-              status: payload.reforma.status,
-              objetivo: payload.reforma.objetivo,
-              analise_v_percent: payload.reforma.analise_v_percent,
-              analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
-              analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
-              foto_antes_url: payload.reforma.foto_antes_url,
-              foto_depois_url: payload.reforma.foto_depois_url,
-              observacoes: payload.reforma.observacoes,
-            },
-          ])
-          .select()
-          .single();
-        if (error) {
-          throw error;
-        }
-        reformaId = data.id;
-      }
-
-      // 2. Insert Etapa
-      const { error: errEtapa } = await supabase.from('reforma_etapas').insert([
-        {
-          tenant_id: activeTenantId,
-          reforma_id: reformaId,
-          tipo_etapa: payload.nova_etapa.tipo_etapa,
-          data_registro: payload.nova_etapa.data_registro,
-          maquina_id: payload.nova_etapa.maquina_id || null,
-          horas_trabalhadas: parseFloat(payload.nova_etapa.horas_trabalhadas) || 0,
-          custo_hora: parseFloat(payload.nova_etapa.custo_hora) || 0,
-          itens_consumidos: payload.nova_etapa.itens_consumidos,
-          custo_etapa: payload.nova_etapa.custo_etapa,
-          observacoes: payload.nova_etapa.observacoes,
-        },
-      ]);
-      if (errEtapa) {
-        throw errEtapa;
-      }
-
-      // 3. Process Stock (ConsumptionCart items)
-      for (const item of payload.nova_etapa.itens_consumidos) {
-        if (item.produto_id && item.quantidade) {
-          const { error: stockErr } = await supabase.rpc('processar_saida_estoque', {
-            p_produto_id: item.produto_id,
-            p_deposito_id: item.deposito_id || null, // Assuming you might have a deposit selected in the cart
-            p_quantidade: parseFloat(item.quantidade),
-            p_valor_unitario: parseFloat(item.valor_unitario) || 0,
-            p_tenant_id: activeTenantId,
-            p_fazenda_id: activeFarmId,
-            p_origem: 'REFORMA_PASTO',
-            p_origem_id: reformaId,
-            p_usuario_id: null, // Ideally use the current user UUID
-          });
-          if (stockErr) {
-            console.warn('Stock depletion error (ignoring if RPC not found/mocked):', stockErr);
-          }
-        }
-      }
-
-      // 4. Update Pasto Status
-      let finalPastoStatus = 'em_reforma';
-      if (payload.reforma.status === 'concluida') {
-        finalPastoStatus = 'resting'; // returns to resting after renovation
-      }
-      const { error: pastoErr } = await supabase
-        .from('pastos')
-        .update({ status: finalPastoStatus })
-        .eq('id', payload.reforma.pasto_id);
-      if (pastoErr) {
-        throw pastoErr;
+      if (error) {
+        throw error;
       }
     },
     onSuccess: () => {

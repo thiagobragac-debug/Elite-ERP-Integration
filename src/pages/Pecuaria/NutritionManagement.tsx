@@ -182,83 +182,15 @@ export const NutritionManagement: React.FC = () => {
 
   const saveFeedMutation = useMutation({
     mutationFn: async (payloads: any[]) => {
-      // 1. Process each lot in the payload
-      for (const p of payloads) {
-        let animais: { id: string }[] = [];
-        if (p.animal_id) {
-          animais = [{ id: p.animal_id }];
-        } else {
-          // Find animals in this lot
-          const { data: lotesAnimais } = await supabase
-            .from('animais')
-            .select('id')
-            .eq('lote_id', p.lote_id)
-            .eq('status', 'Ativo');
-          if (lotesAnimais) {
-            animais = lotesAnimais;
-          }
-        }
+      // Usa a nova RPC transacional para garantir consistência no banco (ACID)
+      const { error } = await supabase.rpc('apply_nutrition_feed', {
+        p_payload: payloads,
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: activeFarmId,
+      });
 
-        const numAnimals = animais && animais.length > 0 ? animais.length : 1;
-
-        // Calculate per animal values (for the entire lot)
-        // Note: BatchFeedForm creates payloads per lot. We distribute `quantidade` from each payload item.
-        const qtyPerAnimal =
-          p.insumos.reduce((acc: number, insumo: any) => acc + insumo.quantidade, 0) / numAnimals;
-        const valuePerAnimal =
-          p.insumos.reduce(
-            (acc: number, insumo: any) => acc + insumo.quantidade * insumo.custo_medio,
-            0
-          ) / numAnimals;
-
-        // Insert nutricao_animais for each animal
-        if (animais && animais.length > 0) {
-          const nutricaoInserts = animais.map((a) => ({
-            tenant_id: activeTenantId,
-            fazenda_id: activeFarmId,
-            animal_id: a.id,
-            dieta_id: p.dieta_id,
-            lote_id: p.lote_id,
-            quantidade_kg: qtyPerAnimal,
-            valor_unitario_kg: qtyPerAnimal > 0 ? valuePerAnimal / qtyPerAnimal : 0,
-            valor_total_consumido: valuePerAnimal,
-            data_consumo: p.data_trato,
-            fase: 'CRIA', // You can fetch real fase or leave null
-          }));
-          const { error: nutError } = await supabase
-            .from('nutricao_animais')
-            .insert(nutricaoInserts);
-          if (nutError) {
-            console.error('Erro ao salvar nutricao_animais', nutError);
-            toast.error(`Erro na cascata nutricao_animais: ${nutError.message}`);
-          }
-        }
-
-        // Deduct from stock
-        const stockInserts = p.insumos.map((ins: any) => ({
-          tenant_id: activeTenantId,
-          fazenda_id: activeFarmId,
-          produto_id: ins.produto_id,
-          deposito_id: p.deposito_id,
-          tipo: 'SAIDA',
-          quantidade: ins.quantidade,
-          custo_unitario: ins.custo_medio,
-          data_movimentacao: p.data_trato,
-          origem_destino: 'Trato Animal',
-          responsavel: 'Sistema Automático',
-        }));
-
-        if (stockInserts.length > 0) {
-          const { error: stError } = await supabase
-            .from('movimentacoes_estoque')
-            .insert(stockInserts);
-          if (stError) {
-            console.error('Erro ao deduzir estoque', stError);
-            toast.error(`Erro na baixa de estoque: ${stError.message}`);
-          } else {
-            toast.success('Baixa automática no estoque realizada!');
-          }
-        }
+      if (error) {
+        throw error;
       }
     },
     onSuccess: () => {

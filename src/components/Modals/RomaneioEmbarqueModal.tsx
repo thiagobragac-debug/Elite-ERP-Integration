@@ -494,28 +494,26 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       const arrobas = pesoTotal / 30;
       const valor_estimado = arrobas * preco;
 
-      // 1. Insert Romaneio
-      const { data: romaneio, error: romaneioError } = await supabase
-        .from('romaneios')
-        .insert({
-          tenant_id: activeTenantId,
-          fazenda_id: activeFarmId,
-          data: formData.data_embarque,
-          comprador: formData.comprador.trim(),
-          comprador_cnpj: formData.comprador_cnpj.trim() || null,
-          destino: formData.destino.trim() || null,
-          placa: formData.placa_veiculo.trim() || null,
-          tipo_veiculo: formData.tipo_veiculo || 'TRUCK',
-          motorista: formData.motorista.trim() || null,
-          animais_qtd: animaisSelecionados.length,
-          valor_estimado,
+      // 1. Chamar RPC para processo transacional
+      const { data: romaneioId, error: rpcError } = await supabase.rpc('process_romaneio_embarque', {
+        p_payload: {
+          formData: {
+            comprador: formData.comprador.trim(),
+            comprador_cnpj: formData.comprador_cnpj.trim() || null,
+            destino: formData.destino.trim() || null,
+            placa_veiculo: formData.placa_veiculo.trim() || null,
+            tipo_veiculo: formData.tipo_veiculo || 'TRUCK',
+            motorista: formData.motorista.trim() || null,
+            gta_numero: formData.gta_numero.trim(),
+            gta_serie: formData.gta_serie.trim() || null,
+            nfe_numero: formData.nfe_numero.trim() || null,
+            observacoes: formData.observacoes.trim() || null,
+            data_embarque: formData.data_embarque
+          },
+          animaisQtd: animaisSelecionados.length,
+          valorTotal: valor_estimado,
           preco_por_arroba: preco,
-          status: 'Pendente',
-          gta_numero: formData.gta_numero.trim(),
-          gta_serie: formData.gta_serie.trim() || null,
-          nfe: formData.nfe_numero.trim() || null,
-          observacoes: formData.observacoes.trim() || null,
-          composicao_carga: animaisSelecionados.map((a) => ({
+          composicaoCarga: animaisSelecionados.map((a) => ({
             animal_id: a.id,
             brinco: a.brinco,
             raca: a.raca,
@@ -526,22 +524,16 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
             lote: a.lote_nome || null,
             em_carencia: a.em_carencia || false,
           })),
-        })
-        .select()
-        .single();
+          animais: animaisSelecionados
+        },
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: activeFarmId
+      });
 
-      if (romaneioError) throw romaneioError;
-
-      // 2. Update animals → EM_EMBARQUE (reservado, aguardando trânsito)
-      const { error: animalError } = await supabase
-        .from('animais')
-        .update({ romaneio_id: romaneio.id, status: 'EM_EMBARQUE' })
-        .in('id', animaisSelecionados.map((a) => a.id));
-
-      if (animalError) throw animalError;
+      if (rpcError) throw rpcError;
 
       toast.success(
-        `Romaneio ${romaneio.codigo || ''} criado! ${animaisSelecionados.length} animais reservados para embarque.`
+        `Romaneio criado com sucesso! ${animaisSelecionados.length} animais vendidos e retirados dos lotes originais.`
       );
 
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });

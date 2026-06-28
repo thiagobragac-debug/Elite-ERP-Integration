@@ -69,104 +69,37 @@ export const LivestockDashboard: React.FC = () => {
     enabled: isReady && !!activeTenantId && hasReproducao,
   });
 
-  // Query 2: Silo Autonomy calculation
+  // Query 2: Silo Autonomy calculation (Now using Server-Side RPC)
   const { data: autonomyDays = 0 } = useQuery({
     queryKey: ['silo_autonomy', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let prodQuery = supabase.from('produtos').select('nome, estoque_atual, categoria:categoria_id(nome)');
-      prodQuery = applyFarmFilter(prodQuery);
-      const { data: products, error: prodError } = await prodQuery;
-      if (prodError) {
-        throw prodError;
+      const farmParam = isGlobalMode ? null : activeFarmId;
+      const { data, error } = await supabase.rpc('get_silo_autonomy', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: farmParam,
+      });
+      if (error) {
+        throw error;
       }
-
-      let animQuery = supabase.from('animais').select('*', { count: 'exact', head: true });
-      animQuery = applyFarmFilter(animQuery);
-      const { count: totalAnimals, error: animError } = await animQuery;
-      if (animError) {
-        throw animError;
-      }
-
-      const nutritionStock = (products || []).reduce((sum: number, p: any) => {
-        const isNut =
-          p.categoria?.nome === 'Nutrição' ||
-          p.nome?.toLowerCase().includes('silo') ||
-          p.nome?.toLowerCase().includes('ração') ||
-          p.nome?.toLowerCase().includes('racao');
-        return isNut ? sum + (Number(p.estoque_atual) || 0) : sum;
-      }, 0);
-
-      const dailyConsumption = (totalAnimals || 0) * 10;
-      return dailyConsumption > 0 && nutritionStock > 0
-        ? Math.ceil(nutritionStock / dailyConsumption)
-        : 0;
+      return data || 0;
     },
     enabled: isReady && hasNutricao,
   });
 
-  // Query 3: Weekly GMD calculation
+  // Query 3: Weekly GMD calculation (Now using Server-Side RPC)
   const { data: performanceData = [] } = useQuery({
     queryKey: ['weekly_gmd_performance', activeFarmId, activeTenantId, isGlobalMode, chartPeriod],
     queryFn: async () => {
-      const numWeeks = chartPeriod === 90 ? 12 : 6;
-      const days = numWeeks * 7;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      let weighingQuery = supabase
-        .from('pesagens')
-        .select('data_pesagem, peso')
-        .gte('data_pesagem', startDate.toISOString().split('T')[0])
-        .order('data_pesagem', { ascending: true });
-      weighingQuery = applyFarmFilter(weighingQuery);
-      const { data: weighings, error: weighError } = await weighingQuery;
-      if (weighError) {
-        throw weighError;
+      const farmParam = isGlobalMode ? null : activeFarmId;
+      const { data, error } = await supabase.rpc('get_herd_weekly_performance', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: farmParam,
+        p_days: chartPeriod,
+      });
+      if (error) {
+        throw error;
       }
-
-      const weeklyData = Array(numWeeks)
-        .fill(0)
-        .map((_, i) => {
-          const start = new Date();
-          start.setDate(start.getDate() - (numWeeks - i) * 7);
-          const end = new Date();
-          end.setDate(end.getDate() - (numWeeks - 1 - i) * 7);
-          return { start, end, label: `Sem 0${i + 1}`, weights: [] as number[] };
-        });
-
-      (weighings || []).forEach((w: any) => {
-        const date = new Date(w.data_pesagem);
-        const slot = weeklyData.find((s) => date >= s.start && date < s.end);
-        if (slot) {
-          slot.weights.push(Number(w.peso) || 0);
-        }
-      });
-
-      return weeklyData.map((slot, i) => {
-        const avgWeight =
-          slot.weights.length > 0
-            ? slot.weights.reduce((sum, w) => sum + w, 0) / slot.weights.length
-            : 0;
-        let calculatedGMD = 0.842;
-        if (i > 0) {
-          const prevSlot = weeklyData[i - 1];
-          const prevAvg =
-            prevSlot.weights.length > 0
-              ? prevSlot.weights.reduce((sum, w) => sum + w, 0) / prevSlot.weights.length
-              : 0;
-          if (avgWeight > 0 && prevAvg > 0 && avgWeight > prevAvg) {
-            calculatedGMD = (avgWeight - prevAvg) / 7;
-          }
-        }
-
-        if (calculatedGMD <= 0 || calculatedGMD > 2) {
-          calculatedGMD = 0;
-        }
-
-        return {
-          label: slot.label,
-          value: Number(calculatedGMD.toFixed(3)),
-        };
-      });
+      return data || [];
     },
     enabled: isReady && hasPesagens,
   });

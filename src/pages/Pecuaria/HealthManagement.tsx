@@ -153,8 +153,13 @@ export const HealthManagement: React.FC = () => {
 
   const applyProtocolMutation = useMutation({
     mutationFn: async (insertions: any[]) => {
-      // Reutiliza a engine do saveHealthMutation para ganhar a cascata de Estoque e Dossiê (ignora pendentes)
-      await saveHealthMutation.mutateAsync(insertions);
+      // Utiliza a nova RPC transacional para garantir consistência no banco de dados (ACID)
+      const { error } = await supabase.rpc('apply_health_protocol', {
+        p_payload: insertions,
+      });
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });

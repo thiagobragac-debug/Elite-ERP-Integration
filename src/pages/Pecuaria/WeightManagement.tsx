@@ -69,8 +69,30 @@ const getLotBreedKey = (raca?: string) =>
   (raca || '').toLowerCase().replace(/[^a-z]/g, '');
 
 // Brazilian Cattle Market Lot Performance Dashboard
-const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
-  if (!weighings || weighings.length === 0) {
+const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ tenantId, lotId }) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['lot-performance', tenantId, lotId],
+    queryFn: async () => {
+      const p_lote_id = lotId === 'all' ? null : lotId;
+      const { data: result, error: err } = await supabase.rpc('get_lot_weight_performance', {
+        p_tenant_id: tenantId,
+        p_lote_id,
+      });
+      if (err) throw err;
+      return result;
+    },
+    enabled: !!tenantId,
+  });
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+        {Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (error || !data || data.totalCount === 0) {
     return (
       <div
         style={{
@@ -119,13 +141,9 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
     );
   }
 
-  // Calculate statistics
-  const count = weighings.length;
-  const avgWeight = weighings.reduce((sum, w) => sum + Number(w.peso || 0), 0) / count;
-  const avgGmd = weighings.reduce((sum, w) => sum + Number(w.gmd || 0), 0) / count || 0;
+  const { avgWeight, avgGmd, totalCount: count, dominantBreed: rawDominantBreed, classes, topPerformers = [] } = data;
 
   // ── Preço de arroba configurável (persiste por sessão via localStorage) ──
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [arrobaPrice, setArrobaPrice] = React.useState<number | null>(() => {
     const stored = localStorage.getItem('tauze_arroba_price');
     return stored ? Number(stored) : null;
@@ -142,34 +160,15 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
     setEditingPrice(false);
   };
 
-  // ── Rendimento de carcaça por raça dominante do lote ──
-  const racaCounts: Record<string, number> = {};
-  weighings.forEach((w: any) => {
-    const key = getLotBreedKey(w.animais?.raca);
-    racaCounts[key] = (racaCounts[key] || 0) + 1;
-  });
-  const dominantBreed = Object.entries(racaCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'default';
-  const carcassYield = LOT_CARCASS_YIELD_BREED[dominantBreed] ?? LOT_CARCASS_YIELD_BREED['default'];
-  const targetWeight = LOT_SLAUGHTER_TARGET_BREED[dominantBreed] ?? LOT_SLAUGHTER_TARGET_BREED['default'];
+  const dominantBreedKey = getLotBreedKey(rawDominantBreed);
+  const carcassYield = LOT_CARCASS_YIELD_BREED[dominantBreedKey] ?? LOT_CARCASS_YIELD_BREED['default'];
+  const targetWeight = LOT_SLAUGHTER_TARGET_BREED[dominantBreedKey] ?? LOT_SLAUGHTER_TARGET_BREED['default'];
 
   // Arroba calculations: pesoVivo / 30 (conv. mercado)
   const avgArroba = avgWeight / 30;
   // Valor comercial: apenas se preço configurado
   const estimatedValuePerHead = arrobaPrice ? avgArroba * arrobaPrice : null;
   const totalLotValue = estimatedValuePerHead ? estimatedValuePerHead * count : null;
-
-  // Weight Classes
-  const classes = {
-    light: weighings.filter((w) => Number(w.peso) < 350).length,
-    recria: weighings.filter((w) => Number(w.peso) >= 350 && Number(w.peso) < 450).length,
-    termination: weighings.filter((w) => Number(w.peso) >= 450 && Number(w.peso) < targetWeight).length,
-    ready: weighings.filter((w) => Number(w.peso) >= targetWeight).length,
-  };
-
-  // Top performers
-  const topPerformers = [...weighings]
-    .sort((a, b) => Number(b.gmd || 0) - Number(a.gmd || 0))
-    .slice(0, 5);
 
   // SLA calculations
   const remainingWeight = Math.max(0, targetWeight - avgWeight);
@@ -291,7 +290,7 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
             </div>
           </div>
           <div style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>
-            Rendimento de Carcaça ({carcassYield}% — {dominantBreed !== 'default' ? dominantBreed.charAt(0).toUpperCase() + dominantBreed.slice(1) : 'Raça padrão'})
+            Rendimento de Carcaça ({carcassYield}% — {dominantBreedKey !== 'default' ? dominantBreedKey.charAt(0).toUpperCase() + dominantBreedKey.slice(1) : 'Raça padrão'})
           </div>
         </div>
 
@@ -605,12 +604,10 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
                   </span>
                   <div>
                     <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-                      #{item.animais?.brinco || 'N/A'}
+                      Brinco #{item.brinco || 'N/A'}
                     </span>
-                    <div
-                      style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}
-                    >
-                      Último Peso: {Number(item.peso).toFixed(1)} kg
+                    <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
+                      {item.raca || 'Mestiço'} • Último Peso: {Number(item.peso).toFixed(1)} kg
                     </div>
                   </div>
                 </div>
@@ -1344,7 +1341,7 @@ export const WeightManagement: React.FC = () => {
 
       <div className="management-content">
         {activeTab === 'PERFORMANCE' ? (
-          <LotPerformanceView weighings={filteredWeighings} />
+          <LotPerformanceView tenantId={activeTenantId || ''} lotId={selectedLotId} />
         ) : (
           <ModernTable
             emptyState={

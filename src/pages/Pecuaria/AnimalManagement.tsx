@@ -327,15 +327,9 @@ export const AnimalManagement: React.FC = () => {
     deleteAnimalMutation.mutate(id);
   };
 
-  // Client-side filter is now a lightweight pass-through since server-side handles the heavy lifting.
-  // We keep it to handle any extra client-side checks not yet server-side (e.g. isSanitaryBlocked).
-  const filteredAnimals = useMemo(() => {
-    return (animals || []).filter((a) => {
-      // sanidadeOk filter (client-side only — not a DB column)
-      if (filterValues.sanidadeOk === false && a.isSanitaryBlocked) return false;
-      return true;
-    });
-  }, [animals, filterValues.sanidadeOk]);
+  // Client-side filter was removed. All filtering is now handled server-side via `serverFilters`
+  // passed to useReportData to ensure pagination works correctly.
+  const filteredAnimals = animals || [];
 
   const tableColumns = useMemo(() => [
     {
