@@ -359,7 +359,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   const fetchLots = async () => {
     const baseQuery = supabase
       .from('lotes')
-      .select('id, nome, capacidade, descricao, status, sexo_permitido, exige_rastreabilidade, fazenda_id, pastos ( nome )')
+      .select('id, nome, capacidade, descricao, status, sexo_permitido, exige_rastreabilidade, fazenda_id, pastos ( nome )').eq('tenant_id', activeTenantId)
       .order('nome');
     const { data, error } = await applyFarmFilter(baseQuery);
     if (error) { console.error('[RelocateForm] fetchLots error:', error); return; }
@@ -419,7 +419,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
         animal_id,
         data_aplicacao,
         produtos ( nome, carencia_dias )
-      `)
+      `).eq('tenant_id', activeTenantId)
       .in('animal_id', animalIds)
       .eq('tenant_id', activeTenantId)
       .not('produtos', 'is', null);

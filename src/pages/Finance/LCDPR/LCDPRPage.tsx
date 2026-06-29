@@ -245,7 +245,7 @@ export const LCDPRPage: React.FC = () => {
         const { error } = await supabase
           .from('lcdpr_lancamentos')
           .update(payload)
-          .eq('id', editingItem.id);
+          .eq('id', editingItem.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -298,7 +298,7 @@ export const LCDPRPage: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('lcdpr_lancamentos').delete().eq('id', id);
+      const { error } = await supabase.from('lcdpr_lancamentos').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

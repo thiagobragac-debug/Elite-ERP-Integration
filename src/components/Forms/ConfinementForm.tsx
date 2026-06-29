@@ -90,7 +90,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
     const { data } = await applyFarmFilter(
       supabase
         .from('lotes')
-        .select('id, nome, fazenda_id, fazendas(nome)')
+        .select('id, nome, fazenda_id, fazendas(nome)').eq('tenant_id', activeTenantId)
         .eq('status', 'ATIVO')
     );
     if (data) {

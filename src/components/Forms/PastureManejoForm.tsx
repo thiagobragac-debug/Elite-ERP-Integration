@@ -64,7 +64,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({
   const fetchPastures = async () => {
     const { data } = await supabase
       .from('pastos')
-      .select('id, nome')
+      .select('id, nome').eq('tenant_id', activeTenantId)
       .eq('fazenda_id', activeFarm?.id);
     if (data) {
       setPastures(data);
@@ -82,7 +82,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({
           data_ultima_fertilizacao:
             formData.tipo_manejo === 'Adubação' ? formData.data_manejo : undefined,
         })
-        .eq('id', formData.pasto_id);
+        .eq('id', formData.pasto_id).eq('tenant_id', activeTenantId);
 
       if (!error) {
         if (activeTenantId) {

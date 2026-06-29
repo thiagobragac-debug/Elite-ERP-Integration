@@ -64,7 +64,7 @@ export const MarketB3Calculator: React.FC = () => {
       if (b3Quotes.length > 0) {
         const { data: cepeaData } = await supabase
           .from('market_quotes')
-          .select('value, date')
+          .select('value, date').eq('tenant_id', activeTenantId)
           .eq('indicator', 'boi_gordo_cepea')
           .order('date', { ascending: false })
           .limit(30);

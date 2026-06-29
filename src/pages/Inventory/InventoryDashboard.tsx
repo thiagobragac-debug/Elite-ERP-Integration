@@ -85,7 +85,7 @@ export const InventoryDashboard: React.FC = () => {
         .from('produtos')
         .select(
           'id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria, created_at'
-        );
+        ).eq('tenant_id', activeTenantId);
       query = applyFarmFilter(query);
       const { data, error } = await query;
       if (error) {
@@ -102,7 +102,7 @@ export const InventoryDashboard: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('movimentacoes_estoque')
-        .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)')
+        .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(6);
       query = applyFarmFilter(query);
@@ -123,7 +123,7 @@ export const InventoryDashboard: React.FC = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       let query = supabase
         .from('movimentacoes_estoque')
-        .select('quantidade, valor_unitario, tipo, data_movimentacao')
+        .select('quantidade, valor_unitario, tipo, data_movimentacao').eq('tenant_id', activeTenantId)
         .in('tipo', ['out', 'SAIDA'])
         .gte('data_movimentacao', thirtyDaysAgo.toISOString());
       query = applyFarmFilter(query);

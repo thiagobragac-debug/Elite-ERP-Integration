@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -132,6 +133,8 @@ export const ConfinementManagement: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const {
     data: rawConfinements,
     stats,
@@ -175,9 +178,10 @@ export const ConfinementManagement: React.FC = () => {
     if (!isEditMode) {
       const { data: existing, error: checkError } = await supabase
         .from('confinamento')
-        .select('id')
+        .select('id').eq('tenant_id', activeTenantId)
         .eq('nome_curral', data.nome_curral)
         .eq('fazenda_id', targetFarmId)
+        .eq('tenant_id', activeTenantId)
         .limit(1);
         
       if (checkError) {
@@ -226,7 +230,8 @@ export const ConfinementManagement: React.FC = () => {
           custo_total_ciclo: data.custo_total_ciclo,
           gta: data.gta
         })
-        .eq('id', data.id);
+        .eq('id', data.id)
+        .eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -336,7 +341,7 @@ export const ConfinementManagement: React.FC = () => {
         activeTab === 'HISTORICO' ? true : !filterValues.onlyActive || p.status !== 'archived';
 
       const lote = (p.lotes?.nome || '').toLowerCase();
-      const matchesLote = lote.includes(searchTerm.toLowerCase());
+      const matchesLote = lote.includes(debouncedSearchTerm.toLowerCase());
 
       return (
         (matchesSearch || matchesLote) &&
@@ -506,17 +511,32 @@ export const ConfinementManagement: React.FC = () => {
 
   const deleteConfinementMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('confinamento').update({ status: 'INATIVO' }).eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.rpc('rpc_soft_delete_confinamento', { p_id: id, p_tenant_id: activeTenantId });
       if (error) {
         throw error;
       }
     },
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['report'] });
+      const previousData = queryClient.getQueryData(['report']);
+      queryClient.setQueryData(['report'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
+        };
+      });
+      return { previousData };
+    },
+    onError: (err: any, deletedId, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['report'], context.previousData);
+      }
+      toast.error(`❌ Erro ao excluir curral: ${err.message}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Curral inativado para manter histórico.');
-    },
-    onError: (err: any) => {
-      toast.error(`❌ Erro ao excluir curral: ${err.message}`);
     },
   });
 

@@ -142,7 +142,7 @@ export const FleetManagement: React.FC = () => {
   const { data: machinesData, isLoading: loadingMachines } = useQuery({
     queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let machQuery = supabase.from('maquinas').select('*');
+      let machQuery = supabase.from('maquinas').select('*').eq('tenant_id', activeTenantId);
       machQuery = applyFarmFilter(machQuery);
       const { data, error } = await machQuery;
       if (error) {
@@ -165,7 +165,7 @@ export const FleetManagement: React.FC = () => {
   const { data: fuelData = [], isLoading: loadingFuel } = useQuery({
     queryKey: ['fuelStats', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id');
+      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id').eq('tenant_id', activeTenantId);
       fuelQuery = applyFarmFilter(fuelQuery);
       const { data, error } = await fuelQuery;
       if (error) {
@@ -330,7 +330,7 @@ export const FleetManagement: React.FC = () => {
         const { error } = await supabase
           .from('maquinas')
           .update(payload)
-          .eq('id', selectedMachine.id);
+          .eq('id', selectedMachine.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -407,7 +407,7 @@ export const FleetManagement: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('maquinas').delete().eq('id', id);
+      const { error } = await supabase.from('maquinas').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -507,12 +507,12 @@ export const FleetManagement: React.FC = () => {
       const [maintResult, fuelResult] = await Promise.all([
         supabase
           .from('manutencao_frota')
-          .select('*', { count: 'exact' })
+          .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
           .eq('maquina_id', machine.id)
           .order('data_inicio', { ascending: false }),
         supabase
           .from('abastecimentos')
-          .select('*', { count: 'exact' })
+          .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
           .eq('maquina_id', machine.id)
           .order('data', { ascending: false }),
       ]);

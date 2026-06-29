@@ -120,7 +120,7 @@ export const WarehouseManagement: React.FC = () => {
             produto_id,
             produtos (
               custo_medio
-            )
+            ).eq('tenant_id', activeTenantId)
           )
         `,
           { count: 'exact' }
@@ -167,7 +167,7 @@ export const WarehouseManagement: React.FC = () => {
   const { data: farms = [] } = useQuery({
     queryKey: ['warehouse_farms', activeTenantId],
     queryFn: async () => {
-      let query = supabase.from('fazendas').select('id, nome');
+      let query = supabase.from('fazendas').select('id, nome').eq('tenant_id', activeTenantId);
       query = applyTenantFilter(query);
       const range = getRange();
       const { data, error } = await query.range(range.from, range.to);
@@ -185,7 +185,7 @@ export const WarehouseManagement: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('categorias_sistema')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .eq('modulo', 'unidades')
         .eq('is_active', true)
         .order('nome');
@@ -206,7 +206,7 @@ export const WarehouseManagement: React.FC = () => {
         const { error } = await supabase
           .from('depositos')
           .update(payload)
-          .eq('id', selectedWarehouse.id);
+          .eq('id', selectedWarehouse.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -231,7 +231,7 @@ export const WarehouseManagement: React.FC = () => {
 
   const deleteWarehouseMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('depositos').delete().eq('id', id);
+      const { error } = await supabase.from('depositos').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -270,7 +270,7 @@ export const WarehouseManagement: React.FC = () => {
     if (selectedWarehouse && payload.status === 'inativo' && selectedWarehouse.status === 'ativo') {
       const { data: balanceData, error: balanceError } = await supabase
         .from('movimentacoes_estoque')
-        .select('quantidade, tipo', { count: 'exact' })
+        .select('quantidade, tipo', { count: 'exact' }).eq('tenant_id', activeTenantId)
         .eq('deposito_id', selectedWarehouse.id);
 
       if (!balanceError && balanceData) {

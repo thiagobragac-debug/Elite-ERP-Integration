@@ -169,7 +169,7 @@ export const EntryInvoice: React.FC = () => {
         .select(
           'id, numero_nota, serie, data_emissao, valor_total, fornecedor_id, created_at, iss_retido, irrf_retido, csll_retido, pis_retido, cofins_retido, inss_retido, valor_liquido, modelo_fiscal, parceiros(nome)',
           { count: 'exact' }
-        )
+        ).eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -453,7 +453,7 @@ export const EntryInvoice: React.FC = () => {
       // 1. Fetch invoice details to find associated records
       const { data: invoice } = await supabase
         .from('notas_entrada')
-        .select('numero_nota, fornecedor_id')
+        .select('numero_nota, fornecedor_id').eq('tenant_id', activeTenantId)
         .eq('id', id)
         .single();
 
@@ -465,7 +465,7 @@ export const EntryInvoice: React.FC = () => {
         // 1.5. Check if any associated contas a pagar is already paid
         const { data: financeRecords, error: fetchFinError } = await supabase
           .from('contas_pagar')
-          .select('status')
+          .select('status').eq('tenant_id', activeTenantId)
           .eq('fornecedor_id', invoice.fornecedor_id)
           .ilike('descricao', `NF ${invoice.numero_nota} - Parcela%`);
 
@@ -485,14 +485,14 @@ export const EntryInvoice: React.FC = () => {
         // 1.8. Check if deletion will result in negative stock
         const { data: movements } = await supabase
           .from('movimentacoes_estoque')
-          .select('produto_id, deposito_id, quantidade')
+          .select('produto_id, deposito_id, quantidade').eq('tenant_id', activeTenantId)
           .eq('origem_destino', `Nota Fiscal ${invoice.numero_nota}`)
           .eq('tipo', 'ENTRADA');
 
         if (movements && movements.length > 0) {
           const { data: tenantData } = await supabase
             .from('tenants')
-            .select('settings')
+            .select('settings').eq('tenant_id', activeTenantId)
             .eq('id', activeTenantId)
             .single();
 
@@ -505,7 +505,7 @@ export const EntryInvoice: React.FC = () => {
               if (mov.produto_id && mov.deposito_id) {
                 const { data: saldoData } = await supabase
                   .from('saldos_estoque')
-                  .select('quantidade')
+                  .select('quantidade').eq('tenant_id', activeTenantId)
                   .eq('produto_id', mov.produto_id)
                   .eq('deposito_id', mov.deposito_id)
                   .maybeSingle();

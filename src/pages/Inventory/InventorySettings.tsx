@@ -80,7 +80,7 @@ export const NcmSettingsTab: React.FC<{
   const saveNcmMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (editItem) {
-        const { error } = await supabase.from('estoque_ncms').update(payload).eq('id', editItem.id);
+        const { error } = await supabase.from('estoque_ncms').update(payload).eq('id', editItem.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -105,7 +105,7 @@ export const NcmSettingsTab: React.FC<{
 
   const deleteNcmMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('estoque_ncms').delete().eq('id', id);
+      const { error } = await supabase.from('estoque_ncms').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

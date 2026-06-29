@@ -140,7 +140,7 @@ export const FuelManagement: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('abastecimentos')
-        .select('*, maquinas:maquina_id(nome)')
+        .select('*, maquinas:maquina_id(nome)').eq('tenant_id', activeTenantId)
         .order('data', { ascending: false })
         .limit(500);
 

@@ -100,7 +100,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string; triggerCreate: numb
           descricao: formData.descricao || null,
           is_active: formData.is_active,
         })
-        .eq('id', editItem.id);
+        .eq('id', editItem.id).eq('tenant_id', activeTenantId);
 
       if (!error) {
         setIsModalOpen(false);
@@ -139,7 +139,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string; triggerCreate: numb
       return;
     }
 
-    const { error } = await supabase.from('cargos').delete().eq('id', id);
+    const { error } = await supabase.from('cargos').delete().eq('id', id).eq('tenant_id', activeTenantId);
 
     if (!error) {
       toast.success('Cargo excluído com sucesso!');

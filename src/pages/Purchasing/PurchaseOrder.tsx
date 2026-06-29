@@ -168,7 +168,7 @@ export const PurchaseOrder: React.FC = () => {
         .select(
           'id, numero_pedido, data_pedido, previsao_entrega, valor_total, status, fornecedor_id, created_at, parceiros(nome)',
           { count: 'exact' }
-        )
+        ).eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -330,7 +330,7 @@ export const PurchaseOrder: React.FC = () => {
         const { data: newRecord, error } = await supabase
           .from('pedidos_compra')
           .insert([payload])
-          .select()
+          .select().eq('tenant_id', activeTenantId)
           .single();
         if (error) {
           throw error;

@@ -306,7 +306,7 @@ export function useUserManagementState() {
         { data: tenantData },
       ] = await Promise.all([
         supabase.from('profiles_view').select('*').eq('tenant_id', activeTenantId),
-        supabase.from('perfis_usuario').select('*').limit(500).eq('tenant_id', activeTenantId),
+        supabase.from('perfis_usuario').select('*').eq('tenant_id', activeTenantId).limit(500).eq('tenant_id', activeTenantId),
         supabase
           .from('audit_logs')
           .select('user_email')
@@ -605,7 +605,7 @@ export function useUserManagementState() {
     };
 
     if (selectedUser) {
-      const { error } = await supabase.from('profiles').update(payload).eq('id', selectedUser.id);
+      const { error } = await supabase.from('profiles').update(payload).eq('id', selectedUser.id).eq('tenant_id', activeTenantId);
       if (!error) {
         try {
           await supabase.rpc('admin_set_user_ban', {
@@ -645,7 +645,7 @@ export function useUserManagementState() {
       const { error } = await supabase
         .from('perfis_usuario')
         .update(payload)
-        .eq('id', selectedProfile.id);
+        .eq('id', selectedProfile.id).eq('tenant_id', activeTenantId);
 
       if (!error) {
         setIsProfileModalOpen(false);
@@ -677,7 +677,7 @@ export function useUserManagementState() {
       return;
     }
 
-    const { error } = await supabase.from('perfis_usuario').delete().eq('id', id);
+    const { error } = await supabase.from('perfis_usuario').delete().eq('id', id).eq('tenant_id', activeTenantId);
     if (!error) {
       fetchData();
     }
@@ -704,7 +704,7 @@ export function useUserManagementState() {
     try {
       const { data, error } = await supabase
         .from('audit_logs')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .eq('user_email', user.email)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -751,7 +751,7 @@ export function useUserManagementState() {
       return;
     }
 
-    const { error } = await supabase.from('profiles').delete().eq('id', user.id);
+    const { error } = await supabase.from('profiles').delete().eq('id', user.id).eq('tenant_id', activeTenantId);
     if (!error) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);

@@ -202,7 +202,7 @@ export const AuditLog: React.FC = () => {
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas,
         })
-        .eq('id', formInitialData.id);
+        .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -238,7 +238,7 @@ export const AuditLog: React.FC = () => {
           categoria: formData.categoria,
           finalidade: formData.finalidade,
         })
-        .eq('id', formInitialData.id);
+        .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -266,7 +266,7 @@ export const AuditLog: React.FC = () => {
         metodo_pagamento: formData.paymentMethod,
       };
 
-      const { error } = await supabase.from(tableName).update(payload).eq('id', formInitialData.id);
+      const { error } = await supabase.from(tableName).update(payload).eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -466,7 +466,7 @@ export const AuditLog: React.FC = () => {
           veterinario: formData.veterinario || null,
           observacoes: formData.observacoes || null,
         })
-        .eq('id', formInitialData.id);
+        .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -1335,7 +1335,7 @@ export const AuditLog: React.FC = () => {
                 is_global: formData.is_global,
                 fazendas_vinculadas: formData.fazendas_vinculadas,
               })
-              .eq('id', formInitialData.id);
+              .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }
@@ -1372,7 +1372,7 @@ export const AuditLog: React.FC = () => {
                 categoria: formData.categoria,
                 finalidade: formData.finalidade,
               })
-              .eq('id', formInitialData.id);
+              .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }
@@ -1405,7 +1405,7 @@ export const AuditLog: React.FC = () => {
             const { error } = await supabase
               .from(tableName)
               .update(payload)
-              .eq('id', formInitialData.id);
+              .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }
@@ -1613,7 +1613,7 @@ export const AuditLog: React.FC = () => {
                 veterinario: formData.veterinario || null,
                 observacoes: formData.observacoes || null,
               })
-              .eq('id', formInitialData.id);
+              .eq('id', formInitialData.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }

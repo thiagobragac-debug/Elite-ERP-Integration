@@ -1049,7 +1049,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let animaisQuery = supabase.from('animais').select('*, lotes(nome)', { count: 'exact' });
+    let animaisQuery = supabase.from('vw_animais_metricas_dashboard').select('*, lotes(nome)', { count: 'exact' });
     animaisQuery = applyScope(animaisQuery, tenantId, fazendaId);
 
     // ── Server-side filters ───────────────────────────────────────────────

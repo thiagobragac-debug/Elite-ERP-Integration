@@ -202,8 +202,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         // Busca custo_medio atualizado do produto
         const { data: prod } = await supabase
           .from('produtos')
-          .select('custo_medio')
+          .select('custo_medio').eq('tenant_id', activeTenantId)
           .eq('id', healthData.produto_id)
+          .eq('tenant_id', activeTenantId)
           .maybeSingle();
 
         const custoMedio = Number(prod?.custo_medio || healthData.produto_custo_medio || 0);

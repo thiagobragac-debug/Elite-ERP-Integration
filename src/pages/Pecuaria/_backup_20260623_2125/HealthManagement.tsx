@@ -131,7 +131,7 @@ export const HealthManagement: React.FC = () => {
       // Apaga movimentações de estoque geradas
       await supabase.from('movimentacoes_estoque').delete().like('origem_destino', `%[REF:${id}]%`);
       // Apaga o evento
-      const { error } = await supabase.from('sanidade').delete().eq('id', id);
+      const { error } = await supabase.from('sanidade').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -404,7 +404,7 @@ export const HealthManagement: React.FC = () => {
         const { error } = await supabase
           .from('sanidade')
           .update(updatePayload)
-          .eq('id', selectedEvent.id);
+          .eq('id', selectedEvent.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -442,7 +442,7 @@ export const HealthManagement: React.FC = () => {
             if (!prodId && originalPayload.produto) {
               const { data: foundProd } = await supabase
                 .from('produtos')
-                .select('id')
+                .select('id').eq('tenant_id', activeTenantId)
                 .eq('nome', originalPayload.produto)
                 .eq('tenant_id', activeTenantId)
                 .limit(1)
@@ -459,7 +459,7 @@ export const HealthManagement: React.FC = () => {
             if (prodId) {
               const { data: prod } = await supabase
                 .from('produtos')
-                .select('custo_medio, is_storable')
+                .select('custo_medio, is_storable').eq('tenant_id', activeTenantId)
                 .eq('id', prodId)
                 .maybeSingle();
               if (prod) {
@@ -486,7 +486,7 @@ export const HealthManagement: React.FC = () => {
             } else if (sanidade.lote_id) {
               const { data: animaisNoLote } = await supabase
                 .from('animais')
-                .select('id')
+                .select('id').eq('tenant_id', activeTenantId)
                 .eq('lote_id', sanidade.lote_id)
                 .eq('status', 'ATIVO');
               animaisAlvo = animaisNoLote || [];
@@ -497,7 +497,7 @@ export const HealthManagement: React.FC = () => {
             if (sanidade.lote_id) {
               const { data: conf } = await supabase
                 .from('confinamento')
-                .select('id')
+                .select('id').eq('tenant_id', activeTenantId)
                 .eq('lote_id', sanidade.lote_id)
                 .eq('status', 'ATIVO')
                 .maybeSingle();

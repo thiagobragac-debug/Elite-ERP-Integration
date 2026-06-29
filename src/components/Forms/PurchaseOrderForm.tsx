@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 
@@ -168,7 +169,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (totalLiquido <= 0) {
-      alert('O total do pedido deve ser maior que zero.');
+      toast.error('O total do pedido deve ser maior que zero.');
       return;
     }
     setLoading(true);

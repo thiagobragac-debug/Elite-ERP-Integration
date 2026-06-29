@@ -138,7 +138,7 @@ export const LoginSettingsPage: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id);
+        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('system_settings').insert(payload);

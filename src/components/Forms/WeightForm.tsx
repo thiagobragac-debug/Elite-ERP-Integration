@@ -320,7 +320,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
     try {
       const { data } = await supabase
         .from('pesagens')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .eq('animal_id', animalId)
         .order('data_pesagem', { ascending: false })
         .limit(5);
@@ -456,7 +456,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
     try {
       let dupQuery = supabase
         .from('pesagens')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
         .eq('animal_id', formData.animal_id)
         .eq('data_pesagem', formData.data_pesagem);
       if (initialData?.id) {
@@ -483,7 +483,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
                     // Busca o id existente e re-submete como edição
                     supabase
                       .from('pesagens')
-                      .select('id')
+                      .select('id').eq('tenant_id', activeTenantId)
                       .eq('animal_id', formData.animal_id)
                       .eq('data_pesagem', formData.data_pesagem)
                       .limit(1)

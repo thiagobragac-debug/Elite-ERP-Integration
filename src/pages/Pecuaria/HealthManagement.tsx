@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useDebounce } from '../../hooks/useDebounce';
 import { hasDraftForKey } from '../../hooks/useFormDraft';
 
 import { useSearchParams } from 'react-router-dom';
@@ -110,6 +111,8 @@ export const HealthManagement: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const {
     data: rawEvents,
     stats,
@@ -142,12 +145,27 @@ export const HealthManagement: React.FC = () => {
         throw error;
       }
     },
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['report'] });
+      const previousData = queryClient.getQueryData(['report']);
+      queryClient.setQueryData(['report'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
+        };
+      });
+      return { previousData };
+    },
+    onError: (err: any, deletedId, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['report'], context.previousData);
+      }
+      toast.error(`❌ Erro ao excluir registro: ${err.message}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Registro sanitário excluído!');
-    },
-    onError: (err: any) => {
-      toast.error(`❌ Erro ao excluir registro: ${err.message}`);
     },
   });
 
@@ -611,9 +629,9 @@ export const HealthManagement: React.FC = () => {
 
   const filteredEvents = events.filter((e) => {
     const matchesSearch =
-      (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.produto || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (e.titulo || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (e.targetName || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (e.produto || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     
     // Se aba = MANEJOS, mostra tudo. Se aba = PROTOCOLOS, filtra apenas tipo PROTOCOLO ou eventos agrupados.
     const matchesTab = activeTab === 'MANEJOS' ? true : e.tipo === 'PROTOCOLO';

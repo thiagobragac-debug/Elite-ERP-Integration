@@ -269,7 +269,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           const { error: updateError } = await supabase
             .from('parceiros')
             .update({ is_supplier: true })
-            .eq('id', matchedSupplier.id);
+            .eq('id', matchedSupplier.id).eq('tenant_id', activeTenantId);
 
           if (updateError) {
             console.error('Error updating partner to supplier:', updateError);

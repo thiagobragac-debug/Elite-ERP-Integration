@@ -179,7 +179,7 @@ export const BankReconciliation: React.FC = () => {
     setLoading(true);
 
     try {
-      let query = supabase.from('conciliacoes').select('*').limit(500).eq('tenant_id', activeTenantId);
+      let query = supabase.from('conciliacoes').select('*').eq('tenant_id', activeTenantId).limit(500).eq('tenant_id', activeTenantId);
 
       if (activeFarm?.id) {
         query = query.eq('fazenda_id', activeFarm.id);

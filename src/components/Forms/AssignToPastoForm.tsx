@@ -294,7 +294,7 @@ export const AssignToPastoForm: React.FC<AssignToPastoFormProps> = ({ isOpen, on
       const { data: pastosData, error } = await applyFarmFilter(
         supabase
           .from('pastos')
-          .select('id, nome, area, capacidade_ua, status, data_ultima_fertilizacao')
+          .select('id, nome, area, capacidade_ua, status, data_ultima_fertilizacao').eq('tenant_id', activeTenantId)
           .order('nome')
       );
       if (error || !pastosData) return;
@@ -306,8 +306,9 @@ export const AssignToPastoForm: React.FC<AssignToPastoFormProps> = ({ isOpen, on
       if (pastoIds.length > 0) {
         const { data: animalData } = await supabase
           .from('animais')
-          .select('pasto_id, peso_atual')
+          .select('pasto_id, peso_atual').eq('tenant_id', activeTenantId)
           .in('pasto_id', pastoIds)
+          .eq('tenant_id', activeTenantId)
           .in('status', ANIMAL_STATUS_ATIVO as unknown as string[]);
 
         (animalData || []).forEach((row: { pasto_id: string; peso_atual: number | null }) => {
@@ -338,7 +339,7 @@ export const AssignToPastoForm: React.FC<AssignToPastoFormProps> = ({ isOpen, on
     try {
       const { data, error } = await applyFarmFilter(
         supabase.from('animais')
-          .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento')
+          .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento').eq('tenant_id', activeTenantId)
           .in('status', ANIMAL_STATUS_ATIVO as unknown as string[])
           .is('pasto_id', null)
       );

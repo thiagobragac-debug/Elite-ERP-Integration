@@ -107,19 +107,19 @@ export const ExecutiveDashboard: React.FC = () => {
       }
 
       const queries = [
-        applyFarmFilter(supabase.from('animais').select('*', { count: 'exact', head: true }))
+        applyFarmFilter(supabase.from('animais').select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId))
           .then((r: any) => r)
           .catch((e: any) => ({ count: 0, data: null, error: e })),
-        applyTenantFilter(supabase.from('contas_bancarias').select('saldo_atual'))
+        applyTenantFilter(supabase.from('contas_bancarias').select('saldo_atual').eq('tenant_id', activeTenantId))
           .then((r: any) => r)
           .catch((e: any) => ({ data: [], error: e })),
-        applyFarmFilter(supabase.from('produtos').select('estoque_atual, custo_medio'))
+        applyFarmFilter(supabase.from('produtos').select('estoque_atual, custo_medio').eq('tenant_id', activeTenantId))
           .then((r: any) => r)
           .catch((e: any) => ({ data: [], error: e })),
         applyFarmFilter(
           supabase
             .from('pesagens')
-            .select('peso, data_pesagem')
+            .select('peso, data_pesagem').eq('tenant_id', activeTenantId)
             .order('data_pesagem', { ascending: true })
             .limit(200)
         )
@@ -128,14 +128,14 @@ export const ExecutiveDashboard: React.FC = () => {
         applyFarmFilter(
           supabase
             .from('pesagens')
-            .select('created_at, observacao, animais(brinco)')
+            .select('created_at, observacao, animais(brinco)').eq('tenant_id', activeTenantId)
             .order('created_at', { ascending: false })
             .limit(20)
         )
           .then((r: any) => r)
           .catch((e: any) => ({ data: [], error: e })),
         applyFarmFilter(
-          supabase.from('manejo_reproducao').select('ecc').not('ecc', 'is', null).limit(100)
+          supabase.from('manejo_reproducao').select('ecc').eq('tenant_id', activeTenantId).not('ecc', 'is', null).limit(100)
         )
           .then((r: any) => r)
           .catch((e: any) => ({ data: [], error: e })),

@@ -225,7 +225,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       if (!activeFarmId) return null;
       const { data, error } = await supabase
         .from('fazendas')
-        .select('configuracoes')
+        .select('configuracoes').eq('tenant_id', activeTenantId)
         .eq('id', activeFarmId)
         .single();
       if (error) throw error;
@@ -241,7 +241,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
       if (!activeFarmId || !activeTenantId) return [];
       const { data, error } = await supabase
         .from('lotes')
-        .select('id, nome, status')
+        .select('id, nome, status').eq('tenant_id', activeTenantId)
         .eq('fazenda_id', activeFarmId)
         .eq('tenant_id', activeTenantId)
         .eq('status', 'ATIVO');
@@ -283,7 +283,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
         .from('animais')
         .select(`
           id, brinco, raca, sexo, status, lote_id, peso_entrada,
-          lotes ( nome ),
+          lotes ( nome ).eq('tenant_id', activeTenantId),
           pesagens ( peso, data_pesagem )
         `)
         .eq('tenant_id', activeTenantId)
@@ -437,9 +437,9 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const handleAddAllFiltered = () => {
     setAnimaisSelecionados((prev) => {
       const existingIds = new Set(prev.map((a) => a.id));
-      const toAdd = animaisDisponiveis.filter((a) => !existingIds.has(a.id));
+      const toAdd = animaisDisponiveis.filter((a) => !existingIds.has(a.id) && !a.em_carencia);
       if (toAdd.length === 0) {
-        toast('Todos os animais filtrados já foram adicionados.', { icon: 'ℹ️' });
+        toast('Nenhum animal válido disponível para adição.', { icon: 'ℹ️' });
         return prev;
       }
       return [...prev, ...toAdd];

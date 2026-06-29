@@ -315,7 +315,7 @@ export const AssignToLoteForm: React.FC<AssignToLoteFormProps> = ({ isOpen, onCl
     setLoadingLotes(true);
     try {
       const { data: lotesData, error } = await applyFarmFilter(
-        supabase.from('lotes').select('id, nome, capacidade, descricao, sexo_permitido, exige_rastreabilidade, pastos(nome)').order('nome')
+        supabase.from('lotes').select('id, nome, capacidade, descricao, sexo_permitido, exige_rastreabilidade, pastos(nome)').eq('tenant_id', activeTenantId).order('nome')
       ).neq('status', 'ARQUIVADO');
 
       if (error || !lotesData) return;
@@ -327,7 +327,7 @@ export const AssignToLoteForm: React.FC<AssignToLoteFormProps> = ({ isOpen, onCl
       if (loteIds.length > 0) {
         const { data: countData } = await supabase
           .from('animais')
-          .select('lote_id')
+          .select('lote_id').eq('tenant_id', activeTenantId)
           .in('lote_id', loteIds)
           .eq('status', 'ATIVO');
 
@@ -352,7 +352,7 @@ export const AssignToLoteForm: React.FC<AssignToLoteFormProps> = ({ isOpen, onCl
     try {
       const { data, error } = await applyFarmFilter(
         supabase.from('animais')
-          .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual, data_nascimento, fazenda_id')
+          .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual, data_nascimento, fazenda_id').eq('tenant_id', activeTenantId)
           .eq('status', 'ATIVO')
           .is('lote_id', null)
       );

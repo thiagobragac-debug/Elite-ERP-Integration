@@ -137,7 +137,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
         id, nome, unidade, custo_medio, categoria_id,
         categorias_sistema (
           nome
-        )
+        ).eq('tenant_id', activeTenantId)
       `);
     query = applyTenantFilter(query);
     const { data, error } = await query;
@@ -155,7 +155,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
   };
 
   const fetchWarehouses = async () => {
-    let query = supabase.from('depositos').select('id, nome').neq('status', 'inativo');
+    let query = supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId).neq('status', 'inativo');
     query = applyFarmFilter(query);
     const { data, error } = await query;
 
@@ -170,7 +170,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
   const fetchAnimais = async () => {
     let query = supabase
       .from('animais')
-      .select('id, brinco, nome, raca')
+      .select('id, brinco, nome, raca').eq('tenant_id', activeTenantId)
       .neq('status', 'vendido')
       .neq('status', 'morto');
     query = applyFarmFilter(query);
@@ -183,7 +183,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
   };
 
   const fetchLotes = async () => {
-    let query = supabase.from('lotes').select('id, nome').eq('status', 'ativo');
+    let query = supabase.from('lotes').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'ativo');
     query = applyFarmFilter(query);
     const { data } = await query;
     if (data) {

@@ -23,7 +23,7 @@ export const useSaaSAdminPlans = (
       setPlansLoading(true);
       const { data, error }: any = await supabase
         .from('saas_plans')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
         .order('price', { ascending: true });
 
       if (error) {
@@ -81,7 +81,7 @@ export const useSaaSAdminPlans = (
       };
 
       const savePromise = selectedPlan
-        ? supabase.from('saas_plans').update(planData).eq('id', selectedPlan.id)
+        ? supabase.from('saas_plans').update(planData).eq('id', selectedPlan.id).eq('tenant_id', activeTenantId)
         : supabase.from('saas_plans').insert([planData]);
 
       const timeoutPromise = new Promise((_, reject) =>
@@ -137,7 +137,7 @@ export const useSaaSAdminPlans = (
     
     try {
       setIsDeletingPlan(true);
-      const { data, error } = await supabase.from('saas_plans').delete().eq('id', planToDelete.id).select();
+      const { data, error } = await supabase.from('saas_plans').delete().eq('id', planToDelete.id).eq('tenant_id', activeTenantId).select();
       
       if (error) throw error;
       if (!data || data.length === 0) {

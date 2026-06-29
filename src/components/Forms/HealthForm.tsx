@@ -132,7 +132,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       const { data: animalData } = await applyFarmFilter(
         supabase
           .from('animais')
-          .select('id, brinco, raca, categoria, sexo')
+          .select('id, brinco, raca, categoria, sexo').eq('tenant_id', activeTenantId)
           .ilike('status', 'ativo')
       );
       if (animalData) setAnimals(animalData);
@@ -141,7 +141,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       const { data: loteData } = await applyFarmFilter(
         supabase
           .from('lotes')
-          .select('id, nome, status')
+          .select('id, nome, status').eq('tenant_id', activeTenantId)
           .ilike('status', 'ativo')
       );
       if (loteData) setLots(loteData);
@@ -150,7 +150,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
       const { data: prodData } = await applyFarmFilter(
         supabase
           .from('produtos')
-          .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_abate_dias, carencia_leite_dias')
+          .select('id, nome, unidade, custo_medio, ean, marca, categoria_id, carencia_abate_dias, carencia_leite_dias').eq('tenant_id', activeTenantId)
           .eq('is_storable', true)
       );
       if (prodData) setAvailableProducts(prodData);

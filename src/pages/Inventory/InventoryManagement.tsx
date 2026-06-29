@@ -176,7 +176,7 @@ export const InventoryManagement: React.FC = () => {
           id, nome, categoria_id,
           categorias_sistema (
             nome
-          ),
+          ).eq('tenant_id', activeTenantId),
           unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao, tipo, codigo_servico_lc116, codigo_tributacao_nacional, cnae_associado
         `,
           { count: 'exact' }
@@ -222,11 +222,11 @@ export const InventoryManagement: React.FC = () => {
     // Asynchronously check for history to disable the is_storable toggle
     const { count } = await supabase
       .from('movimentacoes_estoque')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
       .eq('produto_id', product.id);
     const { data: embalagens } = await supabase
       .from('produto_embalagens')
-      .select('*')
+      .select('*').eq('tenant_id', activeTenantId)
       .eq('produto_id', product.id);
     setSelectedProduct((prev: any) => ({
       ...prev,
@@ -271,7 +271,7 @@ export const InventoryManagement: React.FC = () => {
         const { error } = await supabase
           .from('produtos')
           .update(payload)
-          .eq('id', selectedProduct.id);
+          .eq('id', selectedProduct.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -416,7 +416,7 @@ export const InventoryManagement: React.FC = () => {
     mutationFn: async (item: any) => {
       const { count } = await supabase
         .from('estoque_movimentacao')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
         .eq('produto_id', item.id);
       const hasHistory = count ? count > 0 : false;
 
@@ -431,7 +431,7 @@ export const InventoryManagement: React.FC = () => {
         if (!isConfirmed) {
           return { cancelled: true };
         }
-        const { error } = await supabase.from('produtos').delete().eq('id', item.id);
+        const { error } = await supabase.from('produtos').delete().eq('id', item.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -456,7 +456,7 @@ export const InventoryManagement: React.FC = () => {
       const { error } = await supabase
         .from('produtos')
         .update({ is_active: false })
-        .eq('id', item.id);
+        .eq('id', item.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -543,7 +543,7 @@ export const InventoryManagement: React.FC = () => {
 
     const { data } = await supabase
       .from('estoque_movimentacao')
-      .select('*')
+      .select('*').eq('tenant_id', activeTenantId)
       .eq('produto_id', product.id)
       .order('created_at', { ascending: false })
       .limit(10);

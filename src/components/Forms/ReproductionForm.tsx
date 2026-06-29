@@ -57,7 +57,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
     try {
       let query = supabase
         .from('animais')
-        .select('id, brinco, raca, sexo, categoria')
+        .select('id, brinco, raca, sexo, categoria').eq('tenant_id', activeTenantId)
         .neq('status', 'vendido')
         .neq('status', 'morto');
         

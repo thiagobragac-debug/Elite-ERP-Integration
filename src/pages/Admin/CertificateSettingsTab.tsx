@@ -151,7 +151,7 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({
   // Mutation: Delete Certificado
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('certificados_digitais').delete().eq('id', id);
+      const { error } = await supabase.from('certificados_digitais').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

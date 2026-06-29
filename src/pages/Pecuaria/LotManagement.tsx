@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { hasDraftForFullKey } from '../../hooks/useFormDraft';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -72,6 +73,7 @@ export const LotManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [isRelocateModalOpen, setIsRelocateModalOpen] = usePersistentState(
@@ -193,7 +195,7 @@ export const LotManagement: React.FC = () => {
         .from('animais')
         .select('*', { count: 'exact', head: true })
         .eq('lote_id', lot.id)
-        .eq('status', 'ATIVO')
+        .not('status', 'in', '("ABATIDO","MORTALIDADE","VENDIDO")')
         .eq('tenant_id', activeTenantId);
 
       if (countError) {
@@ -227,19 +229,42 @@ export const LotManagement: React.FC = () => {
 
   const deleteLotMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Soft delete
-      const { error } = await supabase.from('lotes').update({ status: 'FINALIZADO' }).eq('id', id).eq('tenant_id', activeTenantId);
+      // Soft delete com deleção lógica do timestamp
+      const { error } = await supabase
+        .from('lotes')
+        .update({ 
+          status: 'FINALIZADO',
+          deleted_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('Lote excluído.');
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['report'] });
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['report'] });
+      queryClient.setQueriesData({ queryKey: ['report'] }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
+        };
+      });
+      return { previousQueries };
     },
-    onError: (err: any) => {
+    onSuccess: () => {
+      toast.success('Lote excluído.');
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+    },
+    onError: (err: any, deletedId, context: any) => {
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       toast.error(`Erro ao excluir lote: ${err.message}`);
-      refresh();
     },
   });
 
@@ -360,7 +385,7 @@ export const LotManagement: React.FC = () => {
   }).length;
 
   const filteredLots = fetchedLots.filter((l) => {
-    const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (l.nome || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     const status = (l.status || '').toUpperCase();
 
     const matchesTab =

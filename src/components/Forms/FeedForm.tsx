@@ -68,7 +68,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
   const fetchData = async () => {
     // Buscar lotes
     const { data: lotesData } = await applyFarmFilter(
-      supabase.from('lotes').select('id, nome').eq('status', 'ATIVO')
+      supabase.from('lotes').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'ATIVO')
     );
     if (lotesData) {
       setLotes(lotesData);
@@ -76,7 +76,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
 
     // Buscar dietas
     const { data: dietasData } = await applyFarmFilter(
-      supabase.from('dietas').select('id, nome').eq('status', 'active')
+      supabase.from('dietas').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'active')
     );
     if (dietasData) {
       setDietas(dietasData);

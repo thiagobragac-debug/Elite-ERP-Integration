@@ -74,7 +74,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   }, [isOpen, activeFarm]);
 
   const fetchWarehouses = async () => {
-    let query = supabase.from('depositos').select('id, nome').neq('status', 'inativo');
+    let query = supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId).neq('status', 'inativo');
     query = applyFarmFilter(query);
     const { data } = await query;
     if (data) {

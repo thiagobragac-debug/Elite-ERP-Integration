@@ -468,8 +468,9 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({
         data.map(async (d: any) => {
           const { count } = await supabase
             .from('animais')
-            .select('*', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
             .eq(fieldName, d.id)
+            .eq('tenant_id', activeTenantId)
             .in('status', ['ATIVO', 'Ativo', 'ativo']);
           return { ...d, _animalCount: count || 0 };
         })
@@ -491,15 +492,17 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({
     if (isLoteMode) {
       const { count } = await supabase
         .from('animais')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
         .eq(fieldName, destId)
+        .eq('tenant_id', activeTenantId)
         .in('status', ['ATIVO', 'Ativo', 'ativo']);
       setDestCapacity({ current: count || 0, max: maxCap });
     } else {
       const { data } = await supabase
         .from('animais')
-        .select('peso_atual')
+        .select('peso_atual').eq('tenant_id', activeTenantId)
         .eq(fieldName, destId)
+        .eq('tenant_id', activeTenantId)
         .in('status', ['ATIVO', 'Ativo', 'ativo']);
       let currentUa = 0;
       if (data) {
@@ -519,7 +522,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({
         .from('animais')
         .select(
           'id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual, data_nascimento, fazenda_id'
-        )
+        ).eq('tenant_id', activeTenantId)
         .in('status', ['ATIVO', 'Ativo', 'ativo']);
 
       const { data, error } = isLoteMode
@@ -655,6 +658,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({
       const { error } = await supabase
         .from('animais')
         .update({ [fieldName]: selectedDestination })
+        .eq('tenant_id', activeTenantId)
         .in('id', selectedAnimals);
 
       if (!error) {

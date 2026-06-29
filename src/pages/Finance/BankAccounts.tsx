@@ -160,7 +160,7 @@ export const BankAccounts: React.FC = () => {
 
       let query = supabase
         .from('contas_bancarias')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .order('banco', { ascending: true })
         .eq('tenant_id', activeTenantId);
 
@@ -447,7 +447,7 @@ export const BankAccounts: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('extrato_transacoes')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .eq('conta_id', acc.id)
         .order('data', { ascending: false })
         .limit(10);

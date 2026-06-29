@@ -109,6 +109,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
       .eq('lote_id', lotId)
       .eq('status', 'ativo')
       .eq('sexo', 'Fêmea')
+      .eq('tenant_id', tenantId)
       .order('brinco');
     setLotAnimalCount(count || 0);
     if (data) {

@@ -143,7 +143,7 @@ export const Contracts: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('contratos')
-        .select('*, parceiros!contratos_cliente_id_fkey(nome)')
+        .select('*, parceiros!contratos_cliente_id_fkey(nome)').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
       query = applyFarmFilter(query);
@@ -324,7 +324,7 @@ export const Contracts: React.FC = () => {
         const { data: newRecord, error } = await supabase
           .from('contratos')
           .insert([{ ...payload, ...insertPayload }])
-          .select()
+          .select().eq('tenant_id', activeTenantId)
           .single();
         if (error) {
           throw error;

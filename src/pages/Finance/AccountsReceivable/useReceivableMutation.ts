@@ -28,7 +28,7 @@ export function useReceivableMutation(selectedInvoice: Receivable | null, onSucc
         const { error } = await supabase
           .from('contas_receber')
           .update(payload)
-          .eq('id', selectedInvoice.id);
+          .eq('id', selectedInvoice.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
       } else {
         const { error } = await supabase
@@ -50,7 +50,7 @@ export function useReceivableMutation(selectedInvoice: Receivable | null, onSucc
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('contas_receber').delete().eq('id', id);
+      const { error } = await supabase.from('contas_receber').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {

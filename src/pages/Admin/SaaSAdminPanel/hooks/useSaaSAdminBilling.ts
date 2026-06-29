@@ -14,7 +14,7 @@ export const useSaaSAdminBilling = (user?: any) => {
       setInvoicesLoading(true);
       const { data, error }: any = await supabase
         .from('saas_invoices')
-        .select('*, tenants(id, nome)', { count: 'exact' })
+        .select('*, tenants(id, nome)', { count: 'exact' }).eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

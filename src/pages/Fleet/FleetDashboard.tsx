@@ -77,19 +77,19 @@ export const FleetDashboard: React.FC = () => {
     queryFn: async () => {
       const queries = [
         applyFarmFilter(
-          supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at').limit(500)
+          supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at').eq('tenant_id', activeTenantId).limit(500)
         ),
         applyFarmFilter(
           supabase
             .from('abastecimentos')
-            .select('*, maquinas(nome)')
+            .select('*, maquinas(nome)').eq('tenant_id', activeTenantId)
             .order('data', { ascending: false })
             .limit(5)
         ),
         applyFarmFilter(
           supabase
             .from('manutencao_frota')
-            .select('*, maquinas(nome)')
+            .select('*, maquinas(nome)').eq('tenant_id', activeTenantId)
             .order('data_inicio', { ascending: false })
             .limit(5)
         ),
@@ -97,7 +97,7 @@ export const FleetDashboard: React.FC = () => {
           p_tenant_id: activeTenantId || '',
           p_fazenda_id: isGlobalMode ? null : activeFarmId,
         }),
-        applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status')),
+        applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status').eq('tenant_id', activeTenantId)),
       ];
 
       const [machRes, fuelRes, maintRes, consumptionRes, maintStatsRes] =

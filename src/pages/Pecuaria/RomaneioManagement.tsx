@@ -113,10 +113,6 @@ export default function RomaneioManagement() {
       totalAnimals,
       totalValue,
       pendentesCount,
-      sparklineTotal: Array.from({ length: 10 }, () => ({ value: 20 + Math.random() * 80 })),
-      sparklineAnimals: Array.from({ length: 10 }, () => ({ value: 100 + Math.random() * 300 })),
-      sparklineValue: Array.from({ length: 10 }, () => ({ value: 50000 + Math.random() * 150000 })),
-      sparklinePendentes: Array.from({ length: 10 }, () => ({ value: Math.random() * 5 })),
     };
   }, [romaneiosList]);
 
@@ -685,7 +681,7 @@ export default function RomaneioManagement() {
                 subtitle="Romaneios gerados no total"
                 icon={Truck}
                 color="#3b82f6"
-                sparkline={stats.sparklineTotal}
+                color="#3b82f6"
               />
               <TauzeStatCard
                 label="Animais Despachados"
@@ -693,7 +689,7 @@ export default function RomaneioManagement() {
                 subtitle="Soma de todos os lotes"
                 icon={Activity}
                 color="hsl(var(--brand))"
-                sparkline={stats.sparklineAnimals}
+                color="hsl(var(--brand))"
               />
               <TauzeStatCard
                 label="Valor Total Estimado"
@@ -705,7 +701,7 @@ export default function RomaneioManagement() {
                 subtitle="Faturamento estimado de vendas"
                 icon={TrendingUp}
                 color="#10b981"
-                sparkline={stats.sparklineValue}
+                color="#10b981"
               />
               <TauzeStatCard
                 label="Embarques Pendentes"
@@ -713,7 +709,7 @@ export default function RomaneioManagement() {
                 subtitle="Aguardando liberação / NF-e"
                 icon={Calendar}
                 color="#f59e0b"
-                sparkline={stats.sparklinePendentes}
+                color="#f59e0b"
               />
             </>
           )

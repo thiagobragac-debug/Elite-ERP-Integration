@@ -154,7 +154,7 @@ export const PurchaseRequest: React.FC = () => {
         .from('solicitacoes_compra')
         .select(
           'id, titulo, departamento, prioridade, status, descricao, valor_estimado, solicitante, fazenda_id, tenant_id, created_at'
-        )
+        ).eq('tenant_id', activeTenantId)
         .limit(500)
         .order('created_at', { ascending: false });
       query = applyFarmFilter(query);
@@ -276,7 +276,7 @@ export const PurchaseRequest: React.FC = () => {
         const { error } = await supabase
           .from('solicitacoes_compra')
           .update(payload)
-          .eq('id', selectedRequest.id);
+          .eq('id', selectedRequest.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -311,7 +311,7 @@ export const PurchaseRequest: React.FC = () => {
 
   const deleteRequestMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('solicitacoes_compra').delete().eq('id', id);
+      const { error } = await supabase.from('solicitacoes_compra').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

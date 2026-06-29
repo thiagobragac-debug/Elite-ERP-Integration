@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import { useTenant } from '../../contexts/TenantContext';
@@ -154,7 +155,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
         situacao_cadastral: (data as any).descricao_situacao_cadastral || 'ATIVA',
       }));
     } catch {
-      alert('Não foi possível localizar este CNPJ. Verifique os dados ou preencha manualmente.');
+      toast.error('Não foi possível localizar este CNPJ. Verifique os dados ou preencha manualmente.');
     } finally {
       setLoading(false);
       setSyncMsg('');
@@ -181,7 +182,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
         pais: 'BRASIL',
       }));
     } catch (err) {
-      alert('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
+      toast.error('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
     } finally {
       setLoading(false);
       setSyncMsg('');

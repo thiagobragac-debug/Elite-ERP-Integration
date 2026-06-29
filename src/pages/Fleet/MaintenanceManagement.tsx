@@ -231,7 +231,7 @@ export const MaintenanceManagement: React.FC = () => {
       }
       const { data, count, error } = await supabase
         .from('maquinas')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
         .eq('fazenda_id', activeFarm.id)
         .range(range.from, range.to);
       if (error) {
@@ -266,7 +266,7 @@ export const MaintenanceManagement: React.FC = () => {
         .select(
           'id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)',
           { count: 'exact' }
-        )
+        ).eq('tenant_id', activeTenantId)
         .order('data_inicio', { ascending: false });
 
       query = applyFarmFilter(query);

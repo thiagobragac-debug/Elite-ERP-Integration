@@ -143,7 +143,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
       if (pIds.length > 0) {
         const { data: embData } = await supabase
           .from('produto_embalagens')
-          .select('id, produto_id, descricao, fator')
+          .select('id, produto_id, descricao, fator').eq('tenant_id', activeTenantId)
           .in('produto_id', pIds);
         if (embData) {
           setAvailableEmbalagens(embData);

@@ -74,7 +74,7 @@ export const PecuariaSettingsTab: React.FC<{
       // Buscar configuracoes atuais
       const { data: currentData } = await supabase
         .from('fazendas')
-        .select('configuracoes')
+        .select('configuracoes').eq('tenant_id', activeTenantId)
         .eq('id', fazendaId)
         .single();
 
@@ -86,7 +86,7 @@ export const PecuariaSettingsTab: React.FC<{
       const { error } = await supabase
         .from('fazendas')
         .update({ configuracoes: newConfig })
-        .eq('id', fazendaId);
+        .eq('id', fazendaId).eq('tenant_id', activeTenantId);
 
       if (error) throw error;
 

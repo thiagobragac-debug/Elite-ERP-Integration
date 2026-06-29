@@ -60,7 +60,7 @@ export const NotificationCenter: React.FC = () => {
     try {
       let billsQuery = supabase
         .from('contas_pagar')
-        .select('id, descricao, data_vencimento, valor_total')
+        .select('id, descricao, data_vencimento, valor_total').eq('tenant_id', activeTenantId)
         .eq('status', 'PENDENTE')
         .lt('data_vencimento', new Date().toISOString())
         .order('data_vencimento', { ascending: true })
@@ -68,13 +68,13 @@ export const NotificationCenter: React.FC = () => {
 
       let weightsQuery = supabase
         .from('pesagens')
-        .select('id, created_at, peso')
+        .select('id, created_at, peso').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(10);
 
       let animalsQuery = supabase
         .from('animais')
-        .select('id, brinco, created_at')
+        .select('id, brinco, created_at').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(10);
 

@@ -82,7 +82,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .select(
           `
           id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id, carencia_abate_dias, carencia_leite_dias,
-          categorias_sistema(nome)
+          categorias_sistema(nome).eq('tenant_id', activeTenantId)
         `
         )
         .eq('tenant_id', activeTenantId)
@@ -100,6 +100,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         const { data: catData } = await supabase
           .from('categorias_sistema')
           .select('id')
+          .eq('tenant_id', activeTenantId)
           .eq('modulo', 'estoque')
           .in('modulo_vinculado', allowedModules);
 

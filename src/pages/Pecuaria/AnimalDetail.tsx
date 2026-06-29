@@ -118,7 +118,7 @@ export const AnimalDetail: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pesagens')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .limit(500)
         .eq('animal_id', id)
         .order('data_pesagem', { ascending: true });
@@ -137,7 +137,7 @@ export const AnimalDetail: React.FC = () => {
       // 1) Nutrição
       const costsRes = await supabase
         .from('nutricao_animais')
-        .select('valor_total_consumido, data_consumo, quantidade_kg, dietas(nome)')
+        .select('valor_total_consumido, data_consumo, quantidade_kg, dietas(nome)').eq('tenant_id', activeTenantId)
         .eq('animal_id', id)
         .order('data_consumo', { ascending: false });
       if (costsRes.error) {
@@ -149,7 +149,7 @@ export const AnimalDetail: React.FC = () => {
         .from('sanidade_animais')
         .select(
           'id, valor_total_aplicado, produto_id, data_aplicacao, quantidade_dose, sanidade_id, produtos(nome)'
-        )
+        ).eq('tenant_id', activeTenantId)
         .eq('animal_id', id);
       if (saRes.error) {
         console.error('sanidade_animais erro:', saRes.error);
@@ -161,7 +161,7 @@ export const AnimalDetail: React.FC = () => {
         const sanidadeIds = [...new Set(saRes.data.map((r: any) => r.sanidade_id).filter(Boolean))];
         const { data: sanidadeRows, error: sanErr } = await supabase
           .from('sanidade')
-          .select('id, titulo, tipo, carencia_dias, status')
+          .select('id, titulo, tipo, carencia_dias, status').eq('tenant_id', activeTenantId)
           .in('id', sanidadeIds);
         if (sanErr) {
           console.error('sanidade erro:', sanErr);
@@ -181,7 +181,7 @@ export const AnimalDetail: React.FC = () => {
       // 3) Reprodução
       const reproRes = await supabase
         .from('eventos_reprodutivos')
-        .select('id, tipo_evento, data_evento, resultado, observacoes, status, custo')
+        .select('id, tipo_evento, data_evento, resultado, observacoes, status, custo').eq('tenant_id', activeTenantId)
         .eq('animal_id', id)
         .order('data_evento', { ascending: false });
       if (reproRes.error) {
@@ -193,7 +193,7 @@ export const AnimalDetail: React.FC = () => {
         .from('historico_movimentacao_animal')
         .select(
           'id, data_movimentacao, motivo, lote_origem_id, lote_destino_id, lotes_origem:lote_origem_id(nome), lotes_destino:lote_destino_id(nome)'
-        )
+        ).eq('tenant_id', activeTenantId)
         .eq('animal_id', id)
         .order('data_movimentacao', { ascending: false });
       if (moveRes.error) {
@@ -216,7 +216,7 @@ export const AnimalDetail: React.FC = () => {
           .from('movimentacoes_estoque')
           .select(
             'id, data_movimentacao, quantidade, custo_unitario, origem_destino, produtos(nome), animal_id, lote_pecuario_id'
-          )
+          ).eq('tenant_id', activeTenantId)
           .eq('tipo', 'SAIDA')
           .or(`animal_id.eq.${id},lote_pecuario_id.in.(${lotesEnvolvidos.join(',')})`);
       } else {
@@ -224,7 +224,7 @@ export const AnimalDetail: React.FC = () => {
           .from('movimentacoes_estoque')
           .select(
             'id, data_movimentacao, quantidade, custo_unitario, origem_destino, produtos(nome), animal_id, lote_pecuario_id'
-          )
+          ).eq('tenant_id', activeTenantId)
           .eq('tipo', 'SAIDA')
           .eq('animal_id', id);
       }
@@ -238,7 +238,7 @@ export const AnimalDetail: React.FC = () => {
       if (lotesEnvolvidos.length > 0) {
         const { data: countData } = await supabase
           .from('animais')
-          .select('lote_id')
+          .select('lote_id').eq('tenant_id', activeTenantId)
           .in('lote_id', lotesEnvolvidos)
           .neq('status', 'morto')
           .neq('status', 'vendido');

@@ -132,7 +132,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const fetchData = async () => {
     // Fetch Machines
     const { data: mData } = await applyFarmFilter(
-      supabase.from('maquinas').select('*')
+      supabase.from('maquinas').select('*').eq('tenant_id', activeTenantId)
     );
     if (mData) {
       const transformed = mData.map((m) => ({
@@ -144,10 +144,12 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }
 
     // Fetch Inventory (Lubricants, Filters, Spare Parts)
-    const { data: pData } = await supabase
-      .from('produtos')
-      .select('id, nome, categoria, preco_custo')
-      .in('categoria', ['LUBRIFICANTES', 'PECAS', 'PNEUS', 'FILTROS']);
+    const { data: pData } = await applyFarmFilter(
+      supabase
+        .from('produtos')
+        .select('id, nome, categoria, preco_custo').eq('tenant_id', activeTenantId)
+        .in('categoria', ['LUBRIFICANTES', 'PECAS', 'PNEUS', 'FILTROS'])
+    );
     if (pData) {
       const transformed = pData.map((p) => ({ ...p, preco_venda: p.preco_custo || 0 }));
       setInventory(transformed);

@@ -85,7 +85,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
 
     // Fetch Machines with specs, only active
     const { data: mData } = await applyFarmFilter(
-      supabase.from('maquinas').select('*')
+      supabase.from('maquinas').select('*').eq('tenant_id', activeTenantId)
     ).eq('status', 'active');
     if (mData) {
       // Add mock fields for UI compatibility based on what DB has or fallback
@@ -101,7 +101,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
 
     // Fetch Inventory Locations (Tanks), active and type Tanque
     const { data: lData } = await applyFarmFilter(
-      supabase.from('depositos').select('id, nome')
+      supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId)
     ).eq('status', 'ativo').eq('tipo', 'Tanque');
     if (lData) {
       setLocations(lData);

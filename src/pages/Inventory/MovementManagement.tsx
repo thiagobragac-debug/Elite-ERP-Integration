@@ -187,7 +187,7 @@ export const MovementManagement: React.FC = () => {
           categoria_id,
           categorias_sistema (
             nome
-          )
+          ).eq('tenant_id', activeTenantId)
         )
       `,
         { count: 'exact' }
@@ -302,7 +302,7 @@ export const MovementManagement: React.FC = () => {
         const { data, error } = await supabase
           .from('movimentacoes_estoque')
           .update(payloads[0])
-          .eq('id', id)
+          .eq('id', id).eq('tenant_id', activeTenantId)
           .select();
         if (error) {
           throw error;
@@ -366,7 +366,7 @@ export const MovementManagement: React.FC = () => {
 
   const deleteMovementMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('movimentacoes_estoque').delete().eq('id', id);
+      const { error } = await supabase.from('movimentacoes_estoque').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -445,7 +445,7 @@ export const MovementManagement: React.FC = () => {
         for (const item of items) {
           const { data: product } = await supabase
             .from('produtos')
-            .select('custo_medio')
+            .select('custo_medio').eq('tenant_id', activeTenantId)
             .eq('id', item.produto_id)
             .single();
 
@@ -498,7 +498,7 @@ export const MovementManagement: React.FC = () => {
         if (formData.tipo === 'out') {
           const { data: product } = await supabase
             .from('produtos')
-            .select('custo_medio')
+            .select('custo_medio').eq('tenant_id', activeTenantId)
             .eq('id', item.produto_id)
             .single();
           costToUse = product?.custo_medio || 0;
@@ -546,7 +546,7 @@ export const MovementManagement: React.FC = () => {
           if (formData.tipo === 'out') {
             const { data: product } = await supabase
               .from('produtos')
-              .select('custo_medio')
+              .select('custo_medio').eq('tenant_id', activeTenantId)
               .eq('id', item.produto_id)
               .single();
             costToUse = product?.custo_medio || 0;

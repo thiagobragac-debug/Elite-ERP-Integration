@@ -167,19 +167,19 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
     try {
       const [lotesRes, animaisRes, dietasRes, depRes, prodRes] = await Promise.all([
         applyFarmFilter(
-          supabase.from('lotes').select('id, nome, capacidade').eq('status', 'ATIVO')
+          supabase.from('lotes').select('id, nome, capacidade').eq('tenant_id', activeTenantId).eq('status', 'ATIVO')
         ),
         applyFarmFilter(
-          supabase.from('animais').select('id, brinco, brinco_eletronico, raca, categoria, lote_id, peso_atual').eq('status', 'Ativo')
+          supabase.from('animais').select('id, brinco, brinco_eletronico, raca, categoria, lote_id, peso_atual').eq('tenant_id', activeTenantId).eq('status', 'Ativo')
         ),
         applyFarmFilter(
-          supabase.from('dietas').select('id, nome, tipo, consumo_esperado, percentual_ms, custo_por_kg, ingredientes').eq('status', 'active')
+          supabase.from('dietas').select('id, nome, tipo, consumo_esperado, percentual_ms, custo_por_kg, ingredientes').eq('tenant_id', activeTenantId).eq('status', 'active')
         ),
         applyFarmFilter(
-          supabase.from('depositos').select('id, nome').eq('status', 'ativo')
+          supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'ativo')
         ),
         applyFarmFilter(
-          supabase.from('produtos').select('id, nome, estoque_atual, unidade_medida')
+          supabase.from('produtos').select('id, nome, estoque_atual, unidade_medida').eq('tenant_id', activeTenantId)
         ),
       ]);
 

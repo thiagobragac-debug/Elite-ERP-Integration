@@ -146,7 +146,7 @@ export const Invoices: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('notas_saida')
-        .select('*, parceiros(nome)')
+        .select('*, parceiros(nome)').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
       query = applyFarmFilter(query);
@@ -349,7 +349,7 @@ export const Invoices: React.FC = () => {
       if (payload.cliente_id) {
         const { data: clientData } = await supabase
           .from('parceiros')
-          .select('nome')
+          .select('nome').eq('tenant_id', activeTenantId)
           .eq('id', payload.cliente_id)
           .single();
         if (clientData) {
@@ -490,7 +490,7 @@ export const Invoices: React.FC = () => {
       // 1. Fetch invoice details to find associated records
       const { data: invoice } = await supabase
         .from('notas_saida')
-        .select('numero_nota, cliente_id')
+        .select('numero_nota, cliente_id').eq('tenant_id', activeTenantId)
         .eq('id', id)
         .single();
 
@@ -502,7 +502,7 @@ export const Invoices: React.FC = () => {
         // 1.5. Check if any associated contas a receber is already paid
         const { data: financeRecords, error: fetchFinError } = await supabase
           .from('contas_receber')
-          .select('status')
+          .select('status').eq('tenant_id', activeTenantId)
           .eq('cliente_id', invoice.cliente_id)
           .ilike('descricao', `NF Saída ${invoice.numero_nota} - Parcela%`);
 

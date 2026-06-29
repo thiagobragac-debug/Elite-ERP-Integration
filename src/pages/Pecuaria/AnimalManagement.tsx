@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -30,6 +31,7 @@ import { supabase } from '../../lib/supabase';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { VirtualGrid } from '../../components/UI/VirtualGrid';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import { useTenantCore } from '../../contexts/TenantContext';
@@ -75,6 +77,7 @@ export const AnimalManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [formActionId, setFormActionId] = useState<number>(0);
@@ -122,16 +125,16 @@ export const AnimalManagement: React.FC = () => {
   // Server-side filters: pass active filters + searchTerm to the handler
   const serverFilters = useMemo(() => ({
     ...filterValues,
-    searchTerm: searchTerm.trim() || undefined,
+    searchTerm: debouncedSearchTerm.trim() || undefined,
     // Normalize tab selection into status filter
     status: activeTab !== 'TODOS' ? activeTab : (filterValues.status !== 'all' ? filterValues.status : 'all'),
-  }), [filterValues, searchTerm, activeTab]);
+  }), [filterValues, debouncedSearchTerm, activeTab]);
 
   // Reset page when any filter changes (prevents stale pagination)
   useEffect(() => {
     setPage(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, activeTab, JSON.stringify(filterValues)]);
+  }, [debouncedSearchTerm, activeTab, JSON.stringify(filterValues)]);
 
   const {
     data: _rawAnimals = [],
@@ -302,17 +305,42 @@ export const AnimalManagement: React.FC = () => {
 
   const deleteAnimalMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Soft-delete: atualiza o status para EXCLUIDO para manter o histórico (GMD, Financeiro)
-      const { error } = await supabase.from('animais').update({ status: 'EXCLUIDO' }).eq('id', id).eq('tenant_id', activeTenantId);
+      // Soft-delete via RPC transacional
+      const { error } = await supabase.rpc('rpc_soft_delete_animal', { p_id: id, p_tenant_id: activeTenantId });
       if (error) {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['report'] });
-      toast.success('✅ Animal excluído!');
+    onMutate: async (deletedId) => {
+      // Cancelar qualquer refetch que possa sobrescrever o update otimista
+      await queryClient.cancelQueries({ queryKey: ['report'] });
+
+      // Salvar snapshot do estado anterior
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['report'] });
+
+      // Atualizar o cache otimisticamente
+      queryClient.setQueriesData({ queryKey: ['report'] }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
+        };
+      });
+
+      return { previousQueries };
     },
-    onError: (err: any) => {
+    onSuccess: () => {
+      toast.success('✅ Animal excluído!');
+      // Disparar background fetch para garantir que a paginação se reajuste
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+    },
+    onError: (err: any, deletedId, context: any) => {
+      // Reverter se der erro
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, data]: any) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       toast.error(`❌ Erro ao excluir animal: ${err.message}`);
     },
   });
@@ -336,20 +364,14 @@ export const AnimalManagement: React.FC = () => {
   const processedAnimals = useMemo(() => {
     const rawList = animals || [];
     return rawList.map(item => {
-      const currentWeight = item.peso_atual || item.peso_inicial || 0;
-      const ageMonths = calculateIdadeMeses(item.data_nascimento);
+      // Usa campos calculados no DB (vw_animais_metricas_dashboard) se disponíveis, com fallback client-side
+      const currentWeight = item.computed_weight ?? (item.peso_atual || item.peso_inicial || 0);
+      const ageMonths = item.computed_age_months ?? calculateIdadeMeses(item.data_nascimento);
       const category = calculateAnimalCategory(item.sexo, currentWeight, ageMonths);
-      const gain = currentWeight - (item.peso_inicial || 0);
+      const gain = item.computed_gain ?? (currentWeight - (item.peso_inicial || 0));
+      const daysOnFarm = item.computed_days_on_farm ?? (item.created_at ? Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24)) : 0);
       
-      let ageStr = 'N/I';
-      if (item.data_nascimento) {
-        ageStr = `${ageMonths} meses`;
-      }
-      
-      let daysOnFarm = 0;
-      if (item.created_at) {
-        daysOnFarm = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
-      }
+      const ageStr = item.data_nascimento ? `${ageMonths} meses` : 'N/I';
 
       return {
         ...item,
@@ -462,11 +484,12 @@ export const AnimalManagement: React.FC = () => {
       align: 'center' as const,
     },
     {
-      header: 'Ganho de Peso',
+      header: 'Ganho de Peso / GMD',
       accessor: (item: any) => {
-        const gain = item.computedGain;
+        const gain = item.computed_gain || item.computedGain || 0;
+        const gmd = item.computed_gmd || 0;
         return (
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
             <span
               style={{
                 padding: '2px 8px',
@@ -478,8 +501,33 @@ export const AnimalManagement: React.FC = () => {
                 border: `1px solid ${gain >= 0 ? '#a7f3d0' : '#fecaca'}`,
               }}
             >
-              {gain >= 0 ? '+' : ''}
-              {gain.toFixed(1)} kg
+              {gain >= 0 ? '+' : ''}{gain.toFixed(1)} kg
+            </span>
+            <span style={{ fontSize: '9px', color: '#64748b' }}>GMD: {gmd.toFixed(2)}kg/d</span>
+          </div>
+        );
+      },
+      align: 'center' as const,
+    },
+    {
+      header: 'Projeção Abate',
+      accessor: (item: any) => {
+        if (!item.data_estimada_abate) return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>N/D</span>;
+        const isReady = item.computed_dias_abate <= 0;
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: isReady ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                color: isReady ? '#10b981' : '#f59e0b',
+                border: `1px solid ${isReady ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+              }}
+            >
+              {isReady ? 'Pronto' : new Date(item.data_estimada_abate).toLocaleDateString('pt-BR')}
             </span>
           </div>
         );
@@ -500,6 +548,13 @@ export const AnimalManagement: React.FC = () => {
       align: 'center' as const,
     },
   ], []);
+  const isAdvancedFilterActive = useMemo(() => {
+    return filterValues.status !== 'all' || 
+           filterValues.sexo !== 'all' || 
+           filterValues.lote !== 'all' || 
+           filterValues.racas.length > 0 || 
+           filterValues.minWeight > 0;
+  }, [filterValues]);
 
   return (
     <div className="animal-mgmt-page animate-slide-up">
@@ -607,8 +662,23 @@ export const AnimalManagement: React.FC = () => {
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{ position: 'relative' }}
           >
             <Filter size={20} />
+            {isAdvancedFilterActive && (
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                  border: '2px solid hsl(var(--bg-main))'
+                }}
+              />
+            )}
           </button>
           <div className="export-dropdown-container">
             <button
@@ -797,14 +867,20 @@ export const AnimalManagement: React.FC = () => {
                 )}
               </div>
             ) : (
-              filteredAnimals.map((a) => {
-                const statusStr = a.status || 'Ativo';
-                let badgeClass = 'active'; // green
-                let badgeText = statusStr.toUpperCase();
-                let borderClass = 'active';
+              <>
+              <VirtualGrid
+                data={filteredAnimals}
+                itemHeight={180}
+                minColumnWidth={280}
+                gap={16}
+                renderItem={(a) => {
+                  const statusStr = a.status || 'Ativo';
+                  let badgeClass = 'active'; // green
+                  let badgeText = statusStr.toUpperCase();
+                  let borderClass = 'active';
 
-                if (a.isSanitaryBlocked) {
-                  borderClass = 'warning-badge';
+                  if (a.isSanitaryBlocked) {
+                    borderClass = 'warning-badge';
                 } else if (statusStr.toLowerCase() !== 'ativo') {
                   badgeClass = 'stopped';
                   badgeText = statusStr.toUpperCase();
@@ -815,12 +891,16 @@ export const AnimalManagement: React.FC = () => {
                 let ageText = a.computedAgeStr;
 
                 // Calcular performance (Ganho de peso)
-                const currentWeight = a.computedWeight;
+                const currentWeight = a.computed_weight || a.computedWeight || 0;
                 const semPesagemCard = currentWeight === 0;
-                const weightGain = a.computedGain;
+                const weightGain = a.computed_gain || a.computedGain || 0;
+                const gmd = a.computed_gmd || 0;
                 const performanceText =
                   weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
                 const isPositiveGain = weightGain >= 0;
+
+                const estimatedSlaughter = a.data_estimada_abate;
+                const daysToSlaughter = a.computed_dias_abate || 0;
 
                 let progressGradient = 'linear-gradient(90deg, #f59e0b, #ef4444)'; // Bezerro/Leve (<350kg)
                 if (currentWeight >= 350 && currentWeight <= 450) {
@@ -1062,6 +1142,39 @@ export const AnimalManagement: React.FC = () => {
                             color: '#64748b',
                           }}
                         >
+                          <Beef size={12} />
+                          <span>{a.raca || 'Mestiço'}</span>
+                        </div>
+                        {estimatedSlaughter && (
+                          <div
+                            className="meta-item"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 8px',
+                              backgroundColor: daysToSlaughter <= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                              borderRadius: '6px',
+                              border: `1px solid ${daysToSlaughter <= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
+                            }}
+                          >
+                            <Calendar size={12} color={daysToSlaughter <= 0 ? '#10b981' : '#f59e0b'} />
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: daysToSlaughter <= 0 ? '#10b981' : '#f59e0b' }}>
+                              Abate: {daysToSlaughter <= 0 ? 'Pronto' : new Date(estimatedSlaughter).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+                        <div
+                          className="meta-item"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: '#64748b',
+                          }}
+                        >
                           <TrendingUp size={12} />
                           <span
                             className="card-farm-meta"
@@ -1074,15 +1187,19 @@ export const AnimalManagement: React.FC = () => {
                     </div>
                   </div>
                 );
-              })
-            )}
+              }}
+            />
             {can('pecuaria', 'create') && (
-              <button className="add-animal-card-premium" onClick={handleOpenCreate}>
-                <Plus size={24} style={{ color: 'hsl(var(--brand))' }} />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b', marginTop: '4px' }}>
-                  Novo Animal
-                </span>
-              </button>
+              <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+                <button className="add-animal-card-premium" onClick={handleOpenCreate} style={{ width: '280px' }}>
+                  <Plus size={24} style={{ color: 'hsl(var(--brand))' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b', marginTop: '4px' }}>
+                    Novo Animal
+                  </span>
+                </button>
+              </div>
+            )}
+              </>
             )}
           </div>
         )}

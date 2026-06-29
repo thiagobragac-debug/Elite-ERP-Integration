@@ -30,7 +30,7 @@ export function usePaymentMutation(selectedBill: Account | null, onSuccess: () =
         const { error } = await supabase
           .from('contas_pagar')
           .update(payload)
-          .eq('id', selectedBill.id);
+          .eq('id', selectedBill.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
       } else {
         const { data: newRecord, error } = await supabase
@@ -64,7 +64,7 @@ export function usePaymentMutation(selectedBill: Account | null, onSuccess: () =
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+      const { error } = await supabase.from('contas_pagar').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) throw error;
     },
     onSuccess: () => {

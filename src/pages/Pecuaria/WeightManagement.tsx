@@ -869,10 +869,7 @@ export const WeightManagement: React.FC = () => {
   const deleteWeightMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('pesagens')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', activeTenantId);
+        .rpc('rpc_soft_delete_pesagem', { p_id: id, p_tenant_id: activeTenantId });
       if (error) {
         throw error;
       }

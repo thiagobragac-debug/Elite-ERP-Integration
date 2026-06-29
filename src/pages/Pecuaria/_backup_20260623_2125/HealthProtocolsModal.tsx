@@ -65,7 +65,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
 
       const { data: catData } = await supabase
         .from('categorias_sistema')
-        .select('id, nome')
+        .select('id, nome').eq('tenant_id', activeTenantId)
         .eq('modulo', 'estoque');
 
       const targetCatIds = catData
@@ -121,7 +121,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
     try {
       const { data, error } = await supabase
         .from('protocolos')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .limit(500)
         .eq('status', 'ativo')
         .order('nome', { ascending: true });
@@ -184,7 +184,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
         const { error } = await supabase
           .from('protocolos')
           .update({ status: 'inativo' })
-          .eq('id', id);
+          .eq('id', id).eq('tenant_id', activeTenantId);
 
         if (error) {
           throw error;
@@ -224,7 +224,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
             categoria: newProtocol.category,
             passos: newProtocol.steps,
           })
-          .eq('id', isEditingId)
+          .eq('id', isEditingId).eq('tenant_id', activeTenantId)
           .select()
           .single();
 

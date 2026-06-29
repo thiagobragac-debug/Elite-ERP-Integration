@@ -30,14 +30,14 @@ export const useSidebarAlerts = (): UseSidebarAlertsReturn => {
     // 1. Query Lotes (status = 'PENDENTE' or 'DIVERGENTE')
     let lotesQuery = supabase
       .from('lotes')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
       .in('status', ['PENDENTE', 'DIVERGENTE', 'pendente', 'divergente']);
     lotesQuery = applyFarmFilter(lotesQuery);
 
     // 2. Query contas_pagar (status != 'PAGO', data_vencimento < today)
     let pagarQuery = supabase
       .from('contas_pagar')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
       .neq('status', 'PAGO')
       .lt('data_vencimento', today);
     pagarQuery = applyFarmFilter(pagarQuery);
@@ -45,7 +45,7 @@ export const useSidebarAlerts = (): UseSidebarAlertsReturn => {
     // 3. Query contas_receber (status != 'PAGO', data_vencimento < today)
     let receberQuery = supabase
       .from('contas_receber')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
       .neq('status', 'PAGO')
       .lt('data_vencimento', today);
     receberQuery = applyFarmFilter(receberQuery);
@@ -53,7 +53,7 @@ export const useSidebarAlerts = (): UseSidebarAlertsReturn => {
     // 4. Query sanidade carencia_dias (status = 'REALIZADO', carencia_dias > 0)
     let sanidadeQuery = supabase
       .from('sanidade')
-      .select('data_manejo, carencia_dias')
+      .select('data_manejo, carencia_dias').eq('tenant_id', activeTenantId)
       .eq('status', 'REALIZADO')
       .gt('carencia_dias', 0);
     sanidadeQuery = applyFarmFilter(sanidadeQuery);
@@ -61,7 +61,7 @@ export const useSidebarAlerts = (): UseSidebarAlertsReturn => {
     // 5. Query saas_invoices (status != 'pago') for configurations
     const invoicesQuery = supabase
       .from('saas_invoices')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
       .neq('status', 'pago')
       .eq('tenant_id', activeTenantId);
 

@@ -29,7 +29,7 @@ interface FarmFilterReturn {
  *
  * Usage:
  *   const { applyFarmFilter, applyTenantFilter, isGlobalMode, activeFarmId, activeTenantId } = useFarmFilter();
- *   const query = applyFarmFilter(supabase.from('animais').select('*'));
+ *   const query = applyFarmFilter(supabase.from('animais').select('*').eq('tenant_id', activeTenantId));
  */
 export const useFarmFilter = (): FarmFilterReturn => {
   const { isGlobalMode, activeFarmId, activeTenantId, activeFarm, farms } = useTenantFarm();

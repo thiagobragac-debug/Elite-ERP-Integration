@@ -421,7 +421,7 @@ export const CompanyManagement: React.FC = () => {
       };
 
       if (editingItem) {
-        await supabase.from('unidades').update(payload).eq('id', editingItem.id);
+        await supabase.from('unidades').update(payload).eq('id', editingItem.id).eq('tenant_id', activeTenantId);
       } else {
         await supabase.from('unidades').insert([{ ...payload, tenant_id: tenant!.id }]);
       }
@@ -448,7 +448,7 @@ export const CompanyManagement: React.FC = () => {
       };
 
       if (editingItem) {
-        await supabase.from('fazendas').update(payload).eq('id', editingItem.id);
+        await supabase.from('fazendas').update(payload).eq('id', editingItem.id).eq('tenant_id', activeTenantId);
       } else {
         await supabase.from('fazendas').insert([{ ...payload, tenant_id: tenant!.id }]);
       }
@@ -484,8 +484,7 @@ export const CompanyManagement: React.FC = () => {
     try {
       await supabase
         .from(type === 'company' ? 'unidades' : 'fazendas')
-        .delete()
-        .eq('id', id);
+        .delete().eq('id', id).eq('tenant_id', activeTenantId);
       fetchData();
     } catch (err) {
       console.error(err);

@@ -71,23 +71,35 @@ export interface Farm {
 
 export const ADMIN_ROLES: UserRole[] = ['SAAS_ADMIN', 'ADMIN', 'Administrador'];
 
-export function isAdminRole(role: UserRole | null | undefined): boolean {
-  return ADMIN_ROLES.includes(role as UserRole);
+export function isAdminRole(role: UserRole | null | undefined | string): boolean {
+  if (!role) return false;
+  const normalized = role.toUpperCase();
+  return ADMIN_ROLES.includes(normalized as UserRole) || normalized === 'ADMINISTRADOR';
 }
 
-export function getRoleLabel(role: UserRole | null | undefined): string {
-  switch (role) {
+export function getRoleLabel(role: UserRole | null | undefined | string): string {
+  if (!role) return 'Usuário';
+  const normalized = role.toUpperCase();
+  switch (normalized) {
     case 'SAAS_ADMIN':
       return 'Super Admin';
     case 'ADMIN':
-    case 'Administrador':
+    case 'ADMINISTRADOR':
       return 'Administrador';
-    case 'MANAGER':
-    case 'Gerente':
+    case 'GERENTE':
       return 'Gerente';
-    case 'OPERATOR':
-    case 'Operador':
+    case 'OPERADOR':
       return 'Operador';
+    case 'VETERINARIO':
+      return 'Veterinário';
+    case 'ZOOTECNISTA':
+      return 'Zootecnista';
+    case 'COMPRADOR':
+      return 'Comprador';
+    case 'VENDEDOR':
+      return 'Vendedor';
+    case 'FINANCEIRO':
+      return 'Financeiro';
     default:
       return 'Usuário';
   }

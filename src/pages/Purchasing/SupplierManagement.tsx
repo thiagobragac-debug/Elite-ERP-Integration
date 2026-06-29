@@ -173,7 +173,7 @@ export const SupplierManagement: React.FC = () => {
 
         let query = supabase
           .from('parceiros')
-          .select('*', { count: 'exact' })
+          .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
           .eq('is_supplier', true)
           .order('nome', { ascending: true })
           .range(from, to);
@@ -212,7 +212,7 @@ export const SupplierManagement: React.FC = () => {
         if (supplierIds.length > 0) {
           const { data: pd } = await supabase
             .from('notas_entrada')
-            .select('fornecedor_id, valor_total')
+            .select('fornecedor_id, valor_total').eq('tenant_id', activeTenantId)
             .in('fornecedor_id', supplierIds);
           purchaseData = pd || [];
         }
@@ -389,7 +389,7 @@ export const SupplierManagement: React.FC = () => {
             is_global: formData.is_global,
             fazendas_vinculadas: formData.fazendas_vinculadas,
           })
-          .eq('id', selectedSupplier.id);
+          .eq('id', selectedSupplier.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -399,7 +399,7 @@ export const SupplierManagement: React.FC = () => {
         if (cleanCnpj && cleanCnpj.length > 0) {
           const { data: existing } = await supabase
             .from('parceiros')
-            .select('id, is_supplier, is_customer')
+            .select('id, is_supplier, is_customer').eq('tenant_id', activeTenantId)
             .eq('cnpj_cpf', formData.cnpj)
             .maybeSingle();
 
@@ -417,7 +417,7 @@ export const SupplierManagement: React.FC = () => {
                 is_global: formData.is_global,
                 fazendas_vinculadas: formData.fazendas_vinculadas,
               })
-              .eq('id', existing.id);
+              .eq('id', existing.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }
@@ -466,7 +466,7 @@ export const SupplierManagement: React.FC = () => {
 
   const deleteSupplierMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('parceiros').delete().eq('id', id);
+      const { error } = await supabase.from('parceiros').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -554,7 +554,7 @@ export const SupplierManagement: React.FC = () => {
       }
       const { data, error } = await supabase
         .from('notas_entrada')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .eq('fornecedor_id', historySupplierId)
         .eq('tenant_id', activeTenantId || activeFarm?.tenantId)
         .order('data_entrada', { ascending: false })

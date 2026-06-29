@@ -135,7 +135,7 @@ export const AuditManagement: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('auditorias_estoque')
-        .select('*')
+        .select('*').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
 
@@ -226,7 +226,7 @@ export const AuditManagement: React.FC = () => {
         const { error } = await supabase
           .from('auditorias_estoque')
           .update(payload)
-          .eq('id', selectedAudit.id);
+          .eq('id', selectedAudit.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -314,7 +314,7 @@ export const AuditManagement: React.FC = () => {
 
   const deleteAuditMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('auditorias_estoque').delete().eq('id', id);
+      const { error } = await supabase.from('auditorias_estoque').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

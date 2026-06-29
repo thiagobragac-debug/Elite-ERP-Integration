@@ -122,7 +122,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
         const { data, error } = await applyFarmFilter(
           supabase
             .from('animais')
-            .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual')
+            .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual').eq('tenant_id', activeTenantId)
             .eq('status', 'ATIVO')
             .is('lote_id', null)
         );

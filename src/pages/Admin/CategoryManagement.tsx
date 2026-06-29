@@ -649,7 +649,7 @@ export const CategorySettingsTab: React.FC<{
       variant: 'danger',
     });
     if (isConfirmed) {
-      const { error } = await supabase.from('categorias_sistema').delete().eq('id', id);
+      const { error } = await supabase.from('categorias_sistema').delete().eq('id', id).eq('tenant_id', activeTenantId);
 
       if (error) {
         toast.error(

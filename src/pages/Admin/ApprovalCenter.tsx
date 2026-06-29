@@ -171,7 +171,7 @@ export const ApprovalCenter: React.FC = () => {
       const { error } = await supabase
         .from('approval_rules')
         .update({ active: !rule.active })
-        .eq('id', rule.id);
+        .eq('id', rule.id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -195,7 +195,7 @@ export const ApprovalCenter: React.FC = () => {
 
   const deleteRuleMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('approval_rules').delete().eq('id', id);
+      const { error } = await supabase.from('approval_rules').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -237,7 +237,7 @@ export const ApprovalCenter: React.FC = () => {
         const { error } = await supabase
           .from('approval_rules')
           .update(payload)
-          .eq('id', selectedRule.id);
+          .eq('id', selectedRule.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -308,7 +308,7 @@ export const ApprovalCenter: React.FC = () => {
       const { error } = await supabase
         .from('approval_queue')
         .update({ status: 'rejected' })
-        .eq('id', item.db_id);
+        .eq('id', item.db_id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -336,7 +336,7 @@ export const ApprovalCenter: React.FC = () => {
           approved_by: null,
           approved_at: null,
         })
-        .eq('id', item.db_id);
+        .eq('id', item.db_id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

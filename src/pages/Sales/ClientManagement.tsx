@@ -351,7 +351,7 @@ export const ClientManagement: React.FC = () => {
             is_global: formData.is_global,
             fazendas_vinculadas: formData.fazendas_vinculadas,
           })
-          .eq('id', selectedClient.id);
+          .eq('id', selectedClient.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -360,7 +360,7 @@ export const ClientManagement: React.FC = () => {
         if (cleanCnpj && cleanCnpj.length > 0) {
           const { data: existing } = await supabase
             .from('parceiros')
-            .select('id, is_supplier, is_customer')
+            .select('id, is_supplier, is_customer').eq('tenant_id', activeTenantId)
             .eq('cnpj_cpf', formData.cnpj)
             .maybeSingle();
 
@@ -378,7 +378,7 @@ export const ClientManagement: React.FC = () => {
                 is_global: formData.is_global,
                 fazendas_vinculadas: formData.fazendas_vinculadas,
               })
-              .eq('id', existing.id);
+              .eq('id', existing.id).eq('tenant_id', activeTenantId);
             if (error) {
               throw error;
             }
@@ -419,7 +419,7 @@ export const ClientManagement: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('parceiros').delete().eq('id', id);
+      const { error } = await supabase.from('parceiros').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }

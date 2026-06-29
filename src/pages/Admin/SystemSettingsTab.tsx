@@ -482,7 +482,7 @@ export const SystemSettingsTab: React.FC<{
       const { error } = await supabase
         .from(table)
         .update({ settings: updatedSettings })
-        .eq('id', id);
+        .eq('id', id).eq('tenant_id', activeTenantId);
 
       if (!error) {
         await logAudit({
@@ -533,7 +533,7 @@ export const SystemSettingsTab: React.FC<{
         throw new Error('ID de referência não encontrado');
       }
 
-      const { error } = await supabase.from(table).update({ settings: newSettings }).eq('id', id);
+      const { error } = await supabase.from(table).update({ settings: newSettings }).eq('id', id).eq('tenant_id', activeTenantId);
 
       if (error) {
         throw error;
@@ -570,7 +570,7 @@ export const SystemSettingsTab: React.FC<{
       try {
         const { data: tenantData } = await supabase
           .from('tenants')
-          .select('settings')
+          .select('settings').eq('tenant_id', activeTenantId)
           .eq('id', tenant.id)
           .single();
 
@@ -586,7 +586,7 @@ export const SystemSettingsTab: React.FC<{
         const { error } = await supabase
           .from('tenants')
           .update({ settings: newSettings })
-          .eq('id', tenant.id);
+          .eq('id', tenant.id).eq('tenant_id', activeTenantId);
 
         if (error) {
           throw error;

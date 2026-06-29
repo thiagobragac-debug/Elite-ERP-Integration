@@ -88,20 +88,20 @@ export const PurchasingDashboard: React.FC = () => {
     queryFn: async () => {
       let requestsQuery = supabase
         .from('solicitacoes_compra')
-        .select('id, titulo, departamento, valor_estimado, status, prioridade')
+        .select('id, titulo, departamento, valor_estimado, status, prioridade').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
       let quotationsQuery = supabase
         .from('mapas_cotacao')
-        .select('dados_fornecedores')
+        .select('dados_fornecedores').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
       let ordersQuery = supabase
         .from('pedidos_compra')
-        .select('valor_total, status, fornecedor_id, parceiros(nome)')
+        .select('valor_total, status, fornecedor_id, parceiros(nome)').eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(500);
-      let invoicesQuery = supabase.from('notas_entrada').select('id').limit(500);
+      let invoicesQuery = supabase.from('notas_entrada').select('id').eq('tenant_id', activeTenantId).limit(500);
 
       requestsQuery = applyFarmFilter(requestsQuery);
       quotationsQuery = applyFarmFilter(quotationsQuery);

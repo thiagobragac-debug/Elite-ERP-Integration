@@ -381,8 +381,9 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
     try {
       const { data } = await supabase
         .from('lotes')
-        .select('id, nome')
+        .select('id, nome').eq('tenant_id', activeTenantId)
         .eq('fazenda_id', fazendaId)
+        .eq('tenant_id', activeTenantId)
         .order('nome');
       setLotes(data || []);
     } catch {

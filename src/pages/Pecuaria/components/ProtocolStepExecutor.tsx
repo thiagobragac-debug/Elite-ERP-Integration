@@ -79,7 +79,8 @@ export const ProtocolStepExecutor: React.FC<ProtocolStepExecutorProps> = ({
           data_realizada: dataRealizada,
           notas,
         })
-        .eq('id', etapa.id);
+        .eq('id', etapa.id)
+        .eq('tenant_id', activeTenantId);
 
       // 2. Gerar 1 evento_reprodutivo por animal aplicado
       if (aplicados.length > 0) {
@@ -104,7 +105,8 @@ export const ProtocolStepExecutor: React.FC<ProtocolStepExecutorProps> = ({
           .update({
             observacoes: `Pulado na etapa "${etapa.nome_etapa}" — motivo: ${motivo}`,
           })
-          .eq('id', pa.id);
+          .eq('id', pa.id)
+          .eq('tenant_id', activeTenantId);
       }
     },
     onSuccess,

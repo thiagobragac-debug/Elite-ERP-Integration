@@ -134,7 +134,7 @@ export const QuotationMap: React.FC = () => {
         .from('mapas_cotacao')
         .select(
           'id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at'
-        )
+        ).eq('tenant_id', activeTenantId)
         .limit(500)
         .order('created_at', { ascending: false });
       query = applyFarmFilter(query);
@@ -239,7 +239,7 @@ export const QuotationMap: React.FC = () => {
         const { error } = await supabase
           .from('mapas_cotacao')
           .update(payload)
-          .eq('id', selectedQuotation.id);
+          .eq('id', selectedQuotation.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -274,7 +274,7 @@ export const QuotationMap: React.FC = () => {
 
   const deleteQuotationMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id);
+      const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -347,7 +347,7 @@ export const QuotationMap: React.FC = () => {
           status: 'closed',
           dados_fornecedores: updatedSuppliers,
         })
-        .eq('id', quotationId);
+        .eq('id', quotationId).eq('tenant_id', activeTenantId);
 
       if (error) {
         throw error;

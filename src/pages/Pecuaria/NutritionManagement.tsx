@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -69,7 +70,7 @@ export const NutritionManagement: React.FC = () => {
     if (!activeFarm?.id) return;
     const fetchLotes = async () => {
       const { data, error } = await applyFarmFilter(
-        supabase.from('vw_lotes_simulador').select('lote_id, nome, num_animais, peso_medio')
+        supabase.from('vw_lotes_simulador').select('lote_id, nome, num_animais, peso_medio').eq('tenant_id', activeTenantId)
       );
       if (!error && data) {
         setLotesSimulador(data.map((row: any) => ({
@@ -241,22 +242,40 @@ export const NutritionManagement: React.FC = () => {
 
   const deleteDietMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.rpc('rpc_soft_delete_dieta', { p_id: id, p_tenant_id: activeTenantId });
       if (error) throw error;
+    },
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['report'] });
+      const previousData = queryClient.getQueryData(['report']);
+      queryClient.setQueryData(['report'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
+        };
+      });
+      return { previousData };
+    },
+    onError: (err: any, deletedId, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['report'], context.previousData);
+      }
+      toast.error(`❌ Erro ao excluir dieta: ${err.message}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
       toast.success('✅ Dieta excluída (arquivada para histórico).');
     },
-    onError: (err: any) => toast.error(`❌ Erro ao excluir dieta: ${err.message}`),
   });
 
   const handleDelete = async (id: string) => {
     // 1. Verificar se a dieta tem tratos registrados (dependências)
     const { count: tratoCount } = await supabase
       .from('nutricao_animais')
-      .select('id', { count: 'exact', head: true })
-      .eq('dieta_id', id);
+      .select('id', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
+      .eq('dieta_id', id)
+      .eq('tenant_id', activeTenantId);
 
     if ((tratoCount || 0) > 0) {
       // Dieta em uso — oferecer Arquivar como alternativa segura
@@ -299,7 +318,7 @@ export const NutritionManagement: React.FC = () => {
           quantidade_kg,
           valor_total_consumido,
           created_at,
-          dietas ( nome ),
+          dietas ( nome ).eq('tenant_id', activeTenantId),
           lotes ( nome ),
           animais ( brinco, raca ),
           depositos ( nome )
@@ -324,7 +343,7 @@ export const NutritionManagement: React.FC = () => {
       const to = from + insumosPageSize - 1;
       let q = supabase
         .from('produtos')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
         .eq('tipo', 'MATERIA_PRIMA')
         .order('nome')
         .range(from, to);
@@ -351,10 +370,11 @@ export const NutritionManagement: React.FC = () => {
           data_consumo,
           quantidade_kg,
           valor_total_consumido,
-          lotes:lote_id (nome)
+          lotes:lote_id (nome).eq('tenant_id', activeTenantId)
         `
         )
         .eq('dieta_id', dietId)
+        .eq('tenant_id', activeTenantId)
         .order('data_consumo', { ascending: false });
 
       if (error) {
@@ -419,8 +439,10 @@ export const NutritionManagement: React.FC = () => {
     }
   };
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const filteredDiets = diets.filter((d) => {
-    const matchesSearch = (d.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (d.nome || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     // Aba DIETAS mostra apenas formulações (não MP); aba INSUMOS é server-side separada
     const matchesTab = d.tipo !== 'MATERIA_PRIMA';
     const matchesStatus = filterValues.status === 'all' || d.status === filterValues.status;
@@ -439,8 +461,8 @@ export const NutritionManagement: React.FC = () => {
 
   // Tratos filtrados por busca (nome da dieta ou lote)
   const filteredTratos = (tratosHistory || []).filter((t: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
+    if (!debouncedSearchTerm) return true;
+    const term = debouncedSearchTerm.toLowerCase();
     return (
       (t.dietas?.nome || '').toLowerCase().includes(term) ||
       (t.lotes?.nome || '').toLowerCase().includes(term) ||

@@ -172,7 +172,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({
 
         const { data: weighData, error: weighErr } = await supabase
           .from('pesagens')
-          .select('animal_id, peso, data_pesagem')
+          .select('animal_id, peso, data_pesagem').eq('tenant_id', activeTenantId)
           .in('animal_id', animIds)
           .eq('tenant_id', activeTenantId)
           .order('data_pesagem', { ascending: false });

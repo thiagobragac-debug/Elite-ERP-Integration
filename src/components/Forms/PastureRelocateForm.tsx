@@ -320,7 +320,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
   // ── Fetchers ─────────────────────────────────────────────────────────────
   const fetchPastures = useCallback(async () => {
     const { data, error } = await applyFarmFilter(
-      supabase.from('pastos').select('id, nome, area, capacidade_ua, status, data_ultima_fertilizacao').order('nome')
+      supabase.from('pastos').select('id, nome, area, capacidade_ua, status, data_ultima_fertilizacao').eq('tenant_id', activeTenantId).order('nome')
     );
     if (error) console.error('[PastureRelocateForm] fetchPastures error:', error);
     if (data) setPastures(data);
@@ -331,8 +331,9 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
     setSelectedAnimals([]);
     const { data } = await supabase
       .from('animais')
-      .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento')
+      .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento').eq('tenant_id', activeTenantId)
       .eq('pasto_id', pastureId)
+      .eq('tenant_id', activeTenantId)
       .in('status', ANIMAL_STATUS_ATIVO as unknown as string[]);
     if (data) setAnimals(data);
     setLoading(false);
@@ -351,8 +352,9 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
     // Buscar UA atual do destino
     const { data } = await supabase
       .from('animais')
-      .select('peso_atual')
+      .select('peso_atual').eq('tenant_id', activeTenantId)
       .eq('pasto_id', pastureId)
+      .eq('tenant_id', activeTenantId)
       .in('status', ANIMAL_STATUS_ATIVO as unknown as string[]);
 
     let currentUa = 0;
@@ -500,6 +502,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
       const { error } = await supabase
         .from('animais')
         .update({ pasto_id: targetPastureId })
+        .eq('tenant_id', activeTenantId)
         .in('id', selectedAnimals);
 
       if (!error) {

@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Fuse from 'fuse.js';
@@ -643,7 +644,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       console.error('Error executing command:', error);
       // Show error message to user with better context
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      alert(`Erro ao executar ação "${cmd.title}": ${errorMessage}\n\nPor favor, tente novamente.`);
+      toast.error(`Erro ao executar ação "${cmd.title}": ${errorMessage}\n\nPor favor, tente novamente.`);
     }
   };
 

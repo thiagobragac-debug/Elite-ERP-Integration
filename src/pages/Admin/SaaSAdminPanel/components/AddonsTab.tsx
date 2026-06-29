@@ -55,7 +55,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
   const fetchAddons = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('saas_addons').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('saas_addons').select('*').eq('tenant_id', activeTenantId).order('created_at', { ascending: false });
       if (error) throw error;
       setAddons(data || []);
     } catch (err: any) {
@@ -68,7 +68,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
 
   const fetchPlans = async () => {
     try {
-      const { data, error } = await supabase.from('saas_plans').select('name');
+      const { data, error } = await supabase.from('saas_plans').select('name').eq('tenant_id', activeTenantId);
       if (error) throw error;
       
       // Filtra planos de teste (Trial) e planos ilimitados/administrativos
@@ -197,7 +197,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
       };
 
       if (editingAddon) {
-        const { error } = await supabase.from('saas_addons').update(payload).eq('id', editingAddon.id);
+        const { error } = await supabase.from('saas_addons').update(payload).eq('id', editingAddon.id).eq('tenant_id', activeTenantId);
         if (error) throw error;
         toast.success('Módulo extra atualizado com sucesso!');
       } else {
@@ -217,7 +217,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
     if (pendingDeleteId === id) {
       // Segunda clicada — confirma e executa
       setPendingDeleteId(null);
-      supabase.from('saas_addons').delete().eq('id', id)
+      supabase.from('saas_addons').delete().eq('id', id).eq('tenant_id', activeTenantId)
         .then(({ error }) => {
           if (error) {
             toast.error('Erro ao excluir módulo extra.');

@@ -105,6 +105,30 @@ export const LivestockDashboard: React.FC = () => {
     enabled: isReady && hasPesagens,
   });
 
+  const { data: biStats = { custo_arroba: 0, margem: 0 } } = useQuery({
+    queryKey: ['bi_custeio_stats', activeTenantId, activeFarmId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase.from('vw_custeio_cabeca_diario').select('custo_por_arroba, custo_total_acumulado, computed_weight, valor_arroba_venda');
+      if (!isGlobalMode && activeFarmId) {
+        query = query.eq('fazenda_id', activeFarmId);
+      }
+      const { data, fetchError } = await query;
+      if (fetchError || !data || data.length === 0) return { custo_arroba: 0, margem: 0 };
+      
+      const avgArroba = data.reduce((acc, curr) => acc + (curr.custo_por_arroba || 0), 0) / data.length;
+      
+      // Margem = (Peso em Arrobas * Valor Venda) - Custo Acumulado
+      const avgMargem = data.reduce((acc, curr) => {
+        const arrobas = (curr.computed_weight || 0) / 30;
+        const rev = arrobas * (curr.valor_arroba_venda || 300);
+        return acc + (rev - (curr.custo_total_acumulado || 0));
+      }, 0) / data.length;
+
+      return { custo_arroba: avgArroba, margem: avgMargem };
+    },
+    enabled: isReady && !!activeTenantId,
+  });
+
   if (error) {
     console.error('[LivestockDashboard] Dashboard Error:', error);
   }
@@ -165,13 +189,33 @@ export const LivestockDashboard: React.FC = () => {
           ? Array(4)
               .fill(0)
               .map((_, i) => <KPISkeleton key={i} />)
-          : stats?.filter((stat: any) => {
-              if (stat.label === 'GMD Médio (30d)' && !hasPesagens) return false;
-              if (stat.label === 'Segurança Sanitária' && !hasSanidade) return false;
-              return true;
-            }).map((stat: any, idx: number) => (
-              <TauzeStatCard key={idx} {...stat} icon={getIcon(stat.label)} />
-            ))}
+          : (
+            <>
+              {stats?.filter((stat: any) => {
+                if (stat.label === 'GMD Médio (30d)' && !hasPesagens) return false;
+                if (stat.label === 'Segurança Sanitária' && !hasSanidade) return false;
+                return true;
+              }).map((stat: any, idx: number) => (
+                <TauzeStatCard key={idx} {...stat} icon={getIcon(stat.label)} />
+              ))}
+              <TauzeStatCard
+                label="Custo Médio (@)"
+                value={`R$ ${biStats.custo_arroba.toFixed(2).replace('.', ',')}`}
+                icon={TrendingUp}
+                color="#6366f1"
+                trend="down"
+                subtitle="Custo por arroba"
+              />
+              <TauzeStatCard
+                label="Margem Est. (Cab)"
+                value={`R$ ${biStats.margem.toFixed(2).replace('.', ',')}`}
+                icon={Activity}
+                color="#10b981"
+                trend="up"
+                subtitle="Projeção lucro/cab"
+              />
+            </>
+          )}
       </div>
 
       <div className="dashboard-main-grid">
