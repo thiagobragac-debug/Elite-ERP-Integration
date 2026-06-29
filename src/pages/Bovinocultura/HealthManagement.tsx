@@ -546,10 +546,6 @@ export const HealthManagement: React.FC = () => {
   });
 
   const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedEvent) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
-      return;
-    }
 
     if (Array.isArray(data.produtos) && data.produtos.length > 0) {
       const payload = data.produtos.map((p: any) => {

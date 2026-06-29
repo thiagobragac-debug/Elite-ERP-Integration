@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 /**
  * AssignToLoteForm.tsx
  * Formulário especializado para associar animais sem lote ao seu primeiro lote.
@@ -428,9 +429,9 @@ export const AssignToLoteForm: React.FC<AssignToLoteFormProps> = ({ isOpen, onCl
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) {
-      if (!selectedLoteId) toast.error('Selecione o lote de destino.');
-      else if (!motivo) toast.error('Informe o motivo da associação.');
-      else toast.error('Selecione ao menos um animal.');
+      if (!selectedLoteId) showValidationAlert('Selecione o lote de destino.');
+      else if (!motivo) showValidationAlert('Informe o motivo da associação.');
+      else showValidationAlert('Selecione ao menos um animal.');
       return;
     }
     setShowConfirm(true);

@@ -199,18 +199,10 @@ export const NutritionManagement: React.FC = () => {
   });
 
   const handleFeedSubmit = async (payloads: any[]) => {
-    if (!canCreate) {
-      toast.error('⚠️ Selecione uma unidade específica para lançar tratos.');
-      return;
-    }
     saveFeedMutation.mutate(payloads);
   };
 
   const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedDiet) {
-      toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
-      return;
-    }
     const payload = {
       nome: data.nome,
       tipo: data.tipo,

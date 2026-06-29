@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useFormDraft } from '../../hooks/useFormDraft';
@@ -113,7 +114,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
       confinementSchema.parse(formData);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast.error(`⚠️ ${err.errors[0].message}`);
+        showValidationAlert(err);
         return;
       }
     }

@@ -164,6 +164,8 @@ export const LotManagement: React.FC = () => {
       if (activeTenantId) {
         await logAudit({
           tenant_id: activeTenantId,
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
           user_id: user?.id,
           action: isArchived ? 'RESTORE' : 'ARCHIVE',
           entity: 'Lote',
@@ -332,6 +334,8 @@ export const LotManagement: React.FC = () => {
       gmd_alvo: parseFloat(data.gmd_alvo) || 0,
       peso_alvo: parseFloat(data.peso_alvo) || 0,
       fazenda_id: data.fazenda_id || null,
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
       cor: data.cor || '#6366f1',
       dias_ciclo: parseInt(data.dias_ciclo) || null,
       peso_entrada: parseFloat(data.peso_entrada) || null,

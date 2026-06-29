@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import './HealthForm.css';
@@ -297,13 +298,11 @@ export const HealthForm: React.FC<HealthFormProps> = ({
 
   const handleAddProduto = () => {
     if (!tempProduct?.id) {
-      toast.error(
-        '⚠️ Selecione um produto cadastrado no estoque. Produtos avulsos não são permitidos.'
-      );
+      showValidationAlert('⚠️ Selecione um produto cadastrado no estoque. Produtos avulsos não são permitidos.');
       return;
     }
     if (!tempDose || Number(String(tempDose).replace(/[^0-9.]/g, '')) <= 0) {
-      toast.error('⚠️ Informe a dosagem aplicada.');
+      showValidationAlert('⚠️ Informe a dosagem aplicada.');
       return;
     }
     const custoUnitario = Number(tempProduct?.custo_medio || 0);
@@ -351,13 +350,13 @@ export const HealthForm: React.FC<HealthFormProps> = ({
         : produtosAplicados.length > 0;
 
     if (!isAplicacaoDone) {
-      toast.error('⚠️  Por favor, adicione ao menos um fármaco ou insumo na etapa de Aplicação.');
+      showValidationAlert('⚠️  Por favor, adicione ao menos um fármaco ou insumo na etapa de Aplicação.');
       setActiveEtapa('aplicacao');
       return;
     }
 
     if (!formData.animal_id && !formData.lote_id) {
-      toast.error('⚠️ Selecione o animal ou lote alvo no Contexto.');
+      showValidationAlert('⚠️ Selecione o animal ou lote alvo no Contexto.');
       setActiveEtapa('contexto');
       return;
     }

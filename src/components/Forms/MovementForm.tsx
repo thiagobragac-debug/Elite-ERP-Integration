@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 
@@ -249,18 +250,18 @@ export const MovementForm: React.FC<MovementFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) {
-      toast.error('Adicione pelo menos um insumo à lista.');
+      showValidationAlert('Adicione pelo menos um insumo à lista.');
       return;
     }
     if (
       formData.tipo === 'transfer' &&
       (!formData.deposito_origem_id || !formData.destino_deposito_id)
     ) {
-      toast.error('Para transferência, informe a origem e destino.');
+      showValidationAlert('Para transferência, informe a origem e destino.');
       return;
     }
     if (requiresReceipt && !formData.receituario_agronomico) {
-      toast.error('O Receituário Agronômico é obrigatório para defensivos.');
+      showValidationAlert('O Receituário Agronômico é obrigatório para defensivos.');
       return;
     }
 
@@ -270,7 +271,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
         (item) => !item.valor_unitario || parseFloat(item.valor_unitario) <= 0
       );
       if (missingValue) {
-        toast.error('Preencha o Valor Unitário para entrada de todos os itens.');
+        showValidationAlert('Preencha o Valor Unitário para entrada de todos os itens.');
         return;
       }
     }
@@ -279,7 +280,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     if (formData.tipo !== 'transfer') {
       const missingDepot = items.some((item) => !item.deposito_id);
       if (missingDepot) {
-        toast.error('Selecione o Depósito para todos os itens.');
+        showValidationAlert('Selecione o Depósito para todos os itens.');
         return;
       }
     }

@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowRightLeft,
@@ -553,13 +554,13 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
-    if (!formData.targetLotId) { toast.error('Selecione o lote de destino.'); return; }
+    if (selectedAnimals.length === 0) { showValidationAlert('Selecione ao menos um animal.'); return; }
+    if (!formData.targetLotId) { showValidationAlert('Selecione o lote de destino.'); return; }
     if (!motivoEfetivo || (formData.motivo === 'Outro' && !formData.motivoLivre.trim())) {
-      toast.error('Informe o motivo do remanejamento.'); return;
+      showValidationAlert('Informe o motivo do remanejamento.'); return;
     }
     if (requerGTA && !gtaConfirmada) {
-      toast.error('Confirme que possui a GTA emitida para prosseguir.'); return;
+      showValidationAlert('Confirme que possui a GTA emitida para prosseguir.'); return;
     }
     setShowConfirm(true);
   };

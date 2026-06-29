@@ -183,10 +183,6 @@ export const ReproductionManagement: React.FC = () => {
   });
 
   const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedEvent) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar um novo evento reprodutivo.');
-      return;
-    }
 
     const payload = {
       animal_id: data.animal_id,

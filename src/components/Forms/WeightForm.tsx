@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -423,7 +424,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
 
     // Validação 1: animal obrigatório
     if (!formData.animal_id) {
-      toast.error('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
+      showValidationAlert('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
       return;
     }
 
@@ -448,7 +449,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({
 
     // Validação 4: confirmação obrigatória para variação extrema
     if (isTypoWarning && !weightConfirmed) {
-      toast.error('⚠️ Confirme que o peso está correto antes de salvar.');
+      showValidationAlert('⚠️ Confirme que o peso está correto antes de salvar.');
       return;
     }
 

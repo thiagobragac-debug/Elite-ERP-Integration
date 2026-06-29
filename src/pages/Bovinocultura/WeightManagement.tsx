@@ -923,11 +923,6 @@ export const WeightManagement: React.FC = () => {
   });
 
   const handleSubmit = async (formData: any) => {
-    if (!canCreate && !selectedWeight) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar uma nova pesagem.');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const payload = {

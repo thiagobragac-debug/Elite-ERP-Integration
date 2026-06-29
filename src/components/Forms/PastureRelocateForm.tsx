@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   ArrowRightLeft,
@@ -451,9 +452,9 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
-    if (!targetPastureId) { toast.error('Selecione o pasto de destino.'); return; }
-    if (!motivo) { toast.error('Informe o motivo do remanejamento.'); return; }
+    if (selectedAnimals.length === 0) { showValidationAlert('Selecione ao menos um animal.'); return; }
+    if (!targetPastureId) { showValidationAlert('Selecione o pasto de destino.'); return; }
+    if (!motivo) { showValidationAlert('Informe o motivo do remanejamento.'); return; }
     if (destBloqueio === 'renovation') {
       toast.error('Transferência bloqueada: pasto de destino em Reforma.');
       return;

@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
@@ -309,14 +310,14 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
     e.preventDefault();
     if (duplicateNome) { toast.error('Já existe um lote com este nome. Escolha um nome diferente.'); return; }
     if (formData.status === 'PENDENTE' && !formData.data_limite) {
-      toast.error('Informe o prazo limite (SLA) para o lote pendente.');
+      showValidationAlert('Informe o prazo limite (SLA) para o lote pendente.');
       return;
     }
 
     // Validação de Regras de Negócio via Zod
     const parsed = lotSchema.safeParse(formData);
     if (!parsed.success) {
-      parsed.error.errors.forEach(err => toast.error(err.message, { id: err.message })); // Evita toast duplicado
+      showValidationAlert(parsed.error); // Evita toast duplicado
       return;
     }
 

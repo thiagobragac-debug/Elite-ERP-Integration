@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import {
@@ -638,15 +639,15 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedAnimals.length === 0) {
-      toast.error('Selecione ao menos um animal.');
+      showValidationAlert('Selecione ao menos um animal.');
       return;
     }
     if (!selectedDestination) {
-      toast.error(`Selecione o ${entityLabel} de destino.`);
+      showValidationAlert(`Selecione o ${entityLabel} de destino.`);
       return;
     }
     if (!motivo) {
-      toast.error('Informe o motivo da movimentação.');
+      showValidationAlert('Informe o motivo da movimentação.');
       return;
     }
     setShowConfirm(true);

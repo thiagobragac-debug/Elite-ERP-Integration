@@ -241,6 +241,10 @@ export const AnimalManagement: React.FC = () => {
     const payload = {
       ...insertPayload,
       tenant_id: activeTenantId,
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
       fazenda_id: formData.fazenda_id || insertPayload.fazenda_id || activeFarmId || null,
       lote_id: formData.lote_id || null,
       pasto_id: formData.pasto_id || null,
@@ -325,7 +329,9 @@ export const AnimalManagement: React.FC = () => {
   const deleteAnimalMutation = useMutation({
     mutationFn: async (id: string) => {
       // Soft-delete via RPC transacional
-      const { error } = await supabase.rpc('rpc_soft_delete_animal', { p_id: id, p_tenant_id: activeTenantId });
+      const { error } = await supabase.rpc('rpc_soft_delete_animal', { p_id: id, p_tenant_id: activeTenantId,
+      especie_id: 'bovino',
+      aptidao_id: 'corte' });
       if (error) {
         throw error;
       }

@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
@@ -561,7 +562,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
           { duration: 6000 }
         );
       } else {
-        toast.error('Preencha todos os campos obrigatórios.');
+        showValidationAlert('Preencha todos os campos obrigatórios.');
       }
       return;
     }

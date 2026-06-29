@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 /**
  * AssignToPastoForm.tsx
  * Formulário para associar animais sem pasto a uma área de manejo.
@@ -474,11 +475,11 @@ export const AssignToPastoForm: React.FC<AssignToPastoFormProps> = ({ isOpen, on
   // ── Validações + abertura do modal de revisão ─────────────────────────────
   const handleReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPastoId) { toast.error('Selecione o pasto de destino.'); return; }
+    if (!selectedPastoId) { showValidationAlert('Selecione o pasto de destino.'); return; }
     if (destBloqueio === 'renovation') { toast.error('Transferência bloqueada: pasto em Reforma.'); return; }
     if (destBloqueio === 'carencia') { toast.error('Transferência bloqueada: pasto em carência química.'); return; }
-    if (!motivo) { toast.error('Informe o motivo da associação.'); return; }
-    if (selectedIds.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
+    if (!motivo) { showValidationAlert('Informe o motivo da associação.'); return; }
+    if (selectedIds.length === 0) { showValidationAlert('Selecione ao menos um animal.'); return; }
 
     // Confirmação explícita para pasto em Descanso
     if (destIsResting) {

@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import { z } from 'zod';
@@ -233,7 +234,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast.error(`⚠️ ${err.errors[0].message}`);
+        showValidationAlert(err);
         return;
       }
     }

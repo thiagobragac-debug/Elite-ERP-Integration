@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import ReactDOM from 'react-dom';
@@ -486,7 +487,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
     }
 
     if (!formData.company_id) {
-      toast.error('Selecione uma Empresa Favorecida / Destinatário antes de buscar na SEFAZ.');
+      showValidationAlert('Selecione uma Empresa Favorecida / Destinatário antes de buscar na SEFAZ.');
       return;
     }
 

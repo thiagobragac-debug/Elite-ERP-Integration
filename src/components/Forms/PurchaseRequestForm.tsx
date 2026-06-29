@@ -1,3 +1,4 @@
+import { showValidationAlert } from '../../utils/validationAlert';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useFormDraft } from '../../hooks/useFormDraft';
 
@@ -82,7 +83,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       (formData.priority === 'high' || formData.priority === 'urgent') &&
       !formData.justification.trim()
     ) {
-      toast.error('Obrigatório informar a justificativa para prioridades Alta ou Urgente.');
+      showValidationAlert('Obrigatório informar a justificativa para prioridades Alta ou Urgente.');
       return;
     }
 
