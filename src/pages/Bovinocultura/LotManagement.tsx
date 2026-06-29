@@ -350,6 +350,8 @@ export const LotManagement: React.FC = () => {
       quantidade_nota:       parseInt(data.quantidade_nota) || null,
       custo_total_aquisicao: parseFloat(data.custo_total_aquisicao) || null,
       custo_por_cabeca:      parseFloat(data.custo_por_cabeca) || null,
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
     };
 
 
@@ -623,7 +625,7 @@ export const LotManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Lotes' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Lotes' }]}
           />
           <h1 className="page-title">Lotes</h1>
           <p className="page-subtitle">
@@ -631,19 +633,19 @@ export const LotManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {can('pecuaria', 'edit') && (
+          {can('bovinocultura', 'edit') && (
             <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
               <UserPlus size={18} />
               ASSOCIAR ANIMAIS
             </button>
           )}
-          {can('pecuaria', 'edit') && (
+          {can('bovinocultura', 'edit') && (
             <button className="glass-btn secondary" onClick={() => setIsRelocateModalOpen(true)}>
               <ArrowRightLeft size={18} />
               REMANEJAR
             </button>
           )}
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <button className="primary-btn" onClick={handleOpenCreate}>
               <Plus size={18} />
               NOVO LOTE
@@ -821,7 +823,7 @@ export const LotManagement: React.FC = () => {
                 >
                   <Eye size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -830,7 +832,7 @@ export const LotManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className={`action-dot ${item.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
                     onClick={() => handleToggleArchive(item)}
@@ -845,7 +847,7 @@ export const LotManagement: React.FC = () => {
                     )}
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}
@@ -1193,7 +1195,7 @@ export const LotManagement: React.FC = () => {
                         >
                           <Eye size={14} />
                         </button>
-                        {can('pecuaria', 'edit') && (
+                        {can('bovinocultura', 'edit') && (
                           <button
                             className="action-icon-btn edit"
                             onClick={(e) => {
@@ -1205,7 +1207,7 @@ export const LotManagement: React.FC = () => {
                             <Edit3 size={14} />
                           </button>
                         )}
-                        {can('pecuaria', 'edit') && (
+                        {can('bovinocultura', 'edit') && (
                           <button
                             className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`}
                             onClick={(e) => {
@@ -1225,7 +1227,7 @@ export const LotManagement: React.FC = () => {
                             )}
                           </button>
                         )}
-                        {can('pecuaria', 'delete') && (
+                        {can('bovinocultura', 'delete') && (
                           <button
                             className="action-icon-btn delete"
                             onClick={(e) => {

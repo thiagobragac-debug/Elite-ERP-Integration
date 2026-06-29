@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import toast from 'react-hot-toast';
 
-export const PecuariaSettingsTab: React.FC<{
+export const BovinoculturaSettingsTab: React.FC<{
   activeTab: string;
   triggerSave: number;
   onSaveStatus: (saving: boolean, success: boolean) => void;
@@ -35,7 +35,7 @@ export const PecuariaSettingsTab: React.FC<{
     if (!activeTenantId) return;
     setLoading(true);
     try {
-      // Pega a primeira fazenda do tenant para configurações globais da pecuária
+      // Pega a primeira fazenda do tenant para configurações globais da bovinocultura
       const { data, error } = await supabase
         .from('fazendas')
         .select('id, configuracoes')
@@ -47,13 +47,13 @@ export const PecuariaSettingsTab: React.FC<{
 
       if (data) {
         setFazendaId(data.id);
-        const configPecuaria = data.configuracoes?.pecuaria || {};
+        const configBovinocultura = data.configuracoes?.pecuaria || {};
         setFormData({
-          rendimentoCarcaca: configPecuaria.rendimentoCarcaca || 50,
-          pesoBoiGordo: configPecuaria.pesoBoiGordo || 500,
-          idadeBoiGordo: configPecuaria.idadeBoiGordo || 36,
-          pesoVaca: configPecuaria.pesoVaca || 450,
-          idadeVaca: configPecuaria.idadeVaca || 36,
+          rendimentoCarcaca: configBovinocultura.rendimentoCarcaca || 50,
+          pesoBoiGordo: configBovinocultura.pesoBoiGordo || 500,
+          idadeBoiGordo: configBovinocultura.idadeBoiGordo || 36,
+          pesoVaca: configBovinocultura.pesoVaca || 450,
+          idadeVaca: configBovinocultura.idadeVaca || 36,
         });
       }
     } catch (error) {

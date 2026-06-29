@@ -62,10 +62,10 @@ describe('CommandPalette', () => {
       renderCommandPalette();
       const searchInput = screen.getByPlaceholderText(/busque por páginas/i);
       
-      await userEvent.type(searchInput, 'Pecuária');
+      await userEvent.type(searchInput, 'Bovinocultura');
       
       await waitFor(() => {
-        expect(screen.getByText('Abrir Pecuária')).toBeInTheDocument();
+        expect(screen.getByText('Abrir Bovinocultura')).toBeInTheDocument();
       });
     });
 
@@ -73,11 +73,11 @@ describe('CommandPalette', () => {
       renderCommandPalette();
       const searchInput = screen.getByPlaceholderText(/busque por páginas/i);
       
-      // Type "pcr" which should fuzzy match "Pecuária"
+      // Type "pcr" which should fuzzy match "Bovinocultura"
       await userEvent.type(searchInput, 'pcr');
       
       await waitFor(() => {
-        const results = screen.queryAllByText(/pecuária/i);
+        const results = screen.queryAllByText(/bovinocultura/i);
         expect(results.length).toBeGreaterThan(0);
       });
     });
@@ -86,11 +86,11 @@ describe('CommandPalette', () => {
       renderCommandPalette();
       const searchInput = screen.getByPlaceholderText(/busque por páginas/i);
       
-      // Search for "animais" which is a keyword for Pecuária
+      // Search for "animais" which is a keyword for Bovinocultura
       await userEvent.type(searchInput, 'animais');
       
       await waitFor(() => {
-        // Check that Pecuária-related results are found
+        // Check that Bovinocultura-related results are found
         const results = document.querySelectorAll('.command-item');
         expect(results.length).toBeGreaterThan(0);
       });

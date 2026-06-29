@@ -7,7 +7,7 @@ import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
 import { CertificateSettingsTab } from './CertificateSettingsTab';
 import { PeriodManagementTab } from './PeriodManagementTab';
-import { PecuariaSettingsTab } from './PecuariaSettingsTab';
+import { BovinoculturaSettingsTab } from './BovinoculturaSettingsTab';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ModuleSettings: React.FC = () => {
@@ -51,7 +51,7 @@ export const ModuleSettings: React.FC = () => {
 
   const modules = [
     { id: 'sistema', label: 'Geral & Sistema' },
-    { id: 'pecuaria', label: 'Pecuária' },
+    { id: 'bovinocultura', label: 'Bovinocultura' },
     { id: 'estoque', label: 'Estoque' },
     { id: 'financeiro', label: 'Financeiro' },
     { id: 'compras', label: 'Compras & Suprimentos' },
@@ -82,7 +82,7 @@ export const ModuleSettings: React.FC = () => {
           { id: 'periodos', label: 'Períodos Contábeis' },
           { id: 'planos', label: 'Plano de Contas (Em Breve)' },
         ];
-      case 'pecuaria':
+      case 'bovinocultura':
         return [
           { id: 'parametros', label: 'Parâmetros Zootécnicos' },
           { id: 'categorias', label: 'Categorias de Animais' },
@@ -324,7 +324,7 @@ export const ModuleSettings: React.FC = () => {
             />
           )}
           {activeSetting === 'parametros' && (
-            <PecuariaSettingsTab
+            <BovinoculturaSettingsTab
               activeTab={activeSetting}
               triggerSave={triggerCreate}
               onSaveStatus={(saving, success) => {

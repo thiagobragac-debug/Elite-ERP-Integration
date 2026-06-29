@@ -15,7 +15,7 @@ import {
 
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Performance Ponderal (GMD)
+// Bovinocultura: Performance Ponderal (GMD)
 // ─────────────────────────────────────────────────────────────
 export const performancePonderal: ReportHandler = async (
   tenantId,
@@ -154,7 +154,7 @@ export const performancePonderal: ReportHandler = async (
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Sanidade Animal
+// Bovinocultura: Sanidade Animal
 // ─────────────────────────────────────────────────────────────
 export const sanidadeAnimal: ReportHandler = async (
   tenantId,
@@ -341,7 +341,7 @@ export const sanidadeAnimal: ReportHandler = async (
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Manejo de Pastagens
+// Bovinocultura: Manejo de Pastagens
 // ─────────────────────────────────────────────────────────────
 export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
@@ -479,7 +479,7 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Confinamento
+// Bovinocultura: Confinamento
 // ─────────────────────────────────────────────────────────────
 export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
@@ -650,7 +650,7 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Dashboard Overview (KPIs + Fila Operacional)
+// Bovinocultura: Dashboard Overview (KPIs + Fila Operacional)
 // ─────────────────────────────────────────────────────────────
 export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
   try {
@@ -816,7 +816,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Gestão de Dietas
+// Bovinocultura: Gestão de Dietas
 // ─────────────────────────────────────────────────────────────
 export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
@@ -1022,7 +1022,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Gestão de Animais
+// Bovinocultura: Gestão de Animais
 // ─────────────────────────────────────────────────────────────
 export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20, filters: Record<string, unknown> = {}) => {
   const columns = [
@@ -1224,7 +1224,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Gestão de Lotes
+// Bovinocultura: Gestão de Lotes
 // ─────────────────────────────────────────────────────────────
 export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
@@ -1331,7 +1331,7 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Gestão de Reprodução
+// Bovinocultura: Gestão de Reprodução
 // ─────────────────────────────────────────────────────────────
 export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [
@@ -1481,7 +1481,7 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
 };
 
 // ─────────────────────────────────────────────────────────────
-// Pecuária: Gestão de Pesagens
+// Bovinocultura: Gestão de Pesagens
 // ─────────────────────────────────────────────────────────────
 export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const columns = [

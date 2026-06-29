@@ -39,7 +39,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
     { id: 'urgent', label: 'Urgente', color: '#ef4444' },
   ];
 
-  const departments = ['Pecuária', 'Frota', 'Infraestrutura', 'Administrativo', 'Agrícola'];
+  const departments = ['Bovinocultura', 'Frota', 'Infraestrutura', 'Administrativo', 'Agrícola'];
 
   const toggleDept = (dept: string) => {
     const newDepts = filters.departments?.includes(dept)

@@ -39,7 +39,7 @@ export const RoleSelector: React.FC = () => {
   const handleChoice = (destination: 'erp' | 'saas') => {
     if (destination === 'erp') {
       // Vai direto para o dashboard executivo, evitando loop em '/'
-      navigate('/pecuaria/dashboard', { replace: true });
+      navigate('/bovinocultura/dashboard', { replace: true });
     } else {
       navigate('/saas/tenants', { replace: true });
     }
@@ -346,14 +346,14 @@ export const RoleSelector: React.FC = () => {
                   fontWeight: 500,
                 }}
               >
-                Pecuária, frota, finanças,
+                Bovinocultura, frota, finanças,
                 <br />
                 compras e dashboards operacionais
               </div>
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-              {['Pecuária', 'Frotas', 'Finanças', 'BI'].map((t) => (
+              {['Bovinocultura', 'Frotas', 'Finanças', 'BI'].map((t) => (
                 <span
                   key={t}
                   style={{

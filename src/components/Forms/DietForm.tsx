@@ -683,7 +683,7 @@ export const DietForm: React.FC<DietFormProps> = ({
                 mode="formulation"
                 title="Composição da Dieta"
                 subtitle={`Adicione ingredientes (${form.tipo === 'Sal Mineral' ? 'g/cabeça/dia' : '% na matéria natural'})`}
-                filterModule="pecuaria_nutricao"
+                filterModule="bovinocultura_nutricao"
               />
             </div>
           )}

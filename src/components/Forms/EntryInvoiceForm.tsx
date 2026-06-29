@@ -933,7 +933,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                   🐂 Detectamos animais nesta nota!
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                  Deseja criar um Lote de Recebimento no Módulo Pecuária para rastrear estes animais
+                  Deseja criar um Lote de Recebimento no Módulo Bovinocultura para rastrear estes animais
                   individualmente?
                 </p>
               </div>
@@ -1844,7 +1844,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           setLoteModalDismissed(true);
           toast.success(
             tipo === 'pendente'
-              ? '✅ Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
+              ? '✅ Lote pendente criado! Acesse Bovinocultura > Lotes para processar os animais quando chegarem.'
               : '✅ Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
           );
         }}

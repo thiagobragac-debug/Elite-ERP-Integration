@@ -571,7 +571,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
           <Pill icon="🌐" text="Offline-first" />
           <Pill icon="📡" text="RFID Integrado" delay={0.1} />
           <Pill icon="🏦" text="Open Finance" delay={0.2} />
-          <Pill icon="🤖" text="IA Agropecuária" delay={0.3} />
+          <Pill icon="🤖" text="IA Agrobovinocultura" delay={0.3} />
         </motion.div>
       </div>
 

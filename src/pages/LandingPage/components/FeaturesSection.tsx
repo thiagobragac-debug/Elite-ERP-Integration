@@ -55,7 +55,7 @@ export const FeaturesSection: React.FC = () => {
   const defaultFeatures = [
     {
       icon: '🐄',
-      title: 'Pecuária & GMD',
+      title: 'Bovinocultura & GMD',
       desc: 'Pesagem RFID, lotes, reprodução e previsão de abate com curvas de engorda automáticas',
     },
     {

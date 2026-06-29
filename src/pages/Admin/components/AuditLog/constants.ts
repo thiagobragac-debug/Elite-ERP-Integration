@@ -49,16 +49,16 @@ export const ACTION_CONFIG: Record<string, ActionConfig> = {
 };
 
 export const ENTITY_ROUTES: Record<string, string> = {
-  animais: '/pecuaria/animal',
-  pesagens: '/pecuaria/pesagem',
-  lotes: '/pecuaria/lote',
-  pastos: '/pecuaria/pasto',
+  animais: '/bovinocultura/animal',
+  pesagens: '/bovinocultura/pesagem',
+  lotes: '/bovinocultura/lote',
+  pastos: '/bovinocultura/pasto',
   parceiros: '/vendas/parceiros',
   fornecedores: '/compras/fornecedores',
   contas_pagar: '/financeiro/pagar',
   contas_receber: '/financeiro/receber',
   maquinas: '/frota/maquina',
-  sanidade: '/pecuaria/sanidade',
+  sanidade: '/bovinocultura/sanidade',
   pedidos_venda: '/vendas/pedido',
   pedidos_compra: '/compras/pedido',
   notas_saida: '/vendas/notas',

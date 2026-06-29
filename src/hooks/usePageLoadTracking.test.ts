@@ -32,7 +32,7 @@ describe('usePageLoadTracking', () => {
 
   it('should track page load time on mount', () => {
     // Mock location
-    const mockLocation = { pathname: '/pecuaria/animal' };
+    const mockLocation = { pathname: '/bovinocultura/animal' };
     vi.mocked(useLocation).mockReturnValue(mockLocation as any);
 
     // Render hook
@@ -45,7 +45,7 @@ describe('usePageLoadTracking', () => {
 
     // Verify analytics was called
     expect(analyticsModule.analytics.pageLoadTime).toHaveBeenCalledWith({
-      route: '/pecuaria/animal',
+      route: '/bovinocultura/animal',
       duration: expect.any(Number),
       metric: 'component_mount',
     });
@@ -53,7 +53,7 @@ describe('usePageLoadTracking', () => {
 
   it('should track page load time on route change', () => {
     // Start with initial route
-    const mockLocation = { pathname: '/pecuaria/animal' };
+    const mockLocation = { pathname: '/bovinocultura/animal' };
     vi.mocked(useLocation).mockReturnValue(mockLocation as any);
 
     const { rerender } = renderHook(() => usePageLoadTracking(), {
@@ -114,7 +114,7 @@ describe('usePageLoadTracking', () => {
   });
 
   it('should handle nested routes', () => {
-    const mockLocation = { pathname: '/pecuaria/animal/123' };
+    const mockLocation = { pathname: '/bovinocultura/animal/123' };
     vi.mocked(useLocation).mockReturnValue(mockLocation as any);
 
     renderHook(() => usePageLoadTracking(), {
@@ -124,7 +124,7 @@ describe('usePageLoadTracking', () => {
     vi.runAllTimers();
 
     expect(analyticsModule.analytics.pageLoadTime).toHaveBeenCalledWith({
-      route: '/pecuaria/animal/123',
+      route: '/bovinocultura/animal/123',
       duration: expect.any(Number),
       metric: 'component_mount',
     });

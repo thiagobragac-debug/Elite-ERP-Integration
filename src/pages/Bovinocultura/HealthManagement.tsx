@@ -661,7 +661,7 @@ export const HealthManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Sanidade' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Sanidade' }]}
           />
           <h1 className="page-title">Sanidade</h1>
           <p className="page-subtitle">
@@ -670,13 +670,13 @@ export const HealthManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {can('pecuaria', 'view') && (
+          {can('bovinocultura', 'view') && (
             <button className="glass-btn secondary" onClick={() => setIsProtocolsModalOpen(true)}>
               <ShieldCheck size={18} />
               PROTOCOLOS
             </button>
           )}
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <button className="primary-btn" onClick={handleOpenCreate}>
               <Plus size={18} />
               NOVO REGISTRO
@@ -808,7 +808,7 @@ export const HealthManagement: React.FC = () => {
               >
                 <History size={18} />
               </button>
-              {can('pecuaria', 'edit') && (
+              {can('bovinocultura', 'edit') && (
                 <button
                   className="action-dot edit"
                   onClick={() => handleOpenEdit(item)}
@@ -817,7 +817,7 @@ export const HealthManagement: React.FC = () => {
                   <Edit3 size={18} />
                 </button>
               )}
-              {can('pecuaria', 'delete') && (
+              {can('bovinocultura', 'delete') && (
                 <button
                   className="action-dot delete"
                   onClick={() => handleDelete(item.id)}

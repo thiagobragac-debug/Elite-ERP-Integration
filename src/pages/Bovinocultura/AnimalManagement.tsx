@@ -247,7 +247,7 @@ export const AnimalManagement: React.FC = () => {
       brinco: formData.brinco,
       raca: formData.raca,
       sexo: formData.sexo,
-      data_nascimento: formData.data_nascimento,
+      data_nascimento: formData.data_nascimento || null,
       status: formData.status || 'Ativo',
       peso_inicial: parseFloat(formData.peso_inicial) || 0,
       pelagem: formData.pelagem,
@@ -259,6 +259,8 @@ export const AnimalManagement: React.FC = () => {
       categoria: formData.categoria,
       finalidade: formData.finalidade,
       brinco_eletronico: formData.brinco_eletronico || null,
+      especie_id: formData.especie_id || 'bovino',
+      aptidao_id: formData.aptidao_id || 'corte',
     };
 
     saveAnimalMutation.mutate(payload);
@@ -578,7 +580,7 @@ export const AnimalManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Animais' }]}
           />
           <h1 className="page-title">Animais</h1>
           <p className="page-subtitle">
@@ -606,7 +608,7 @@ export const AnimalManagement: React.FC = () => {
               Manejo em Massa ({selectedAnimalIds.length})
             </button>
           )}
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <button
               className={`primary-btn ${isAnimalLimitReached ? 'disabled' : ''}`}
               onClick={() => !isAnimalLimitReached && handleOpenCreate()}
@@ -775,7 +777,7 @@ export const AnimalManagement: React.FC = () => {
               <div className="modern-actions">
                 <button
                   className="action-dot info"
-                  onClick={() => navigate(`/pecuaria/animal/${item.id}`)}
+                  onClick={() => navigate(`/bovinocultura/animal/${item.id}`)}
                   title="Dossiê"
                 >
                   <Eye size={18} />
@@ -790,7 +792,7 @@ export const AnimalManagement: React.FC = () => {
                 >
                   <Activity size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -799,7 +801,7 @@ export const AnimalManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}
@@ -866,7 +868,7 @@ export const AnimalManagement: React.FC = () => {
                   Não há animais registrados para esta unidade. Inicie o controle do rebanho
                   cadastrando o primeiro animal.
                 </p>
-                {can('pecuaria', 'create') && (
+                {can('bovinocultura', 'create') && (
                   <button
                     className="primary-btn"
                     onClick={handleOpenCreate}
@@ -937,7 +939,7 @@ export const AnimalManagement: React.FC = () => {
                       <div className="card-bottom-actions">
                         <button
                           className="action-icon-btn info"
-                          onClick={() => navigate(`/pecuaria/animal/${a.id}`)}
+                          onClick={() => navigate(`/bovinocultura/animal/${a.id}`)}
                           title="Dossiê"
                         >
                           <Eye size={14} />
@@ -1206,7 +1208,7 @@ export const AnimalManagement: React.FC = () => {
                 );
               }}
             />
-            {can('pecuaria', 'create') && (
+            {can('bovinocultura', 'create') && (
               <div style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
                 <button className="add-animal-card-premium" onClick={handleOpenCreate} style={{ width: '280px' }}>
                   <Plus size={24} style={{ color: 'hsl(var(--brand))' }} />

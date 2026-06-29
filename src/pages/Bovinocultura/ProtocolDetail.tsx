@@ -154,8 +154,8 @@ export const ProtocolDetail: React.FC = () => {
         <div className="header-brand-group">
           <Breadcrumb
             paths={[
-              { label: 'Pecuária', href: '/pecuaria/dashboard' },
-              { label: 'Reprodução', href: '/pecuaria/reproducao?tab=PROTOCOLOS' },
+              { label: 'Bovinocultura', href: '/bovinocultura/dashboard' },
+              { label: 'Reprodução', href: '/bovinocultura/reproducao?tab=PROTOCOLOS' },
               { label: protocolo.nome },
             ]}
           />
@@ -168,7 +168,7 @@ export const ProtocolDetail: React.FC = () => {
         <div className="page-actions">
           <button
             className="glass-btn secondary"
-            onClick={() => navigate('/pecuaria/reproducao?tab=PROTOCOLOS')}
+            onClick={() => navigate('/bovinocultura/reproducao?tab=PROTOCOLOS')}
           >
             <ChevronLeft size={18} />
             VOLTAR

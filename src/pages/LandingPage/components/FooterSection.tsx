@@ -102,7 +102,7 @@ export const FooterSection: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-          {['Pecuária', 'Agrícola', 'Frota', 'Finanças', 'Compras', 'BI'].map((l) => (
+          {['Bovinocultura', 'Agrícola', 'Frota', 'Finanças', 'Compras', 'BI'].map((l) => (
             <Link
               key={l}
               to="/login"

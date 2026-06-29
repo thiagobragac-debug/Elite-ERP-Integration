@@ -78,23 +78,23 @@ const menuItems: NavItem[] = [
     ],
   },
   {
-    title: 'Pecuária',
+    title: 'Bovinocultura',
     icon: Activity,
-    permission: 'pecuaria',
+    permission: 'bovinocultura',
     subItems: [
-      { title: 'Intelligence Hub', href: '/pecuaria/dashboard', permission: 'pecuaria_dashboard' },
-      { title: 'Animais', href: '/pecuaria/animal', permission: 'pecuaria_animais' },
-      { title: 'Lotes', href: '/pecuaria/lote', permission: 'pecuaria_animais' },
-      { title: 'Pastos', href: '/pecuaria/pasto', permission: 'pecuaria_animais' },
-      { title: 'Pesagens & GMD', href: '/pecuaria/pesagem', permission: 'pecuaria_animais' },
-      { title: 'Nutrição', href: '/pecuaria/nutricao', permission: 'pecuaria_saude' },
-      { title: 'Sanidade', href: '/pecuaria/sanidade', permission: 'pecuaria_saude' },
-      { title: 'Reprodução', href: '/pecuaria/reproducao', permission: 'pecuaria_saude' },
-      { title: 'Confinamento', href: '/pecuaria/confinamento', permission: 'pecuaria_animais' },
+      { title: 'Intelligence Hub', href: '/bovinocultura/dashboard', permission: 'bovinocultura_dashboard' },
+      { title: 'Animais', href: '/bovinocultura/animal', permission: 'bovinocultura_animais' },
+      { title: 'Lotes', href: '/bovinocultura/lote', permission: 'bovinocultura_animais' },
+      { title: 'Pastos', href: '/bovinocultura/pasto', permission: 'bovinocultura_animais' },
+      { title: 'Pesagens & GMD', href: '/bovinocultura/pesagem', permission: 'bovinocultura_animais' },
+      { title: 'Nutrição', href: '/bovinocultura/nutricao', permission: 'bovinocultura_saude' },
+      { title: 'Sanidade', href: '/bovinocultura/sanidade', permission: 'bovinocultura_saude' },
+      { title: 'Reprodução', href: '/bovinocultura/reproducao', permission: 'bovinocultura_saude' },
+      { title: 'Confinamento', href: '/bovinocultura/confinamento', permission: 'bovinocultura_animais' },
       {
         title: 'Embarques & Romaneios',
-        href: '/pecuaria/romaneios',
-        permission: 'pecuaria_animais',
+        href: '/bovinocultura/romaneios',
+        permission: 'bovinocultura_animais',
       },
     ],
   },
@@ -182,7 +182,7 @@ const menuItems: NavItem[] = [
 /** Maps URL prefix → sidebar module title */
 const routeToModule: Record<string, string> = {
   '/admin': 'Administração',
-  '/pecuaria': 'Pecuária',
+  '/bovinocultura': 'Bovinocultura',
   '/frota': 'Máquina & Frota',
   '/compras': 'Compra & Cotação',
   '/vendas': 'Venda & CRM',
@@ -361,7 +361,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
     if (path.startsWith('/mercado'))   return { moduleName: 'Mercado',    ModuleIcon: BarChart3,    moduleBg: '#b45309' };
     if (path.startsWith('/admin'))     return { moduleName: 'Admin',      ModuleIcon: Settings,     moduleBg: '#475569' };
     if (path.startsWith('/relatorios'))return { moduleName: 'Relatórios', ModuleIcon: FileText,     moduleBg: '#374151' };
-    return { moduleName: 'Pecuária', ModuleIcon: Activity, moduleBg: 'hsl(var(--brand))' };
+    return { moduleName: 'Bovinocultura', ModuleIcon: Activity, moduleBg: 'hsl(var(--brand))' };
   }, [location.pathname]);
 
   const toggleMenu = useCallback((title: string) => {
@@ -418,7 +418,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                       alerts.financeiro > 0 && (
                         <AlertBadge count={alerts.financeiro} />
                       )}
-                    {item.title === 'Pecuária' &&
+                    {item.title === 'Bovinocultura' &&
                       alertPrefs.enabled &&
                       ((alertPrefs.lotes && alerts.lotes > 0) ||
                         (alertPrefs.sanidade && alerts.sanidade > 0)) && (

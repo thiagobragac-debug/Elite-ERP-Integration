@@ -302,7 +302,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({
             <input
               type="text"
               className="tauze-input"
-              placeholder="Ex: Agropecuária Matriz Ltda"
+              placeholder="Ex: Agrobovinocultura Matriz Ltda"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required

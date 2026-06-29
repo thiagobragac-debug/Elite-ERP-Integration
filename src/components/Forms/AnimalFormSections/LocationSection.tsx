@@ -51,7 +51,14 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
         </label>
         <SearchableSelect
           value={formData.lote_id}
-          onChange={(val: any) => setFormData({ ...formData, lote_id: val })}
+          onChange={(val: any) => {
+            const selectedLote = lotes.find((l) => String(l.id) === String(val));
+            setFormData({
+              ...formData,
+              lote_id: val,
+              pasto_id: selectedLote?.pasto_id ? String(selectedLote.pasto_id) : formData.pasto_id,
+            });
+          }}
           disabled={!formData.fazenda_id || loadingLotes}
           options={[
             {

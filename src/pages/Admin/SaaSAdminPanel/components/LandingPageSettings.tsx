@@ -162,7 +162,7 @@ export const LandingPageSettings: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id).eq('tenant_id', activeTenantId);
+        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('system_settings').insert(payload);
@@ -220,7 +220,7 @@ export const LandingPageSettings: React.FC = () => {
               <div>
                 <h4 style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', margin: '0 0 6px' }}>Módulo Gerenciado pelo Código</h4>
                 <p style={{ fontSize: 12, color: 'hsl(var(--text-secondary))', margin: 0, lineHeight: 1.5 }}>
-                  Os recursos listados na Landing Page são gerados automaticamente a partir dos módulos ativos no sistema (Financeiro, Pecuária, etc). Não é necessário configurá-los manualmente aqui.
+                  Os recursos listados na Landing Page são gerados automaticamente a partir dos módulos ativos no sistema (Financeiro, Bovinocultura, etc). Não é necessário configurá-los manualmente aqui.
                 </p>
               </div>
             </div>

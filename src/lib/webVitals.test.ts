@@ -13,9 +13,9 @@ describe('Web Vitals Route Context', () => {
     vi.clearAllMocks();
   });
 
-  it('should extract route from /pecuaria/animais path', () => {
+  it('should extract route from /bovinocultura/animais path', () => {
     Object.defineProperty(window, 'location', {
-      value: { pathname: '/pecuaria/animais' },
+      value: { pathname: '/bovinocultura/animais' },
       writable: true,
       configurable: true,
     });
@@ -25,8 +25,8 @@ describe('Web Vitals Route Context', () => {
     const pageName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) +
       (parts[1] ? ` - ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}` : '');
 
-    expect(route).toBe('/pecuaria/animais');
-    expect(pageName).toBe('Pecuaria - Animais');
+    expect(route).toBe('/bovinocultura/animais');
+    expect(pageName).toBe('Bovinocultura - Animais');
   });
 
   it('should extract route from root path', () => {
@@ -98,23 +98,23 @@ describe('Web Vitals Integration Requirements', () => {
   it('should include route, page, and metric name in analytics (Requirement 17.2)', () => {
     // This test verifies that each Web Vital metric sent to analytics includes:
     // - metric_name: The name of the metric (LCP, INP, CLS, FCP, TTFB)
-    // - route: The current route path (e.g., /pecuaria/animais)
-    // - page: The page name (e.g., Pecuaria - Animais)
+    // - route: The current route path (e.g., /bovinocultura/animais)
+    // - page: The page name (e.g., Bovinocultura - Animais)
     
     const mockEvent = {
       metric_name: 'LCP',
       value: 2000,
       rating: 'good',
-      route: '/pecuaria/animais',
-      page: 'Pecuaria - Animais',
+      route: '/bovinocultura/animais',
+      page: 'Bovinocultura - Animais',
     };
 
     expect(mockEvent).toHaveProperty('metric_name');
     expect(mockEvent).toHaveProperty('route');
     expect(mockEvent).toHaveProperty('page');
     expect(mockEvent.metric_name).toBe('LCP');
-    expect(mockEvent.route).toBe('/pecuaria/animais');
-    expect(mockEvent.page).toBe('Pecuaria - Animais');
+    expect(mockEvent.route).toBe('/bovinocultura/animais');
+    expect(mockEvent.page).toBe('Bovinocultura - Animais');
   });
 
   it('should send metrics to PostHog with correct structure', () => {
@@ -126,8 +126,8 @@ describe('Web Vitals Integration Requirements', () => {
         value: 2000,
         rating: 'good',
         navigation_type: 'navigate',
-        route: '/pecuaria/animais',
-        page: 'Pecuaria - Animais',
+        route: '/bovinocultura/animais',
+        page: 'Bovinocultura - Animais',
       },
     };
 
@@ -142,8 +142,8 @@ describe('Web Vitals Integration Requirements', () => {
     const mockGAEvent = {
       event_category: 'Web Vitals',
       metric_name: 'LCP',
-      page_route: '/pecuaria/animais',
-      page_name: 'Pecuaria - Animais',
+      page_route: '/bovinocultura/animais',
+      page_name: 'Bovinocultura - Animais',
       value: 2000,
       metric_rating: 'good',
     };

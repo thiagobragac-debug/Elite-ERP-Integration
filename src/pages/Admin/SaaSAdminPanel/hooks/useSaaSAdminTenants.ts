@@ -105,7 +105,7 @@ export const useSaaSAdminTenants = (
       if (data.stripeCustomerId || data.asaasCustomerId || data.pagarmeCustomerId) {
         const { data: currentTenant } = await supabase
           .from('tenants')
-          .select('gateway_ids').eq('tenant_id', activeTenantId)
+          .select('gateway_ids')
           .eq('id', selectedTenant?.id || '')
           .single();
         const existingIds = currentTenant?.gateway_ids || {};
@@ -121,7 +121,7 @@ export const useSaaSAdminTenants = (
         const { error } = await supabase
           .from('tenants')
           .update(tenantData)
-          .eq('id', selectedTenant.id).eq('tenant_id', activeTenantId);
+          .eq('id', selectedTenant.id);
         if (error) throw error;
       } else {
         const { data: newTenant, error } = await supabase
@@ -142,9 +142,9 @@ export const useSaaSAdminTenants = (
             },
             {
               tenant_id: newTenant.id,
-              nome: 'Gerente de Pecuária',
+              nome: 'Gerente de Bovinocultura',
               descricao: 'Gestão completa do rebanho, nutrição, sanidade e pesagens.',
-              permissoes: ['pecuaria', 'pecuaria_dashboard', 'pecuaria_animais', 'pecuaria_saude'],
+              permissoes: ['bovinocultura', 'bovinocultura_dashboard', 'bovinocultura_animais', 'bovinocultura_saude'],
               ativo: true,
             },
             {
@@ -195,7 +195,7 @@ export const useSaaSAdminTenants = (
           } else {
             await supabase.from('audit_logs').delete().eq('tenant_id', newTenant.id);
             await supabase.from('saas_audit_logs').delete().eq('tenant_id', newTenant.id);
-            await supabase.from('tenants').update({ is_template: false }).eq('id', newTenant.id).eq('tenant_id', activeTenantId);
+            await supabase.from('tenants').update({ is_template: false }).eq('id', newTenant.id);
           }
         }
       }
@@ -233,7 +233,7 @@ export const useSaaSAdminTenants = (
       prev.map((t) => (t.id === tenant.id ? { ...t, status: newStatus } : t))
     );
     try {
-      await supabase.from('tenants').update({ status: newStatus }).eq('id', tenant.id).eq('tenant_id', activeTenantId);
+      await supabase.from('tenants').update({ status: newStatus }).eq('id', tenant.id);
       try {
         await supabase.rpc('admin_set_tenant_ban', {
           target_tenant_id: tenant.id,
@@ -311,7 +311,7 @@ export const useSaaSAdminTenants = (
         } else {
           await supabase.from('audit_logs').delete().eq('tenant_id', newTenant.id);
           await supabase.from('saas_audit_logs').delete().eq('tenant_id', newTenant.id);
-          await supabase.from('tenants').update({ is_template: false }).eq('id', newTenant.id).eq('tenant_id', activeTenantId);
+          await supabase.from('tenants').update({ is_template: false }).eq('id', newTenant.id);
         }
       }
 

@@ -67,7 +67,7 @@ export const WorkflowSection: React.FC = () => {
                   step: '02',
                   icon: '📊',
                   label: 'ERP',
-                  desc: 'Dados sincronizados e organizados por módulo: estoque, frota, pecuária, agrícola',
+                  desc: 'Dados sincronizados e organizados por módulo: estoque, frota, bovinocultura, agrícola',
                 },
                 {
                   step: '03',
@@ -176,7 +176,7 @@ export const WorkflowSection: React.FC = () => {
               }}
             >
               A maioria dos ERPs foi criada para indústrias urbanas e adaptada ao agro com
-              gambiarras. O Tauze nasceu para pecuária e agricultura — com lógicas de lotes, talhões
+              gambiarras. O Tauze nasceu para bovinocultura e agricultura — com lógicas de lotes, talhões
               e telemetria de campo no coração do sistema.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

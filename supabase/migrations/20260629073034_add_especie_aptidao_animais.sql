@@ -1,0 +1,3 @@
+ALTER TABLE public.animais
+ADD COLUMN IF NOT EXISTS especie_id TEXT,
+ADD COLUMN IF NOT EXISTS aptidao_id TEXT;

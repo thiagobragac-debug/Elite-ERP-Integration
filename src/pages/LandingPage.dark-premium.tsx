@@ -63,7 +63,7 @@ export const LandingPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [activeEcosystemTab, setActiveEcosystemTab] = useState<'pecuaria' | 'frota' | 'financeiro'>('pecuaria');
+  const [activeEcosystemTab, setActiveEcosystemTab] = useState<'bovinocultura' | 'frota' | 'financeiro'>('bovinocultura');
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -403,11 +403,11 @@ export const LandingPage: React.FC = () => {
 
           <div className="showcase-tabs">
             <button 
-              onClick={() => setActiveEcosystemTab('pecuaria')}
-              className={`eco-tab ${activeEcosystemTab === 'pecuaria' ? 'active' : ''}`}
+              onClick={() => setActiveEcosystemTab('bovinocultura')}
+              className={`eco-tab ${activeEcosystemTab === 'bovinocultura' ? 'active' : ''}`}
             >
               <Cpu size={16} />
-              <span>Pecuária 5.0</span>
+              <span>Bovinocultura 5.0</span>
             </button>
             <button 
               onClick={() => setActiveEcosystemTab('frota')}
@@ -427,9 +427,9 @@ export const LandingPage: React.FC = () => {
 
           <div className="showcase-viewer">
             <div className="viewer-details">
-              {activeEcosystemTab === 'pecuaria' && (
-                <motion.div key="pecuaria" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-                  <h3>Rastreabilidade Pecuária Avançada</h3>
+              {activeEcosystemTab === 'bovinocultura' && (
+                <motion.div key="bovinocultura" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+                  <h3>Rastreabilidade Bovinocultura Avançada</h3>
                   <p>Mapeie seus animais de forma granular. Monitore histórico de pesagens, genealogia completa, evolução de sanidade e taxas reprodutivas.</p>
                   <ul className="eco-list">
                     <li><CheckCircle2 size={16} /> Predição de abate com modelo de regressão estocástica</li>
@@ -469,7 +469,7 @@ export const LandingPage: React.FC = () => {
                   <div className="dot"></div>
                   <div className="dot"></div>
                 </div>
-                {activeEcosystemTab === 'pecuaria' && <img src="/4.png" alt="Painel Pecuária" className="screen-image" />}
+                {activeEcosystemTab === 'bovinocultura' && <img src="/4.png" alt="Painel Bovinocultura" className="screen-image" />}
                 {activeEcosystemTab === 'frota' && <img src="/1.png" alt="Painel Frota" className="screen-image" />}
                 {activeEcosystemTab === 'financeiro' && <img src="/4.png" alt="Painel Financeiro" className="screen-image" />}
               </div>
@@ -638,7 +638,7 @@ export const LandingPage: React.FC = () => {
           <div className="footer-links-v2">
             <div className="col">
               <h5>Soluções</h5>
-              <a href="#features">Precisão Pecuária</a>
+              <a href="#features">Precisão Bovinocultura</a>
               <a href="#features">Telemetria de Frotas</a>
               <a href="#features">Hedge Financeiro B3</a>
             </div>

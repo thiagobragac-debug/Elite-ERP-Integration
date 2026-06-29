@@ -195,10 +195,10 @@ describe('PostHog Analytics Configuration', () => {
     it('should capture event with correct data', () => {
       (posthog as any).__loaded = true;
       
-      analytics.pageLoadTime({ route: '/pecuaria', duration: 1500, metric: 'LCP' });
+      analytics.pageLoadTime({ route: '/bovinocultura', duration: 1500, metric: 'LCP' });
       
       expect(posthog.capture).toHaveBeenCalledWith('page_load_time', {
-        route: '/pecuaria',
+        route: '/bovinocultura',
         duration: 1500,
         metric: 'LCP',
       });

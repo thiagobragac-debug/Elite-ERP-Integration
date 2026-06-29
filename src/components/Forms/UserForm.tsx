@@ -247,7 +247,7 @@ export const UserForm: React.FC<UserFormProps> = ({
           <input
             type="text"
             className="tauze-input"
-            placeholder="Agropecuária Matriz..."
+            placeholder="Agrobovinocultura Matriz..."
             value={formData.company_id}
             onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
             required

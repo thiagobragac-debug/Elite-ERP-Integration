@@ -645,7 +645,7 @@ export const ProtocolManagement: React.FC<{
                 </button>
               ) : (
                 <>
-                  {can('pecuaria', 'edit') && (
+                  {can('bovinocultura', 'edit') && (
                     <button
                       className="action-dot edit"
                       title={t.is_sistema ? "Editar Template do Sistema (Super Admin)" : "Editar Template"}
@@ -654,7 +654,7 @@ export const ProtocolManagement: React.FC<{
                       <Edit2 size={14} />
                     </button>
                   )}
-                  {can('pecuaria', 'delete') && (
+                  {can('bovinocultura', 'delete') && (
                     <button
                       className="action-dot delete"
                       title="Excluir Template"
@@ -697,20 +697,20 @@ export const ProtocolManagement: React.FC<{
               <button
                 className="action-dot info"
                 title="Ver Detalhes"
-                onClick={() => navigate(`/pecuaria/reproducao/protocolos/${p.id}`)}
+                onClick={() => navigate(`/bovinocultura/reproducao/protocolos/${p.id}`)}
               >
                 <Eye size={16} />
               </button>
-              {can('pecuaria', 'edit') && p.status === 'ativo' && (
+              {can('bovinocultura', 'edit') && p.status === 'ativo' && (
                 <button
                   className="action-dot edit"
                   title="Executar Próxima Etapa"
-                  onClick={() => navigate(`/pecuaria/reproducao/protocolos/${p.id}?execute=true`)}
+                  onClick={() => navigate(`/bovinocultura/reproducao/protocolos/${p.id}?execute=true`)}
                 >
                   <Play size={16} />
                 </button>
               )}
-              {can('pecuaria', 'delete') && (p.status === 'ativo' || p.status === 'rascunho') && (
+              {can('bovinocultura', 'delete') && (p.status === 'ativo' || p.status === 'rascunho') && (
                 <button
                   className="action-dot delete"
                   title="Cancelar Protocolo"

@@ -47,16 +47,18 @@ const formatRFID = (value: string) => {
 
 // ─── Zod Schema para Validação de Regras de Negócio ──────────────────────────
 const animalSchema = z.object({
-  brinco: z.string().min(1, 'Identificação (Brinco) é obrigatória.'),
-  sexo: z.enum(['M', 'F'], { required_error: 'Sexo é obrigatório.' }),
-  peso_inicial: z.coerce.number().min(0, 'O peso não pode ser negativo.'),
+  brinco: z.string().min(1, 'A Identificação (Brinco) é obrigatória.'),
+  sexo: z.enum(['M', 'F'], { required_error: 'O Sexo é obrigatório.' }),
+  peso_inicial: z.coerce.number().min(0, 'O Peso de Entrada não pode ser negativo.').optional(),
+  raca: z.string().min(1, 'A Raça é obrigatória.'),
+  fazenda_id: z.string().min(1, 'A Fazenda de Destino é obrigatória.'),
   data_nascimento: z.string().optional().refine((val) => {
     if (!val) return true;
     // Evita datas futuras mantendo no timezone local
     const dataNascimento = new Date(val);
     dataNascimento.setHours(23, 59, 59, 999);
     return dataNascimento <= new Date();
-  }, { message: 'Data de nascimento não pode ser no futuro.' })
+  }, { message: 'A Data de Nascimento não pode ser no futuro.' })
 });
 
 // ─── Initial State ────────────────────────────────────────────────────────────
@@ -88,6 +90,8 @@ const INITIAL_FORM = {
   // Zootécnica
   categoria: '',
   finalidade: 'Corte',
+  especie_id: 'bovino',
+  aptidao_id: 'corte',
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -221,6 +225,8 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
         doador: initialData.doador || '',
         categoria: initialData.categoria || '',
         finalidade: initialData.finalidade || 'Corte',
+        especie_id: initialData.especie_id || 'bovino',
+        aptidao_id: initialData.aptidao_id || 'corte',
       });
       setCategoriaEditadaManualmente(true);
       setDuplicateBrinco(false);
@@ -381,7 +387,8 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
     try {
       const { data } = await supabase
         .from('lotes')
-        .select('id, nome').eq('tenant_id', activeTenantId)
+        .select('id, nome, pasto_id')
+        .eq('tenant_id', activeTenantId)
         .eq('fazenda_id', fazendaId)
         .eq('tenant_id', activeTenantId)
         .order('nome');
@@ -411,7 +418,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       .from('categorias_sistema')
       .select('id, nome')
       .eq('tenant_id', activeTenantId)
-      .eq('modulo', 'pecuaria')
+      .eq('modulo', 'bovinocultura')
       .eq('is_active', true)
       .order('nome');
     if (data) setCategorias(data);
@@ -494,7 +501,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       try {
         await supabase.from('categorias_sistema').insert({
           tenant_id: activeTenantId,
-          modulo: 'pecuaria',
+          modulo: 'bovinocultura',
           nome: val,
           is_active: true,
         });
@@ -540,7 +547,22 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
     // Validação de Regras de Negócio via Zod
     const parsed = animalSchema.safeParse(formData);
     if (!parsed.success) {
-      parsed.error.errors.forEach(err => toast.error(err.message, { id: err.message })); // Evita toast duplicado
+      const issues = parsed.error?.issues || (parsed.error as any)?.errors;
+      if (issues && issues.length > 0) {
+        toast.error(
+          <div>
+            <strong style={{ display: 'block', marginBottom: '4px' }}>Verifique os campos obrigatórios:</strong>
+            <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', lineHeight: '1.4' }}>
+              {issues.map((err: any, idx: number) => (
+                <li key={idx}>{err.message}</li>
+              ))}
+            </ul>
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        toast.error('Preencha todos os campos obrigatórios.');
+      }
       return;
     }
 

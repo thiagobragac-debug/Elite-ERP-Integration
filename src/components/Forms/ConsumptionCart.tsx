@@ -90,8 +90,8 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
 
       if (filterModule) {
         const allowedModules = ['geral', filterModule];
-        if (filterModule.startsWith('pecuaria_')) {
-          allowedModules.push('pecuaria_geral');
+        if (filterModule.startsWith('bovinocultura_')) {
+          allowedModules.push('bovinocultura_geral');
         }
         if (filterModule.startsWith('frota_')) {
           allowedModules.push('frota_geral');

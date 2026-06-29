@@ -83,7 +83,7 @@ export const DatabaseSeeder: React.FC = () => {
                 valor_total: 120000,
                 data_vencimento: new Date(Date.now() + 86400000 * 5).toISOString(),
                 status: 'PENDENTE',
-                categoria: 'Receita Pecuária',
+                categoria: 'Receita Bovinocultura',
               },
             ]);
           }
@@ -118,7 +118,7 @@ export const DatabaseSeeder: React.FC = () => {
           console.warn('Failed to seed mapas_cotacao:', e);
         }
 
-        // 5. Pecuária - Animais (Simples)
+        // 5. Bovinocultura - Animais (Simples)
         try {
           const { data: animais } = await supabase
             .from('animais')

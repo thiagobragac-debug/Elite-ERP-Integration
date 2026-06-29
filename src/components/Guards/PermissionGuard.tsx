@@ -57,8 +57,8 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
   // A "permission" props usually came as module_name (e.g., 'financeiro')
   // We can treat it as module, action='read'
-  // Or handle specific legacy permissions mapping like 'pecuaria_animais' -> module='pecuaria', action='read'
-  const moduleName = permission.split('_')[0]; // ex: 'pecuaria_animais' -> 'pecuaria'
+  // Or handle specific legacy permissions mapping like 'bovinocultura_animais' -> module='bovinocultura', action='read'
+  const moduleName = permission.split('_')[0]; // ex: 'bovinocultura_animais' -> 'bovinocultura'
   
   // Converte nome de permissão legado para o formato da Sidebar/SaasModules para validação no plano
   const planModuleMapping: Record<string, string> = {
@@ -69,15 +69,15 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     'financeiro': 'Financeiro & Banco',
     'frota': 'Máquina & Frota',
     'mercado': 'Mercado',
-    'pecuaria': 'Pecuária',
+    'bovinocultura': 'Bovinocultura',
     'comercial': 'Venda & CRM',
     'vendas': 'Venda & CRM'
   };
 
   const planSubmoduleMapping: Record<string, string> = {
-    'pecuaria_dashboard': 'Pecuária:Intelligence Hub',
-    'pecuaria_animais': 'Pecuária:Animais',
-    'pecuaria_saude': 'Pecuária:Sanidade',
+    'bovinocultura_dashboard': 'Bovinocultura:Intelligence Hub',
+    'bovinocultura_animais': 'Bovinocultura:Animais',
+    'bovinocultura_saude': 'Bovinocultura:Sanidade',
     'frota_abastecimento': 'Máquina & Frota:Abastecimentos',
     'frota_manutencao': 'Máquina & Frota:Manutenções',
     'comercial_clientes': 'Venda & CRM:Clientes',

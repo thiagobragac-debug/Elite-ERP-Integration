@@ -202,6 +202,8 @@ export const ConfinementManagement: React.FC = () => {
       lote_id: data.lote_id || null,
       ...insertPayload,
       fazenda_id: targetFarmId, // Garantindo o targetFarmId validado
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
     };
 
     if (isEditMode) {
@@ -565,7 +567,7 @@ export const ConfinementManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Confinamento' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Confinamento' }]}
           />
           <h1 className="page-title">Confinamento</h1>
           <p className="page-subtitle">
@@ -573,7 +575,7 @@ export const ConfinementManagement: React.FC = () => {
           </p>
         </div>
         <div className="page-actions">
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <>
               <button 
                 className="glass-btn secondary" 
@@ -760,12 +762,12 @@ export const ConfinementManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'edit') && item.status !== 'archived' && (
+                {can('bovinocultura', 'edit') && item.status !== 'archived' && (
                   <button 
                     className="action-dot warning" 
                     onClick={() => setCheckOutPens([item])} 
@@ -775,7 +777,7 @@ export const ConfinementManagement: React.FC = () => {
                     <LogOut size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}
@@ -896,7 +898,7 @@ export const ConfinementManagement: React.FC = () => {
                         >
                           <History size={14} />
                         </button>
-                        {can('pecuaria', 'edit') && (
+                        {can('bovinocultura', 'edit') && (
                           <button
                             className="action-icon-btn edit"
                             onClick={() => handleOpenEdit(p)}
@@ -905,7 +907,7 @@ export const ConfinementManagement: React.FC = () => {
                             <Edit3 size={14} />
                           </button>
                         )}
-                        {can('pecuaria', 'edit') && p.status !== 'archived' && (
+                        {can('bovinocultura', 'edit') && p.status !== 'archived' && (
                           <button 
                             className="action-icon-btn warning" 
                             onClick={() => setCheckOutPens([p])} 
@@ -915,7 +917,7 @@ export const ConfinementManagement: React.FC = () => {
                             <LogOut size={14} />
                           </button>
                         )}
-                        {can('pecuaria', 'delete') && (
+                        {can('bovinocultura', 'delete') && (
                           <button
                             className="action-icon-btn delete"
                             onClick={() => handleDelete(p.id)}

@@ -62,7 +62,7 @@ export const RetentionPolicyModal: React.FC<RetentionPolicyModalProps> = ({
           {[
             { label: 'Alertas', icon: Activity },
             { label: 'Leitura', icon: Eye },
-            { label: 'Pecuária', icon: Database },
+            { label: 'Bovinocultura', icon: Database },
             { label: 'Bloqueio', icon: Lock },
           ].map((step, i) => (
             <div
@@ -170,7 +170,7 @@ export const RetentionPolicyModal: React.FC<RetentionPolicyModalProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              Restrição Pecuária (D+)
+              Restrição Bovinocultura (D+)
             </label>
             <input
               type="number"
@@ -236,7 +236,7 @@ export const RetentionPolicyModal: React.FC<RetentionPolicyModalProps> = ({
               lineHeight: 1.5,
             }}
           >
-            * Na Fase 3, o usuário terá acesso apenas ao módulo Pecuária em modo leitura. Na Fase 4,
+            * Na Fase 3, o usuário terá acesso apenas ao módulo Bovinocultura em modo leitura. Na Fase 4,
             qualquer acesso será redirecionado para o gateway de pagamento.
           </p>
         </div>

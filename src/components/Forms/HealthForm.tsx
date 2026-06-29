@@ -1322,7 +1322,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                     title="Insumos do Procedimento"
                     subtitle="Anestésicos, material de sutura, antissépticos e outros insumos consumidos na cirurgia."
                     showHealthFields={true}
-                    filterModule="pecuaria_sanidade"
+                    filterModule="bovinocultura_sanidade"
                   />
                 </div>
               ) : initialData ? (
@@ -1554,7 +1554,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({
                     title="Fármacos / Insumos"
                     subtitle="Informe os medicamentos ou vacinas aplicados, com baixa automática de estoque."
                     showHealthFields={true}
-                    filterModule="pecuaria_sanidade"
+                    filterModule="bovinocultura_sanidade"
                   />
                 </div>
               )}

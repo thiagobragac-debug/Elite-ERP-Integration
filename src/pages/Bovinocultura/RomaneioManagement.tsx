@@ -568,7 +568,7 @@ export default function RomaneioManagement() {
           >
             <FileText size={14} />
           </button>
-          {can('pecuaria', 'edit') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
+          {can('bovinocultura', 'edit') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
             <button
               onClick={() => handleOpenEdit(row)}
               className="action-dot edit"
@@ -577,7 +577,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} style={{ transform: 'rotate(45deg)' }} />
             </button>
           )}
-          {can('pecuaria', 'edit') && row.status === 'Pendente' && (
+          {can('bovinocultura', 'edit') && row.status === 'Pendente' && (
             <button
               onClick={() => handleConfirmTransit(row)}
               className="action-dot"
@@ -587,7 +587,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} />
             </button>
           )}
-          {can('pecuaria', 'edit') && row.status === 'Em Trânsito' && (
+          {can('bovinocultura', 'edit') && row.status === 'Em Trânsito' && (
             <button
               onClick={() => handleConclude(row)}
               className="action-dot"
@@ -597,7 +597,7 @@ export default function RomaneioManagement() {
               <Flag size={14} />
             </button>
           )}
-          {can('pecuaria', 'delete') && row.status !== 'Cancelado' && row.status !== 'Concluído' && (
+          {can('bovinocultura', 'delete') && row.status !== 'Cancelado' && row.status !== 'Concluído' && (
             <button
               onClick={() => handleCancelRomaneio(row)}
               className="action-dot delete"
@@ -650,7 +650,7 @@ export default function RomaneioManagement() {
         <div className="header-brand-group">
           <Breadcrumb
             paths={[
-              { label: 'Pecuária', href: '/pecuaria/dashboard' },
+              { label: 'Bovinocultura', href: '/bovinocultura/dashboard' },
               { label: 'Embarques & Romaneios' },
             ]}
           />
@@ -662,7 +662,7 @@ export default function RomaneioManagement() {
         </div>
 
         <div className="page-actions">
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
               <Plus size={18} />
               NOVO EMBARQUE

@@ -7,7 +7,7 @@ import { setModuleContext } from '../lib/sentry';
  * Automatically sets the module and page context when the component mounts
  * and clears it when unmounting to ensure accurate error location tracking.
  * 
- * @param module - Module name (e.g., 'Pecuária', 'Financeiro', 'Estoque')
+ * @param module - Module name (e.g., 'Bovinocultura', 'Financeiro', 'Estoque')
  * @param page - Optional page name within the module
  * 
  * @example
@@ -15,7 +15,7 @@ import { setModuleContext } from '../lib/sentry';
  * import { useSentryModule } from '@/hooks/useSentryModule';
  * 
  * function AnimalManagement() {
- *   useSentryModule('Pecuária', 'AnimalManagement');
+ *   useSentryModule('Bovinocultura', 'AnimalManagement');
  *   // ... rest of component
  * }
  * 

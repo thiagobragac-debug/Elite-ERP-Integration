@@ -637,7 +637,7 @@ export const AuditLog: React.FC = () => {
     } else if (dossierRoute && entityId) {
       let finalPath = dossierRoute;
       if (selectedLog.table_name === 'animais') {
-        finalPath = `/pecuaria/animal/${entityId}`;
+        finalPath = `/bovinocultura/animal/${entityId}`;
       } else {
         finalPath = `${dossierRoute}?id=${entityId}`;
       }

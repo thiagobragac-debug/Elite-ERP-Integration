@@ -576,7 +576,7 @@ export const ExecutiveDashboard: React.FC = () => {
       progress: 0,
       trend: 'none',
       change: '---',
-      periodLabel: 'Pecuária',
+      periodLabel: 'Bovinocultura',
       sparkline: [],
     },
     {
@@ -817,21 +817,21 @@ export const ExecutiveDashboard: React.FC = () => {
       'acuracidade_est': ['Estoque'],
       'ruptura_est': ['Estoque'],
       'estoque': ['Estoque', 'Compra & Cotação'],
-      'rebanho': ['Pecuária'],
-      'gmd': ['Pecuária'],
-      'lotacao': ['Pecuária'],
-      'prenhez': ['Pecuária'],
-      'ims': ['Pecuária'],
-      'conversao_alim': ['Pecuária'],
-      'produtividade_ha': ['Pecuária'],
-      'ciclo_engorda': ['Pecuária'],
-      'taxa_mortalidade': ['Pecuária'],
-      'custo_arroba': ['Pecuária', 'Financeiro & Banco'],
+      'rebanho': ['Bovinocultura'],
+      'gmd': ['Bovinocultura'],
+      'lotacao': ['Bovinocultura'],
+      'prenhez': ['Bovinocultura'],
+      'ims': ['Bovinocultura'],
+      'conversao_alim': ['Bovinocultura'],
+      'produtividade_ha': ['Bovinocultura'],
+      'ciclo_engorda': ['Bovinocultura'],
+      'taxa_mortalidade': ['Bovinocultura'],
+      'custo_arroba': ['Bovinocultura', 'Financeiro & Banco'],
       'diesel': ['Máquina & Frota'],
       'manutencao_hora': ['Máquina & Frota'],
       'disponibilidade_frota': ['Máquina & Frota'],
       'mtbf': ['Máquina & Frota'],
-      'cocho': ['Pecuária', 'Máquina & Frota'],
+      'cocho': ['Bovinocultura', 'Máquina & Frota'],
       'preco_arroba': ['Mercado'],
       'carbono': ['Administração'],
       'compliance': ['Administração'],
@@ -1092,7 +1092,7 @@ export const ExecutiveDashboard: React.FC = () => {
               <div className="insight-cards-stack">
                 <div
                   className="insight-card-mini clickable"
-                  onClick={() => navigate('/pecuaria/pesagem')}
+                  onClick={() => navigate('/bovinocultura/pesagem')}
                 >
                   <div className="i-header">
                     <div className="h-left">
@@ -1117,7 +1117,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
                 <div
                   className="insight-card-mini warning clickable"
-                  onClick={() => navigate('/pecuaria/lote')}
+                  onClick={() => navigate('/bovinocultura/lote')}
                 >
                   <div className="i-header">
                     <div className="h-left">
@@ -1142,7 +1142,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
                 <div
                   className="insight-card-mini success clickable"
-                  onClick={() => navigate('/pecuaria/sanidade')}
+                  onClick={() => navigate('/bovinocultura/sanidade')}
                 >
                   <div className="i-header">
                     <div className="h-left">

@@ -363,7 +363,7 @@ describe('Web Vitals Alerting (Requirement 17.4)', () => {
       // Mock window.location
       Object.defineProperty(window, 'location', {
         value: {
-          pathname: '/pecuaria/animals',
+          pathname: '/bovinocultura/animals',
         },
         writable: true,
       });
@@ -387,18 +387,18 @@ describe('Web Vitals Alerting (Requirement 17.4)', () => {
       const warningCall = consoleWarnSpy.mock.calls.find(call => 
         call[0].includes('POOR LCP')
       );
-      expect(warningCall?.[0]).toContain('/pecuaria/animals');
+      expect(warningCall?.[0]).toContain('/bovinocultura/animals');
 
       // Verify route context in Sentry alert
       expect(Sentry.captureMessage).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           tags: expect.objectContaining({
-            page_route: '/pecuaria/animals',
+            page_route: '/bovinocultura/animals',
           }),
           contexts: expect.objectContaining({
             page: expect.objectContaining({
-              route: '/pecuaria/animals',
+              route: '/bovinocultura/animals',
             }),
           }),
         })

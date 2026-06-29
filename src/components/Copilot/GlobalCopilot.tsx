@@ -6,7 +6,7 @@ import './GlobalCopilot.css';
 
 const promptMenu: Record<string, { label: string; prompts: string[] }> = {
   pecuaria: {
-    label: '🐄 Pecuária',
+    label: '🐄 Bovinocultura',
     prompts: [
       'Qual pasto tem melhor GMD hoje?',
       'Resumo da projeção de abate',
@@ -76,8 +76,8 @@ export const GlobalCopilot: React.FC = () => {
       const path = location.pathname.toLowerCase();
       if (path.includes('/financeiro')) {
         setSuggestionCategory('financeiro');
-      } else if (path.includes('/pecuaria')) {
-        setSuggestionCategory('pecuaria');
+      } else if (path.includes('/bovinocultura')) {
+        setSuggestionCategory('bovinocultura');
       } else if (path.includes('/mercado')) {
         setSuggestionCategory('mercado');
       } else if (path.includes('/estoque') || path.includes('/suprimentos')) {

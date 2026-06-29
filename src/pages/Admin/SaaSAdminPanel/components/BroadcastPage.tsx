@@ -28,7 +28,7 @@ export const BroadcastPage: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id).eq('tenant_id', activeTenantId);
+        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('system_settings').insert(payload);

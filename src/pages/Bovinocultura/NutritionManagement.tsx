@@ -677,7 +677,7 @@ export const NutritionManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Nutrição' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Nutrição' }]}
           />
           <h1 className="page-title">Nutrição</h1>
           <p className="page-subtitle">
@@ -832,7 +832,7 @@ export const NutritionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -841,7 +841,7 @@ export const NutritionManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}
@@ -860,7 +860,7 @@ export const NutritionManagement: React.FC = () => {
                 title="Nenhuma matéria prima cadastrada"
                 description="Cadastre insumos nutricionais no módulo de Estoque para visualizá-los aqui."
                 actionLabel="Ir para Estoque"
-                onAction={() => (window.location.href = '/pecuaria/estoque')}
+                onAction={() => (window.location.href = '/bovinocultura/estoque')}
                 icon={Package}
               />
             }

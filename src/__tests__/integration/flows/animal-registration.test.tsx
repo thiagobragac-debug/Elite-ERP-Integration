@@ -20,7 +20,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test-utils/render';
 import { server } from '@/__mocks__/browser';
 import { http, HttpResponse } from 'msw';
-import { AnimalManagement } from '@/pages/Pecuaria/AnimalManagement';
+import { AnimalManagement } from '@/pages/Bovinocultura/AnimalManagement';
 import { animalFactory } from '@/test-utils/factories';
 
 // Mock data

@@ -11,7 +11,7 @@ export const useSaaSAdminLeads = () => {
       setLeadsLoading(true);
       const { data, error } = await supabase
         .from('saas_leads')
-        .select('*').eq('tenant_id', activeTenantId)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -28,7 +28,7 @@ export const useSaaSAdminLeads = () => {
       const { error } = await supabase
         .from('saas_leads')
         .update({ status: newStatus })
-        .eq('id', leadId).eq('tenant_id', activeTenantId);
+        .eq('id', leadId);
 
       if (error) throw error;
       toast.success('Status do lead atualizado!');
@@ -42,7 +42,7 @@ export const useSaaSAdminLeads = () => {
     try {
       const { error } = await supabase
         .from('saas_leads')
-        .delete().eq('id', leadId).eq('tenant_id', activeTenantId);
+        .delete().eq('id', leadId);
 
       if (error) throw error;
       toast.success('Lead removido com sucesso!');

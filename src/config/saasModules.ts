@@ -1,10 +1,10 @@
 export interface SaasSubmodule {
-  id: string; // e.g., 'pecuaria_animais', or 'Pecuária:Animais'
+  id: string; // e.g., 'bovinocultura_animais', or 'Bovinocultura:Animais'
   label: string;
 }
 
 export interface SaasModule {
-  id: string; // e.g., 'Pecuária'
+  id: string; // e.g., 'Bovinocultura'
   label: string;
   submodules: SaasSubmodule[];
 }
@@ -39,19 +39,19 @@ export const SAAS_MODULES: SaasModule[] = [
     ],
   },
   {
-    id: 'Pecuária',
-    label: 'Pecuária',
+    id: 'Bovinocultura',
+    label: 'Bovinocultura',
     submodules: [
-      { id: 'Pecuária:Intelligence Hub', label: 'Intelligence Hub' },
-      { id: 'Pecuária:Animais', label: 'Animais' },
-      { id: 'Pecuária:Lotes', label: 'Lotes' },
-      { id: 'Pecuária:Pastos', label: 'Pastos' },
-      { id: 'Pecuária:Pesagens & GMD', label: 'Pesagens & GMD' },
-      { id: 'Pecuária:Nutrição', label: 'Nutrição' },
-      { id: 'Pecuária:Sanidade', label: 'Sanidade' },
-      { id: 'Pecuária:Reprodução', label: 'Reprodução' },
-      { id: 'Pecuária:Confinamento', label: 'Confinamento' },
-      { id: 'Pecuária:Embarques & Romaneios', label: 'Embarques & Romaneios' },
+      { id: 'Bovinocultura:Intelligence Hub', label: 'Intelligence Hub' },
+      { id: 'Bovinocultura:Animais', label: 'Animais' },
+      { id: 'Bovinocultura:Lotes', label: 'Lotes' },
+      { id: 'Bovinocultura:Pastos', label: 'Pastos' },
+      { id: 'Bovinocultura:Pesagens & GMD', label: 'Pesagens & GMD' },
+      { id: 'Bovinocultura:Nutrição', label: 'Nutrição' },
+      { id: 'Bovinocultura:Sanidade', label: 'Sanidade' },
+      { id: 'Bovinocultura:Reprodução', label: 'Reprodução' },
+      { id: 'Bovinocultura:Confinamento', label: 'Confinamento' },
+      { id: 'Bovinocultura:Embarques & Romaneios', label: 'Embarques & Romaneios' },
     ],
   },
   {

@@ -1,5 +1,5 @@
 /**
- * Utilitários de domínio da Pecuária (Tauze ERP)
+ * Utilitários de domínio da Bovinocultura (Tauze ERP)
  */
 
 /**

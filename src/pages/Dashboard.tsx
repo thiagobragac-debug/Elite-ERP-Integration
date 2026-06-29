@@ -74,10 +74,10 @@ export const Dashboard: React.FC = () => {
     <div className="dashboard-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Panorama Tauze' }]} />
+          <Breadcrumb paths={[{ label: 'Tauze Bovinocultura' }, { label: 'Panorama Tauze' }]} />
           <h1 className="page-title">Panorama Tauze</h1>
           <p className="page-subtitle">
-            Visão consolidada da operação agropecuária na unidade {(activeFarm as { name?: string })?.name || 'Global'} em
+            Visão consolidada da operação agrobovinocultura na unidade {(activeFarm as { name?: string })?.name || 'Global'} em
             tempo real.
           </p>
         </div>

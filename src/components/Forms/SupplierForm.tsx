@@ -387,7 +387,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
           </label>
           <input
             type="text"
-            placeholder="Ex: Agropecuária Fertilizantes Ltda"
+            placeholder="Ex: Agrobovinocultura Fertilizantes Ltda"
             value={formData.nome}
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
             required

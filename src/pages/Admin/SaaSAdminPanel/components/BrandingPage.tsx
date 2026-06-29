@@ -43,7 +43,7 @@ const SidebarPreview: React.FC<{ name: string; color: string; logo: string | nul
       {[
         { label: 'Dashboard', active: true },
         { label: 'Financeiro', active: false },
-        { label: 'Pecuária', active: false },
+        { label: 'Bovinocultura', active: false },
         { label: 'Estoque', active: false },
         { label: 'Relatórios', active: false },
       ].map((item, i) => (
@@ -118,7 +118,7 @@ export const BrandingPage: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id).eq('tenant_id', activeTenantId);
+        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('system_settings').insert(payload);

@@ -13,7 +13,7 @@ export const usePermissions = () => {
    * Verifica se o usuário tem permissão para uma ação em um módulo.
    * Se a action não for passada, verifica apenas se o módulo está habilitado para leitura.
    * 
-   * @param module O ID do módulo (ex: 'pecuaria', 'financeiro')
+   * @param module O ID do módulo (ex: 'bovinocultura', 'financeiro')
    * @param action A ação desejada: 'read', 'write', 'approve', 'delete'
    */
   const can = useCallback((module: string, action: 'read' | 'write' | 'approve' | 'delete' = 'read') => {

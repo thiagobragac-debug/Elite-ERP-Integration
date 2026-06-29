@@ -1,6 +1,6 @@
 /**
  * livestock.ts
- * Constantes centralizadas do módulo de pecuária.
+ * Constantes centralizadas do módulo de bovinocultura.
  * Todos os componentes que precisam de listas de status, forrageiras,
  * tipos de solo etc. devem importar DAQUI — nunca redefinir localmente.
  */

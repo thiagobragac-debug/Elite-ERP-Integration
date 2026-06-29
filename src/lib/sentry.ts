@@ -176,12 +176,12 @@ export function setTenantContext(
  * Set module/page context for error location tracking
  * Should be called when navigating to different modules
  * 
- * @param module - Module name (e.g., 'Pecuária', 'Financeiro', 'Estoque')
+ * @param module - Module name (e.g., 'Bovinocultura', 'Financeiro', 'Estoque')
  * @param page - Page name within the module (e.g., 'AnimalManagement', 'AccountsPayable')
  * 
  * @example
  * import { setModuleContext } from './lib/sentry';
- * setModuleContext('Pecuária', 'AnimalManagement');
+ * setModuleContext('Bovinocultura', 'AnimalManagement');
  */
 export function setModuleContext(module: string, page?: string): void {
   Sentry.setTag('module', module);

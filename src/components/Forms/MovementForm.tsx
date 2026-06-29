@@ -448,7 +448,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                   options={[
                     { value: 'frota', label: 'Frota (Tratores / Máquinas)' },
                     { value: 'lavoura', label: 'Lavoura (Talhões / Glebas)' },
-                    { value: 'pecuaria', label: 'Pecuária (Lotes / Animais)' },
+                    { value: 'bovinocultura', label: 'Bovinocultura (Lotes / Animais)' },
                     { value: 'infra', label: 'Infraestrutura / Manutenção Geral' },
                   ]}
                   placeholder="Para onde vai essa despesa?"
@@ -503,7 +503,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                 </div>
               )}
 
-              {formData.centro_custo === 'pecuaria' && (
+              {formData.centro_custo === 'bovinocultura' && (
                 <div
                   className="tauze-field-group"
                   style={{
@@ -515,7 +515,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                   }}
                 >
                   <label className="tauze-label" style={{ color: '#92400e', marginBottom: '8px' }}>
-                    <Hash size={14} /> Destinação na Pecuária (Busca Inteligente)
+                    <Hash size={14} /> Destinação na Bovinocultura (Busca Inteligente)
                   </label>
                   <SearchableSelect
                     value={

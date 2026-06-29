@@ -164,7 +164,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Agropecuária XYZ Ltda"
+                placeholder="Ex: Agrobovinocultura XYZ Ltda"
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',

@@ -47,7 +47,7 @@ const AVAILABLE_METRICS: Metric[] = [
   {
     id: 'gmd',
     name: 'Evolução de GMD',
-    cat: 'Pecuária',
+    cat: 'Bovinocultura',
     icon: Activity,
     value: '0.842 kg',
     trend: '+4.2%',
@@ -177,7 +177,7 @@ const AVAILABLE_METRICS: Metric[] = [
   {
     id: 'ciclo_engorda',
     name: 'Ciclo de Engorda',
-    cat: 'Pecuária',
+    cat: 'Bovinocultura',
     icon: Clock,
     value: '94 dias',
     trend: '-4d',
@@ -620,7 +620,7 @@ export const SystemSettingsTab: React.FC<{
                   <div className="field-group">
                     <div className="tauze-field">
                       <label>Nome da Organização</label>
-                      <input type="text" defaultValue="Tauze Agropecuária Ltda" />
+                      <input type="text" defaultValue="Tauze Agrobovinocultura Ltda" />
                     </div>
                     <div className="tauze-field">
                       <label>Fuso Horário Padrão</label>
@@ -1129,7 +1129,7 @@ export const SystemSettingsTab: React.FC<{
                       </div>
                       <div className="p-info">
                         <span className="t">Performance de Rebanho</span>
-                        <span className="d">Foco total em produção agropecuária.</span>
+                        <span className="d">Foco total em produção agrobovinocultura.</span>
                       </div>
                     </button>
                     <button

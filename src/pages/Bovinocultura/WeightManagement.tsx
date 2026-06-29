@@ -1166,7 +1166,7 @@ export const WeightManagement: React.FC = () => {
         <div className="header-brand-group">
           <Breadcrumb
             paths={[
-              { label: 'Pecuária', href: '/pecuaria/dashboard' },
+              { label: 'Bovinocultura', href: '/bovinocultura/dashboard' },
               { label: 'Pesagens & GMD' },
             ]}
           />
@@ -1183,7 +1183,7 @@ export const WeightManagement: React.FC = () => {
           >
             <Wifi size={20} />
           </button>
-          {can('pecuaria', 'create') && (
+          {can('bovinocultura', 'create') && (
             <>
               <button
                 className="glass-btn secondary"
@@ -1379,7 +1379,7 @@ export const WeightManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -1388,7 +1388,7 @@ export const WeightManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}

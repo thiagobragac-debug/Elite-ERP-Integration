@@ -43,7 +43,7 @@ export const LivestockDashboard: React.FC = () => {
 
   const hasModule = (subName: string) => {
     if (!hasPlanRestriction) {return true;}
-    return planModules.includes(`Pecuária:${subName}`);
+    return planModules.includes(`Bovinocultura:${subName}`);
   };
 
   const hasReproducao = hasModule('Reprodução');
@@ -159,7 +159,7 @@ export const LivestockDashboard: React.FC = () => {
         <div className="header-brand-group">
           <Breadcrumb
             paths={[
-              { label: 'Pecuária', href: '/pecuaria/dashboard' },
+              { label: 'Bovinocultura', href: '/bovinocultura/dashboard' },
               { label: 'Intelligence Hub' },
             ]}
           />
@@ -181,7 +181,7 @@ export const LivestockDashboard: React.FC = () => {
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             SINCRONIZAR
           </button>
-          <button className="primary-btn" onClick={() => navigate('/pecuaria/animal')}>
+          <button className="primary-btn" onClick={() => navigate('/bovinocultura/animal')}>
             <Plus size={18} />
             GERENCIAR REBANHO
           </button>

@@ -922,8 +922,8 @@ export const AnimalDetail: React.FC = () => {
         <div style={{ marginBottom: '8px' }}>
           <Breadcrumb
             paths={[
-              { label: 'Pecuária', href: '/pecuaria/dashboard' },
-              { label: 'Animais', href: '/pecuaria/animal' },
+              { label: 'Bovinocultura', href: '/bovinocultura/dashboard' },
+              { label: 'Animais', href: '/bovinocultura/animal' },
               { label: 'Detalhes' },
             ]}
           />

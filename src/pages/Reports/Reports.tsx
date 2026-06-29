@@ -561,7 +561,7 @@ export const Reports: React.FC = () => {
     const hasPlanRestriction = tenant && tenant.plano !== 'BETA_FREE' && planModules.length > 0;
 
     const categoryToModuleMap: Record<string, string[]> = {
-      'livestock': ['Pecuária'],
+      'livestock': ['Bovinocultura'],
       'finance': ['Financeiro & Banco'],
       'fleet': ['Máquina & Frota'],
       'supply': ['Compra & Cotação', 'Estoque'],
@@ -609,7 +609,7 @@ export const Reports: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Relatórios Operacionais' }]} />
+          <Breadcrumb paths={[{ label: 'Tauze Bovinocultura' }, { label: 'Relatórios Operacionais' }]} />
           <h1 className="page-title">Relatórios Operacionais</h1>
           <p className="page-subtitle">
             {isGlobalMode
@@ -711,7 +711,7 @@ export const Reports: React.FC = () => {
                     onClick={() => setActiveCategory('livestock')}
                   >
                     <Activity size={16} />
-                    <span>Pecuária & Manejo</span>
+                    <span>Bovinocultura & Manejo</span>
                     <span className="count">
                       {accessibleReports.filter((r) => r.category === 'livestock').length}
                     </span>

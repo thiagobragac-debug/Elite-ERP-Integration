@@ -120,7 +120,7 @@ export const LeadFormSection: React.FC = () => {
               Mensagem Recebida!
             </h3>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 20 }}>
-              Agradecemos seu contato. Nossa equipe técnica de consultoria agrícola e pecuária está analisando suas informações e entrará em contato por telefone ou e-mail muito em breve.
+              Agradecemos seu contato. Nossa equipe técnica de consultoria agrícola e bovinocultura está analisando suas informações e entrará em contato por telefone ou e-mail muito em breve.
             </p>
             <button
               onClick={() => setSuccess(false)}

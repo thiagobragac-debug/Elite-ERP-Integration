@@ -274,7 +274,7 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
                   onChange={setCartItems}
                   title="Insumos Consumidos"
                   subtitle="Itens serão deduzidos do estoque selecionado."
-                  filterModule="pecuaria_nutricao"
+                  filterModule="bovinocultura_nutricao"
                   hideDeposit={false}
                 />
               </motion.div>

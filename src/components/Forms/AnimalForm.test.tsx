@@ -29,8 +29,8 @@ vi.mock('../../lib/supabase', () => ({
           order: vi.fn().mockResolvedValue({
             data: [
               { id: 'cat-1', nome: 'Angus', modulo: 'racas' },
-              { id: 'cat-2', nome: 'Boi Gordo', modulo: 'pecuaria' },
-              { id: 'cat-3', nome: 'Vaca', modulo: 'pecuaria' },
+              { id: 'cat-2', nome: 'Boi Gordo', modulo: 'bovinocultura' },
+              { id: 'cat-3', nome: 'Vaca', modulo: 'bovinocultura' },
             ],
             error: null,
           }),

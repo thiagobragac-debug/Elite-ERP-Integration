@@ -529,7 +529,7 @@ export const ReproductionManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Reprodução' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Reprodução' }]}
           />
           <h1 className="page-title">Reprodução</h1>
           <p className="page-subtitle">
@@ -546,21 +546,21 @@ export const ReproductionManagement: React.FC = () => {
           )}
           
           {activeTab === 'TEMPLATES' ? (
-            can('pecuaria', 'create') && (
+            can('bovinocultura', 'create') && (
               <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
                 <Plus size={18} />
                 NOVO TEMPLATE
               </button>
             )
           ) : activeTab === 'PROTOCOLOS' ? (
-            can('pecuaria', 'create') && (
+            can('bovinocultura', 'create') && (
               <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
                 <Plus size={18} />
                 NOVO PROTOCOLO
               </button>
             )
           ) : (
-            can('pecuaria', 'create') && (
+            can('bovinocultura', 'create') && (
               <button className="primary-btn" onClick={handleOpenCreate}>
                 <Plus size={18} />
                 NOVO REGISTRO
@@ -692,7 +692,7 @@ export const ReproductionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -701,7 +701,7 @@ export const ReproductionManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     onClick={() => handleDelete(item.id)}

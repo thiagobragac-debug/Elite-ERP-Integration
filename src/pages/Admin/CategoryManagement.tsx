@@ -312,46 +312,46 @@ export const CategorySettingsTab: React.FC<{
               is_active: true,
             },
           ];
-        } else if (modulo === 'pecuaria') {
+        } else if (modulo === 'bovinocultura') {
           defaultCategories = [
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Bezerro',
               cor: '#64748b',
               is_active: true,
             },
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Garrote',
               cor: '#3b82f6',
               is_active: true,
             },
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Boi',
               cor: '#ef4444',
               is_active: true,
             },
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Vaca',
               cor: '#10b981',
               is_active: true,
             },
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Novilha',
               cor: '#f59e0b',
               is_active: true,
             },
             {
               tenant_id: tenant.id,
-              modulo: 'pecuaria',
+              modulo: 'bovinocultura',
               nome: 'Touro',
               cor: '#0f172a',
               is_active: true,
@@ -482,7 +482,7 @@ export const CategorySettingsTab: React.FC<{
               cor: '#3b82f6',
               is_active: true,
               is_system: false,
-              modulo_vinculado: 'pecuaria_sanidade',
+              modulo_vinculado: 'bovinocultura_sanidade',
             },
             {
               tenant_id: tenant.id,
@@ -491,7 +491,7 @@ export const CategorySettingsTab: React.FC<{
               cor: '#8b5cf6',
               is_active: true,
               is_system: false,
-              modulo_vinculado: 'pecuaria_nutricao',
+              modulo_vinculado: 'bovinocultura_nutricao',
             },
             {
               tenant_id: tenant.id,
@@ -509,7 +509,7 @@ export const CategorySettingsTab: React.FC<{
               cor: '#b45309',
               is_active: true,
               is_system: false,
-              modulo_vinculado: 'pecuaria_nutricao',
+              modulo_vinculado: 'bovinocultura_nutricao',
             },
             {
               tenant_id: tenant.id,
@@ -518,7 +518,7 @@ export const CategorySettingsTab: React.FC<{
               cor: '#ec4899',
               is_active: true,
               is_system: false,
-              modulo_vinculado: 'pecuaria_sanidade',
+              modulo_vinculado: 'bovinocultura_sanidade',
             },
             {
               tenant_id: tenant.id,
@@ -778,11 +778,11 @@ export const CategorySettingsTab: React.FC<{
         if (modulo === 'estoque') {
           const moduleLabels: Record<string, string> = {
             geral: 'Geral (Todos Módulos)',
-            pecuaria_geral: 'Pecuária - Geral',
-            pecuaria_sanidade: 'Pecuária - Sanidade',
-            pecuaria_nutricao: 'Pecuária - Nutrição',
-            pecuaria_reproducao: 'Pecuária - Reprodução',
-            pecuaria_pasto: 'Pecuária - Pastagem',
+            bovinocultura_geral: 'Bovinocultura - Geral',
+            bovinocultura_sanidade: 'Bovinocultura - Sanidade',
+            bovinocultura_nutricao: 'Bovinocultura - Nutrição',
+            bovinocultura_reproducao: 'Bovinocultura - Reprodução',
+            bovinocultura_pasto: 'Bovinocultura - Pastagem',
             frota_geral: 'Frota - Geral',
             frota_abastecimento: 'Frota - Abastecimento',
             frota_manutencao: 'Frota - Manutenção',
@@ -936,7 +936,7 @@ export const CategorySettingsTab: React.FC<{
                   onChange={(e) => setFormData({ ...formData, modulo_vinculado: e.target.value })}
                 >
                   <option value="">Geral / Administrativo (Sede)</option>
-                  <option value="pecuaria">Pecuária (Gado)</option>
+                  <option value="bovinocultura">Bovinocultura (Gado)</option>
                   <option value="estoque">Estoque & Agricultura</option>
                   <option value="frota">Máquinas & Frota</option>
                   <option value="logistica">Logística & Frete</option>
@@ -967,11 +967,11 @@ export const CategorySettingsTab: React.FC<{
                     onChange={(e) => setFormData({ ...formData, modulo_vinculado: e.target.value })}
                   >
                     <option value="geral">Geral (Aparece em todos os módulos)</option>
-                    <option value="pecuaria_geral">Pecuária - Geral (Toda a Pecuária)</option>
-                    <option value="pecuaria_sanidade">Pecuária - Sanidade</option>
-                    <option value="pecuaria_nutricao">Pecuária - Nutrição</option>
-                    <option value="pecuaria_reproducao">Pecuária - Reprodução</option>
-                    <option value="pecuaria_pasto">Pecuária - Pastagem</option>
+                    <option value="bovinocultura_geral">Bovinocultura - Geral (Toda a Bovinocultura)</option>
+                    <option value="bovinocultura_sanidade">Bovinocultura - Sanidade</option>
+                    <option value="bovinocultura_nutricao">Bovinocultura - Nutrição</option>
+                    <option value="bovinocultura_reproducao">Bovinocultura - Reprodução</option>
+                    <option value="bovinocultura_pasto">Bovinocultura - Pastagem</option>
                     <option value="frota_geral">Máquinas & Frota - Geral (Toda a Frota)</option>
                     <option value="frota_abastecimento">Máquinas & Frota - Abastecimento</option>
                     <option value="frota_manutencao">Máquinas & Frota - Manutenção</option>

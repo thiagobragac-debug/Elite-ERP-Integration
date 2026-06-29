@@ -25,7 +25,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
   const modules = [
     {
       emoji: '🐄',
-      label: 'Pecuária',
+      label: 'Bovinocultura',
       tag: 'RFID & GMD',
       title: 'Pesagem voluntária com RFID — sem estresse no rebanho',
       desc: 'O animal vai ao bebedouro e o sistema registra o peso automaticamente. Curvas de GMD diárias, previsão de abate e gestão de lotes sem manejo estressante.',
@@ -419,7 +419,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               <div>
                 {[
                   ['Nutrien Rural', 'R$ 58.400', true],
-                  ['Agropecuária XY', 'R$ 61.200', false],
+                  ['Agrobovinocultura XY', 'R$ 61.200', false],
                 ].map(([n, v, best], i) => (
                   <div
                     key={i}

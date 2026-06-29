@@ -378,6 +378,8 @@ const PastureManagement: React.FC = () => {
       data_diferimento: data.data_diferimento || null,
       fazenda_id: data.fazenda_id || activeFarmId,
       tenant_id: activeTenantId,
+      especie_id: 'bovino',
+      aptidao_id: 'corte',
     };
 
     savePastureMutation.mutate(payload);
@@ -753,7 +755,7 @@ const PastureManagement: React.FC = () => {
       <header className="page-header">
         <div className="header-brand-group">
           <Breadcrumb
-            paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Pastos' }]}
+            paths={[{ label: 'Bovinocultura', href: '/bovinocultura/dashboard' }, { label: 'Pastos' }]}
           />
           <h1 className="page-title">Pastos</h1>
           <p className="page-subtitle">
@@ -939,7 +941,7 @@ const PastureManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('pecuaria', 'edit') && (
+                {can('bovinocultura', 'edit') && (
                   <button
                     className="action-dot edit"
                     title="Editar"
@@ -948,7 +950,7 @@ const PastureManagement: React.FC = () => {
                     <Edit3 size={18} />
                   </button>
                 )}
-                {can('pecuaria', 'delete') && (
+                {can('bovinocultura', 'delete') && (
                   <button
                     className="action-dot delete"
                     title="Excluir"
@@ -1085,7 +1087,7 @@ const PastureManagement: React.FC = () => {
                         >
                           <History size={14} />
                         </button>
-                        {can('pecuaria', 'edit') && (
+                        {can('bovinocultura', 'edit') && (
                           <button
                             className="action-icon-btn"
                             title="Editar"
@@ -1094,7 +1096,7 @@ const PastureManagement: React.FC = () => {
                             <Edit3 size={14} />
                           </button>
                         )}
-                        {can('pecuaria', 'delete') && (
+                        {can('bovinocultura', 'delete') && (
                           <button
                             className="action-icon-btn delete"
                             title="Excluir"

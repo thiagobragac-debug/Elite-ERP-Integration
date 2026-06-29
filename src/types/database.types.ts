@@ -105,6 +105,8 @@ export type Database = {
           tenant_id: string | null
           valor_compra: number | null
           valor_venda: number | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           brinco: string
@@ -132,6 +134,8 @@ export type Database = {
           tenant_id?: string | null
           valor_compra?: number | null
           valor_venda?: number | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           brinco?: string
@@ -159,6 +163,8 @@ export type Database = {
           tenant_id?: string | null
           valor_compra?: number | null
           valor_venda?: number | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Relationships: [
           {
@@ -498,6 +504,8 @@ export type Database = {
           nome_curral: string
           peso_entrada: number | null
           tenant_id: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           capacidade_animais?: number | null
@@ -510,6 +518,8 @@ export type Database = {
           nome_curral: string
           peso_entrada?: number | null
           tenant_id?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           capacidade_animais?: number | null
@@ -1084,6 +1094,8 @@ export type Database = {
           status: string | null
           tenant_id: string | null
           tipo_evento: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animal_id?: string | null
@@ -1097,6 +1109,8 @@ export type Database = {
           status?: string | null
           tenant_id?: string | null
           tipo_evento?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animal_id?: string | null
@@ -1381,6 +1395,8 @@ export type Database = {
           sexo_permitido: string | null
           status: string | null
           tenant_id: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           capacidade?: number | null
@@ -1407,6 +1423,8 @@ export type Database = {
           sexo_permitido?: string | null
           status?: string | null
           tenant_id?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           capacidade?: number | null
@@ -2205,6 +2223,8 @@ export type Database = {
           trato_id: string | null
           valor_total_consumido: number | null
           valor_unitario_kg: number | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animal_id?: string | null
@@ -2220,6 +2240,8 @@ export type Database = {
           trato_id?: string | null
           valor_total_consumido?: number | null
           valor_unitario_kg?: number | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animal_id?: string | null
@@ -2398,6 +2420,8 @@ export type Database = {
           tipo_capim: string | null
           tipo_solo: string | null
           topografia: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           agua?: string | null
@@ -2417,6 +2441,8 @@ export type Database = {
           tipo_capim?: string | null
           tipo_solo?: string | null
           topografia?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           agua?: string | null
@@ -2677,6 +2703,8 @@ export type Database = {
           observacao: string | null
           peso: number
           tenant_id: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animal_id?: string | null
@@ -2688,6 +2716,8 @@ export type Database = {
           observacao?: string | null
           peso: number
           tenant_id?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animal_id?: string | null
@@ -3268,6 +3298,8 @@ export type Database = {
           updated_at: string | null
           preco_por_arroba: number | null
           valor_estimado: number
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animais_qtd?: number
@@ -3294,6 +3326,8 @@ export type Database = {
           updated_at?: string | null
           preco_por_arroba?: number | null
           valor_estimado?: number
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animais_qtd?: number
@@ -3687,6 +3721,8 @@ export type Database = {
           tenant_id: string | null
           valor_total_aplicado: number | null
           valor_unitario_aplicado: number | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animal_id?: string | null
@@ -3701,6 +3737,8 @@ export type Database = {
           tenant_id?: string | null
           valor_total_aplicado?: number | null
           valor_unitario_aplicado?: number | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animal_id?: string | null

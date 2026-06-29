@@ -278,7 +278,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               
               if (metadata.module_id) {
                 activatedAddonModules.push(metadata.module_id);
-                // Se for um submódulo (ex: "Pecuária:Animais"), garantimos que o pai ("Pecuária") também seja injetado
+                // Se for um submódulo (ex: "Bovinocultura:Animais"), garantimos que o pai ("Bovinocultura") também seja injetado
                 if (metadata.module_id.includes(':')) {
                   const parent = metadata.module_id.split(':')[0];
                   if (!activatedAddonModules.includes(parent)) {

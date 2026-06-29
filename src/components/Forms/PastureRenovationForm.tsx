@@ -424,7 +424,7 @@ export const PastureRenovationForm: React.FC<PastureRenovationFormProps> = ({
                 >
                   <option value="Reforma Total">Reforma Total</option>
                   <option value="Recuperação Direta">Recuperação Direta</option>
-                  <option value="Integração Lavoura-Pecuária">Integração (ILP)</option>
+                  <option value="Integração Lavoura-Bovinocultura">Integração (ILP)</option>
                 </select>
               </div>
             )}

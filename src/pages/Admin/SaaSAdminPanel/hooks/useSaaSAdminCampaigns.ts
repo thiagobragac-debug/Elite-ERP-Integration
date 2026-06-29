@@ -13,7 +13,7 @@ export const useSaaSAdminCampaigns = (isSaving: boolean, setIsSaving: (s: boolea
       setCampaignsLoading(true);
       const { data, error }: any = await supabase
         .from('saas_campaigns')
-        .select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -42,7 +42,7 @@ export const useSaaSAdminCampaigns = (isSaving: boolean, setIsSaving: (s: boolea
       };
 
       const savePromise = selectedCampaign
-        ? supabase.from('saas_campaigns').update(campaignData).eq('id', selectedCampaign.id).eq('tenant_id', activeTenantId)
+        ? supabase.from('saas_campaigns').update(campaignData).eq('id', selectedCampaign.id)
         : supabase.from('saas_campaigns').insert([campaignData]);
 
       const { error } = await savePromise;

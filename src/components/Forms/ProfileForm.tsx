@@ -27,7 +27,7 @@ interface ProfileFormProps {
 }
 
 const MODULES = [
-  { id: 'pecuaria', label: 'Pecuária & Lotes', actions: ['read', 'write', 'delete'] },
+  { id: 'bovinocultura', label: 'Bovinocultura & Lotes', actions: ['read', 'write', 'delete'] },
   { id: 'financeiro', label: 'Gestão Financeira', actions: ['read', 'write', 'approve', 'delete'] },
   {
     id: 'comercial',

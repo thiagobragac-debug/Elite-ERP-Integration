@@ -161,12 +161,12 @@ describe('Sentry Configuration', () => {
 
   describe('setModuleContext', () => {
     it('should set module and page context', () => {
-      setModuleContext('Pecuária', 'AnimalManagement');
+      setModuleContext('Bovinocultura', 'AnimalManagement');
       
-      expect(Sentry.setTag).toHaveBeenCalledWith('module', 'Pecuária');
+      expect(Sentry.setTag).toHaveBeenCalledWith('module', 'Bovinocultura');
       expect(Sentry.setTag).toHaveBeenCalledWith('page', 'AnimalManagement');
       expect(Sentry.setContext).toHaveBeenCalledWith('navigation', {
-        module: 'Pecuária',
+        module: 'Bovinocultura',
         page: 'AnimalManagement',
       });
     });

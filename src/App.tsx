@@ -30,7 +30,7 @@ import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 
 // Route modules
 import { adminRoutes } from './routes/AdminRoutes';
-import { pecuariaRoutes } from './routes/PecuariaRoutes';
+import { bovinoculturaRoutes } from './routes/BovinoculturaRoutes';
 import { financeiroRoutes } from './routes/FinanceiroRoutes';
 import { frotaRoutes } from './routes/FrotaRoutes';
 import { estoqueRoutes } from './routes/EstoqueRoutes';
@@ -123,7 +123,7 @@ function AppRoutes() {
     [
       { key: 'k', action: () => setIsPaletteOpen((prev) => !prev), requireModifier: true },
       { key: '1', action: () => navigate('/painel'), requireModifier: true },
-      { key: '2', action: () => navigate('/pecuaria/dashboard'), requireModifier: true },
+      { key: '2', action: () => navigate('/bovinocultura/dashboard'), requireModifier: true },
       { key: '3', action: () => navigate('/financeiro/intelligence'), requireModifier: true },
       { key: '4', action: () => navigate('/estoque/dashboard'), requireModifier: true },
       { key: '5', action: () => navigate('/frota/dashboard'), requireModifier: true },
@@ -131,7 +131,7 @@ function AppRoutes() {
       { key: '7', action: () => navigate('/vendas/dashboard'), requireModifier: true },
       { key: '8', action: () => navigate('/mercado/indicadores'), requireModifier: true },
       { key: '9', action: () => navigate('/admin/intelligence'), requireModifier: true },
-      { key: 'n', action: () => navigate('/pecuaria/animal'), requireModifier: true },
+      { key: 'n', action: () => navigate('/bovinocultura/animal'), requireModifier: true },
       { key: 'p', action: () => navigate('/financeiro/pagar'), requireModifier: true },
       { key: 'f', action: () => setIsPaletteOpen(true), requireModifier: true },
       { key: 't', action: () => toggleTheme(), requireModifier: true },
@@ -178,7 +178,7 @@ function AppRoutes() {
               {/* Domain route modules */}
               {adminRoutes}
               {mercadoRoutes}
-              {pecuariaRoutes}
+              {bovinoculturaRoutes}
               {financeiroRoutes}
               {frotaRoutes}
               {estoqueRoutes}
@@ -201,6 +201,8 @@ function AppRoutes() {
   );
 }
 
+import { createPortal } from 'react-dom';
+
 // ── App root ──────────────────────────────────────────────────────────────────
 
 export function App() {
@@ -214,28 +216,33 @@ export function App() {
                 <ScaleProvider>
                   <SystemSettingsProvider>
                     <ErrorBoundary>
-                      <Toaster
-                        position="bottom-right"
-                        toastOptions={{
-                          duration: 4000,
-                          style: {
-                            background: 'var(--bg-card)',
-                            color: 'var(--text-main)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '10px',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                          },
-                          success: {
-                            iconTheme: { primary: '#10b981', secondary: 'white' },
-                            style: { borderLeft: '4px solid #10b981' },
-                          },
-                          error: {
-                            iconTheme: { primary: '#ef4444', secondary: 'white' },
-                            style: { borderLeft: '4px solid #ef4444' },
-                          },
-                        }}
-                      />
+                      {createPortal(
+                        <Toaster
+                          position="bottom-left"
+                          containerStyle={{ zIndex: 2147483647, left: 20, bottom: 20 }}
+                          toastOptions={{
+                            duration: 4000,
+                            style: {
+                              background: '#ffffff',
+                              color: '#0f172a',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+                            },
+                            success: {
+                              iconTheme: { primary: '#10b981', secondary: 'white' },
+                              style: { borderLeft: '4px solid #10b981' },
+                            },
+                            error: {
+                              iconTheme: { primary: '#ef4444', secondary: 'white' },
+                              style: { borderLeft: '4px solid #ef4444' },
+                            },
+                          }}
+                        />,
+                        document.body
+                      )}
                       <AppContent />
                     </ErrorBoundary>
                   </SystemSettingsProvider>

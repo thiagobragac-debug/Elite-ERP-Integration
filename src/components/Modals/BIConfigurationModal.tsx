@@ -30,7 +30,7 @@ export const BIConfigurationModal: React.FC<BIConfigurationModalProps> = ({ isOp
   const [isSaving, setIsSaving] = useState(false);
 
   const metrics = [
-    { id: '1', name: 'Evolução de GMD', category: 'Pecuária', icon: Activity },
+    { id: '1', name: 'Evolução de GMD', category: 'Bovinocultura', icon: Activity },
     { id: '2', name: 'Taxa de Lotação', category: 'Pastagens', icon: Layers },
     { id: '3', name: 'Fluxo de Caixa', category: 'Financeiro', icon: DollarSign },
     { id: '4', name: 'Giro de Estoque', category: 'Insumos', icon: Layout },

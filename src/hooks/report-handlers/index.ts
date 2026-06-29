@@ -1,5 +1,5 @@
 import type { ReportHandler } from '../../types/reports';
-import * as pecuaria from './pecuaria';
+import * as bovinocultura from './bovinocultura';
 import * as financeiro from './financeiro';
 import * as logistica from './logistica';
 import * as governanca from './governanca';
@@ -11,17 +11,17 @@ export const handlers: Record<string, ReportHandler> = {
   // Panorama / Geral
   'panorama-overview': panorama.panoramaOverview,
 
-  // Pecuária
-  'performance-ponderal': pecuaria.performancePonderal,
-  'sanidade-animal': pecuaria.sanidadeAnimal,
-  pastagens: pecuaria.pastagens,
-  confinamento: pecuaria.confinamento,
-  reproducao: pecuaria.reproducao,
-  dietas: pecuaria.dietas,
-  animais: pecuaria.animais,
-  lotes: pecuaria.lotes,
-  pesagens: pecuaria.pesagens,
-  'livestock-overview': pecuaria.dashboardOverview,
+  // Bovinocultura
+  'performance-ponderal': bovinocultura.performancePonderal,
+  'sanidade-animal': bovinocultura.sanidadeAnimal,
+  pastagens: bovinocultura.pastagens,
+  confinamento: bovinocultura.confinamento,
+  reproducao: bovinocultura.reproducao,
+  dietas: bovinocultura.dietas,
+  animais: bovinocultura.animais,
+  lotes: bovinocultura.lotes,
+  pesagens: bovinocultura.pesagens,
+  'livestock-overview': bovinocultura.dashboardOverview,
 
   // Financeiro - Diamond Precision 5.0
   'fluxo-caixa': financeiro.fluxoCaixa,
@@ -50,11 +50,11 @@ export const handlers: Record<string, ReportHandler> = {
   'ia-suporte-pasto': ia.suportePasto,
 
   // Aliases (IDs numéricos legados)
-  '1': pecuaria.performancePonderal,
-  '2': pecuaria.pastagens,
-  '3': pecuaria.animais,
-  '4': pecuaria.sanidadeAnimal,
-  '5': pecuaria.confinamento,
+  '1': bovinocultura.performancePonderal,
+  '2': bovinocultura.pastagens,
+  '3': bovinocultura.animais,
+  '4': bovinocultura.sanidadeAnimal,
+  '5': bovinocultura.confinamento,
   '6': financeiro.fluxoCaixa,
   '7': financeiro.extratoBancario,
   '8': financeiro.contasPagar,
@@ -73,7 +73,7 @@ export const handlers: Record<string, ReportHandler> = {
   '21': ia.monteCarlo,
   '22': ia.suportePasto,
   '23': financeiro.fluxoCaixa,
-  '24': pecuaria.performancePonderal,
+  '24': bovinocultura.performancePonderal,
   '25': governanca.adminOverview,
   '26': governanca.perfisUsuario,
   '27': governanca.auditLogs,
