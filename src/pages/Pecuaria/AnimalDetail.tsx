@@ -110,6 +110,8 @@ export const AnimalDetail: React.FC = () => {
       return data;
     },
     enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch weight history
@@ -128,6 +130,8 @@ export const AnimalDetail: React.FC = () => {
       return data || [];
     },
     enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch all historical data for the dossier
@@ -274,6 +278,8 @@ export const AnimalDetail: React.FC = () => {
       };
     },
     enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const loading = animalLoading || weightsLoading || financialLoading;
@@ -321,6 +327,8 @@ export const AnimalDetail: React.FC = () => {
       return data || [];
     },
     enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const events = React.useMemo(() => {
@@ -341,15 +349,15 @@ export const AnimalDetail: React.FC = () => {
     // Convert the database RPC format to the frontend format
     const mappedEvents = timelineData.map((ev: any) => {
       let category = 'misc';
-      if (ev.event_type === 'PESAGEM') category = 'weight';
-      else if (ev.event_type === 'SANIDADE') category = 'sanidade';
-      else if (ev.event_type === 'NUTRIÇÃO' || ev.event_type === 'NUTRICAO') category = 'nutricao';
-      else if (ev.event_type === 'REPRODUCAO') category = 'reproducao';
+      if (ev.event_type === 'PESAGEM') {category = 'weight';}
+      else if (ev.event_type === 'SANIDADE') {category = 'sanidade';}
+      else if (ev.event_type === 'NUTRIÇÃO' || ev.event_type === 'NUTRICAO') {category = 'nutricao';}
+      else if (ev.event_type === 'REPRODUCAO') {category = 'reproducao';}
       
       return {
         date: ev.event_date,
         type: ev.event_type,
-        category: category,
+        category,
         desc: ev.description ? `${ev.title} — ${ev.description}` : ev.title,
       };
     });
@@ -579,9 +587,10 @@ export const AnimalDetail: React.FC = () => {
 
   const targetWeight = 600;
   const remainingWeight = Math.max(0, targetWeight - currentWeight);
+  const [now] = React.useState(() => Date.now());
   const daysToTarget = calculateDiasParaAbate(currentWeight, targetWeight, realGmd);
   const estimatedDate =
-    daysToTarget > 0 ? new Date(Date.now() + daysToTarget * 24 * 60 * 60 * 1000) : null;
+    daysToTarget > 0 ? new Date(now + daysToTarget * 24 * 60 * 60 * 1000) : null;
 
   const getProjectionSparkline = () => {
     if (realGmd <= 0 || currentWeight >= targetWeight) {
@@ -593,7 +602,7 @@ export const AnimalDetail: React.FC = () => {
     for (let i = 0; i < steps; i++) {
       const projectedWeight = currentWeight + weightStep * i;
       const days = realGmd > 0 ? Math.ceil((projectedWeight - currentWeight) / realGmd) : 0;
-      const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      const date = new Date(now + days * 24 * 60 * 60 * 1000);
       projection.push({
         value: Number(projectedWeight.toFixed(1)),
         label: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),

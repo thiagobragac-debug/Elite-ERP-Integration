@@ -39,16 +39,16 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // States for Weighing (Pesagem)
-  const [weightData, setWeightData] = useState({
+  const [weightData, setWeightData] = useState(() => ({
     peso: '',
     data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .split('T')[0],
     observacao: '',
-  });
+  }));
 
   // States for Sanitary (Sanidade)
-  const [healthData, setHealthData] = useState({
+  const [healthData, setHealthData] = useState(() => ({
     tipo: 'VACINA',
     data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
@@ -63,13 +63,14 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     carencia_dias: '0',
     observacao: '',
     status: 'REALIZADO',
-  });
+  }));
 
   // Products from inventory
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
 
   // Reset forms on open/change animal
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen && animals && animals.length > 0) {
       setErrorMsg(null);
       // Se for apenas 1 animal, pré-preenche o peso. Se for em lote, deixa em branco (aplicará o mesmo peso a todos).

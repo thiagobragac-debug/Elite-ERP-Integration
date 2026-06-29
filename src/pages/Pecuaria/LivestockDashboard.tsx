@@ -42,7 +42,7 @@ export const LivestockDashboard: React.FC = () => {
   const hasPlanRestriction = tenant && tenant.plan !== 'BETA_FREE' && planModules.length > 0;
 
   const hasModule = (subName: string) => {
-    if (!hasPlanRestriction) return true;
+    if (!hasPlanRestriction) {return true;}
     return planModules.includes(`Pecuária:${subName}`);
   };
 
@@ -68,6 +68,7 @@ export const LivestockDashboard: React.FC = () => {
       return data || { taxa_sucesso: 0 };
     },
     enabled: isReady && !!activeTenantId && hasReproducao,
+    staleTime: 10 * 60 * 1000,
   });
 
   // Query 2: Silo Autonomy calculation (Now using Server-Side RPC)
@@ -85,6 +86,7 @@ export const LivestockDashboard: React.FC = () => {
       return data || 0;
     },
     enabled: isReady && hasNutricao,
+    staleTime: 10 * 60 * 1000,
   });
 
   // Query 3: Weekly GMD calculation (Now using Server-Side RPC)
@@ -103,6 +105,7 @@ export const LivestockDashboard: React.FC = () => {
       return data || [];
     },
     enabled: isReady && hasPesagens,
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: biStats = { custo_arroba: 0, margem: 0 } } = useQuery({
@@ -113,7 +116,7 @@ export const LivestockDashboard: React.FC = () => {
         query = query.eq('fazenda_id', activeFarmId);
       }
       const { data, fetchError } = await query;
-      if (fetchError || !data || data.length === 0) return { custo_arroba: 0, margem: 0 };
+      if (fetchError || !data || data.length === 0) {return { custo_arroba: 0, margem: 0 };}
       
       const avgArroba = data.reduce((acc, curr) => acc + (curr.custo_por_arroba || 0), 0) / data.length;
       
@@ -127,6 +130,7 @@ export const LivestockDashboard: React.FC = () => {
       return { custo_arroba: avgArroba, margem: avgMargem };
     },
     enabled: isReady && !!activeTenantId,
+    staleTime: 10 * 60 * 1000,
   });
 
   if (error) {
@@ -192,8 +196,8 @@ export const LivestockDashboard: React.FC = () => {
           : (
             <>
               {stats?.filter((stat: any) => {
-                if (stat.label === 'GMD Médio (30d)' && !hasPesagens) return false;
-                if (stat.label === 'Segurança Sanitária' && !hasSanidade) return false;
+                if (stat.label === 'GMD Médio (30d)' && !hasPesagens) {return false;}
+                if (stat.label === 'Segurança Sanitária' && !hasSanidade) {return false;}
                 return true;
               }).map((stat: any, idx: number) => (
                 <TauzeStatCard key={idx} {...stat} icon={getIcon(stat.label)} />
@@ -274,10 +278,10 @@ export const LivestockDashboard: React.FC = () => {
             <div className="queue-list">
               {(() => {
                 const filteredQueue = operationalQueue.filter((item: any) => {
-                  if (item.type === 'VACINA' && !hasSanidade) return false;
-                  if (item.type === 'NUTRIÇÃO' && !hasNutricao) return false;
-                  if (item.type === 'REPRODUÇÃO' && !hasReproducao) return false;
-                  if (item.type === 'PESAGEM' && !hasPesagens) return false;
+                  if (item.type === 'VACINA' && !hasSanidade) {return false;}
+                  if (item.type === 'NUTRIÇÃO' && !hasNutricao) {return false;}
+                  if (item.type === 'REPRODUÇÃO' && !hasReproducao) {return false;}
+                  if (item.type === 'PESAGEM' && !hasPesagens) {return false;}
                   return true;
                 });
 

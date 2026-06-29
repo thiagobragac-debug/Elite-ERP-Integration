@@ -614,6 +614,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
           handleIdadeChange={handleIdadeChange}
           racas={racas}
           handleRacaChange={handleRacaChange}
+          isEdit={!!initialData}
         />
       </section>
 

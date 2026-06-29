@@ -107,8 +107,8 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
   const moveEtapa = (id: string, dir: 'up' | 'down') => {
     setEtapas((prev) => {
       const idx = prev.findIndex((e) => e.id === id);
-      if (dir === 'up' && idx === 0) return prev;
-      if (dir === 'down' && idx === prev.length - 1) return prev;
+      if (dir === 'up' && idx === 0) {return prev;}
+      if (dir === 'down' && idx === prev.length - 1) {return prev;}
       const arr = [...prev];
       const other = dir === 'up' ? idx - 1 : idx + 1;
       [arr[idx], arr[other]] = [arr[other], arr[idx]];
@@ -125,7 +125,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
           .from('protocolo_templates')
           .update({ nome: form.nome, tipo: form.tipo, descricao: form.descricao })
           .eq('id', initialData.id);
-        if (tErr) throw tErr;
+        if (tErr) {throw tErr;}
 
         // Deletar etapas antigas e reinserir
         await supabase
@@ -147,7 +147,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
                 ordem: idx + 1,
               }))
             );
-          if (etErr) throw etErr;
+          if (etErr) {throw etErr;}
         }
       } else {
         // Criar template
@@ -156,7 +156,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
           .insert([{ nome: form.nome, tipo: form.tipo, descricao: form.descricao, is_sistema: false }])
           .select()
           .single();
-        if (tErr) throw tErr;
+        if (tErr) {throw tErr;}
 
         if (etapas.length > 0) {
           const { error: etErr } = await supabase
@@ -172,7 +172,7 @@ export const TemplateForm: React.FC<TemplateFormProps> = ({
                 ordem: idx + 1,
               }))
             );
-          if (etErr) throw etErr;
+          if (etErr) {throw etErr;}
         }
       }
     },

@@ -47,7 +47,7 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
   setFilters,
   availableIngredients = [],
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const toggleIngredient = (ing: string) => {
     const current: string[] = filters.ingredients || [];
@@ -63,7 +63,7 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
     <div
       className="tauze-sidebar-overlay"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) {onClose();}
       }}
     >
       <motion.div

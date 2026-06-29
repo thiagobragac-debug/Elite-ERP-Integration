@@ -128,8 +128,8 @@ export const ConfinementManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForKey(`confinement_form_${activeTenantId}`)) setIsModalOpen(true);
+    if (!activeTenantId || isModalOpen) {return;}
+    if (hasDraftForKey(`confinement_form_${activeTenantId}`)) {setIsModalOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -206,7 +206,7 @@ export const ConfinementManagement: React.FC = () => {
 
     if (isEditMode) {
         const { error } = await supabase.from('confinamento').update(payload).eq('id', selectedPen.id).eq('tenant_id', activeTenantId);
-        if (error) throw error;
+        if (error) {throw error;}
         toast.success('✅ Curral atualizado com sucesso!');
         setIsModalOpen(false);
         refresh();
@@ -520,7 +520,7 @@ export const ConfinementManagement: React.FC = () => {
       await queryClient.cancelQueries({ queryKey: ['report'] });
       const previousData = queryClient.getQueryData(['report']);
       queryClient.setQueryData(['report'], (old: any) => {
-        if (!old) return old;
+        if (!old) {return old;}
         return {
           ...old,
           data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
@@ -790,13 +790,77 @@ export const ConfinementManagement: React.FC = () => {
         ) : (
           <div className="confinement-cards-grid animate-fade-in">
             {filteredConfinements.length === 0 ? (
-              <EmptyState
-                title={confinements.length === 0 ? 'Nenhum ciclo de confinamento' : 'Nenhum registro encontrado'}
-                description={confinements.length === 0 ? 'Não há currais ativos para esta unidade.' : 'Sua busca não retornou resultados.'}
-                icon={confinements.length === 0 ? Building2 : Search}
-                actionLabel={confinements.length === 0 ? 'NOVO CHECK-IN' : undefined}
-                onAction={confinements.length === 0 ? () => setIsModalOpen(true) : undefined}
-              />
+              <div
+                className="confinement-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {confinements.length === 0 ? <Building2 size={22} /> : <Search size={22} />}
+                </div>
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {confinements.length === 0
+                    ? 'Nenhum ciclo de confinamento'
+                    : 'Nenhum registro encontrado'}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {confinements.length === 0
+                    ? 'Não há currais ativos para esta unidade.'
+                    : 'Sua busca não retornou resultados.'}
+                </p>
+                {confinements.length === 0 && (
+                  <button
+                    className="primary-btn"
+                    onClick={() => setIsModalOpen(true)}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
+                  >
+                    <Plus size={14} /> NOVO CHECK-IN
+                  </button>
+                )}
+              </div>
             ) : (
               filteredConfinements.map((p) => {
                 const progress = p.progress || 0;

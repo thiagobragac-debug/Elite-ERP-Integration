@@ -150,7 +150,7 @@ export const ProtocolManagement: React.FC<{
         .order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {throw error;}
       return (data || []) as Protocolo[];
     },
   });
@@ -162,7 +162,7 @@ export const ProtocolManagement: React.FC<{
       const { data, error } = await supabase
         .from('protocolo_templates')
         .select('*, protocolo_template_etapas(*)');
-      if (error) throw error;
+      if (error) {throw error;}
       return data as Template[];
     },
   });
@@ -211,7 +211,7 @@ export const ProtocolManagement: React.FC<{
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('protocolo_templates').delete().eq('id', id).eq('tenant_id', activeTenantId);
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['protocolo_templates'] });
@@ -227,7 +227,7 @@ export const ProtocolManagement: React.FC<{
       confirmLabel: 'Excluir',
       variant: 'danger',
     });
-    if (ok) deleteTemplateMutation.mutate(t.id);
+    if (ok) {deleteTemplateMutation.mutate(t.id);}
   };
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ export const ProtocolManagement: React.FC<{
         .from('protocolos_reprodutivos')
         .update({ status: 'cancelado' })
         .eq('id', id);
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['protocolos'] });
@@ -320,7 +320,7 @@ export const ProtocolManagement: React.FC<{
       confirmLabel: 'Cancelar Protocolo',
       variant: 'danger',
     });
-    if (ok) cancelMutation.mutate(id);
+    if (ok) {cancelMutation.mutate(id);}
   };
 
   // ── Filtro + Busca ────────────────────────────────────────────────────────
@@ -329,15 +329,15 @@ export const ProtocolManagement: React.FC<{
       .filter((p) => filterProtocol.status === 'todos' || p.status === filterProtocol.status)
       .filter((p) => filterProtocol.tipo === 'todos' || p.tipo === filterProtocol.tipo)
       .filter((p) => {
-        if (!filterProtocol.dateStart) return true;
+        if (!filterProtocol.dateStart) {return true;}
         return new Date(p.data_inicio) >= new Date(filterProtocol.dateStart);
       })
       .filter((p) => {
-        if (!filterProtocol.dateEnd) return true;
+        if (!filterProtocol.dateEnd) {return true;}
         return new Date(p.data_inicio) <= new Date(filterProtocol.dateEnd);
       })
       .filter((p) => {
-        if (!filterProtocol.onlyComSaldo) return true;
+        if (!filterProtocol.onlyComSaldo) {return true;}
         const cnt = (p.protocolo_animais as any)?.[0]?.count ?? 0;
         return cnt > 0;
       })
@@ -356,7 +356,7 @@ export const ProtocolManagement: React.FC<{
     {
       header: 'Protocolo',
       accessor: (p: Protocolo) => {
-        const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG['rascunho'];
+        const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.rascunho;
         const cor = TIPO_COLOR[p.tipo] || 'hsl(var(--brand))';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -538,7 +538,7 @@ export const ProtocolManagement: React.FC<{
     {
       header: 'Status',
       accessor: (p: Protocolo) => {
-        const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG['rascunho'];
+        const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.rascunho;
         const Icon = cfg.icon;
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>

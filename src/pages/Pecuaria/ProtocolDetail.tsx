@@ -60,7 +60,7 @@ export const ProtocolDetail: React.FC = () => {
         `)
         .eq('id', id!)
         .single();
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
   });

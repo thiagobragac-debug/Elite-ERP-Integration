@@ -73,7 +73,15 @@ const getLotBreedKey = (raca?: string) =>
 
 // Brazilian Cattle Market Lot Performance Dashboard
 const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ tenantId, lotId }) => {
-  const { data, isLoading, error } = useQuery({
+  // ── Preço de arroba configurável (persiste por sessão via localStorage) ──
+  const [arrobaPrice, setArrobaPrice] = React.useState<number | null>(() => {
+    const stored = localStorage.getItem('tauze_arroba_price');
+    return stored ? Number(stored) : null;
+  });
+  const [editingPrice, setEditingPrice] = React.useState(false);
+  const [priceInput, setPriceInput] = React.useState(String(arrobaPrice ?? ''));
+
+  const { data, isLoading: loading, error } = useQuery({
     queryKey: ['lot-performance', tenantId, lotId],
     queryFn: async () => {
       const p_lote_id = lotId === 'all' ? null : lotId;
@@ -81,10 +89,12 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
         p_tenant_id: tenantId,
         p_lote_id,
       });
-      if (err) throw err;
+      if (err) {throw err;}
       return result;
     },
     enabled: !!tenantId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {
@@ -146,14 +156,6 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
 
   const { avgWeight, avgGmd, totalCount: count, dominantBreed: rawDominantBreed, classes, topPerformers = [] } = data;
 
-  // ── Preço de arroba configurável (persiste por sessão via localStorage) ──
-  const [arrobaPrice, setArrobaPrice] = React.useState<number | null>(() => {
-    const stored = localStorage.getItem('tauze_arroba_price');
-    return stored ? Number(stored) : null;
-  });
-  const [editingPrice, setEditingPrice] = React.useState(false);
-  const [priceInput, setPriceInput] = React.useState(String(arrobaPrice ?? ''));
-
   const handlePriceConfirm = () => {
     const val = Number(priceInput);
     if (val > 0) {
@@ -164,8 +166,8 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
   };
 
   const dominantBreedKey = getLotBreedKey(rawDominantBreed);
-  const carcassYield = LOT_CARCASS_YIELD_BREED[dominantBreedKey] ?? LOT_CARCASS_YIELD_BREED['default'];
-  const targetWeight = LOT_SLAUGHTER_TARGET_BREED[dominantBreedKey] ?? LOT_SLAUGHTER_TARGET_BREED['default'];
+  const carcassYield = LOT_CARCASS_YIELD_BREED[dominantBreedKey] ?? LOT_CARCASS_YIELD_BREED.default;
+  const targetWeight = LOT_SLAUGHTER_TARGET_BREED[dominantBreedKey] ?? LOT_SLAUGHTER_TARGET_BREED.default;
 
   // Arroba calculations: pesoVivo / 30 (conv. mercado)
   const avgArroba = avgWeight / 30;
@@ -346,7 +348,7 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
                 type="number"
                 value={priceInput}
                 onChange={(e) => setPriceInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handlePriceConfirm(); if (e.key === 'Escape') setEditingPrice(false); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') {handlePriceConfirm();} if (e.key === 'Escape') {setEditingPrice(false);} }}
                 autoFocus
                 min={1}
                 placeholder="ex: 290"
@@ -682,8 +684,8 @@ export const WeightManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForKey(`weight_form_${activeTenantId}`)) setIsModalOpen(true);
+    if (!activeTenantId || isModalOpen) {return;}
+    if (hasDraftForKey(`weight_form_${activeTenantId}`)) {setIsModalOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -693,7 +695,7 @@ export const WeightManagement: React.FC = () => {
       if (!activeTenantId) {
         return [];
       }
-      let query = supabase.from('lotes').select('id, nome, status');
+      const query = supabase.from('lotes').select('id, nome, status');
       const { data, error } = await applyFarmFilter(query);
       if (error) {
         throw error;
@@ -701,6 +703,8 @@ export const WeightManagement: React.FC = () => {
       return data || [];
     },
     enabled: !!activeTenantId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: rawHistoryItems = [], isLoading: historyLoading } = useQuery({
@@ -721,6 +725,8 @@ export const WeightManagement: React.FC = () => {
       return data || [];
     },
     enabled: !!selectedAnimalId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const historyItems = React.useMemo(() => {
@@ -1028,10 +1034,10 @@ export const WeightManagement: React.FC = () => {
 
   // Helper: parse de data seguro com timezone (evita deslocamento UTC→local)
   const formatDate = (raw?: string) => {
-    if (!raw) return 'N/A';
+    if (!raw) {return 'N/A';}
     // Adiciona T12:00:00 para que o parse não sofra offset de fuso horário
     const d = new Date(`${raw}T12:00:00`);
-    if (isNaN(d.getTime())) return 'Data inválida';
+    if (isNaN(d.getTime())) {return 'Data inválida';}
     // Alerta visual para datas biologicamente impossíveis
     const year = d.getFullYear();
     const isAnomaly = year < 2000 || year > new Date().getFullYear() + 1;
@@ -1081,7 +1087,7 @@ export const WeightManagement: React.FC = () => {
     {
       header: 'GMD Médio Real',
       accessor: (item: any) => {
-        const gmd = item.gmd;
+        const {gmd} = item;
         const hasGmd = gmd !== null && gmd !== undefined && gmd > 0;
         const color = !hasGmd
           ? 'hsl(var(--text-muted))'
@@ -1103,7 +1109,7 @@ export const WeightManagement: React.FC = () => {
       header: 'Projeção Abate',
       accessor: (item: any) => {
         const peso = Number(item.peso);
-        const gmd = item.gmd;
+        const {gmd} = item;
         // Target por raça do animal (fallback 500 kg quando raça desconhecida)
         const racaKey = getLotBreedKey(item.animais?.raca);
         const targetWeight = LOT_SLAUGHTER_TARGET_BREED[racaKey] || LOT_SLAUGHTER_TARGET_BREED.default;

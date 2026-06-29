@@ -13,8 +13,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
-import { useScale } from '../../../contexts/ScaleContext';
-import type { ScaleBrand, ScaleConnectionType } from '../../../contexts/ScaleContext';
+import { useScale, type ScaleBrand, type ScaleConnectionType } from '../../../contexts/ScaleContext';
 import './ScaleConfigModal.css';
 
 interface ScaleConfigModalProps {

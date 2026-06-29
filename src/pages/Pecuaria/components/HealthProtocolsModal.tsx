@@ -44,7 +44,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
   const [animalOptions, setAnimalOptions] = useState<{value: string, label: string}[]>([]);
   const [loteOptions, setLoteOptions] = useState<{value: string, label: string}[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
-  const [startDate, setStartDate] = useState(
+  const [startDate, setStartDate] = useState(() =>
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
 
@@ -150,7 +150,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
   };
 
   const fetchTargets = async () => {
-    if (!activeTenantId && !activeFarm?.tenantId) return;
+    if (!activeTenantId && !activeFarm?.tenantId) {return;}
     setLoadingTargets(true);
     try {
       const tenantId = activeTenantId || activeFarm?.tenantId;
@@ -182,6 +182,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) {
       fetchProducts();
       fetchProtocols();
@@ -262,7 +263,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
           .select()
           .single();
 
-        if (templateError) throw templateError;
+        if (templateError) {throw templateError;}
 
         // Delete old steps and insert new ones
         await supabase.from('protocolo_sanitario_etapas').delete().eq('template_id', isEditingId);
@@ -279,7 +280,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
             ordem: idx
           })));
 
-        if (stepsError) throw stepsError;
+        if (stepsError) {throw stepsError;}
         toast.success('Protocolo atualizado com sucesso!');
       } else {
         // Insert new protocol
@@ -296,7 +297,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
           .select()
           .single();
 
-        if (templateError) throw templateError;
+        if (templateError) {throw templateError;}
         savedProtocolId = templateData.id;
 
         if (sortedSteps.length > 0) {
@@ -312,7 +313,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({
               ordem: idx
             })));
 
-          if (stepsError) throw stepsError;
+          if (stepsError) {throw stepsError;}
         }
         toast.success('Protocolo criado com sucesso!');
       }

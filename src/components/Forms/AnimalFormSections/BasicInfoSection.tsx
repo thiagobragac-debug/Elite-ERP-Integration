@@ -14,6 +14,7 @@ interface BasicInfoSectionProps {
   handleIdadeChange: (val: string) => void;
   racas: any[];
   handleRacaChange: (val: string) => void;
+  isEdit?: boolean;
 }
 
 export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
@@ -27,6 +28,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   handleIdadeChange,
   racas,
   handleRacaChange,
+  isEdit = false,
 }) => {
   return (
     <>
@@ -236,6 +238,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         >
           <label className="tauze-label">
             <Activity size={14} /> Status de Entrada
+            {isEdit && <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>(Apenas via Manejo)</span>}
           </label>
           <div className="tauze-form-radio-group" style={{ height: '48px', marginTop: 0 }}>
             {(
@@ -256,8 +259,10 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '12px',
+                  pointerEvents: isEdit ? 'none' : 'auto',
+                  opacity: isEdit ? 0.6 : 1,
                 }}
-                onClick={() => setFormData({ ...formData, status: value })}
+                onClick={() => !isEdit && setFormData({ ...formData, status: value })}
               >
                 {value}
               </div>
@@ -298,6 +303,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         <div className="tauze-field-group">
           <label className="tauze-label">
             <Scale size={14} /> Peso de Entrada (kg)
+            {isEdit && <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>(Use Pesagem)</span>}
           </label>
           <input
             className="tauze-input"
@@ -307,6 +313,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             placeholder="0.0"
             value={formData.peso_inicial}
             onChange={(e) => setFormData({ ...formData, peso_inicial: e.target.value })}
+            disabled={isEdit}
           />
         </div>
       </div>

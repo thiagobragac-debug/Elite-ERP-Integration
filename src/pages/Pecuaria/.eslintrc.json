@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "react-hooks/set-state-in-effect": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "react-hooks/immutability": "off",
+    "no-useless-assignment": "off",
+    "no-useless-escape": "off",
+    "no-async-promise-executor": "off",
+    "react-hooks/use-memo": "off"
+  }
+}

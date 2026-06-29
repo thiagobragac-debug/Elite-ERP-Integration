@@ -46,7 +46,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLotId, setSelectedLotId] = useState('');
   const [eventType, setEventType] = useState('IATF');
-  const [eventDate, setEventDate] = useState(
+  const [eventDate, setEventDate] = useState(() =>
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
 
@@ -87,7 +87,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   const [lotAnimals, setLotAnimals] = useState<any[]>([]);
 
   const loadProtocolos = async (inputValue: string): Promise<Option[]> => {
-    if (!tenantId) return [];
+    if (!tenantId) {return [];}
     let q = supabase
       .from('protocolos_reprodutivos')
       .select('id, nome')
@@ -95,7 +95,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
       .eq('status', 'ativo')
       .order('nome')
       .limit(20);
-    if (inputValue) q = q.ilike('nome', `%${inputValue}%`);
+    if (inputValue) {q = q.ilike('nome', `%${inputValue}%`);}
     const { data } = await q;
     return (data || []).map((p) => ({ value: p.nome, label: p.nome }));
   };

@@ -246,7 +246,7 @@ export const LotManagement: React.FC = () => {
       await queryClient.cancelQueries({ queryKey: ['report'] });
       const previousQueries = queryClient.getQueriesData({ queryKey: ['report'] });
       queryClient.setQueriesData({ queryKey: ['report'] }, (old: any) => {
-        if (!old) return old;
+        if (!old) {return old;}
         return {
           ...old,
           data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
@@ -380,7 +380,7 @@ export const LotManagement: React.FC = () => {
   // PENDENTES são buscados do banco real via fetchedLots (status = 'PENDENTE')
   const pendingLots = fetchedLots.filter((l) => (l.status || '').toUpperCase() === 'PENDENTE');
   const pendingAlertCount = pendingLots.filter((l) => {
-    if (!l.data_limite) return false;
+    if (!l.data_limite) {return false;}
     return new Date(l.data_limite) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   }).length;
 
@@ -860,14 +860,76 @@ export const LotManagement: React.FC = () => {
         ) : (
           <div className="lot-cards-grid animate-fade-in">
             {filteredLots.length === 0 ? (
-              <div style={{ padding: '40px 0', width: '100%' }}>
-                <EmptyState
-                  title={fetchedLots.length === 0 ? "Nenhum lote cadastrado" : "Nenhum registro encontrado"}
-                  description={fetchedLots.length === 0 ? "Não há lotes operacionais registrados." : "Sua busca não retornou resultados."}
-                  actionLabel={fetchedLots.length === 0 ? "Novo Lote" : undefined}
-                  onAction={fetchedLots.length === 0 ? handleOpenCreate : undefined}
-                  icon={fetchedLots.length === 0 ? Layers : Search}
-                />
+              <div
+                className="lot-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  textAlign: 'center',
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    margin: 0,
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {fetchedLots.length === 0 ? <Layers size={22} /> : <Search size={22} />}
+                </div>
+                <h3
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: 'hsl(var(--text-main))',
+                    margin: 0,
+                  }}
+                >
+                  {fetchedLots.length === 0
+                    ? 'Nenhum lote cadastrado'
+                    : 'Nenhum registro encontrado'}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#64748b',
+                    margin: 0,
+                    lineHeight: '1.3',
+                    maxWidth: '260px',
+                  }}
+                >
+                  {fetchedLots.length === 0
+                    ? 'Não há lotes operacionais registrados.'
+                    : 'Sua busca não retornou resultados.'}
+                </p>
+                {fetchedLots.length === 0 && (
+                  <button
+                    className="primary-btn"
+                    onClick={handleOpenCreate}
+                    style={{
+                      fontSize: '10.5px',
+                      padding: '6px 12px',
+                      height: '30px',
+                      marginTop: '4px',
+                      minHeight: 'auto',
+                    }}
+                  >
+                    <Plus size={14} /> NOVO LOTE
+                  </button>
+                )}
               </div>
             ) : (
               filteredLots.map((l) => {

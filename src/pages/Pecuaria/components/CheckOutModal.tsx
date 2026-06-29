@@ -43,6 +43,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({
   const [step, setStep] = useState(1);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) {
       setStep(1);
       if (activePens.length === 1) {

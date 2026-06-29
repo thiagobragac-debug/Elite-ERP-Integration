@@ -128,8 +128,8 @@ export const ReproductionManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForKey(`reproduction_form_${activeTenantId}`)) setIsModalOpen(true);
+    if (!activeTenantId || isModalOpen) {return;}
+    if (hasDraftForKey(`reproduction_form_${activeTenantId}`)) {setIsModalOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -167,7 +167,7 @@ export const ReproductionManagement: React.FC = () => {
         p_event_id: selectedEvent?.id || null
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     },
     onSuccess: () => {
@@ -269,7 +269,7 @@ export const ReproductionManagement: React.FC = () => {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (!isConfirmed) return;
+    if (!isConfirmed) {return;}
     deleteReproMutation.mutate(id);
   };
 
@@ -306,11 +306,11 @@ export const ReproductionManagement: React.FC = () => {
         .eq('animal_id', event.animal_id || event.animais?.id)
         .order('data_evento', { ascending: false });
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const items = (data || []).map((e: any) => {
         let nextStep = 'Novo Ciclo';
-        if (e.tipo_evento === 'IATF') nextStep = 'Palpação em 60 dias';
+        if (e.tipo_evento === 'IATF') {nextStep = 'Palpação em 60 dias';}
         else if (e.tipo_evento === 'Palpação' && e.resultado === 'Prenha') {
           nextStep = e.previsaoParto ? `Parição em ${new Date(e.previsaoParto).toLocaleDateString()}` : 'Monitorar Parição';
         }
@@ -629,7 +629,7 @@ export const ReproductionManagement: React.FC = () => {
               title="Exportar"
               onClick={() => {
                 const menu = document.getElementById('export-menu-repro');
-                if (menu) menu.classList.toggle('active');
+                if (menu) {menu.classList.toggle('active');}
               }}
             >
               <FileText size={20} />

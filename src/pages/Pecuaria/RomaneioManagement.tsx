@@ -39,10 +39,10 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
 const getStatusColor = (status: string) => {
-  if (status === 'Pendente') return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };
-  if (status === 'Em Trânsito') return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };
-  if (status === 'Concluído') return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };
-  if (status === 'Cancelado') return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };
+  if (status === 'Pendente') {return { bg: 'hsl(38 92% 50% / 0.1)', text: 'hsl(38 92% 50%)' };}
+  if (status === 'Em Trânsito') {return { bg: 'hsl(217 91% 60% / 0.1)', text: 'hsl(217 91% 60%)' };}
+  if (status === 'Concluído') {return { bg: 'hsl(142 71% 45% / 0.1)', text: 'hsl(142 71% 45%)' };}
+  if (status === 'Cancelado') {return { bg: 'hsl(348 83% 47% / 0.1)', text: 'hsl(348 83% 47%)' };}
   return { bg: 'hsl(var(--text-muted) / 0.1)', text: 'hsl(var(--text-muted))' };
 };
 
@@ -99,6 +99,8 @@ export default function RomaneioManagement() {
       return data || [];
     },
     enabled: !!activeFarmId && !!activeTenantId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Calculate dynamic stats for KPIs
@@ -356,7 +358,7 @@ export default function RomaneioManagement() {
         p_id: id,
         p_tenant_id: activeTenantId
       });
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
@@ -373,7 +375,7 @@ export default function RomaneioManagement() {
         p_tipo_destino: row.tipo_destino,
         p_tenant_id: activeTenantId
       });
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });
@@ -391,7 +393,7 @@ export default function RomaneioManagement() {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (ok) transitMutation.mutate(row.id);
+    if (ok) {transitMutation.mutate(row.id);}
   };
 
   const handleConclude = async (row: any) => {
@@ -404,7 +406,7 @@ export default function RomaneioManagement() {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (ok) concludeMutation.mutate(row);
+    if (ok) {concludeMutation.mutate(row);}
   };
 
   const cancelMutation = useMutation({
@@ -413,7 +415,7 @@ export default function RomaneioManagement() {
         p_id: id,
         p_tenant_id: activeTenantId
       });
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios_list'] });

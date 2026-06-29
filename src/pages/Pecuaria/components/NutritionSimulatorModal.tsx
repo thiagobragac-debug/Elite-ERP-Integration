@@ -49,10 +49,10 @@ const fmtNum = (v: number, dec = 2) => v.toLocaleString('pt-BR', { minimumFracti
 
 /** Avalia CA e retorna badge textual + cor */
 function avaliarCA(ca: number): { label: string; color: string; bg: string } {
-  if (ca === 0) return { label: '—', color: 'hsl(var(--text-muted))', bg: 'hsl(var(--bg-main))' };
-  if (ca <= 5)  return { label: '✓ Excelente', color: '#15803d', bg: '#f0fdf4' };
-  if (ca <= 7)  return { label: '⚠ Adequado', color: '#b45309', bg: '#fffbeb' };
-  if (ca <= 9)  return { label: '⚑ Alto', color: '#b91c1c', bg: '#fef2f2' };
+  if (ca === 0) {return { label: '—', color: 'hsl(var(--text-muted))', bg: 'hsl(var(--bg-main))' };}
+  if (ca <= 5)  {return { label: '✓ Excelente', color: '#15803d', bg: '#f0fdf4' };}
+  if (ca <= 7)  {return { label: '⚠ Adequado', color: '#b45309', bg: '#fffbeb' };}
+  if (ca <= 9)  {return { label: '⚑ Alto', color: '#b91c1c', bg: '#fef2f2' };}
   return           { label: '✕ Revisar Dieta', color: '#7c3aed', bg: '#f5f3ff' };
 }
 
@@ -221,16 +221,19 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
   };
 
   // ─── Engine ───────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const sim1 = useMemo(() => calcSimulation({ ...baseParams, costPerKg: costPerKg1, percentualMS: pms1 }), [JSON.stringify(baseParams), costPerKg1, pms1]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const sim2 = useMemo(() => calcSimulation({ ...baseParams, costPerKg: costPerKg2, percentualMS: pms2 }), [JSON.stringify(baseParams), costPerKg2, pms2]);
+
 
   // ─── Preencher com lote real ──────────────────────────────────────────
   const handleSelectLote = (id: string) => {
     setLoteId(id);
     const lote = lotes.find((l: any) => String(l.id) === String(id));
-    if (!lote) return;
-    if (lote.num_animais) setAnimalCount(String(lote.num_animais));
-    if (lote.peso_medio)  setPesoEntrada(String(Math.round(lote.peso_medio)));
+    if (!lote) {return;}
+    if (lote.num_animais) {setAnimalCount(String(lote.num_animais));}
+    if (lote.peso_medio)  {setPesoEntrada(String(Math.round(lote.peso_medio)));}
   };
 
   // ─── Export PDF ───────────────────────────────────────────────────────
@@ -453,7 +456,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                 value={loteId}
                 onChange={handleSelectLote}
                 placeholder="Selecione um lote (preenche campos automaticamente)..."
-                options={lotes.map((l: any) => ({ value: l.id, label: `${l.nome} — ${l.num_animais ?? '?'} cab · ${l.peso_medio ? Math.round(l.peso_medio) + ' kg médio' : 'sem pesagem'}` }))}
+                options={lotes.map((l: any) => ({ value: l.id, label: `${l.nome} — ${l.num_animais ?? '?'} cab · ${l.peso_medio ? `${Math.round(l.peso_medio)  } kg médio` : 'sem pesagem'}` }))}
               />
             </div>
           )}

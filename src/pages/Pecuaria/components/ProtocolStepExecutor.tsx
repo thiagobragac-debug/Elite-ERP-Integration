@@ -69,7 +69,7 @@ export const ProtocolStepExecutor: React.FC<ProtocolStepExecutorProps> = ({
 
   const executeMutation = useMutation({
     mutationFn: async () => {
-      if (!etapa || !protocolo) return;
+      if (!etapa || !protocolo) {return;}
 
       // 1. Atualizar etapa como realizada
       await supabase
@@ -113,13 +113,13 @@ export const ProtocolStepExecutor: React.FC<ProtocolStepExecutorProps> = ({
     onError: (err: any) => console.error('Erro ao executar etapa:', err),
   });
 
-  if (!isOpen || !etapa) return null;
+  if (!isOpen || !etapa) {return null;}
 
   return createPortal(
     <AnimatePresence>
       <div
         className="tauze-sidebar-overlay"
-        onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onMouseDown={(e) => { if (e.target === e.currentTarget) {onClose();} }}
       >
         <motion.div
           initial={{ x: '100%' }}

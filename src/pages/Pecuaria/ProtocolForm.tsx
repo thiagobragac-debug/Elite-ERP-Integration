@@ -101,30 +101,6 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
 
   const [step, setStep] = useState(1);
 
-  // Reset de estado ao abrir
-  useEffect(() => {
-    if (isOpen) {
-      setStep(1);
-      setSelectedTemplate(null);
-      setEditingTemplate(null);
-      setExpandedEtapas(new Set());
-      setConfig({
-        nome: '',
-        tipo: 'IATF',
-        data_inicio: new Date().toISOString().split('T')[0],
-        tecnico_resp: '',
-        touro_id: '',
-        data_fim_monta: '',
-        observacoes: '',
-      });
-      setSelMode('lote');
-      setSelectedLoteId('');
-      setSelectedAnimais([]);
-      setAnimalSearch('');
-      setEtapas([]);
-    }
-  }, [isOpen]);
-
   // Step 1 — Template
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateFormOpen, setTemplateFormOpen] = useState(false);
@@ -153,6 +129,30 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
   // Step 4 — Etapas/Cronograma
   const [etapas, setEtapas] = useState<EtapaDraft[]>([]);
 
+  // Reset de estado ao abrir
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setSelectedTemplate(null);
+      setEditingTemplate(null);
+      setExpandedEtapas(new Set());
+      setConfig({
+        nome: '',
+        tipo: 'IATF',
+        data_inicio: new Date().toISOString().split('T')[0],
+        tecnico_resp: '',
+        touro_id: '',
+        data_fim_monta: '',
+        observacoes: '',
+      });
+      setSelMode('lote');
+      setSelectedLoteId('');
+      setSelectedAnimais([]);
+      setAnimalSearch('');
+      setEtapas([]);
+    }
+  }, [isOpen]);
+
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: templates = [] } = useQuery<Template[]>({
     queryKey: ['protocolo_templates', activeTenantId],
@@ -162,7 +162,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
         .from('protocolo_templates')
         .select('*, protocolo_template_etapas(*)')
         .or(`tenant_id.eq.${activeTenantId},is_sistema.eq.true`);
-      if (error) throw error;
+      if (error) {throw error;}
       return data as Template[];
     },
   });
@@ -176,7 +176,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
         .select('id, nome')
         .eq('tenant_id', activeTenantId!)
         .order('nome');
-      if (error) throw error;
+      if (error) {throw error;}
       return data as Lote[];
     },
   });
@@ -190,7 +190,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
         .select('id, brinco, categoria, fase_atual, lote_id')
         .eq('lote_id', selectedLoteId)
         .eq('tenant_id', activeTenantId!);
-      if (error) throw error;
+      if (error) {throw error;}
       return data as Animal[];
     },
   });
@@ -204,7 +204,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
         .select('id, brinco, categoria, fase_atual, lote_id')
         .eq('tenant_id', activeTenantId!)
         .order('brinco');
-      if (error) throw error;
+      if (error) {throw error;}
       return data as Animal[];
     },
   });
@@ -251,10 +251,10 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
 
   // ── Validação por step ─────────────────────────────────────────────────────
   const canNext = useMemo(() => {
-    if (step === 1) return !!selectedTemplate;
-    if (step === 2) return !!config.nome && !!config.data_inicio;
-    if (step === 3) return selectedAnimais.length > 0;
-    if (step === 4) return etapas.length > 0;
+    if (step === 1) {return !!selectedTemplate;}
+    if (step === 2) {return !!config.nome && !!config.data_inicio;}
+    if (step === 3) {return selectedAnimais.length > 0;}
+    if (step === 4) {return etapas.length > 0;}
     return true;
   }, [step, selectedTemplate, config, selectedAnimais, etapas]);
 
@@ -296,8 +296,8 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
     onSuccess: () => {
       const total = selectedAnimais.length * etapas.length;
       toast.success(
-        `✅ Protocolo "${config.nome}" iniciado com sucesso!` +
-        (total > 0 ? ` ${total} evento(s) pendente(s) gerado(s) em Reprodução e Sanidade.` : '')
+        `✅ Protocolo "${config.nome}" iniciado com sucesso!${ 
+        total > 0 ? ` ${total} evento(s) pendente(s) gerado(s) em Reprodução e Sanidade.` : ''}`
       );
       onClose();
     },
@@ -324,7 +324,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
   const updateEtapa = (id: string, field: keyof EtapaDraft, value: any) => {
     setEtapas((prev) =>
       prev.map((e) => {
-        if (e.id !== id) return e;
+        if (e.id !== id) {return e;}
         const updated = { ...e, [field]: value };
         if (field === 'dia_relativo') {
           updated.data_prevista = addDays(config.data_inicio, Number(value));
@@ -345,7 +345,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
   const toggleEtapaExpand = (id: string) => {
     setExpandedEtapas((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {next.delete(id);} else {next.add(id);}
       return next;
     });
   };
@@ -405,14 +405,14 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
     const grupos: Record<string, Template[]> = {};
     templates.forEach((t) => {
       const key = t.is_sistema ? 'Sistema' : 'Meus Templates';
-      if (!grupos[key]) grupos[key] = [];
+      if (!grupos[key]) {grupos[key] = [];}
       grupos[key].push(t);
     });
     return grupos;
   }, [templates]);
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const STEP_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4'];
 
@@ -694,7 +694,7 @@ export const ProtocolForm: React.FC<ProtocolFormProps> = ({ isOpen, onClose }) =
                           onClick={async () => { 
                             if (selectedAnimais.length > 0) {
                               const isConfirmed = await confirm('Mudar o modo de seleção limpará os animais selecionados. Continuar?');
-                              if (!isConfirmed) return;
+                              if (!isConfirmed) {return;}
                             }
                             setSelMode(m.id as any); setSelectedAnimais([]); setSelectedLoteId(''); 
                           }}>

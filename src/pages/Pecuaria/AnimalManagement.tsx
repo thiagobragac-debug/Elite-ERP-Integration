@@ -117,8 +117,8 @@ export const AnimalManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForFullKey(`draft_animal_${activeTenantId}_new`)) setIsModalOpen(true);
+    if (!activeTenantId || isModalOpen) {return;}
+    if (hasDraftForFullKey(`draft_animal_${activeTenantId}_new`)) {setIsModalOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -198,13 +198,13 @@ export const AnimalManagement: React.FC = () => {
           throw error;
         }
         return { isUpdate: true, payload };
-      } else {
+      } 
         const { error } = await supabase.from('animais').insert([{ ...insertPayload, ...payload }]);
         if (error) {
           throw error;
         }
         return { isUpdate: false, payload };
-      }
+      
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -266,40 +266,57 @@ export const AnimalManagement: React.FC = () => {
 
   const isSubmitting = saveAnimalMutation.isPending;
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const exportData = filteredAnimals.map((item) => {
-      const pesoAtual = item.peso_atual || item.peso_inicial || 0;
-      const arrobas = pesoAtual > 0 ? (pesoAtual / 30).toFixed(2) : 'Sem pesagem';
-      let ageStr = 'N/I';
-      if (item.data_nascimento) {
-        const months = Math.floor(
-          (new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44)
-        );
-        ageStr = `${months} meses`;
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
+    toast.loading('Preparando exportação completa...', { id: 'export-toast' });
+    try {
+      let query = supabase.from('vw_animais_metricas_dashboard').select('*').eq('tenant_id', activeTenantId);
+      if (!isGlobalMode && activeFarmId) {
+        query = query.eq('fazenda_id', activeFarmId);
       }
-      return {
-        Brinco: item.brinco,
-        Categoria: item.categoria || 'N/I',
-        Raca: item.raca,
-        Sexo: item.sexo === 'M' ? 'Macho' : item.sexo === 'F' ? 'Fêmea' : 'N/I',
-        Idade: ageStr,
-        Peso_Atual_kg: pesoAtual > 0 ? pesoAtual : 'Sem pesagem',
-        Arrobas_30kg: arrobas,
-        GMD_kg_dia: item.gmd_periodo || 'N/I',
-        Status: item.status,
-        Lote: (item as any).lote || 'N/A',
-        Data_Nascimento: item.data_nascimento || 'N/I',
-        Data_Entrada: item.data_entrada || 'N/I',
-        Sanidade: (item as any).isSanitaryBlocked ? 'Em Carência' : 'OK',
-      };
-    });
+      if (serverFilters.status && serverFilters.status !== 'all' && serverFilters.status !== 'TODOS') {
+         query = query.eq('status', serverFilters.status === 'ATIVO' ? 'Ativo' : serverFilters.status);
+      }
+      
+      const { data: fullData, error } = await query;
+      if (error) {throw error;}
+      
+      const exportData = (fullData || []).map((item: any) => {
+        const pesoAtual = item.peso_atual || item.peso_inicial || 0;
+        const arrobas = pesoAtual > 0 ? (pesoAtual / 30).toFixed(2) : 'Sem pesagem';
+        let ageStr = 'N/I';
+        if (item.data_nascimento) {
+          const months = Math.floor(
+            (new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44)
+          );
+          ageStr = `${months} meses`;
+        }
+        return {
+          Brinco: item.brinco,
+          Categoria: item.categoria || 'N/I',
+          Raca: item.raca,
+          Sexo: item.sexo === 'M' ? 'Macho' : item.sexo === 'F' ? 'Fêmea' : 'N/I',
+          Idade: ageStr,
+          Peso_Atual_kg: pesoAtual > 0 ? pesoAtual : 'Sem pesagem',
+          Arrobas_30kg: arrobas,
+          GMD_kg_dia: item.gmd_periodo || 'N/I',
+          Status: item.status,
+          Lote: item.lote || 'N/A',
+          Data_Nascimento: item.data_nascimento || 'N/I',
+          Data_Entrada: item.data_entrada || 'N/I',
+          Sanidade: item.isSanitaryBlocked ? 'Em Carência' : 'OK',
+        };
+      });
 
-    if (format === 'csv') {
-      exportToCSV(exportData, 'inventario_animais');
-    } else if (format === 'excel') {
-      exportToExcel(exportData, 'inventario_animais');
-    } else if (format === 'pdf') {
-      exportToPDF(exportData, 'inventario_animais', 'Inventário de Animais');
+      if (format === 'csv') {
+        exportToCSV(exportData, 'inventario_animais');
+      } else if (format === 'excel') {
+        exportToExcel(exportData, 'inventario_animais');
+      } else if (format === 'pdf') {
+        exportToPDF(exportData, 'inventario_animais', 'Inventário de Animais');
+      }
+      toast.success('Exportação concluída!', { id: 'export-toast' });
+    } catch (err: any) {
+      toast.error(`Erro ao exportar: ${err.message}`, { id: 'export-toast' });
     }
   };
 
@@ -320,7 +337,7 @@ export const AnimalManagement: React.FC = () => {
 
       // Atualizar o cache otimisticamente
       queryClient.setQueriesData({ queryKey: ['report'] }, (old: any) => {
-        if (!old) return old;
+        if (!old) {return old;}
         return {
           ...old,
           data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
@@ -512,7 +529,7 @@ export const AnimalManagement: React.FC = () => {
     {
       header: 'Projeção Abate',
       accessor: (item: any) => {
-        if (!item.data_estimada_abate) return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>N/D</span>;
+        if (!item.data_estimada_abate) {return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>N/D</span>;}
         const isReady = item.computed_dias_abate <= 0;
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -888,7 +905,7 @@ export const AnimalManagement: React.FC = () => {
                 }
 
                 // Calcular idade em meses
-                let ageText = a.computedAgeStr;
+                const ageText = a.computedAgeStr;
 
                 // Calcular performance (Ganho de peso)
                 const currentWeight = a.computed_weight || a.computedWeight || 0;

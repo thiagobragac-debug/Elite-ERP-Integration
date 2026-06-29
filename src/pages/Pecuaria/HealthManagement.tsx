@@ -106,8 +106,8 @@ export const HealthManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isModalOpen) return;
-    if (hasDraftForKey(`health_form_${activeTenantId}`)) setIsModalOpen(true);
+    if (!activeTenantId || isModalOpen) {return;}
+    if (hasDraftForKey(`health_form_${activeTenantId}`)) {setIsModalOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -149,7 +149,7 @@ export const HealthManagement: React.FC = () => {
       await queryClient.cancelQueries({ queryKey: ['report'] });
       const previousData = queryClient.getQueryData(['report']);
       queryClient.setQueryData(['report'], (old: any) => {
-        if (!old) return old;
+        if (!old) {return old;}
         return {
           ...old,
           data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],

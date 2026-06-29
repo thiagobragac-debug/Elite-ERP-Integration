@@ -50,7 +50,7 @@ export const ProtocolFilterModal: React.FC<ProtocolFilterModalProps> = ({
   filters,
   setFilters,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const handleClear = () =>
     setFilters({ status: 'todos', tipo: 'todos', dateStart: '', dateEnd: '', onlyComSaldo: false });
@@ -59,7 +59,7 @@ export const ProtocolFilterModal: React.FC<ProtocolFilterModalProps> = ({
     <div
       className="tauze-sidebar-overlay"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) {onClose();}
       }}
     >
       <motion.div

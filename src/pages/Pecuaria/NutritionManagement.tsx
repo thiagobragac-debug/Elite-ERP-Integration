@@ -67,7 +67,7 @@ export const NutritionManagement: React.FC = () => {
   // ── Lotes enriquecidos para o Simulador Nutricional ──────────────────────
   const [lotesSimulador, setLotesSimulador] = useState<any[]>([]);
   useEffect(() => {
-    if (!activeFarm?.id) return;
+    if (!activeFarm?.id) {return;}
     const fetchLotes = async () => {
       const { data, error } = await applyFarmFilter(
         supabase.from('vw_lotes_simulador').select('lote_id, nome, num_animais, peso_medio').eq('tenant_id', activeTenantId)
@@ -160,10 +160,10 @@ export const NutritionManagement: React.FC = () => {
     mutationFn: async (payload: any) => {
       if (selectedDiet) {
         const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id).eq('tenant_id', activeTenantId);
-        if (error) throw error;
+        if (error) {throw error;}
       } else {
         const { error } = await supabase.from('dietas').insert([{ ...payload, ...insertPayload }]);
-        if (error) throw error;
+        if (error) {throw error;}
       }
     },
     onSuccess: () => {
@@ -231,7 +231,7 @@ export const NutritionManagement: React.FC = () => {
   const archiveDietMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('dietas').update({ status: 'archived' }).eq('id', id).eq('tenant_id', activeTenantId);
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -243,13 +243,13 @@ export const NutritionManagement: React.FC = () => {
   const deleteDietMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc('rpc_soft_delete_dieta', { p_id: id, p_tenant_id: activeTenantId });
-      if (error) throw error;
+      if (error) {throw error;}
     },
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: ['report'] });
       const previousData = queryClient.getQueryData(['report']);
       queryClient.setQueryData(['report'], (old: any) => {
-        if (!old) return old;
+        if (!old) {return old;}
         return {
           ...old,
           data: old.data ? old.data.filter((item: any) => item.id !== deletedId) : [],
@@ -286,7 +286,7 @@ export const NutritionManagement: React.FC = () => {
         cancelText: 'Cancelar',
         variant: 'danger',
       });
-      if (shouldArchive) archiveDietMutation.mutate(id);
+      if (shouldArchive) {archiveDietMutation.mutate(id);}
       return;
     }
 
@@ -298,7 +298,7 @@ export const NutritionManagement: React.FC = () => {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (!isConfirmed) return;
+    if (!isConfirmed) {return;}
     deleteDietMutation.mutate(id);
   };
 
@@ -329,10 +329,12 @@ export const NutritionManagement: React.FC = () => {
 
       q = applyFarmFilter(q);
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) {throw error;}
       return data || [];
     },
     enabled: activeTab === 'TRATOS',
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // ── Insumos: filtrados por tipo MATERIA_PRIMA com paginação server-side ──
@@ -350,10 +352,12 @@ export const NutritionManagement: React.FC = () => {
 
       q = applyFarmFilter(q as any) as any;
       const { data, error, count } = await q as any;
-      if (error) throw error;
+      if (error) {throw error;}
       return { list: data || [], total: count || 0 };
     },
     enabled: activeTab === 'INSUMOS',
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
   const insumosList = insumosData?.list || [];
   const insumosTotal = insumosData?.total || 0;
@@ -450,7 +454,7 @@ export const NutritionManagement: React.FC = () => {
     const matchesIngredients =
       filterValues.ingredients.length === 0 ||
       filterValues.ingredients.some((ing) => {
-        if (!d.ingredientes) return false;
+        if (!d.ingredientes) {return false;}
         return d.ingredientes.some((i: any) => (typeof i === 'string' ? i : i.nome) === ing);
       });
     const matchesCost = filterValues.maxCostMS >= 100 || (d.custoMS || 0) <= filterValues.maxCostMS;
@@ -461,7 +465,7 @@ export const NutritionManagement: React.FC = () => {
 
   // Tratos filtrados por busca (nome da dieta ou lote)
   const filteredTratos = (tratosHistory || []).filter((t: any) => {
-    if (!debouncedSearchTerm) return true;
+    if (!debouncedSearchTerm) {return true;}
     const term = debouncedSearchTerm.toLowerCase();
     return (
       (t.dietas?.nome || '').toLowerCase().includes(term) ||
@@ -476,7 +480,7 @@ export const NutritionManagement: React.FC = () => {
     (diets as any[]).forEach((d) => {
       (d.ingredientes || []).forEach((ing: any) => {
         const nome = typeof ing === 'string' ? ing : ing?.nome;
-        if (nome) set.add(nome);
+        if (nome) {set.add(nome);}
       });
     });
     return Array.from(set).sort();

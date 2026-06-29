@@ -51,12 +51,12 @@ function getPastureDisplay(
   occupancyPercent: number
 ): { badgeText: string; badgeClass: string; borderClass: string; statusPill: string } {
   const ns = normalizePastureStatus(status);
-  if (ns === PASTURE_STATUS.RESTING)    return { badgeText: 'DESCANSO',    badgeClass: 'info-badge',    borderClass: 'info-badge',    statusPill: 'info' };
-  if (ns === PASTURE_STATUS.DEGRADED)   return { badgeText: 'DEGRADADO',   badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };
-  if (ns === PASTURE_STATUS.RENOVATION) return { badgeText: 'REFORMA',     badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };
-  if (occupancyPercent > 100) return { badgeText: 'SUPERLOTAÇÃO', badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };
-  if (occupancyPercent > 80)  return { badgeText: 'ATENÇÃO',      badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };
-  if (occupancyPercent === 0) return { badgeText: 'LIVRE',        badgeClass: 'active',        borderClass: 'active',        statusPill: 'success' };
+  if (ns === PASTURE_STATUS.RESTING)    {return { badgeText: 'DESCANSO',    badgeClass: 'info-badge',    borderClass: 'info-badge',    statusPill: 'info' };}
+  if (ns === PASTURE_STATUS.DEGRADED)   {return { badgeText: 'DEGRADADO',   badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };}
+  if (ns === PASTURE_STATUS.RENOVATION) {return { badgeText: 'REFORMA',     badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };}
+  if (occupancyPercent > 100) {return { badgeText: 'SUPERLOTAÇÃO', badgeClass: 'stopped',       borderClass: 'danger-badge',  statusPill: 'danger' };}
+  if (occupancyPercent > 80)  {return { badgeText: 'ATENÇÃO',      badgeClass: 'warning-badge', borderClass: 'warning-badge', statusPill: 'warning' };}
+  if (occupancyPercent === 0) {return { badgeText: 'LIVRE',        badgeClass: 'active',        borderClass: 'active',        statusPill: 'success' };}
   return                               { badgeText: 'IDEAL',        badgeClass: 'active',        borderClass: 'active',        statusPill: 'success' };
 }
 
@@ -119,8 +119,8 @@ const PastureManagement: React.FC = () => {
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
-    if (!activeTenantId || isFormOpen) return;
-    if (hasDraftForKey(`pasture_form_${activeTenantId}`)) setIsFormOpen(true);
+    if (!activeTenantId || isFormOpen) {return;}
+    if (hasDraftForKey(`pasture_form_${activeTenantId}`)) {setIsFormOpen(true);}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTenantId]);
 
@@ -132,7 +132,7 @@ const PastureManagement: React.FC = () => {
   const { data: rawHistoryLogs = null, isLoading: historyLoading } = useQuery({
     queryKey: ['pastos', 'history', selectedPastureId],
     queryFn: async () => {
-      if (!selectedPastureId || !activeTenantId) return null;
+      if (!selectedPastureId || !activeTenantId) {return null;}
 
       // 1. Logs diretos do pasto
       const { data: pastoLogs, error: err1 } = await supabase
@@ -163,8 +163,8 @@ const PastureManagement: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(200);
 
-      if (err1) throw err1;
-      if (err2) throw err2;
+      if (err1) {throw err1;}
+      if (err2) {throw err2;}
       // err3 silencioso — pode não ter RLS permissão ou query JSONB não suportada
 
       return {
@@ -174,10 +174,12 @@ const PastureManagement: React.FC = () => {
       };
     },
     enabled: !!selectedPastureId && !!activeTenantId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const historyItems = React.useMemo(() => {
-    if (!selectedPastureId || !rawHistoryLogs) return [];
+    if (!selectedPastureId || !rawHistoryLogs) {return [];}
     const { pastoLogs = [], loteLogs = [], animalLogs = [] } = rawHistoryLogs as any;
 
     const filteredLoteLogs = (loteLogs || []).filter(
@@ -291,7 +293,7 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleDelete = async (pasture: any) => {
-    const id = pasture.id;
+    const {id} = pasture;
 
     // P0: verificar animais alocados antes de qualquer confirmação
     const { count } = await supabase
@@ -318,7 +320,7 @@ const PastureManagement: React.FC = () => {
       cancelText: 'Cancelar',
       variant: 'danger',
     });
-    if (!isConfirmed) return;
+    if (!isConfirmed) {return;}
 
     deletePastureMutation.mutate(id);
   };
@@ -454,7 +456,7 @@ const PastureManagement: React.FC = () => {
       cancelText: 'Cancelar',
       variant: 'warning',
     });
-    if (!isConfirmed) return;
+    if (!isConfirmed) {return;}
 
     vazioSanitarioMutation.mutate(pasture.id);
   };
