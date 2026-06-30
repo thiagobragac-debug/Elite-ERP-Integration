@@ -221,114 +221,6 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
       submitLabel="Iniciar Ciclo"
       submitDisabled={!isDadosDone || !isPlanejamentoDone}
     >
-      {/* Dashboard Top */}
-      <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        {/* Projeção / Peso */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: '250px',
-            padding: '16px',
-            background: 'hsl(var(--brand) / 0.05)',
-            border: '1px solid hsl(var(--brand) / 0.2)',
-            borderRadius: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <span
-              style={{
-                display: 'block',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'hsl(var(--brand))',
-                textTransform: 'uppercase',
-                marginBottom: '4px',
-              }}
-            >
-              Peso de Saída / Receita Projetada
-            </span>
-            <span style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-              {predicao.pesoFinal > 0 ? `${predicao.pesoFinal.toFixed(1)} kg ` : '-- '}
-              <span style={{fontSize: '14px', fontWeight: 700, color: 'hsl(var(--text-muted))'}}>
-                ({predicao.arrobas > 0 ? `${predicao.arrobas.toFixed(1)} @` : '--'})
-              </span>
-            </span>
-            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-              Receita Bruta: <span style={{color: '#10b981', fontWeight: 800}}>R$ {predicao.receitaBruta.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>
-              Total Ganho Lote: {predicao.arrobasGanhosLote > 0 ? `+${predicao.arrobasGanhosLote.toFixed(1)} @` : '--'}
-            </div>
-          </div>
-          <div
-            style={{
-              background: 'white',
-              padding: '12px',
-              borderRadius: '50%',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            }}
-          >
-            <Target size={24} style={{ color: 'hsl(var(--brand))' }} />
-          </div>
-        </div>
-
-        {/* Alertas Box */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: '200px',
-            padding: '16px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'hsl(var(--text-muted))',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
-            Previsões & Alertas
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: '#10b981',
-              }}
-            >
-              <CalendarDays size={14} /> Data de Saída: {predicao.dataSaidaStr}
-            </div>
-            {predicao.alertas.map((alerta, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: 'hsl(38 92% 50%)',
-                }}
-              >
-                <AlertTriangle size={14} /> {alerta}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <div style={{ display: 'flex', gap: '24px' }}>
         {/* Left Sidebar - Phase Navigation */}
@@ -588,7 +480,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
                     <label className="tauze-label">
                       <FileText size={14} /> Observações do Check-in
                     </label>
-                    <textarea
+                      <textarea
                       className="tauze-input tauze-textarea"
                       placeholder="Notas sobre o estado dos animais na entrada..."
                       value={formData.observacoes}
@@ -596,6 +488,86 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({
                       rows={3}
                     />
                   </div>
+                  
+                  {/* Oráculo de Planejamento */}
+                  {predicao.pesoFinal > 0 && (
+                    <div
+                      style={{
+                        gridColumn: 'span 2',
+                        marginTop: '12px',
+                        padding: '16px',
+                        background: 'hsl(var(--brand) / 0.05)',
+                        border: '1.5px dashed hsl(var(--brand) / 0.3)',
+                        borderRadius: '12px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          color: 'hsl(var(--brand))',
+                          fontWeight: 800,
+                          fontSize: '13px',
+                          marginBottom: '8px',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        <Target size={18} /> Projeção do Lote
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '12px',
+                          fontSize: '13px',
+                          color: 'hsl(var(--text-main))',
+                          lineHeight: '1.5',
+                        }}
+                      >
+                        <div>
+                           Peso de Saída (Média): <strong>{predicao.pesoFinal.toFixed(1)} kg ({predicao.arrobas.toFixed(1)} @)</strong><br />
+                           Previsão de Saída: <strong>{predicao.dataSaidaStr}</strong>
+                        </div>
+                        <div>
+                           Total Ganho Lote: <strong>+{predicao.arrobasGanhosLote.toFixed(1)} @</strong><br />
+                           Receita Bruta Est.: <strong style={{ color: '#10b981' }}>R$ {predicao.receitaBruta.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {predicao.alertas.length > 0 && (
+                     <div
+                      style={{
+                        gridColumn: 'span 2',
+                        marginTop: '12px',
+                        padding: '16px',
+                        background: 'hsl(38 92% 50% / 0.1)',
+                        border: '1.5px dashed hsl(38 92% 50% / 0.4)',
+                        borderRadius: '12px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          color: 'hsl(38 92% 40%)',
+                          fontWeight: 800,
+                          fontSize: '13px',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        <AlertTriangle size={18} /> ALERTAS DE VIABILIDADE
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px', fontSize: '13px', color: 'hsl(var(--text-main))' }}>
+                         {predicao.alertas.map((a, i) => (
+                            <div key={i}>• {a}</div>
+                         ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

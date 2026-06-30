@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import { AuditManagement } from './AuditManagement';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -71,9 +72,11 @@ describe('AuditManagement', () => {
   const renderComponent = () => {
     return render(
       <QueryClientProvider client={queryClient}>
+        <ConfirmProvider>
         <MemoryRouter>
           <AuditManagement />
         </MemoryRouter>
+        </ConfirmProvider>
       </QueryClientProvider>
     );
   };

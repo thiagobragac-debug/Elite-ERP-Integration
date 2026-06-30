@@ -65,6 +65,12 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
     }
   }, [activeTenantId]);
 
+  useEffect(() => {
+    if (items.length === 0) {
+      handleAddItem();
+    }
+  }, [items.length]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -168,18 +174,41 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       custoRef = product.custo_ultima_compra || product.custo_padrao || 0;
     }
 
-    handleUpdateItem(itemId, {
+    const updatedItem = {
       produto_id: product.id,
       nome: product.nome,
       unidade: product.unidade || 'UN',
       custo_medio: custoRef,
       custo_padrao: product.custo_padrao || 0,
-      // Carência preenchida automaticamente do cadastro do insumo
       ...(showHealthFields && {
         carencia_abate_dias: product.carencia_abate_dias || 0,
         carencia_leite_dias: product.carencia_leite_dias || 0,
       }),
-    });
+    };
+
+    const newItems = items.map((item) => (item.id === itemId ? { ...item, ...updatedItem } : item));
+    
+    if (items[items.length - 1].id === itemId) {
+      const newItem: ConsumptionItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        produto_id: '',
+        nome: '',
+        quantidade: 0,
+        unidade: 'UN',
+        custo_medio: 0,
+        deposito_id: deposits.length > 0 ? deposits[0].id : '',
+        via_aplicacao: showHealthFields ? 'IM' : undefined,
+        local_aplicacao: showHealthFields ? '' : undefined,
+        carencia_abate_dias: showHealthFields ? 0 : undefined,
+        carencia_leite_dias: showHealthFields ? 0 : undefined,
+        valor_unitario: mode === 'movement' && isEntry ? 0 : undefined,
+        lote: mode === 'movement' ? '' : undefined,
+        data_validade: mode === 'movement' ? '' : undefined,
+      };
+      newItems.push(newItem);
+    }
+
+    onChange(newItems);
   };
 
   return (

@@ -18,7 +18,11 @@ function buildSparkline(
     return [];
   }
   const first = new Date(sorted[0][dateField]).getTime();
-  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  let last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  // Ensure at least 7 days spread if all records are on the same day to avoid duplicate labels
+  if (last - first < 86400000 * 7) {
+    last = first + 86400000 * 7;
+  }
   const totalMs = Math.max(last - first, 1);
   const bucketMs = totalMs / buckets;
   return Array.from({ length: buckets }, (_, i) => {
@@ -43,9 +47,17 @@ function buildSparkline(
     };
   });
 }
+
+function formatPlural(count: number, singular: string, plural: string) {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
+}
+
 import { useNavigate } from 'react-router-dom';
 import {
   Truck,
+  Tractor,
+  Car,
+  Settings,
   Plus,
   Search,
   Filter,
@@ -66,6 +78,7 @@ import {
   Zap,
   Clock,
   Wrench as Tool,
+  CheckCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -87,6 +100,8 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { hasDraftForKey } from '../../hooks/useFormDraft';
+import { MaintenanceBoard } from './components/MaintenanceBoard';
+import { KanbanSquare } from 'lucide-react';
 
 export const FleetManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -165,7 +180,7 @@ export const FleetManagement: React.FC = () => {
   const { data: fuelData = [], isLoading: loadingFuel } = useQuery({
     queryKey: ['fuelStats', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
-      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id').eq('tenant_id', activeTenantId);
+      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id, created_at').eq('tenant_id', activeTenantId);
       fuelQuery = applyFarmFilter(fuelQuery);
       const { data, error } = await fuelQuery;
       if (error) {
@@ -239,47 +254,47 @@ export const FleetManagement: React.FC = () => {
     return [
       {
         label: 'Frota Operacional',
-        value: total > 0 ? total : '---',
+        value: total > 0 ? total : '0',
         icon: Truck,
-        color: 'hsl(var(--brand))',
+        color: total > 0 ? 'hsl(var(--brand))' : '#94a3b8',
         progress: 100,
         trend: 'none' as const,
-        change: total > 0 ? `${total} ativos` : 'Sem máquinas',
+        change: total > 0 ? formatPlural(total, 'ativo', 'ativos') : 'Sem máquinas',
         periodLabel: 'Frota Geral',
-        sparkline: buildSparkline(machines || [], 'created_at', null),
+        sparkline: [],
       },
       {
         label: 'Em Manutenção',
         value: emManutencao,
         icon: Tool,
-        color: '#ef4444',
+        color: emManutencao > 0 ? '#ef4444' : '#10b981',
         progress: total > 0 ? (emManutencao / total) * 100 : 0,
         trend: 'none' as const,
-        change: emManutencao > 0 ? 'Parada técnica' : 'Frota operacional',
+        change: emManutencao > 0 ? formatPlural(emManutencao, 'em oficina', 'em oficina') : 'Nenhum parado',
         periodLabel: 'Parada Técnica',
-        sparkline: buildSparkline(machines || [], 'created_at', null),
+        sparkline: [],
       },
       {
         label: 'Consumo Total (L)',
-        value: totalLitros > 0 ? `${totalLitros.toLocaleString('pt-BR')} L` : '---',
+        value: totalLitros > 0 ? `${totalLitros.toLocaleString('pt-BR')} L` : '0 L',
         icon: Activity,
-        color: '#f59e0b',
+        color: totalLitros > 0 ? '#f59e0b' : '#94a3b8',
         progress: totalLitros > 0 ? Math.min(100, (totalLitros / 1000) * 10) : 0,
         trend: totalLitros > 0 ? ('up' as const) : ('none' as const),
-        change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem abastecimentos',
+        change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem dados no período',
         periodLabel: 'Total Abastecido',
-        sparkline: buildSparkline(machines || [], 'created_at', null),
+        sparkline: fuelData.length > 0 ? buildSparkline(fuelData, 'created_at', 'litros') : [],
       },
       {
         label: 'Disponibilidade',
-        value: total > 0 ? `${disponibilidade.toFixed(1)}%` : '---',
-        icon: AlertCircle,
-        color: '#10b981',
+        value: total > 0 ? `${disponibilidade.toFixed(1)}%` : '0%',
+        icon: CheckCircle,
+        color: total > 0 ? '#10b981' : '#94a3b8',
         progress: disponibilidade,
         trend: disponibilidade >= 80 ? ('up' as const) : ('down' as const),
-        change: total > 0 ? 'Uptime calculated' : 'Sem dados',
+        change: total > 0 ? 'Tempo de atividade' : 'Sem dados',
         periodLabel: 'Uptime Real',
-        sparkline: buildSparkline(machines || [], 'created_at', null),
+        sparkline: [],
       },
     ];
   }, [machines, fuelData]);
@@ -304,7 +319,8 @@ export const FleetManagement: React.FC = () => {
         tipo: formData.categoria,
         marca: formData.marca,
         modelo: formData.modelo,
-        ano: parseInt(formData.ano) || null,
+        ano: parseInt(formData.ano_fabricacao) || null,
+        ano_modelo: parseInt(formData.ano_modelo) || null,
         placa: formData.placa,
         chassi: formData.chassi,
         combustivel: formData.combustivel,
@@ -794,28 +810,30 @@ export const FleetManagement: React.FC = () => {
       </div>
 
       <div className="tauze-controls-row">
-        <div className="tauze-tab-group">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              className={`tauze-tab-item ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat === 'All' ? 'Todos Ativos' : cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="tauze-search-wrapper">
+        <div className="tauze-search-wrapper" style={{ flex: 1 }}>
           <Search size={18} className="s-icon" />
           <input
             type="text"
             className="tauze-search-input"
-            placeholder="Pesquisar por modelo ou placa..."
+            style={{ width: '100%' }}
+            placeholder="Pesquisar por placa, modelo ou chassi..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <select 
+          className="tauze-search-input" 
+          style={{ width: '200px', cursor: 'pointer', height: '40px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', padding: '0 12px' }}
+          value={activeCategory}
+          onChange={(e) => setActiveCategory(e.target.value)}
+        >
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat === 'All' ? 'Todos os Tipos' : cat}
+            </option>
+          ))}
+        </select>
 
         <div className="view-mode-toggle">
           <button
@@ -831,6 +849,13 @@ export const FleetManagement: React.FC = () => {
             title="Visualização em Cards"
           >
             <LayoutGrid size={18} />
+          </button>
+          <button
+            className={`view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+            onClick={() => setViewMode('kanban')}
+            title="Kanban de Manutenção"
+          >
+            <KanbanSquare size={18} />
           </button>
         </div>
 
@@ -893,7 +918,9 @@ export const FleetManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {viewMode === 'list' ? (
+        {viewMode === 'kanban' ? (
+          <MaintenanceBoard />
+        ) : viewMode === 'list' ? (
           <ModernTable
             emptyState={
               <EmptyState
@@ -1080,7 +1107,11 @@ export const FleetManagement: React.FC = () => {
                 >
                   <div className="card-left-section">
                     <div className="card-avatar">
-                      <Truck size={32} />
+                      {m.categoria === 'Trator' ? <Tractor size={32} /> : 
+                       m.categoria === 'Caminhão' ? <Truck size={32} /> :
+                       m.categoria === 'Picape' ? <Car size={32} /> :
+                       m.categoria === 'Implemento' ? <Settings size={32} /> :
+                       <Truck size={32} />}
                     </div>
                     <div className="card-bottom-actions">
                       <button
@@ -1109,7 +1140,21 @@ export const FleetManagement: React.FC = () => {
 
                   <div className="card-main-content">
                     <div className="card-header-info">
-                      <h3>{m.nome}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            style={{ 
+                              width: '8px', 
+                              height: '8px', 
+                              borderRadius: '50%', 
+                              backgroundColor: m.status === 'active' ? '#10b981' : '#94a3b8',
+                              boxShadow: m.status === 'active' ? '0 0 8px rgba(16, 185, 137, 0.6)' : 'none'
+                            }} 
+                            title={m.status === 'active' ? 'Telemetria Online' : 'Telemetria Offline'}
+                          />
+                          {m.nome}
+                        </h3>
+                      </div>
                       <span className="card-role-badge">{m.categoria || 'Geral'}</span>
                     </div>
 
@@ -1183,10 +1228,6 @@ export const FleetManagement: React.FC = () => {
                 </div>
               ));
             })()}
-            <button className="add-user-card-premium" onClick={handleOpenCreate}>
-              <Plus size={32} />
-              <span>NOVA MÁQUINA</span>
-            </button>
           </div>
         )}
       </div>

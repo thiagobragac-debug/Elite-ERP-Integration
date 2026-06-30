@@ -182,6 +182,7 @@ export const InventoryManagement: React.FC = () => {
           { count: 'exact' }
         )
         .is('deleted_at', null)
+        .neq('tipo', 'servico')
         .order('nome', { ascending: true })
         .range(from, to);
 
@@ -397,6 +398,7 @@ export const InventoryManagement: React.FC = () => {
         unidade, estoque_atual, estoque_minimo, custo_medio, marca, localizacao, tipo
       `)
       .eq('tenant_id', activeTenantId)
+      .neq('tipo', 'servico')
       .is('deleted_at', null);
 
     if (!isGlobalMode && activeFarmId) {

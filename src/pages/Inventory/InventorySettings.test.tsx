@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import { NcmSettingsTab } from './InventorySettings';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -50,9 +51,11 @@ describe('InventorySettings (NcmSettingsTab)', () => {
   const renderComponent = () => {
     return render(
       <QueryClientProvider client={queryClient}>
+        <ConfirmProvider>
         <MemoryRouter>
           <NcmSettingsTab searchTerm="" triggerCreate={0} triggerImport={0} />
         </MemoryRouter>
+        </ConfirmProvider>
       </QueryClientProvider>
     );
   };

@@ -37,7 +37,8 @@ export const AsyncSearchableSelect: React.FC<AsyncSearchableSelectProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value) || { value, label: value };
+  const safeOptions = Array.isArray(options) ? options : [];
+  const selectedOption = safeOptions.find((opt) => opt.value === value) || { value, label: value };
   const displayPlaceholder = value && selectedOption && selectedOption.label !== value ? selectedOption.label : placeholder;
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export const AsyncSearchableSelect: React.FC<AsyncSearchableSelectProps> = ({
       setLoading(true);
       try {
         const results = await loadOptions(inputValue);
-        setOptions(results);
+        setOptions(Array.isArray(results) ? results : []);
       } catch (error) {
         console.error('Error loading options', error);
       } finally {
@@ -122,7 +123,7 @@ export const AsyncSearchableSelect: React.FC<AsyncSearchableSelectProps> = ({
     }
   }, [inputValue, isOpen, loadOptions]);
 
-  const exactMatch = options.some(
+  const exactMatch = safeOptions.some(
     (opt) => (opt.label || '').toLowerCase() === (inputValue || '').toLowerCase()
   );
   const showCreatable = creatable && inputValue.trim().length > 0 && !exactMatch;
@@ -217,12 +218,12 @@ export const AsyncSearchableSelect: React.FC<AsyncSearchableSelectProps> = ({
                 </div>
               )}
 
-              {options.length === 0 && !showCreatable && !loading ? (
+              {safeOptions.length === 0 && !showCreatable && !loading ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
                   Nenhum resultado encontrado.
                 </div>
               ) : (
-                options.map((opt) => (
+                safeOptions.map((opt) => (
                   <div
                     key={opt.value}
                     onClick={(e) => { e.stopPropagation(); onChange(opt.value, opt.label); setIsOpen(false); inputRef.current?.blur(); }}

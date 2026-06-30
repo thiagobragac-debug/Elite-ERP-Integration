@@ -81,6 +81,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { FuelFilterModal } from './components/FuelFilterModal';
+import { FuelAnalysisView } from './components/FuelAnalysisView';
 import './FuelManagement.css';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -140,7 +141,7 @@ export const FuelManagement: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('abastecimentos')
-        .select('*, maquinas:maquina_id(nome)').eq('tenant_id', activeTenantId)
+        .select('*, maquinas:maquina_id(nome, consumo_estimado)').eq('tenant_id', activeTenantId)
         .order('data', { ascending: false })
         .limit(500);
 
@@ -154,12 +155,46 @@ export const FuelManagement: React.FC = () => {
     enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId,
   });
 
+  const { data: kpiData } = useQuery({
+    queryKey: ['fleet_fuel_kpis', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_fleet_fuel_kpis', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: isGlobalMode ? null : activeFarmId,
+      });
+      if (error) throw error;
+      return data?.[0] || { total_litros: 0, gasto_total: 0, preco_medio: 0, total_abastecimentos: 0 };
+    },
+    enabled: !!activeTenantId,
+  });
+
+  const logsWithPerformance = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    sortedLogs.forEach(log => {
+      const id = log.maquina_id;
+      if (!grouped[id]) grouped[id] = [];
+      const prevLog = grouped[id][grouped[id].length - 1];
+      
+      let consumoLocal = 0;
+      if (prevLog && log.valor_medidor && prevLog.valor_medidor) {
+         const delta = Number(log.valor_medidor) - Number(prevLog.valor_medidor);
+         if (delta > 0) {
+            consumoLocal = Number(log.litros) / delta;
+         }
+      }
+      grouped[id].push({ ...log, consumoLocal });
+    });
+    
+    return Object.values(grouped).flat().sort((a: any, b: any) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [logs]);
+
   const stats = useMemo(() => {
-    if (!logs || logs.length === 0) {
+    if (!kpiData) {
       return [
         {
           label: 'Consumo Energético',
-          value: '---',
+          value: '0 L',
           icon: Droplets,
           color: '#10b981',
           progress: 0,
@@ -168,7 +203,7 @@ export const FuelManagement: React.FC = () => {
         },
         {
           label: 'Custo de Operação',
-          value: '---',
+          value: 'R$ 0,00',
           icon: DollarSign,
           color: '#ef4444',
           progress: 0,
@@ -186,7 +221,7 @@ export const FuelManagement: React.FC = () => {
         },
         {
           label: 'Preço Médio (L)',
-          value: '---',
+          value: 'R$ 0,00',
           icon: BarChart3,
           color: '#f59e0b',
           progress: 0,
@@ -195,18 +230,18 @@ export const FuelManagement: React.FC = () => {
         },
       ];
     }
-    const totalLitros = logs.reduce((acc, curr) => acc + Number(curr.litros || 0), 0);
-    const gastoTotal = logs.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-    const precoMedio = gastoTotal / (totalLitros || 1);
+    const totalLitros = Number(kpiData.total_litros) || 0;
+    const gastoTotal = Number(kpiData.gasto_total) || 0;
+    const precoMedio = Number(kpiData.preco_medio) || 0;
 
     return [
       {
         label: 'Consumo Energético',
-        value: totalLitros > 0 ? `${totalLitros.toLocaleString()} L` : '---',
+        value: totalLitros > 0 ? `${totalLitros.toLocaleString()} L` : '0 L',
         icon: Droplets,
         color: '#10b981',
         progress: totalLitros > 0 ? 100 : 0,
-        change: totalLitros > 0 ? 'Total período' : 'Sem abastecimentos',
+        change: totalLitros > 0 ? 'Total acumulado' : 'Sem abastecimentos',
         sparkline: buildSparkline(logs, 'data', 'litros'),
       },
       {
@@ -214,12 +249,12 @@ export const FuelManagement: React.FC = () => {
         value:
           gastoTotal > 0
             ? gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-            : '---',
+            : 'R$ 0,00',
         icon: DollarSign,
         color: '#ef4444',
         progress: gastoTotal > 0 ? Math.min(100, (gastoTotal / 50000) * 100) : 0,
         trend: gastoTotal > 0 ? ('up' as const) : undefined,
-        change: gastoTotal > 0 ? 'Gasto Acumulado' : 'Sem gastos',
+        change: gastoTotal > 0 ? 'Gasto Total' : 'Sem gastos',
         sparkline: buildSparkline(logs, 'data', 'valor_total'),
       },
       {
@@ -230,7 +265,7 @@ export const FuelManagement: React.FC = () => {
           if (totalMaq === 0 || logs.length === 0) {
             return '---';
           }
-          const mediaLitros = totalLitros / logs.length;
+          const mediaLitros = logs.reduce((acc: number, curr: any) => acc + Number(curr.litros || 0), 0) / logs.length;
           const eficientes = logs.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
           const pct = Math.round((eficientes / logs.length) * 100);
           return `${pct}%`;
@@ -241,11 +276,11 @@ export const FuelManagement: React.FC = () => {
           if (logs.length === 0) {
             return 0;
           }
-          const mediaLitros = totalLitros / logs.length;
+          const mediaLitros = logs.reduce((acc: number, curr: any) => acc + Number(curr.litros || 0), 0) / logs.length;
           const eficientes = logs.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
           return Math.round((eficientes / logs.length) * 100);
         })(),
-        change: logs.length > 0 ? 'Diesel abaixo da média' : 'Sem dados',
+        change: logs.length > 0 ? 'Amostra de telemetria' : 'Sem dados',
         sparkline: buildSparkline(logs, 'data', null),
       },
       {
@@ -253,7 +288,7 @@ export const FuelManagement: React.FC = () => {
         value:
           precoMedio > 0
             ? precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-            : '---',
+            : 'R$ 0,00',
         icon: BarChart3,
         color: '#f59e0b',
         progress: precoMedio > 0 ? Math.min(100, (precoMedio / 10) * 100) : 0,
@@ -261,7 +296,7 @@ export const FuelManagement: React.FC = () => {
         sparkline: buildSparkline(logs, 'data', 'valor_total'),
       },
     ];
-  }, [logs]);
+  }, [kpiData, logs]);
 
   const handleOpenCreate = () => {
     setSelectedLog(null);
@@ -498,10 +533,26 @@ export const FuelManagement: React.FC = () => {
     {
       header: 'Performance Telemetria',
       accessor: (item: any) => {
-        const isEfficient = (item.litros || 0) < 150;
+        const consumoEstimado = item.maquinas?.consumo_estimado || 0;
+        const consumoReal = item.consumoLocal || 0;
+        
+        if (consumoEstimado === 0 || consumoReal === 0) {
+          return (
+             <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <span className="status-pill pending">Sem base p/ cálculo</span>
+             </div>
+          );
+        }
+
+        const diff = ((consumoReal - consumoEstimado) / consumoEstimado) * 100;
+        const isEfficient = diff <= 10;
+        
         return (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <span className={`status-pill ${isEfficient ? 'active' : 'warning'}`}>
+            <span 
+              className={`status-pill ${isEfficient ? 'active' : 'stopped'}`}
+              title={`Consumo esperado: ${consumoEstimado} L/h | Real deste abastecimento: ${consumoReal.toFixed(2)} L/h`}
+            >
               {isEfficient ? 'Alta Eficiência' : 'Alto Consumo'}
             </span>
           </div>
@@ -510,6 +561,7 @@ export const FuelManagement: React.FC = () => {
       align: 'center' as const,
     },
   ];
+
   const autonomyAnalysis = useMemo(() => {
     if (!logs || logs.length === 0) {
       return [];
@@ -524,7 +576,7 @@ export const FuelManagement: React.FC = () => {
       if (!acc[id]) {
         acc[id] = {
           nome: log.maquinas?.nome || 'Desconhecido',
-          unidade_medida: log.tipo_combustivel === 'Especial' ? 'km' : 'horas', // Placeholder if not fully fetched
+          unidade_medida: log.tipo_combustivel === 'Especial' ? 'km' : 'horas',
           litrosTotais: 0,
           custoTotal: 0,
           medidores: [],
@@ -552,9 +604,9 @@ export const FuelManagement: React.FC = () => {
 
           if (deltaMedidor > 0) {
             if (m.unidade_medida === 'horas') {
-              consumoReal = m.litrosTotais / deltaMedidor; // L/h
+              consumoReal = m.litrosTotais / deltaMedidor;
             } else {
-              consumoReal = deltaMedidor / m.litrosTotais; // km/L
+              consumoReal = deltaMedidor / m.litrosTotais;
             }
           }
         }
@@ -733,69 +785,81 @@ export const FuelManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        <ModernTable
-          emptyState={
-            <EmptyState
-              title="Nenhum abastecimento encontrado"
-              description="Não há registros de abastecimento que correspondam à sua busca."
-              actionLabel="Novo Registro"
-              onAction={handleOpenCreate}
-              icon={Fuel}
-            />
-          }
-          data={logs.filter((l) => {
-            const matchesSearch =
-              (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial';
-
-            const isEfficient = l.litros / (l.valor_total || 1) < 0.2;
-            const matchesStatus =
-              filterValues.status === 'all' ||
-              (filterValues.status === 'efficient' && isEfficient) ||
-              (filterValues.status === 'high-consumption' && !isEfficient);
-
-            const matchesFuel =
-              filterValues.fuelTypes.length === 0 ||
-              filterValues.fuelTypes.includes(l.tipo_combustivel);
-            const matchesLiters =
-              filterValues.maxLiters >= 1000 || l.litros <= filterValues.maxLiters;
-            const matchesDate =
-              (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
-              (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
-
-            return (
-              matchesSearch &&
-              matchesTab &&
-              matchesStatus &&
-              matchesFuel &&
-              matchesLiters &&
-              matchesDate
-            );
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Filtrar telemetria..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button
-                className="action-dot edit"
-                onClick={() => handleOpenEdit(item)}
-                title="Editar"
-              >
-                <Edit3 size={18} />
-              </button>
-              <button
-                className="action-dot delete"
-                onClick={() => handleDelete(item.id)}
-                title="Excluir"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {activeTab === 'ANALYSIS' ? (
+          <FuelAnalysisView
+            logs={logs.filter((l) => {
+              const matchesSearch =
+                (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+              return matchesSearch;
+            })}
+          />
+        ) : (
+          <ModernTable
+            emptyState={
+              <EmptyState
+                title="Nenhum abastecimento encontrado"
+                description="Não há registros de abastecimento que correspondam à sua busca."
+                actionLabel="Novo Registro"
+                onAction={handleOpenCreate}
+                icon={Fuel}
+              />
+            }
+            data={logsWithPerformance.filter((l) => {
+              const matchesSearch =
+                (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+  
+              const consumoEstimado = l.maquinas?.consumo_estimado || 0;
+              const diff = consumoEstimado > 0 && l.consumoLocal > 0 ? ((l.consumoLocal - consumoEstimado) / consumoEstimado) * 100 : 0;
+              const isEfficient = l.consumoLocal > 0 ? diff <= 10 : true;
+              
+              const matchesStatus =
+                filterValues.status === 'all' ||
+                (filterValues.status === 'efficient' && isEfficient) ||
+                (filterValues.status === 'high-consumption' && !isEfficient);
+  
+              const matchesFuel =
+                filterValues.fuelTypes.length === 0 ||
+                filterValues.fuelTypes.includes(l.tipo_combustivel);
+              const matchesLiters =
+                filterValues.maxLiters >= 1000 || l.litros <= filterValues.maxLiters;
+              const matchesDate =
+                (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
+                (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
+  
+              return (
+                matchesSearch &&
+                matchesStatus &&
+                matchesFuel &&
+                matchesLiters &&
+                matchesDate
+              );
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Filtrar telemetria..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button
+                  className="action-dot edit"
+                  onClick={() => handleOpenEdit(item)}
+                  title="Editar"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  className="action-dot delete"
+                  onClick={() => handleDelete(item.id)}
+                  title="Excluir"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <FuelForm
@@ -823,9 +887,11 @@ export const FuelManagement: React.FC = () => {
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           {autonomyAnalysis.length === 0 ? (
             <EmptyState
-              title="Sem dados de telemetria"
-              description="Registre mais de um abastecimento para a mesma máquina com o horímetro preenchido para calcular o L/h real."
-              icon={Activity}
+              title="Histórico de consumo insuficiente"
+              description="Para calcular o consumo real (L/h), registre ao menos dois abastecimentos de tanque cheio consecutivos com o horímetro atualizado."
+              icon={Fuel}
+              actionLabel="Registrar Abastecimento"
+              onAction={handleOpenCreate}
             />
           ) : (
             <>

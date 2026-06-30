@@ -290,104 +290,6 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
       loading={propsLoading || loading}
       submitLabel={initialData ? 'Atualizar Evento' : 'Salvar Evento'}
     >
-      {/* Dashboard Top */}
-      <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        {/* Status Box */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: '250px',
-            padding: '16px',
-            background: 'hsl(var(--brand) / 0.05)',
-            border: '1px solid hsl(var(--brand) / 0.2)',
-            borderRadius: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <span
-              style={{
-                display: 'block',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'hsl(var(--brand))',
-                textTransform: 'uppercase',
-                marginBottom: '4px',
-              }}
-            >
-              Status Atual
-            </span>
-            <span style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-              {formData.status === 'completed' && 'Realizado'}
-              {formData.status === 'pending' && 'Agendado'}
-              {formData.status === 'cancelled' && 'Cancelado'}
-              {formData.status === 'draft' && 'Em Andamento'}
-            </span>
-            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-              Manejo dia {new Date(formData.data_evento).toLocaleDateString('pt-BR')}
-            </div>
-          </div>
-          <div
-            style={{
-              background: 'white',
-              padding: '12px',
-              borderRadius: '50%',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            }}
-          >
-            <Activity size={24} style={{ color: 'hsl(var(--brand))' }} />
-          </div>
-        </div>
-
-        {/* Prediction Box */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: '200px',
-            padding: '16px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'hsl(var(--text-muted))',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
-            Previsões do Manejo
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {reproductionStats.prevDataStr ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: 'hsl(217 91% 50%)',
-                }}
-              >
-                <CalendarDays size={14} /> {reproductionStats.prevLabel}:{' '}
-                {reproductionStats.prevDataStr}
-              </div>
-            ) : (
-              <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                Nenhuma previsão estipulada para este tipo de evento.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       <div style={{ display: 'flex', gap: '24px' }}>
         {/* Left Sidebar - Phase Navigation */}
         <div
@@ -529,6 +431,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                       onChange={(e) => setFormData({ ...formData, data_evento: e.target.value })}
                       required
                     />
+                    {reproductionStats.prevDataStr && (formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') && (
+                      <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
+                        <CalendarDays size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px', color: 'hsl(var(--brand))' }} />
+                        {reproductionStats.prevLabel}: <strong style={{ color: 'hsl(var(--text-main))' }}>{reproductionStats.prevDataStr}</strong>
+                      </span>
+                    )}
                   </div>
 
                   <div className="tauze-field-group">
@@ -740,6 +648,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({
                               setFormData({ ...formData, dias_gestacao: e.target.value })
                             }
                           />
+                          {reproductionStats.prevDataStr && formData.tipo_evento === 'Palpação' && (
+                            <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
+                              <CalendarDays size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px', color: 'hsl(var(--brand))' }} />
+                              {reproductionStats.prevLabel}: <strong style={{ color: 'hsl(var(--text-main))' }}>{reproductionStats.prevDataStr}</strong>
+                            </span>
+                          )}
                         </div>
                         <div className="tauze-field-group">
                           <label className="tauze-label">

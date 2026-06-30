@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { ConfirmProvider } from '../../contexts/ConfirmContext';
 import { MovementManagement } from './MovementManagement';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -84,9 +85,11 @@ describe('MovementManagement', () => {
   const renderComponent = () => {
     return render(
       <QueryClientProvider client={queryClient}>
+        <ConfirmProvider>
         <MemoryRouter>
           <MovementManagement />
         </MemoryRouter>
+        </ConfirmProvider>
       </QueryClientProvider>
     );
   };

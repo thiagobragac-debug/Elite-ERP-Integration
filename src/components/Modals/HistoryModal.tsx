@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, History, Calendar, ArrowRight } from 'lucide-react';
+import { X, History, Calendar, ArrowRight, Fuel, Wrench, Bell, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingSkeleton } from '../Feedback/LoadingSkeleton';
 import { SidePanel } from '../Layout/SidePanel';
@@ -12,6 +12,7 @@ interface HistoryItem {
   subtitle: string;
   value?: string;
   status?: 'success' | 'warning' | 'info';
+  type?: 'fuel' | 'maintenance' | 'telemetry' | 'default';
   userName?: string;
   userAvatar?: string;
 }
@@ -102,36 +103,59 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 </div>
 
                 {monthItems.map((item, idx) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: groupIdx * 0.1 + idx * 0.05 }}
-                    style={{
-                      padding: '20px',
-                      background: 'hsl(var(--bg-main)/0.4)',
-                      borderRadius: '20px',
-                      border: '1px solid hsl(var(--border))',
+                  <div key={item.id} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
+                    {/* Timeline Line */}
+                    {idx !== monthItems.length - 1 && (
+                      <div style={{ position: 'absolute', left: '23px', top: '48px', bottom: '-12px', width: '2px', background: 'hsl(var(--border))' }} />
+                    )}
+                    
+                    {/* Timeline Icon Node */}
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: item.type === 'fuel' ? 'rgba(59, 130, 246, 0.1)' : item.type === 'maintenance' ? 'rgba(245, 158, 11, 0.1)' : item.type === 'telemetry' ? 'rgba(239, 68, 68, 0.1)' : 'hsl(var(--bg-card))',
+                      border: `1px solid ${item.type === 'fuel' ? '#3b82f6' : item.type === 'maintenance' ? '#f59e0b' : item.type === 'telemetry' ? '#ef4444' : 'hsl(var(--border))'}`,
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                    }}
-                  >
-                    <div
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: item.type === 'fuel' ? '#3b82f6' : item.type === 'maintenance' ? '#f59e0b' : item.type === 'telemetry' ? '#ef4444' : 'hsl(var(--text-muted))',
+                      flexShrink: 0,
+                      zIndex: 1,
+                    }}>
+                      {item.type === 'fuel' ? <Fuel size={20} /> : item.type === 'maintenance' ? <Wrench size={20} /> : item.type === 'telemetry' ? <Bell size={20} /> : <Activity size={20} />}
+                    </div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: groupIdx * 0.1 + idx * 0.05 }}
                       style={{
+                        flex: 1,
+                        padding: '16px',
+                        background: 'hsl(var(--bg-main)/0.4)',
+                        borderRadius: '16px',
+                        border: '1px solid hsl(var(--border))',
                         display: 'flex',
-                        alignItems: 'center',
+                        flexDirection: 'column',
                         gap: '8px',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        color: 'hsl(var(--brand))',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
                       }}
                     >
-                      <Calendar size={12} />
-                      <span>{new Date(item.date).toLocaleDateString()}</span>
-                    </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          color: 'hsl(var(--brand))',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        <Calendar size={12} />
+                        <span>{new Date(item.date).toLocaleDateString()}</span>
+                      </div>
                     <div
                       style={{
                         display: 'flex',
@@ -232,6 +256,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       )}
                     </div>
                   </motion.div>
+                  </div>
                 ))}
               </div>
             ))}

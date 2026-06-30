@@ -1601,6 +1601,7 @@ export type Database = {
       maquinas: {
         Row: {
           ano: number | null
+          ano_modelo: number | null
           capacidade_tanque: number | null
           chassi: string | null
           combustivel: string | null
@@ -1628,6 +1629,7 @@ export type Database = {
         }
         Insert: {
           ano?: number | null
+          ano_modelo?: number | null
           capacidade_tanque?: number | null
           chassi?: string | null
           combustivel?: string | null
@@ -1655,6 +1657,7 @@ export type Database = {
         }
         Update: {
           ano?: number | null
+          ano_modelo?: number | null
           capacidade_tanque?: number | null
           chassi?: string | null
           combustivel?: string | null

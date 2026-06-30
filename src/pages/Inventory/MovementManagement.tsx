@@ -286,26 +286,7 @@ export const MovementManagement: React.FC = () => {
   }, [kpiData, movementsData]);
 
   const movementMutation = useMutation({
-    mutationFn: async ({
-      payloads,
-      isEdit,
-      id,
-    }: {
-      payloads: any[];
-      isEdit: boolean;
-      id?: string;
-    }) => {
-      if (isEdit && id) {
-        const { data, error } = await supabase
-          .from('movimentacoes_estoque')
-          .update(payloads[0])
-          .eq('id', id).eq('tenant_id', activeTenantId)
-          .select();
-        if (error) {
-          throw error;
-        }
-        return { data: data?.[0], isEdit: true, id };
-      }
+    mutationFn: async ({ payloads }: { payloads: any[] }) => {
       let finalData = [];
       for (const payload of payloads) {
         const { data, error } = await supabase.rpc('registrar_movimentacao_estoque', { payload });
@@ -314,50 +295,13 @@ export const MovementManagement: React.FC = () => {
         }
         finalData.push(data);
       }
-      return { data: finalData, isEdit: false };
+      return { data: finalData };
     },
-    onMutate: async ({ payloads, isEdit, id }) => {
-      const queryKey = ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm];
-      await queryClient.cancelQueries({ queryKey });
-
-      const previousData = queryClient.getQueryData<any>(queryKey);
-
-      if (previousData) {
-        queryClient.setQueryData(queryKey, (old: any) => {
-          if (!old) {
-            return old;
-          }
-          let newDataList = [...old.data];
-          if (isEdit && id) {
-            newDataList = newDataList.map((item: any) =>
-              item.id === id ? { ...item, ...payloads[0] } : item
-            );
-          } else {
-            const optimisticItems = payloads.map((payload, idx) => ({
-              id: `optimistic-${Date.now()}-${idx}`,
-              ...payload,
-              produtos: { nome: 'Insumo (Atualizando...)', unidade: '', categoria: '' },
-            }));
-            newDataList = [...optimisticItems, ...newDataList];
-          }
-          return {
-            ...old,
-            data: newDataList,
-            count: isEdit ? old.count : old.count + payloads.length,
-          };
-        });
-      }
-
-      return { previousData, queryKey };
-    },
-    onError: (err: any, variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(context.queryKey, context.previousData);
-      }
+    onError: (err: any) => {
       toast.error(`❌ Erro ao salvar movimentação: ${err.message}`);
     },
-    onSettled: (data, error, variables, context) => {
-      queryClient.invalidateQueries({ queryKey: context?.queryKey });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['movements'] });
       refetchMovements();
     },
   });
@@ -415,69 +359,22 @@ export const MovementManagement: React.FC = () => {
       return;
     }
 
-    const isEdit = !!selectedMovement;
-    const items = formData.items || [];
-
-    if (formData.tipo === 'transfer') {
-      try {
-        for (const item of items) {
-          const { data: product } = await supabase
-            .from('produtos')
-            .select('custo_medio').eq('tenant_id', activeTenantId)
-            .eq('id', item.produto_id)
-            .single();
-
-          const currentCost = product?.custo_medio || 0;
-
-          const { error } = await supabase.rpc('transfer_inventory_transaction', {
-            p_tenant_id: activeFarm.tenantId,
-            p_fazenda_id: activeFarm.id,
-            p_produto_id: item.produto_id,
-            p_deposito_origem: formData.deposito_origem_id,
-            p_deposito_destino: formData.destino_deposito_id,
-            p_quantidade: parseFloat(item.quantidade),
-            p_custo_unitario: currentCost,
-            p_data_movimentacao: formData.data_movimentacao,
-            p_responsavel: formData.responsavel,
-          });
-
-          if (error) throw error;
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['movements'] });
-        setIsModalOpen(false);
-        toast.success('Transferência realizada com sucesso!');
-      } catch (err: any) {
-        console.error('Error in transfer:', err);
-        toast.error(`❌ Erro na transferência: ${err.message}`);
-      }
-      return;
-    }
-
-    // Normal IN / OUT
     try {
-      if (isEdit && items.length === 1) {
-        const item = items[0];
-        let costToUse = parseFloat(item.valor_unitario || 0);
-
-        if (formData.tipo === 'out') {
-          const { data: product } = await supabase
-            .from('produtos')
-            .select('custo_medio').eq('tenant_id', activeTenantId)
-            .eq('id', item.produto_id)
-            .single();
-          costToUse = product?.custo_medio || 0;
-        }
-
+      const payloads = [];
+      for (const item of items) {
         const dbTipo =
-          formData.tipo === 'in' ? 'ENTRADA' : formData.tipo === 'out' ? 'SAIDA' : 'TRANSFERENCIA';
+          formData.tipo === 'in'
+            ? 'ENTRADA'
+            : formData.tipo === 'out'
+              ? 'SAIDA'
+              : 'TRANSFERENCIA';
 
-        const payload = {
+        payloads.push({
           produto_id: item.produto_id,
           tipo: dbTipo,
           quantidade: parseFloat(item.quantidade),
           deposito_id: item.deposito_id,
-          custo_unitario: costToUse,
+          custo_unitario: dbTipo === 'ENTRADA' ? parseFloat(item.valor_unitario || 0) : null,
           data_movimentacao: formData.data_movimentacao,
           origem_destino: formData.origem_destino,
           responsavel: formData.responsavel,
@@ -495,64 +392,11 @@ export const MovementManagement: React.FC = () => {
               : null,
           fazenda_id: activeFarm.id,
           tenant_id: activeFarm.tenantId,
-        };
-
-        await movementMutation.mutateAsync({
-          payloads: [payload],
-          isEdit: true,
-          id: selectedMovement.id,
         });
-        setIsModalOpen(false);
-      } else {
-        const payloads = [];
-        for (const item of items) {
-          let costToUse = parseFloat(item.valor_unitario || 0);
-
-          if (formData.tipo === 'out') {
-            const { data: product } = await supabase
-              .from('produtos')
-              .select('custo_medio').eq('tenant_id', activeTenantId)
-              .eq('id', item.produto_id)
-              .single();
-            costToUse = product?.custo_medio || 0;
-          }
-
-          const dbTipo =
-            formData.tipo === 'in'
-              ? 'ENTRADA'
-              : formData.tipo === 'out'
-                ? 'SAIDA'
-                : 'TRANSFERENCIA';
-
-          payloads.push({
-            produto_id: item.produto_id,
-            tipo: dbTipo,
-            quantidade: parseFloat(item.quantidade),
-            deposito_id: item.deposito_id,
-            custo_unitario: costToUse,
-            data_movimentacao: formData.data_movimentacao,
-            origem_destino: formData.origem_destino,
-            responsavel: formData.responsavel,
-            lote: item.lote || null,
-            data_validade: item.data_validade || null,
-            animal_id:
-              formData.apropriar_custo && formData.apropriar_tipo === 'animal' && formData.animal_id
-                ? formData.animal_id
-                : null,
-            lote_pecuario_id:
-              formData.apropriar_custo &&
-              formData.apropriar_tipo === 'lote' &&
-              formData.lote_pecuario_id
-                ? formData.lote_pecuario_id
-                : null,
-            fazenda_id: activeFarm.id,
-            tenant_id: activeFarm.tenantId,
-          });
-        }
-
-        await movementMutation.mutateAsync({ payloads, isEdit: false });
-        setIsModalOpen(false);
       }
+
+      await movementMutation.mutateAsync({ payloads });
+      setIsModalOpen(false);
     } catch (err) {
       console.error('Insert error:', err);
     }
@@ -1048,7 +892,6 @@ export const MovementManagement: React.FC = () => {
                   >
                     <ArrowRightLeft size={18} />
                   </button>
-                </>
               )}
             </div>
           )}

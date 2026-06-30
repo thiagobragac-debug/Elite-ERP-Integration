@@ -237,122 +237,6 @@ export const DietForm: React.FC<DietFormProps> = ({
       loading={loading}
       submitLabel={isEdit ? 'Atualizar Dieta' : 'Salvar Dieta'}
     >
-      {/* Dashboard Top */}
-      <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: '250px',
-            padding: '16px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <span
-              style={{
-                display: 'block',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'hsl(var(--text-muted))',
-                textTransform: 'uppercase',
-                marginBottom: '4px',
-              }}
-            >
-              Status Atual
-            </span>
-            <span
-              style={{
-                fontSize: '18px',
-                fontWeight: 900,
-                color: form.status === 'active' ? '#10b981' : '#f59e0b',
-              }}
-            >
-              {form.status === 'active' ? 'Liberada' : 'Bloqueada'}
-            </span>
-            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-              Vigência a partir de {new Date(form.data_vigencia + 'T00:00:00').toLocaleDateString('pt-BR')}
-            </div>
-          </div>
-          <div
-            style={{
-              background: 'hsl(var(--bg-card))',
-              padding: '12px',
-              borderRadius: '50%',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            }}
-          >
-            {form.status === 'active' ? <CheckCircle2 size={24} style={{ color: 'hsl(var(--text-main))' }} /> : <Pencil size={24} style={{ color: 'hsl(var(--text-main))' }} />}
-          </div>
-        </div>
-
-        {/* Alertas Rápidos no Dashboard */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: '200px',
-            padding: '16px',
-            background: 'hsl(var(--bg-main))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'hsl(var(--text-muted))',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
-            Indicadores da Fórmula
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: 'hsl(217 91% 50%)',
-              }}
-            >
-              <Layers size={14} /> Tipo: {form.tipo || '—'}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: 'hsl(var(--text-main))',
-              }}
-            >
-              <Activity size={14} /> Matéria Seca: {form.percentual_ms}% MS
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: 'hsl(161 64% 39%)',
-              }}
-            >
-              <DollarSign size={14} /> Custo / kg MS: {dietStats.custoMS > 0 ? `R$ ${dietStats.custoMS.toFixed(2)}` : '—'}
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div style={{ display: 'flex', gap: '24px' }}>
         {/* Left Sidebar - Phase Navigation */}
@@ -654,6 +538,11 @@ export const DietForm: React.FC<DietFormProps> = ({
                     readOnly={ingredients.length > 0}
                     style={ingredients.length > 0 ? { color: '#10b981', fontWeight: 800 } : undefined}
                   />
+                  {dietStats.custoMS > 0 && (
+                    <div className="tauze-field-hint" style={{ color: 'hsl(161 64% 39%)', fontSize: '11px', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <DollarSign size={12} /> Custo MS: R$ {dietStats.custoMS.toFixed(2)} / kg
+                    </div>
+                  )}
                 </div>
                 <div className="tauze-field-group">
                   <label className="tauze-label">
