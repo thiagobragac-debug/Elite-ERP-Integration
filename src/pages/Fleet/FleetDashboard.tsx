@@ -190,6 +190,7 @@ export const FleetDashboard: React.FC = () => {
           trend: 'none' as const,
           change: 'Processando...',
           sparkline: [],
+          isEmpty: true,
         },
         {
           label: 'Custo Total Frota (TCO)',
@@ -201,6 +202,7 @@ export const FleetDashboard: React.FC = () => {
           change: 'Processando...',
           periodLabel: 'Custo Acumulado',
           sparkline: [],
+          isEmpty: true,
         },
         {
           label: 'MTBF (Confiabilidade)',
@@ -212,6 +214,7 @@ export const FleetDashboard: React.FC = () => {
           change: 'Processando...',
           periodLabel: 'Ciclo Falhas',
           sparkline: [],
+          isEmpty: true,
         },
         {
           label: 'Eficiência Diesel',
@@ -223,6 +226,7 @@ export const FleetDashboard: React.FC = () => {
           change: 'Processando...',
           periodLabel: 'Consumo Médio',
           sparkline: [],
+          isEmpty: true,
         },
       ];
     }
@@ -263,9 +267,10 @@ export const FleetDashboard: React.FC = () => {
         color: 'hsl(var(--brand))',
         progress: availability,
         trend: 'none' as const,
-        change: availability > 0 ? 'Uptime calculated' : 'Sem dados',
+        change: availability > 0 ? 'Uptime calculado' : 'Sem dados',
         periodLabel: 'Uptime',
         sparkline: buildSparkline(machines, 'created_at', null),
+        isEmpty: availability === 0,
       },
       {
         label: 'Custo Total Frota (TCO)',
@@ -277,6 +282,7 @@ export const FleetDashboard: React.FC = () => {
         change: totalTCO > 0 ? 'Combustível + Oficina' : 'Sem custos registrados',
         periodLabel: 'Custo Acumulado',
         sparkline: buildSparkline(fuelings, 'data', 'valor_total'),
+        isEmpty: totalTCO === 0,
       },
       {
         label: 'MTBF (Confiabilidade)',
@@ -288,6 +294,7 @@ export const FleetDashboard: React.FC = () => {
         change: mtbf > 0 ? `${failures} ocorrências registradas` : 'Sem manutenções',
         periodLabel: 'Ciclo Falhas',
         sparkline: buildSparkline(maintenance, 'data_inicio', 'custo'),
+        isEmpty: mtbf === 0,
       },
       {
         label: 'Eficiência Diesel',
@@ -299,6 +306,7 @@ export const FleetDashboard: React.FC = () => {
         change: avgDiesel > 0 ? 'Média real de abastecimentos' : 'Sem abastecimentos',
         periodLabel: 'Consumo Médio',
         sparkline: buildSparkline(fuelings, 'data', 'litros'),
+        isEmpty: avgDiesel === 0,
       },
     ];
   }, [dashboardData]);
@@ -343,6 +351,7 @@ export const FleetDashboard: React.FC = () => {
                 periodLabel={stat.periodLabel}
                 sparkline={stat.sparkline}
                 trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
+                isEmpty={stat.isEmpty}
               />
             ))}
       </div>

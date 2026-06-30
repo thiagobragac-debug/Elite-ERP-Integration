@@ -18,6 +18,7 @@ interface TauzeStatCardProps {
   className?: string;
   children?: React.ReactNode;
   interpolate?: boolean;
+  isEmpty?: boolean;
 }
 
 const SPARKLINE_H = 44; // px — must match CSS
@@ -37,7 +38,10 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
   className = '',
   children,
   interpolate = false,
+  isEmpty = false,
 }) => {
+  const effectiveColor = isEmpty ? '#94a3b8' : color;
+
   const normalizedSparkline = React.useMemo(
     () => normalizeSparkline(sparkline, interpolate),
     [sparkline, interpolate]
@@ -78,15 +82,15 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
                   cx="40"
                   cy="40"
                   r="36"
-                  stroke={color}
+                  stroke={effectiveColor}
                   initial={{ strokeDasharray: '0 226' }}
-                  animate={{ strokeDasharray: `${(progress / 100) * 226} 226` }}
+                  animate={{ strokeDasharray: `${((isEmpty ? 0 : progress) / 100) * 226} 226` }}
                   transition={{ duration: 1.5, ease: 'easeOut' }}
                 />
               </>
             )}
           </svg>
-          <div className="icon-center" style={{ color }}>
+          <div className="icon-center" style={{ color: effectiveColor }}>
             {Icon && <Icon size={28} />}
           </div>
         </div>
@@ -110,8 +114,10 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
             </span>
           )}
           {change && (
-            <div className={`kpi-trend-tauze ${trend || 'up'}`}>
-              {trend === 'down' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
+            <div className={`kpi-trend-tauze ${isEmpty ? 'neutral' : trend || 'up'}`} style={isEmpty ? { background: 'hsl(var(--bg-main) / 0.5)', color: 'hsl(var(--text-muted))' } : {}}>
+              {!isEmpty && trend !== 'none' && (
+                trend === 'down' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />
+              )}
               <span>{change}</span>
             </div>
           )}
@@ -246,8 +252,8 @@ const TauzeStatCardComponent: React.FC<TauzeStatCardProps> = ({
                       flex: 1,
                       minWidth: 0,
                       height: mounted ? `${targetH}px` : '2px',
-                      backgroundColor: color,
-                      opacity: mounted ? opacityVal : 0,
+                      backgroundColor: effectiveColor,
+                      opacity: mounted ? (isEmpty ? 0.2 : opacityVal) : 0,
                       borderRadius: '3px 3px 0 0',
                       transition: `height ${0.35 + i * 0.02}s ease-out ${i * 0.02}s, opacity 0.15s ease-out`,
                       position: 'relative',
