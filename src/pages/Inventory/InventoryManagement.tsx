@@ -137,7 +137,7 @@ export const InventoryManagement: React.FC = () => {
     minPrice: 0,
     maxPrice: 1000000,
   });
-  const [requestedProducts, setRequestedProducts] = useState<Record<string, boolean>>({});
+  const [requestedProducts, setRequestedProducts] = usePersistentState<Record<string, boolean>>('InventoryManagement_requestedProducts', {});
 
   // Server-side pagination
   const [page, setPage] = useState(1);
@@ -174,13 +174,14 @@ export const InventoryManagement: React.FC = () => {
         .select(
           `
           id, nome, categoria_id,
-          categorias_sistema (
+          categorias_sistema!produtos_categoria_id_fkey (
             nome
-          ).eq('tenant_id', activeTenantId),
+          ),
           unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao, tipo, codigo_servico_lc116, codigo_tributacao_nacional, cnae_associado
         `,
           { count: 'exact' }
         )
+        .is('deleted_at', null)
         .order('nome', { ascending: true })
         .range(from, to);
 
@@ -207,6 +208,19 @@ export const InventoryManagement: React.FC = () => {
     enabled: isReady,
   });
 
+  const { data: dashboardData } = useQuery({
+    queryKey: ['inventory_dashboard_stats', activeTenantId, activeFarmId, isGlobalMode],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inventory_dashboard_stats', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: isGlobalMode ? null : activeFarmId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isReady,
+  });
+
   const { products } = queryData;
   const { totalCount } = queryData;
 
@@ -222,7 +236,7 @@ export const InventoryManagement: React.FC = () => {
     // Asynchronously check for history to disable the is_storable toggle
     const { count } = await supabase
       .from('movimentacoes_estoque')
-      .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
+      .select('*', { count: 'estimated', head: true }).eq('tenant_id', activeTenantId)
       .eq('produto_id', product.id);
     const { data: embalagens } = await supabase
       .from('produto_embalagens')
@@ -238,13 +252,11 @@ export const InventoryManagement: React.FC = () => {
   // Mutations
   const saveProductMutation = useMutation({
     mutationFn: async (data: any) => {
-      const payload = {
+      const payload: any = {
         nome: data.nome,
         categoria_id: data.categoria_id || null,
         unidade: data.unidade,
         estoque_minimo: data.tipo === 'servico' ? 0 : Number(data.estoque_minimo),
-        estoque_atual: data.tipo === 'servico' ? 0 : Number(data.estoque_atual),
-        custo_medio: Number(data.custo_medio),
         custo_padrao: Number(data.custo_padrao || data.custo_medio || 0),
         is_purchasable: data.is_purchasable,
         is_sellable: data.is_sellable,
@@ -254,6 +266,8 @@ export const InventoryManagement: React.FC = () => {
         localizacao: data.tipo === 'servico' ? null : data.localizacao,
         ean: data.tipo === 'servico' ? null : data.ean,
         ncm: data.tipo === 'servico' ? null : data.ncm,
+        cest: data.tipo === 'servico' ? null : data.cest,
+        origem_mercadoria: data.tipo === 'servico' ? null : data.origem_mercadoria,
         is_active: data.is_active,
         tipo: data.tipo || 'produto',
         codigo_servico_lc116: data.tipo === 'servico' ? data.codigo_servico_lc116 : null,
@@ -264,6 +278,11 @@ export const InventoryManagement: React.FC = () => {
         carencia_leite_dias: data.tipo === 'servico' ? null : (parseInt(data.carencia_leite_dias) || 0),
         ...insertPayload,
       };
+
+      if (!selectedProduct) {
+         payload.estoque_atual = data.tipo === 'servico' ? 0 : Number(data.estoque_atual);
+         payload.custo_medio = Number(data.custo_medio);
+      }
 
       let productId = selectedProduct?.id;
 
@@ -365,11 +384,45 @@ export const InventoryManagement: React.FC = () => {
     processMovementMutation.mutate(data);
   };
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = products.filter((p) => {
-      const matchesSearch =
-        (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
+    const loadingToast = toast.loading('Gerando exportação...');
+    
+    let query = supabase
+      .from('produtos')
+      .select(`
+        id, nome, categoria_id,
+        categorias_sistema (
+          nome
+        ),
+        unidade, estoque_atual, estoque_minimo, custo_medio, marca, localizacao, tipo
+      `)
+      .eq('tenant_id', activeTenantId);
+
+    if (!isGlobalMode && activeFarmId) {
+      query = query.eq('fazenda_id', activeFarmId);
+    }
+
+    if (filterValues.categoria !== 'all') {
+      query = query.eq('categorias_sistema.nome', filterValues.categoria);
+    }
+    if (searchTerm) {
+      query = query.ilike('nome', `%${searchTerm}%`);
+    }
+
+    const { data, error } = await query;
+    toast.dismiss(loadingToast);
+
+    if (error) {
+      toast.error('Erro ao buscar dados para exportação');
+      return;
+    }
+
+    const mapped = (data || []).map((p: any) => ({
+      ...p,
+      categoria: p.categorias_sistema?.nome || 'Geral',
+    }));
+
+    const filteredData = mapped.filter((p) => {
       const matchesCategorias =
         filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
       const matchesStatus =
@@ -388,7 +441,7 @@ export const InventoryManagement: React.FC = () => {
         filterValues.maxPrice >= 1000000 ||
         (price >= filterValues.minPrice && price <= filterValues.maxPrice);
 
-      return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
+      return matchesCategorias && matchesStatus && matchesStock && matchesPrice;
     });
 
     const exportData = filteredData.map((item) => ({
@@ -415,8 +468,8 @@ export const InventoryManagement: React.FC = () => {
   const deleteProductMutation = useMutation({
     mutationFn: async (item: any) => {
       const { count } = await supabase
-        .from('estoque_movimentacao')
-        .select('*', { count: 'exact', head: true }).eq('tenant_id', activeTenantId)
+        .from('movimentacoes_estoque')
+        .select('*', { count: 'estimated', head: true }).eq('tenant_id', activeTenantId)
         .eq('produto_id', item.id);
       const hasHistory = count ? count > 0 : false;
 
@@ -431,7 +484,7 @@ export const InventoryManagement: React.FC = () => {
         if (!isConfirmed) {
           return { cancelled: true };
         }
-        const { error } = await supabase.from('produtos').delete().eq('id', item.id).eq('tenant_id', activeTenantId);
+        const { error } = await supabase.from('produtos').update({ deleted_at: new Date().toISOString() }).eq('id', item.id).eq('tenant_id', activeTenantId);
         if (error) {
           throw error;
         }
@@ -489,25 +542,13 @@ export const InventoryManagement: React.FC = () => {
         throw new Error('Selecione uma fazenda específica para solicitar a compra.');
       }
 
-      const diff = Math.max(
-        1,
-        Number(product.estoque_minimo || 0) - Number(product.estoque_atual || 0)
-      );
-      const valorEstimado = Math.max(100, diff * Number(product.custo_medio || 0));
-
       const payload = {
-        titulo: `Reposição de Insumo: ${product.nome}`,
-        departamento: 'Estoque',
-        prioridade: 'high',
-        valor_estimado: valorEstimado,
-        descricao: `Solicitação automática de reposição gerada pelo Módulo de Estoque devido a nível crítico de saldo físico. Saldo Atual: ${product.estoque_atual} ${product.unidade} | Nível Mínimo Exigido: ${product.estoque_minimo} ${product.unidade}.`,
-        status: 'pending',
-        solicitante: 'Sistema de Estoque (Auto)',
-        fazenda_id: farmId,
-        tenant_id: tenantId,
+        p_produto_id: product.id,
+        p_fazenda_id: farmId,
+        p_tenant_id: tenantId,
       };
 
-      const { error } = await supabase.from('solicitacoes_compra').insert([payload]);
+      const { error, data } = await supabase.rpc('generate_auto_purchase_request', payload);
 
       if (error) {
         throw error;
@@ -542,7 +583,7 @@ export const InventoryManagement: React.FC = () => {
     setHistoryLoading(true);
 
     const { data } = await supabase
-      .from('estoque_movimentacao')
+      .from('movimentacoes_estoque')
       .select('*').eq('tenant_id', activeTenantId)
       .eq('produto_id', product.id)
       .order('created_at', { ascending: false })
@@ -568,74 +609,35 @@ export const InventoryManagement: React.FC = () => {
   const stats = [
     {
       label: 'Capital Imobilizado',
-      value: (() => {
-        const v = currentProducts.reduce(
-          (acc, curr) => acc + Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0),
-          0
-        );
-        return v > 0 ? `R$ ${v.toLocaleString('pt-BR')}` : '---';
-      })(),
+      value: dashboardData ? `R$ ${formatNumber(Number(dashboardData.capital_imobilizado))}` : '---',
       icon: DollarSign,
       color: '#10b981',
-      progress: (() => {
-        const v = currentProducts.reduce(
-          (acc, curr) => acc + Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0),
-          0
-        );
-        return v > 0 ? Math.min(100, Math.log10(v) * 15) : 0;
-      })(),
+      progress: dashboardData && Number(dashboardData.capital_imobilizado) > 0 ? Math.min(100, Math.log10(Number(dashboardData.capital_imobilizado)) * 15) : 0,
       trend: 'up' as const,
-      change: currentProducts.length > 0 ? 'Patrimônio em Insumos' : 'Sem insumos',
+      change: 'Patrimônio em Insumos',
       periodLabel: 'Atual',
       sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
     {
       label: 'Ruptura de Estoque',
-      value: (() => {
-        const n = currentProducts.filter(
-          (p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)
-        ).length;
-        return n > 0 ? n : '---';
-      })(),
+      value: dashboardData ? dashboardData.itens_ruptura : '---',
       icon: AlertTriangle,
       color: '#ef4444',
-      progress:
-        currentProducts.length > 0
-          ? (currentProducts.filter((p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo))
-              .length /
-              currentProducts.length) *
-            100
-          : 0,
+      progress: dashboardData && totalCount > 0 ? (Number(dashboardData.itens_ruptura) / totalCount) * 100 : 0,
       trend: 'down' as const,
-      change:
-        currentProducts.filter((p) => Number(p.estoque_atual || 0) < Number(p.estoque_minimo))
-          .length > 0
-          ? 'Itens abaixo do mínimo'
-          : 'Sem rupturas',
+      change: dashboardData && dashboardData.itens_ruptura > 0 ? 'Itens abaixo do mínimo' : 'Sem rupturas',
       periodLabel: 'Ação Necessária',
       sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
     {
       label: 'Maturidade (30d)',
-      value: (() => {
-        const n = currentProducts.filter(
-          (p) => p.categoria === 'Medicamento' || p.categoria === 'Vacina'
-        ).length;
-        return n > 0 ? `${n} itens` : '---';
-      })(),
+      value: dashboardData ? `${dashboardData.itens_maturidade} itens` : '---',
       icon: FlaskConical,
       color: '#f59e0b',
-      progress:
-        currentProducts.length > 0
-          ? (currentProducts.filter(
-              (p) => p.categoria === 'Medicamento' || p.categoria === 'Vacina'
-            ).length /
-              currentProducts.length) *
-            100
-          : 0,
+      progress: dashboardData && totalCount > 0 ? (Number(dashboardData.itens_maturidade) / totalCount) * 100 : 0,
       trend: undefined,
       change: 'Risco de Vencimento',
-      periodLabel: 'Monitoramento Lot',
+      periodLabel: 'Monitoramento Lote',
       sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual'),
     },
     {
@@ -968,16 +970,20 @@ export const InventoryManagement: React.FC = () => {
 
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
-          {['All', 'Suplemento', 'Vacina', 'Combustível', 'Semente'].map((cat) => (
+          {([
+            { key: 'all', label: 'Todos' },
+            { key: 'Insumos', label: 'Insumos' },
+            { key: 'Serviços', label: 'Serviços' },
+          ] as const).map(({ key, label }) => (
             <button
-              key={cat}
-              className={`tauze-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`}
+              key={key}
+              className={`tauze-tab-item ${filterValues.categoria === key ? 'active' : ''}`}
               onClick={() => {
-                setFilterValues({ ...filterValues, categoria: cat === 'All' ? 'all' : cat });
+                setFilterValues(prev => ({ ...prev, categoria: key }));
                 setPage(1);
               }}
             >
-              {cat === 'All' ? 'Consolidado' : cat}
+              {label}
             </button>
           ))}
         </div>

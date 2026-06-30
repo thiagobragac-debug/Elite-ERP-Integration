@@ -67,6 +67,7 @@ import {
   PieChart,
   DollarSign,
   Clock,
+  Play
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -74,6 +75,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { AuditForm } from '../../components/Forms/AuditForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { AuditExecutionModal } from '../../components/Modals/AuditExecutionModal';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { AuditFilterModal } from './components/AuditFilterModal';
@@ -104,6 +106,8 @@ export const AuditManagement: React.FC = () => {
     );
   };
   const [selectedAudit, setSelectedAudit] = useState<any>(null);
+  const [executionAudit, setExecutionAudit] = useState<any>(null);
+  const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
     'AuditManagement_isHistoryModalOpen',
     false
@@ -149,20 +153,24 @@ export const AuditManagement: React.FC = () => {
     enabled: isReady,
   });
 
-  const concluidas = audits.filter((a: any) => a.status === 'completed').length;
-  const emAndamento = audits.filter((a: any) => a.status === 'in_progress').length;
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentAudits = audits.filter((a: any) => new Date(a.data || a.created_at) >= thirtyDaysAgo);
+
+  const concluidas = recentAudits.filter((a: any) => a.status === 'completed').length;
+  const emAndamento = recentAudits.filter((a: any) => a.status === 'in_progress').length;
   const avgAccuracy =
-    audits.length > 0
-      ? audits.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / audits.length
+    recentAudits.length > 0
+      ? recentAudits.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / recentAudits.length
       : 0;
-  const custoPerdas = audits.reduce(
+  const custoPerdas = recentAudits.reduce(
     (acc: number, curr: any) => acc + (curr.custo_divergencia || 0),
     0
   );
   const tempoMedio =
-    audits.length > 0
-      ? audits.reduce((acc: number, curr: any) => acc + (curr.tempo_auditoria_horas || 0), 0) /
-        audits.length
+    recentAudits.length > 0
+      ? recentAudits.reduce((acc: number, curr: any) => acc + (curr.tempo_auditoria_horas || 0), 0) /
+        recentAudits.length
       : 0;
 
   const stats = [
@@ -171,9 +179,9 @@ export const AuditManagement: React.FC = () => {
       value: concluidas > 0 ? concluidas : '---',
       icon: ClipboardCheck,
       color: '#10b981',
-      progress: audits.length > 0 ? (concluidas / audits.length) * 100 : 0,
+      progress: recentAudits.length > 0 ? (concluidas / recentAudits.length) * 100 : 0,
       change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
-      sparkline: buildSparkline(audits || [], 'data_inicio', 'divergencias_total'),
+      sparkline: buildSparkline(recentAudits || [], 'data_inicio', 'divergencias_total'),
     },
     {
       label: 'Acuracidade Geral',
@@ -183,7 +191,7 @@ export const AuditManagement: React.FC = () => {
       progress: avgAccuracy > 0 ? avgAccuracy : 0,
       trend: (avgAccuracy > 95 ? 'up' : 'down') as any,
       change: 'Média de Inventário',
-      sparkline: buildSparkline(audits || [], 'data_inicio', 'acuracidade_perc'),
+      sparkline: buildSparkline(recentAudits || [], 'data_inicio', 'acuracidade_perc'),
     },
     {
       label: 'Custo de Perdas (Shrinkage)',
@@ -196,7 +204,7 @@ export const AuditManagement: React.FC = () => {
       progress: custoPerdas > 0 ? Math.min(100, (custoPerdas / 10000) * 100) : 0,
       trend: (custoPerdas > 0 ? 'up' : 'neutral') as any,
       change: custoPerdas > 0 ? 'Prejuízo Contabilizado' : 'Sem Perdas',
-      sparkline: buildSparkline(audits || [], 'data_inicio', 'custo_divergencia'),
+      sparkline: buildSparkline(recentAudits || [], 'data_inicio', 'custo_divergencia'),
     },
     {
       label: 'Tempo Médio de Auditoria',
@@ -206,7 +214,7 @@ export const AuditManagement: React.FC = () => {
       progress: tempoMedio > 0 ? Math.max(0, 100 - tempoMedio * 5) : 0,
       trend: (tempoMedio > 0 ? 'down' : 'neutral') as any,
       change: tempoMedio > 0 ? 'Horas por inventário' : 'Sem dados',
-      sparkline: buildSparkline(audits || [], 'data_inicio', 'tempo_auditoria_horas'),
+      sparkline: buildSparkline(recentAudits || [], 'data_inicio', 'tempo_auditoria_horas'),
     },
   ];
 
@@ -218,6 +226,11 @@ export const AuditManagement: React.FC = () => {
   const handleOpenEdit = (audit: any) => {
     setSelectedAudit(audit);
     setIsModalOpen(true);
+  };
+
+  const handleOpenExecution = (audit: any) => {
+    setExecutionAudit(audit);
+    setIsExecutionModalOpen(true);
   };
 
   const saveAuditMutation = useMutation({
@@ -257,6 +270,10 @@ export const AuditManagement: React.FC = () => {
       data: formData.date,
       responsavel: formData.responsible,
       categoria: formData.category,
+      deposito_id: formData.deposito_id,
+      motivo: formData.motivo,
+      ajuste_automatico: formData.ajuste_automatico,
+      contagem_cega: formData.contagem_cega,
       status: selectedAudit?.status || 'in_progress',
       fazenda_id: activeFarm?.id,
       tenant_id: activeFarm?.tenantId,
@@ -342,38 +359,39 @@ export const AuditManagement: React.FC = () => {
     deleteAuditMutation.mutate(id);
   };
 
-  const handleViewDetails = (audit: any) => {
+  const handleViewDetails = async (audit: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    setTimeout(() => {
-      setHistoryItems([
-        {
-          id: '1',
-          date: audit.data || audit.created_at,
-          title: 'Item: Sal Mineral 20kg',
-          subtitle: 'Esperado: 45 | Encontrado: 44',
-          value: '-1 un',
-          status: 'error',
-        },
-        {
-          id: '2',
-          date: audit.data || audit.created_at,
-          title: 'Item: Farelo de Soja',
-          subtitle: 'Esperado: 120 | Encontrado: 120',
-          value: 'OK',
-          status: 'success',
-        },
-        {
-          id: '3',
-          date: audit.data || audit.created_at,
-          title: 'Item: Milho Moído',
-          subtitle: 'Esperado: 200 | Encontrado: 202',
-          value: '+2 un',
-          status: 'warning',
-        },
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('auditoria_itens')
+        .select(`
+          id, 
+          created_at, 
+          quantidade_sistema, 
+          quantidade_encontrada, 
+          divergencia,
+          produtos (nome, unidade)
+        `)
+        .eq('auditoria_id', audit.id);
+        
+      if (error) throw error;
+      
+      const items = (data || []).map((item: any) => ({
+        id: item.id,
+        date: item.created_at,
+        title: `Item: ${item.produtos?.nome || 'Desconhecido'} (${item.produtos?.unidade || 'UN'})`,
+        subtitle: `Esperado: ${item.quantidade_sistema} | Encontrado: ${item.quantidade_encontrada}`,
+        value: item.divergencia === 0 ? 'OK' : `${item.divergencia > 0 ? '+' : ''}${item.divergencia}`,
+        status: item.divergencia === 0 ? 'success' : 'error',
+      }));
+      setHistoryItems(items);
+    } catch (err: any) {
+      toast.error('Erro ao buscar itens da auditoria: ' + err.message);
+      setHistoryItems([]);
+    } finally {
       setHistoryLoading(false);
-    }, 800);
+    }
   };
 
   const columns = [
@@ -381,13 +399,10 @@ export const AuditManagement: React.FC = () => {
       header: 'Auditoria / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+          <span className="main-text" style={{ fontWeight: 800 }}>
             {item.titulo}
           </span>
-          <span
-            className="sub-meta"
-            style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
-          >
+          <span className="sub-meta" style={{ fontSize: '10px', fontWeight: 600 }}>
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
         </div>
@@ -398,18 +413,10 @@ export const AuditManagement: React.FC = () => {
       header: 'Categoria',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+          <span className="main-text" style={{ fontSize: '12px', fontWeight: 600 }}>
             {item.categoria || 'Geral'}
           </span>
-          <span
-            className="sub-meta"
-            style={{
-              fontSize: '9px',
-              fontWeight: 700,
-              color: '#94a3b8',
-              textTransform: 'uppercase',
-            }}
-          >
+          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
             Estoque
           </span>
         </div>
@@ -420,12 +427,12 @@ export const AuditManagement: React.FC = () => {
       header: 'Data Inventário',
       accessor: (item: any) => (
         <div
+          className="sub-meta"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
-            color: '#64748b',
             fontWeight: 600,
             fontSize: '12px',
           }}
@@ -440,17 +447,10 @@ export const AuditManagement: React.FC = () => {
       header: 'Auditor / Responsável',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+          <span className="main-text" style={{ fontSize: '12px', fontWeight: 600 }}>
             {item.responsavel || 'N/A'}
           </span>
-          <span
-            style={{
-              fontSize: '9px',
-              fontWeight: 700,
-              color: '#94a3b8',
-              textTransform: 'uppercase',
-            }}
-          >
+          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
             Verificado
           </span>
         </div>
@@ -470,13 +470,13 @@ export const AuditManagement: React.FC = () => {
           }}
         >
           <div
+            className="sub-meta"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: '10px',
               fontWeight: 900,
-              color: '#64748b',
             }}
           >
             <span>PERCENTUAL</span>
@@ -568,7 +568,7 @@ export const AuditManagement: React.FC = () => {
                   value=""
                   icon={ClipboardCheck}
                   color=""
-                  periodLabel="Inventario Atual"
+                  periodLabel="Últimos 30 dias"
                 />
               ))
           : stats.map((stat, idx) => (
@@ -582,7 +582,7 @@ export const AuditManagement: React.FC = () => {
                 change={stat.change || '---'}
                 trend={stat.trend || 'up'}
                 sparkline={stat.sparkline}
-                periodLabel="Inventario Atual"
+                periodLabel="Últimos 30 dias"
               />
             ))}
       </div>
@@ -740,20 +740,32 @@ export const AuditManagement: React.FC = () => {
               >
                 <History size={18} />
               </button>
-              <button
-                className="action-dot edit"
-                onClick={() => handleOpenEdit(item)}
-                title="Editar"
-              >
-                <Edit3 size={18} />
-              </button>
-              <button
-                className="action-dot delete"
-                onClick={() => handleDelete(item.id)}
-                title="Excluir"
-              >
-                <Trash2 size={18} />
-              </button>
+              {item.status !== 'completed' && (
+                <>
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenExecution(item)}
+                    title="Executar Contagem"
+                    style={{ backgroundColor: '#eff6ff', color: '#3b82f6' }}
+                  >
+                    <Play size={18} fill="currentColor" />
+                  </button>
+                  <button
+                    className="action-dot edit"
+                    onClick={() => handleOpenEdit(item)}
+                    title="Editar"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                  <button
+                    className="action-dot delete"
+                    onClick={() => handleDelete(item.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </>
+              )}
             </div>
           )}
         />
@@ -773,6 +785,12 @@ export const AuditManagement: React.FC = () => {
         subtitle="Conferência de itens e divergências encontradas"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <AuditExecutionModal
+        isOpen={isExecutionModalOpen}
+        onClose={() => setIsExecutionModalOpen(false)}
+        audit={executionAudit}
       />
     </div>
   );

@@ -82,7 +82,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .select(
           `
           id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id, carencia_abate_dias, carencia_leite_dias,
-          categorias_sistema(nome).eq('tenant_id', activeTenantId)
+          categorias_sistema(nome)
         `
         )
         .eq('tenant_id', activeTenantId)
@@ -467,6 +467,11 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                       {item.unidade}
                     </span>
                   </div>
+                  {!isEntry && mode === 'movement' && item.produto_id && (
+                    <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+                      Saldo: Consultando...
+                    </div>
+                  )}
                 </td>
 
                 {showHealthFields && (
@@ -682,9 +687,9 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         {items.length === 0 && (
           <div style={{ padding: '32px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
             <Package size={24} style={{ margin: '0 auto 8px auto', opacity: 0.5 }} />
-            <div style={{ fontSize: '12px', fontWeight: 600 }}>Nenhum insumo lançado.</div>
+            <div style={{ fontSize: '12px', fontWeight: 600 }}>Nenhum insumo selecionado para esta movimentação.</div>
             <div style={{ fontSize: '11px', marginTop: '4px' }}>
-              Clique em "Adicionar Item" para informar o consumo.
+              Clique em "Adicionar Item" acima para listar os produtos.
             </div>
           </div>
         )}

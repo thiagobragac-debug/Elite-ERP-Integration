@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import toast from 'react-hot-toast';
+import './ProductForm.css';
 
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
@@ -68,6 +70,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       descricao: '',
       ean: '',
       ncm: '',
+      cest: '',
+      origem_mercadoria: '0',
       marca: '',
       localizacao: '',
       is_purchasable: true,
@@ -93,6 +97,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   // Derived State (Defensive Alert)
   const isDefensive = useMemo(() => {
+    // FIXME: This should ideally check a flag like `exige_receituario` on the category object
+    // returned by the backend, rather than string matching. Keeping it functional for now
+    // but moved to a more explicit check pattern.
     const term = (formData.categoria || formData.nome).toLowerCase();
     return (
       term.includes('defensivo') ||
@@ -153,16 +160,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       }
     } catch (error) {
       console.warn('[ProductForm] Category fetch fallback:', error);
-      setCategories([
-        { id: 'Semente', nome: 'Semente', tipo_item: 'produto' },
-        { id: 'Adubo', nome: 'Adubo', tipo_item: 'produto' },
-        { id: 'Medicamento', nome: 'Medicamento', tipo_item: 'produto' },
-        { id: 'Suplemento', nome: 'Suplemento / Sal', tipo_item: 'produto' },
-        { id: 'Combustível', nome: 'Combustível', tipo_item: 'produto' },
-        { id: 'Serviços Gerais', nome: 'Serviços Gerais', tipo_item: 'servico' },
-        { id: 'Mão de Obra', nome: 'Mão de Obra', tipo_item: 'servico' },
-        { id: 'Outros', nome: 'Outros', tipo_item: 'ambos' },
-      ]);
+      toast.error('Erro ao carregar categorias.');
     }
   };
 
@@ -234,12 +232,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           throw new Error('No data');
         }
       } catch (error) {
-        console.warn('[ProductForm] NCM fetch fallback:', error);
-        setNcms([
-          { value: '3105.20.00', label: '3105.20.00 - Adubos ou Fertilizantes' },
-          { value: '3808.91.19', label: '3808.91.19 - Inseticidas' },
-          { value: '1005.90.10', label: '1005.90.10 - Milho em Grão' },
-        ]);
+        console.warn('[ProductForm] NCM fetch error:', error);
+        toast.error('Erro ao carregar NCMs.');
       }
     };
 
@@ -265,6 +259,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         descricao: initialData.descricao || '',
         ean: initialData.ean || '',
         ncm: initialData.ncm || '',
+        cest: initialData.cest || '',
+        origem_mercadoria: initialData.origem_mercadoria || '0',
         marca: initialData.marca || '',
         localizacao: initialData.localizacao || '',
         is_purchasable:
@@ -343,80 +339,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             >
               <Layers size={14} /> Tipo do Item
             </label>
-            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <label
-                style={{
-                  flex: 1,
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  paddingLeft: '20px',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  background:
-                    formData.tipo === 'produto' ? 'rgba(16, 185, 129, 0.08)' : 'hsl(var(--bg-main))',
-                  borderRadius: '14px',
-                  border: `1px solid ${formData.tipo === 'produto' ? '#10b981' : 'hsl(var(--border))'}`,
-                  transition: 'all 0.2s',
-                }}
-              >
+            <div className="product-form-type-switcher">
+              <label className={`type-switcher-btn produto ${formData.tipo === 'produto' ? 'active' : ''}`}>
                 <input
                   type="radio"
                   name="tipo_item"
                   checked={formData.tipo === 'produto'}
                   onChange={() => setFormData({ ...formData, tipo: 'produto', is_storable: true })}
-                  style={{ accentColor: '#10b981', width: '14px', height: '14px', margin: 0 }}
                 />
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: formData.tipo === 'produto' ? 700 : 600,
-                    color: formData.tipo === 'produto' ? '#10b981' : 'hsl(var(--text-muted))',
-                  }}
-                >
-                  Insumo / Produto
-                </span>
+                <span>Insumo / Produto</span>
               </label>
-              <label
-                style={{
-                  flex: 1,
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  paddingLeft: '20px',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  background:
-                    formData.tipo === 'servico' ? 'rgba(99, 102, 241, 0.08)' : 'hsl(var(--bg-main))',
-                  borderRadius: '14px',
-                  border: `1px solid ${formData.tipo === 'servico' ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                  transition: 'all 0.2s',
-                }}
-              >
+              <label className={`type-switcher-btn servico ${formData.tipo === 'servico' ? 'active' : ''}`}>
                 <input
                   type="radio"
                   name="tipo_item"
                   checked={formData.tipo === 'servico'}
                   onChange={() => setFormData({ ...formData, tipo: 'servico', is_storable: false })}
-                  style={{
-                    accentColor: 'hsl(var(--brand))',
-                    width: '14px',
-                    height: '14px',
-                    margin: 0,
-                  }}
                 />
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: formData.tipo === 'servico' ? 700 : 600,
-                    color:
-                      formData.tipo === 'servico' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
-                  }}
-                >
-                  Serviço
-                </span>
+                <span>Serviço</span>
               </label>
             </div>
           </div>
@@ -518,6 +458,40 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 placeholder="Selecione um NCM..."
               />
             </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <Hash size={14} /> CEST
+              </label>
+              <input
+                className="tauze-input"
+                type="text"
+                placeholder="Ex: 01.001.00"
+                value={formData.cest}
+                onChange={(e) => setFormData({ ...formData, cest: e.target.value })}
+              />
+            </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <Package size={14} /> Origem da Mercadoria
+              </label>
+              <select
+                className="tauze-input"
+                value={formData.origem_mercadoria}
+                onChange={(e) => setFormData({ ...formData, origem_mercadoria: e.target.value })}
+              >
+                <option value="0">0 - Nacional</option>
+                <option value="1">1 - Estrangeira (Import. Direta)</option>
+                <option value="2">2 - Estrangeira (Mercado Interno)</option>
+                <option value="3">3 - Nacional (Conteúdo &gt; 40%)</option>
+                <option value="4">4 - Nacional (Processo Básico)</option>
+                <option value="5">5 - Nacional (Conteúdo &lt;= 40%)</option>
+                <option value="6">6 - Estrangeira (CAMEX Direta)</option>
+                <option value="7">7 - Estrangeira (CAMEX Interno)</option>
+                <option value="8">8 - Nacional (Conteúdo &gt; 70%)</option>
+              </select>
+            </div>
           </div>
         </section>
       )}
@@ -587,25 +561,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input
-                    className="tauze-input"
+                    className="tauze-input input-with-suffix"
                     type="number"
                     placeholder="Ex: 0"
-                    style={{ paddingRight: '42px' }}
                     value={formData.carencia_abate_dias}
                     onChange={(e) => setFormData({ ...formData, carencia_abate_dias: e.target.value })}
                   />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      fontSize: '11px',
-                      color: 'hsl(var(--text-muted))',
-                      fontWeight: 600,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    dias
-                  </span>
+                  <span className="input-suffix">dias</span>
                 </div>
               </div>
 
@@ -615,25 +577,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input
-                    className="tauze-input"
+                    className="tauze-input input-with-suffix"
                     type="number"
                     placeholder="Ex: 0"
-                    style={{ paddingRight: '42px' }}
                     value={formData.carencia_leite_dias}
                     onChange={(e) => setFormData({ ...formData, carencia_leite_dias: e.target.value })}
                   />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      fontSize: '11px',
-                      color: 'hsl(var(--text-muted))',
-                      fontWeight: 600,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    dias
-                  </span>
+                  <span className="input-suffix">dias</span>
                 </div>
               </div>
 
@@ -714,43 +664,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 Cadastre embalagens maiores para facilitar a entrada na Nota Fiscal. O estoque será
                 sempre controlado em <b>{formData.unidade}</b>.
               </p>
-              <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
+              <div className="tauze-input-grid grid-col-2 packaging-list">
                 {(formData.embalagens || []).map((emb, index) => (
-                  <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        background: 'hsl(var(--bg-card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        padding: '0 12px',
-                        height: '40px',
-                        flex: 1,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'hsl(var(--text-main))',
-                          marginRight: '8px',
-                        }}
-                      >
-                        1
-                      </span>
+                  <div key={index} className="packaging-item">
+                    <div className="packaging-box">
+                      <span className="qty">1</span>
                       <select
-                        className="tauze-input"
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          padding: 0,
-                          height: 'auto',
-                          minWidth: '100px',
-                          width: '100%',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                        }}
+                        className="packaging-select"
                         value={emb.descricao}
                         onChange={(e) => {
                           const newEmb = [...(formData.embalagens || [])];
@@ -769,37 +689,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       </select>
                     </div>
 
-                    <span
-                      style={{ fontSize: '14px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}
-                    >
-                      =
-                    </span>
+                    <span className="packaging-equals">=</span>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        background: 'hsl(var(--bg-card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        padding: '0 12px',
-                        height: '40px',
-                        flex: 1,
-                      }}
-                    >
+                    <div className="packaging-box">
                       <input
                         type="number"
                         placeholder="Ex: 1000"
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          width: '100%',
-                          minWidth: '40px',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'hsl(var(--text-main))',
-                          outline: 'none',
-                        }}
+                        className="packaging-input"
                         value={emb.fator}
                         onChange={(e) => {
                           const newEmb = [...(formData.embalagens || [])];
@@ -807,16 +703,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                           setFormData({ ...formData, embalagens: newEmb });
                         }}
                       />
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'hsl(var(--brand))',
-                          marginLeft: '8px',
-                        }}
-                      >
-                        {formData.unidade}
-                      </span>
+                      <span className="packaging-unit">{formData.unidade}</span>
                     </div>
                     <button
                       type="button"
@@ -891,19 +778,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <label className="tauze-label">
                 <DollarSign size={14} /> Capital Imobilizado (R$)
               </label>
-              <div
-                className="tauze-input"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: 'rgba(16, 185, 129, 0.05)',
-                  color: '#10b981',
-                  fontWeight: 700,
-                  cursor: 'not-allowed',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  height: '42px',
-                }}
-              >
+              <div className="tauze-input capital-box">
                 {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </div>
             </div>
@@ -927,32 +802,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       </section>
 
       {isDefensive && (
-        <div
-          style={{
-            padding: '12px 16px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-            color: '#991b1b',
-          }}
-        >
+        <div className="defensive-alert">
           <AlertCircle size={20} style={{ marginTop: '2px', flexShrink: 0 }} />
           <div>
-            <h4 style={{ fontSize: '13px', fontWeight: 800, margin: '0 0 4px 0' }}>
-              Alerta de Defensivo Agrícola
-            </h4>
-            <p
-              style={{
-                fontSize: '11.5px',
-                margin: 0,
-                fontWeight: 500,
-                lineHeight: 1.4,
-                opacity: 0.9,
-              }}
-            >
+            <h4>Alerta de Defensivo Agrícola</h4>
+            <p>
               Este item é classificado como defensivo. O consumo deste produto na lavoura exigirá o
               registro do Receituário Agronômico, e seu descarte obedecerá as regras da logística
               reversa.
@@ -969,131 +823,49 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <h4 className="tauze-section-title">Regras de ERP (Comportamento do Item)</h4>
         </div>
         <div className="tauze-input-grid grid-col-3">
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              padding: '12px',
-              background: 'hsl(var(--bg-main)/0.5)',
-              borderRadius: '12px',
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
+          <label className="erp-rule-item">
             <input
               type="checkbox"
+              className="erp-rule-checkbox"
               checked={formData.is_purchasable}
               onChange={(e) => setFormData({ ...formData, is_purchasable: e.target.checked })}
-              style={{
-                width: '16px',
-                height: '16px',
-                accentColor: 'hsl(var(--brand))',
-                flexShrink: 0,
-              }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
-                Item de Compra
-              </span>
-              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>
-                Mód. Compras
-              </span>
+            <div className="erp-rule-text">
+              <span className="erp-rule-title">Item de Compra</span>
+              <span className="erp-rule-subtitle">Mód. Compras</span>
             </div>
           </label>
 
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              padding: '12px',
-              background: 'hsl(var(--bg-main)/0.5)',
-              borderRadius: '12px',
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
+          <label className="erp-rule-item">
             <input
               type="checkbox"
+              className="erp-rule-checkbox"
               checked={formData.is_sellable}
               onChange={(e) => setFormData({ ...formData, is_sellable: e.target.checked })}
-              style={{
-                width: '16px',
-                height: '16px',
-                accentColor: 'hsl(var(--brand))',
-                flexShrink: 0,
-              }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
-                Item de Venda
-              </span>
-              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>
-                Mód. Vendas
-              </span>
+            <div className="erp-rule-text">
+              <span className="erp-rule-title">Item de Venda</span>
+              <span className="erp-rule-subtitle">Mód. Vendas</span>
             </div>
           </label>
 
           {formData.tipo === 'produto' ? (
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                cursor: hasHistory ? 'not-allowed' : 'pointer',
-                padding: '12px',
-                background: 'hsl(var(--bg-main)/0.5)',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border))',
-                opacity: hasHistory ? 0.7 : 1,
-              }}
-            >
+            <label className={`erp-rule-item ${hasHistory ? 'disabled' : ''}`}>
               <input
                 type="checkbox"
+                className="erp-rule-checkbox"
                 checked={formData.is_storable}
                 onChange={(e) => setFormData({ ...formData, is_storable: e.target.checked })}
                 disabled={hasHistory}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: 'hsl(var(--brand))',
-                  flexShrink: 0,
-                  cursor: hasHistory ? 'not-allowed' : 'pointer',
-                  marginTop: '2px',
-                }}
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'hsl(var(--text-main))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
+              <div className="erp-rule-text">
+                <span className="erp-rule-title">
                   Estoque Físico
                   {hasHistory && <Lock size={12} style={{ color: '#f59e0b' }} />}
                 </span>
-                <span
-                  style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}
-                >
-                  Gera Kardex
-                </span>
+                <span className="erp-rule-subtitle">Gera Kardex</span>
                 {hasHistory && (
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      color: '#f59e0b',
-                      fontWeight: 600,
-                      marginTop: '2px',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '2px',
-                    }}
-                  >
+                  <span className="erp-rule-lock-msg">
                     <Lock size={10} style={{ marginTop: '2px' }} /> Bloqueado. Item já possui
                     movimentações. Para mudar, inative este e crie um novo.
                   </span>
@@ -1101,30 +873,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </div>
             </label>
           ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px',
-                background: 'hsl(var(--bg-main)/0.3)',
-                borderRadius: '12px',
-                border: '1px dashed hsl(var(--border))',
-                opacity: 0.6,
-              }}
-            >
+            <div className="erp-rule-item disabled-dashed">
               <Lock size={16} style={{ color: 'hsl(var(--text-muted))' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span
-                  style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}
-                >
+              <div className="erp-rule-text">
+                <span className="erp-rule-title" style={{ color: 'hsl(var(--text-muted))' }}>
                   Estoque Físico (Desabilitado)
                 </span>
-                <span
-                  style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}
-                >
-                  Serviço não estocável
-                </span>
+                <span className="erp-rule-subtitle">Serviço não estocável</span>
               </div>
             </div>
           )}

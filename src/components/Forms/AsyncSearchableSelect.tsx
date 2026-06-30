@@ -1,18 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 
-export interface Option {
+interface Option {
   value: string;
   label: string;
 }
 
 interface AsyncSearchableSelectProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, label: string) => void;
   loadOptions: (inputValue: string) => Promise<Option[]>;
-  defaultOptions?: Option[] | boolean;
+  defaultOptions?: Option[];
   placeholder?: string;
+  icon?: React.ReactNode;
+  creatable?: boolean;
   disabled?: boolean;
   height?: string;
 }
@@ -21,235 +23,224 @@ export const AsyncSearchableSelect: React.FC<AsyncSearchableSelectProps> = ({
   value,
   onChange,
   loadOptions,
-  defaultOptions = false,
-  placeholder = 'Selecione...',
+  defaultOptions = [],
+  placeholder = 'Digite para buscar...',
+  icon,
+  creatable = false,
   disabled = false,
   height,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [options, setOptions] = useState<Option[]>(Array.isArray(defaultOptions) ? defaultOptions : []);
-  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<Option[]>(defaultOptions);
+  const [loading, setLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value) || (value ? { value, label: value } : undefined);
-  const displayPlaceholder = selectedOption && selectedOption.label !== value ? selectedOption.label : placeholder;
+  const selectedOption = options.find((opt) => opt.value === value) || { value, label: value };
+  const displayPlaceholder = value && selectedOption && selectedOption.label !== value ? selectedOption.label : placeholder;
 
   useEffect(() => {
     if (!isOpen) {
-      setInputValue(selectedOption ? selectedOption.label : '');
+      setInputValue(value && selectedOption && selectedOption.label !== value ? selectedOption.label : '');
     } else {
       setInputValue('');
     }
   }, [value, isOpen, selectedOption]);
 
-  const fetchOptions = async (query: string) => {
-    setIsLoading(true);
-    try {
-      const results = await loadOptions(query);
-      setOptions(results);
-    } catch (error) {
-      console.error('Error loading options:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
-    if (isOpen) {
-      if (defaultOptions === true) {
-        fetchOptions('');
-      } else if (Array.isArray(defaultOptions) && inputValue === '') {
-        setOptions(defaultOptions);
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        const dropdown = document.getElementById('async-searchable-select-portal');
+        if (dropdown && dropdown.contains(event.target as Node)) {
+          return;
+        }
+        setIsOpen(false);
       }
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const handler = setTimeout(() => {
-        if (inputValue.length >= 3 || (inputValue.length === 0 && defaultOptions === true)) {
-           fetchOptions(inputValue);
-        }
-      }, 500);
-      return () => clearTimeout(handler);
+    function handleScroll(event: Event) {
+      const dropdown = document.getElementById('async-searchable-select-portal');
+      if (dropdown && dropdown.contains(event.target as Node)) return;
+      setIsOpen(false);
     }
-  }, [inputValue, isOpen, defaultOptions]);
-
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const dropdownHeight = 250;
-
-      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-
-      let top, bottom;
-
-      if (spaceBelow >= dropdownHeight || spaceBelow > spaceAbove) {
-        top = rect.bottom + window.scrollY;
-        bottom = 'auto';
+      const dropdownHeight = 250;
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownStyle({
+          position: 'fixed',
+          bottom: window.innerHeight - rect.top + 4,
+          left: rect.left,
+          width: rect.width,
+          minWidth: Math.max(rect.width, 220),
+          zIndex: 99999,
+        });
       } else {
-        top = 'auto';
-        bottom = window.innerHeight - rect.top - window.scrollY;
+        setDropdownStyle({
+          position: 'fixed',
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+          minWidth: Math.max(rect.width, 220),
+          zIndex: 99999,
+        });
       }
-
-      setDropdownStyle({
-        position: 'absolute',
-        top,
-        bottom,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-        zIndex: 999999,
-      });
     }
-  }, [isOpen]);
+  }, [isOpen, options]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+    const fetchOptions = async () => {
+      setLoading(true);
+      try {
+        const results = await loadOptions(inputValue);
+        setOptions(results);
+      } catch (error) {
+        console.error('Error loading options', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleSelect = (optionValue: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(optionValue);
-    setIsOpen(false);
-  };
-
-  const handleContainerClick = (e: React.MouseEvent) => {
-    if (disabled) return;
-    
-    // Prevent toggling if they click exactly on the input while it's open, 
-    // to allow typing
-    if (isOpen && e.target === inputRef.current) return;
-    
-    setIsOpen(!isOpen);
-    if (!isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+    if (isOpen) {
+      const debounceFn = setTimeout(() => {
+        fetchOptions();
+      }, 300);
+      return () => clearTimeout(debounceFn);
     }
-  };
+  }, [inputValue, isOpen, loadOptions]);
 
-  const dropdown = isOpen
-    ? createPortal(
-        <div
-          className="searchable-select-dropdown"
-          style={{
-            ...dropdownStyle,
-            background: 'hsl(var(--bg-card))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-            maxHeight: '250px',
-            overflowY: 'auto',
-            padding: '8px',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {isLoading ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Loader2 size={16} className="animate-spin" /> Buscando...
-            </div>
-          ) : options.length > 0 ? (
-            options.map((opt) => (
-              <div
-                key={opt.value}
-                onClick={(e) => handleSelect(opt.value, e)}
-                style={{
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  borderRadius: '6px',
-                  background: opt.value === value ? 'hsl(var(--brand) / 0.1)' : 'transparent',
-                  color: opt.value === value ? 'hsl(var(--brand))' : 'hsl(var(--text-main))',
-                  fontWeight: opt.value === value ? 600 : 400,
-                  fontSize: '13px',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (opt.value !== value) e.currentTarget.style.background = 'hsl(var(--bg-main))';
-                }}
-                onMouseLeave={(e) => {
-                  if (opt.value !== value) e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                {opt.label}
-                {opt.value === value && <Check size={16} />}
-              </div>
-            ))
-          ) : (
-            <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
-              {inputValue.length < 3 ? 'Digite 3 caracteres para buscar...' : 'Nenhum resultado.'}
-            </div>
-          )}
-        </div>,
-        document.body
-      )
-    : null;
+  const exactMatch = options.some(
+    (opt) => (opt.label || '').toLowerCase() === (inputValue || '').toLowerCase()
+  );
+  const showCreatable = creatable && inputValue.trim().length > 0 && !exactMatch;
 
   return (
-    <div
-      ref={wrapperRef}
-      className={`searchable-select-container ${disabled ? 'disabled' : ''}`}
-      onClick={handleContainerClick}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: height || '42px',
-        background: disabled ? 'hsl(var(--bg-main))' : 'transparent',
-        border: '1px solid hsl(var(--border))',
-        borderRadius: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
-        transition: 'all 0.2s',
-      }}
-    >
-      <div style={{ flex: 1, padding: '0 12px', display: 'flex', alignItems: 'center' }}>
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={displayPlaceholder}
-          disabled={disabled}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: 'hsl(var(--text-main))',
-            fontSize: '14px',
-            cursor: disabled ? 'not-allowed' : isOpen ? 'text' : 'pointer',
-          }}
-        />
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
+      <div
+        className={`tauze-input ${isOpen ? 'focused' : ''} ${disabled ? 'disabled' : ''}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 14px',
+          background: disabled ? 'hsl(var(--bg-main) / 0.5)' : 'var(--bg-main)',
+          minHeight: height || '48px',
+          height: height || 'auto',
+          cursor: disabled ? 'not-allowed' : 'text',
+          opacity: disabled ? 0.6 : 1,
+          border: isOpen ? '1px solid hsl(var(--brand))' : undefined,
+          boxShadow: isOpen ? '0 0 0 4px hsl(var(--brand) / 0.1)' : undefined,
+        }}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(true);
+          inputRef.current?.focus();
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+          {icon && <span style={{ color: '#94a3b8', display: 'flex' }}>{icon}</span>}
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            placeholder={displayPlaceholder}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => {
+              setIsOpen(true);
+              setInputValue('');
+            }}
+            disabled={disabled}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              outline: 'none',
+              width: '100%',
+              minWidth: 0,
+              padding: height ? '0' : '10px 0',
+              height: height ? '100%' : 'auto',
+              fontSize: '13px',
+              color: 'inherit',
+              cursor: disabled ? 'not-allowed' : 'inherit',
+              textOverflow: 'ellipsis',
+            }}
+          />
+        </div>
+        <div style={{ cursor: 'pointer', padding: '4px' }} onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
+          {loading ? (
+            <Loader2 size={16} color="#94a3b8" className="animate-spin" />
+          ) : (
+            <ChevronDown size={16} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          )}
+        </div>
       </div>
 
-      <div style={{ padding: '0 12px', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center' }}>
-        <ChevronDown
-          size={16}
-          style={{
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s',
-          }}
-        />
-      </div>
+      {isOpen &&
+        createPortal(
+          <div
+            id="async-searchable-select-portal"
+            style={{
+              ...dropdownStyle,
+              background: 'hsl(var(--bg-card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '12px',
+              boxShadow: '0 10px 30px -10px rgb(0 0 0 / 0.5)',
+              maxHeight: '250px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            <div style={{ overflowY: 'auto', padding: '4px' }}>
+              {showCreatable && (
+                <div
+                  onClick={(e) => { e.stopPropagation(); onChange(inputValue, inputValue); setIsOpen(false); inputRef.current?.blur(); }}
+                  style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', fontWeight: 600, marginBottom: '4px' }}
+                >
+                  + Criar "{inputValue}"
+                </div>
+              )}
 
-      {dropdown}
+              {options.length === 0 && !showCreatable && !loading ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
+                  Nenhum resultado encontrado.
+                </div>
+              ) : (
+                options.map((opt) => (
+                  <div
+                    key={opt.value}
+                    onClick={(e) => { e.stopPropagation(); onChange(opt.value, opt.label); setIsOpen(false); inputRef.current?.blur(); }}
+                    style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'hsl(var(--bg-main))')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent')}
+                  >
+                    <span style={{ fontSize: '13px', fontWeight: value === opt.value ? 700 : 500, color: value === opt.value ? 'hsl(var(--brand))' : 'hsl(var(--text-main))' }}>
+                      {opt.label}
+                    </span>
+                    {value === opt.value && <Check size={16} color="hsl(var(--brand))" />}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

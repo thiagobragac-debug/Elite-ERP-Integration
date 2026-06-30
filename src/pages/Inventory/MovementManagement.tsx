@@ -107,39 +107,39 @@ export const MovementManagement: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([
     {
-      label: 'Movimentações',
+      label: 'Total Movimentado',
       value: '---',
-      icon: ArrowDownLeft,
+      icon: Package,
       color: '#10b981',
       progress: 0,
-      change: 'Volume de Log',
+      change: 'No período selecionado',
       sparkline: [],
     },
     {
-      label: 'Entradas (Pag.)',
+      label: 'Entradas',
       value: '---',
-      icon: ArrowUpRight,
+      icon: ArrowDownLeft,
       color: '#3b82f6',
       progress: 0,
-      change: 'Entradas',
+      change: 'Nesta página',
       sparkline: [],
     },
     {
-      label: 'Saídas (Pag.)',
+      label: 'Saídas',
       value: '---',
-      icon: Activity,
-      color: '#166534',
+      icon: ArrowUpRight,
+      color: '#ef4444',
       progress: 0,
-      change: 'Saídas',
+      change: 'Nesta página',
       sparkline: [],
     },
     {
-      label: 'Sincronismo',
-      value: 'Ativo',
-      icon: Zap,
+      label: 'Transferências',
+      value: '---',
+      icon: ArrowRightLeft,
       color: '#f59e0b',
-      progress: 100,
-      change: 'Tempo Real',
+      progress: 0,
+      change: 'Nesta página',
       sparkline: [],
     },
   ]);
@@ -187,7 +187,7 @@ export const MovementManagement: React.FC = () => {
           categoria_id,
           categorias_sistema (
             nome
-          ).eq('tenant_id', activeTenantId)
+          )
         )
       `,
         { count: 'exact' }
@@ -203,6 +203,7 @@ export const MovementManagement: React.FC = () => {
       const to = from + pageSize - 1;
 
       const { data, count, error } = await query
+        .is('deleted_at', null)
         .order('data_movimentacao', { ascending: false })
         .range(from, to);
 
@@ -227,66 +228,62 @@ export const MovementManagement: React.FC = () => {
   const totalCount = movementsData?.count || 0;
   const loading = queryLoading;
 
+  const { data: kpiData } = useQuery({
+    queryKey: ['inventory_kpis', activeTenantId, activeFarmId, isGlobalMode],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inventory_kpis', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: isGlobalMode ? null : activeFarmId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!activeTenantId && (isGlobalMode || !!activeFarmId),
+  });
+
   useEffect(() => {
-    if (movementsData) {
-      const { count } = movementsData;
-      const { data } = movementsData;
+    if (kpiData) {
+      const { total, entradas, saidas, transferencias } = kpiData;
       setStats([
         {
-          label: 'Movimentações',
-          value: count > 0 ? String(count) : '---',
+          label: 'Total Movimentado',
+          value: total > 0 ? String(total) : '---',
+          icon: Package,
+          color: '#10b981',
+          progress: total > 0 ? 100 : 0,
+          change: 'No período geral',
+          sparkline: buildSparkline(movementsData?.data || [], 'data', 'quantidade'),
+        },
+        {
+          label: 'Entradas',
+          value: entradas > 0 ? String(entradas) : '---',
           icon: ArrowDownLeft,
-          color: '#10b981',
-          progress: count > 0 ? 100 : 0,
-          change: count > 0 ? 'Volume de Log' : 'Sem movimentações',
-          sparkline: buildSparkline(data || [], 'data', 'quantidade'),
+          color: '#3b82f6',
+          progress: total > 0 ? (entradas / total) * 100 : 0,
+          change: 'Geral',
+          sparkline: buildSparkline(movementsData?.data || [], 'data', 'quantidade'),
         },
         {
-          label: 'Entradas (Pág.)',
-          value: (() => {
-            const n = data.filter((m: any) => m.tipo === 'ENTRADA' || m.tipo === 'in').length;
-            return n > 0 ? n : '---';
-          })(),
+          label: 'Saídas',
+          value: saidas > 0 ? String(saidas) : '---',
           icon: ArrowUpRight,
-          color: '#10b981',
-          progress:
-            data.length > 0
-              ? (data.filter((m: any) => m.tipo === 'ENTRADA' || m.tipo === 'in').length /
-                  data.length) *
-                100
-              : 0,
-          change: 'Entradas desta página',
-          sparkline: buildSparkline(data || [], 'data', 'quantidade'),
-        },
-        {
-          label: 'Saídas (Pág.)',
-          value: (() => {
-            const n = data.filter((m: any) => m.tipo === 'SAIDA' || m.tipo === 'out').length;
-            return n > 0 ? n : '---';
-          })(),
-          icon: Activity,
           color: '#ef4444',
-          progress:
-            data.length > 0
-              ? (data.filter((m: any) => m.tipo === 'SAIDA' || m.tipo === 'out').length /
-                  data.length) *
-                100
-              : 0,
-          change: 'Saídas desta página',
-          sparkline: buildSparkline(data || [], 'data', 'quantidade'),
+          progress: total > 0 ? (saidas / total) * 100 : 0,
+          change: 'Geral',
+          sparkline: buildSparkline(movementsData?.data || [], 'data', 'quantidade'),
         },
         {
-          label: 'Sincronismo',
-          value: 'Ativo',
-          icon: Zap,
+          label: 'Transferências',
+          value: transferencias > 0 ? String(transferencias) : '---',
+          icon: ArrowRightLeft,
           color: '#f59e0b',
-          progress: 100,
-          change: 'Tempo Real',
-          sparkline: buildSparkline(data || [], 'data', 'quantidade'),
+          progress: total > 0 ? (transferencias / total) * 100 : 0,
+          change: 'Geral',
+          sparkline: buildSparkline(movementsData?.data || [], 'data', 'quantidade'),
         },
       ]);
     }
-  }, [movementsData]);
+  }, [kpiData, movementsData]);
 
   const movementMutation = useMutation({
     mutationFn: async ({
@@ -309,14 +306,15 @@ export const MovementManagement: React.FC = () => {
         }
         return { data: data?.[0], isEdit: true, id };
       }
-      const { data, error } = await supabase
-        .from('movimentacoes_estoque')
-        .insert(payloads)
-        .select();
-      if (error) {
-        throw error;
+      let finalData = [];
+      for (const payload of payloads) {
+        const { data, error } = await supabase.rpc('registrar_movimentacao_estoque', { payload });
+        if (error || (data && !data.success)) {
+          throw error || new Error(data?.error || 'Erro ao registrar movimentação');
+        }
+        finalData.push(data);
       }
-      return { data: data || [], isEdit: false };
+      return { data: finalData, isEdit: false };
     },
     onMutate: async ({ payloads, isEdit, id }) => {
       const queryKey = ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm];
@@ -364,46 +362,7 @@ export const MovementManagement: React.FC = () => {
     },
   });
 
-  const deleteMovementMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('movimentacoes_estoque').delete().eq('id', id).eq('tenant_id', activeTenantId);
-      if (error) {
-        throw error;
-      }
-      return id;
-    },
-    onMutate: async (id) => {
-      const queryKey = ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm];
-      await queryClient.cancelQueries({ queryKey });
 
-      const previousData = queryClient.getQueryData<any>(queryKey);
-
-      if (previousData) {
-        queryClient.setQueryData(queryKey, (old: any) => {
-          if (!old) {
-            return old;
-          }
-          return {
-            ...old,
-            data: old.data.filter((item: any) => item.id !== id),
-            count: Math.max(0, old.count - 1),
-          };
-        });
-      }
-
-      return { previousData, queryKey };
-    },
-    onError: (err: any, id, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(context.queryKey, context.previousData);
-      }
-      toast.error(`❌ Erro ao excluir movimentação: ${err.message}`);
-    },
-    onSettled: (data, error, id, context) => {
-      queryClient.invalidateQueries({ queryKey: context?.queryKey });
-      refetchMovements();
-    },
-  });
 
   const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
     if (!activeFarmId || isGlobalMode) {
@@ -417,16 +376,45 @@ export const MovementManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (move: any) => {
+  const handleEstornar = (move: any) => {
     if (!activeFarmId || isGlobalMode) {
-      toast.error(
-        '⚠️ Selecione uma unidade/fazenda específica no menu superior para editar movimentações. Não é possível editar no modo Visão Global.'
-      );
+      toast.error('⚠️ Selecione uma unidade/fazenda específica para realizar o estorno.');
       return;
     }
-    setSelectedMovement(move);
-    setModalType(move.tipo);
-    setIsModalOpen(true);
+    
+    confirm({
+        title: 'Confirmar Estorno Contábil',
+        description: `Deseja gerar uma movimentação reversa para o item ${move.produtos?.nome || 'Geral'}? Esta ação não pode ser desfeita e afetará o custo médio.`,
+        confirmText: 'Confirmar Estorno',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+        onConfirm: async () => {
+            try {
+                const toastId = toast.loading('Processando estorno...');
+                const reverseType = move.tipo === 'ENTRADA' ? 'SAIDA' : move.tipo === 'SAIDA' ? 'ENTRADA' : 'TRANSFERENCIA';
+                
+                const reversePayload = {
+                    produto_id: move.produto_id,
+                    tipo: reverseType,
+                    quantidade: move.quantidade,
+                    deposito_id: move.deposito_id,
+                    custo_unitario: move.custo_unitario,
+                    data_movimentacao: new Date().toISOString(),
+                    origem_destino: `[ESTORNO ref: ${move.id?.slice(0,8)}]`,
+                    responsavel: move.responsavel,
+                    lote: move.lote || null,
+                    data_validade: move.data_validade || null,
+                    fazenda_id: move.fazenda_id,
+                    tenant_id: move.tenant_id,
+                };
+                
+                await movementMutation.mutateAsync({ payloads: [reversePayload], isEdit: false });
+                toast.success('Movimentação estornada com sucesso!', { id: toastId });
+            } catch (err: any) {
+                toast.error(`Erro ao estornar: ${err.message}`);
+            }
+        }
+    });
   };
 
   const handleSubmit = async (formData: any) => {
@@ -439,9 +427,6 @@ export const MovementManagement: React.FC = () => {
 
     if (formData.tipo === 'transfer') {
       try {
-        const outPayloads = [];
-        const inPayloads = [];
-
         for (const item of items) {
           const { data: product } = await supabase
             .from('produtos')
@@ -451,40 +436,27 @@ export const MovementManagement: React.FC = () => {
 
           const currentCost = product?.custo_medio || 0;
 
-          outPayloads.push({
-            produto_id: item.produto_id,
-            tipo: 'out',
-            quantidade: parseFloat(item.quantidade),
-            deposito_id: formData.deposito_origem_id,
-            valor_unitario: currentCost,
-            data_movimentacao: formData.data_movimentacao,
-            origem_destino: `Transferência para depósito destino`,
-            responsavel: formData.responsavel,
-            fazenda_id: activeFarm.id,
-            tenant_id: activeFarm.tenantId,
+          const { error } = await supabase.rpc('transfer_inventory_transaction', {
+            p_tenant_id: activeFarm.tenantId,
+            p_fazenda_id: activeFarm.id,
+            p_produto_id: item.produto_id,
+            p_deposito_origem: formData.deposito_origem_id,
+            p_deposito_destino: formData.destino_deposito_id,
+            p_quantidade: parseFloat(item.quantidade),
+            p_custo_unitario: currentCost,
+            p_data_movimentacao: formData.data_movimentacao,
+            p_responsavel: formData.responsavel,
           });
 
-          inPayloads.push({
-            produto_id: item.produto_id,
-            tipo: 'in',
-            quantidade: parseFloat(item.quantidade),
-            deposito_id: formData.destino_deposito_id,
-            valor_unitario: currentCost,
-            data_movimentacao: formData.data_movimentacao,
-            origem_destino: `Transferência de depósito origem`,
-            responsavel: formData.responsavel,
-            fazenda_id: activeFarm.id,
-            tenant_id: activeFarm.tenantId,
-          });
+          if (error) throw error;
         }
 
-        await movementMutation.mutateAsync({
-          payloads: [...outPayloads, ...inPayloads],
-          isEdit: false,
-        });
+        queryClient.invalidateQueries({ queryKey: ['movements'] });
         setIsModalOpen(false);
-      } catch (err) {
+        toast.success('Transferência realizada com sucesso!');
+      } catch (err: any) {
         console.error('Error in transfer:', err);
+        toast.error(`❌ Erro na transferência: ${err.message}`);
       }
       return;
     }
@@ -593,29 +565,48 @@ export const MovementManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({
-      title: 'Atenção',
-      description: 'Tem certeza que deseja excluir esta movimentação?',
-      confirmText: 'Confirmar',
-      cancelText: 'Cancelar',
-      variant: 'danger',
-    });
-    if (!isConfirmed) {
+
+
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
+    const loadingToast = toast.loading('Gerando exportação...');
+    
+    let query = supabase.from('movimentacoes_estoque').select(`
+      *,
+      produtos (
+        nome,
+        unidade,
+        categoria_id,
+        categorias_sistema (nome)
+      )
+    `).eq('tenant_id', activeTenantId).is('deleted_at', null);
+
+    if (!isGlobalMode && activeFarmId) {
+      query = query.eq('fazenda_id', activeFarmId);
+    }
+
+    if (searchTerm) {
+      query = query.or(`responsavel.ilike.%${searchTerm}%,origem_destino.ilike.%${searchTerm}%`);
+    }
+
+    const { data, error } = await query.order('data_movimentacao', { ascending: false });
+    toast.dismiss(loadingToast);
+
+    if (error) {
+      toast.error('Erro ao buscar dados para exportação');
       return;
     }
-    try {
-      await deleteMovementMutation.mutateAsync(id);
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
-  };
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = movements.filter((m) => {
-      const matchesSearch =
-        (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const mapped = (data || []).map((m: any) => ({
+      ...m,
+      produtos: m.produtos
+        ? {
+            ...m.produtos,
+            categoria: m.produtos.categorias_sistema?.nome || 'Geral',
+          }
+        : null,
+    }));
+
+    const filteredData = mapped.filter((m) => {
       const _tab = String(activeTab);
       const matchesTab =
         _tab === 'all'
@@ -638,7 +629,7 @@ export const MovementManagement: React.FC = () => {
           new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
         (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
 
-      return matchesSearch && matchesTab && matchesType && matchesAmount && matchesDate;
+      return matchesTab && matchesType && matchesAmount && matchesDate;
     });
 
     const exportData = filteredData.map((item) => ({
@@ -894,7 +885,6 @@ export const MovementManagement: React.FC = () => {
                   value=""
                   icon={Package}
                   color=""
-                  periodLabel="Estoque Atual"
                 />
               ))
           : stats.map((stat, idx) => (
@@ -908,7 +898,6 @@ export const MovementManagement: React.FC = () => {
                 change={stat.change || '+4.2%'}
                 trend={stat.trend || 'up'}
                 sparkline={stat.sparkline}
-                periodLabel="Estoque Atual"
               />
             ))}
       </div>
@@ -1057,20 +1046,13 @@ export const MovementManagement: React.FC = () => {
                   !item.origem_destino.includes('Nota Fiscal') &&
                   !item.origem_destino.includes('Manejo') &&
                   !item.origem_destino.includes('Trato'))) && (
-                <>
                   <button
-                    className="action-dot edit"
-                    onClick={() => handleOpenEdit(item)}
-                    title="Editar"
+                    className="action-dot warning"
+                    onClick={() => handleEstornar(item)}
+                    title="Estornar (Reverso)"
+                    style={{ background: '#f59e0b15', color: '#f59e0b' }}
                   >
-                    <Edit3 size={18} />
-                  </button>
-                  <button
-                    className="action-dot delete"
-                    onClick={() => handleDelete(item.id)}
-                    title="Excluir"
-                  >
-                    <Trash2 size={18} />
+                    <ArrowRightLeft size={18} />
                   </button>
                 </>
               )}

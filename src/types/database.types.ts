@@ -1807,6 +1807,8 @@ export type Database = {
           saldo_fifo: number | null
           tenant_id: string | null
           tipo: string | null
+          especie_id: string | null
+          aptidao_id: string | null
         }
         Insert: {
           animal_id?: string | null
@@ -1827,6 +1829,8 @@ export type Database = {
           saldo_fifo?: number | null
           tenant_id?: string | null
           tipo?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Update: {
           animal_id?: string | null
@@ -1847,6 +1851,8 @@ export type Database = {
           saldo_fifo?: number | null
           tenant_id?: string | null
           tipo?: string | null
+          especie_id?: string | null
+          aptidao_id?: string | null
         }
         Relationships: [
           {
@@ -2872,6 +2878,7 @@ export type Database = {
           codigo_servico_lc116: string | null
           codigo_tributacao_nacional: string | null
           created_at: string | null
+          deleted_at: string | null
           custo_medio: number | null
           custo_padrao: number | null
           custo_ultima_compra: number | null

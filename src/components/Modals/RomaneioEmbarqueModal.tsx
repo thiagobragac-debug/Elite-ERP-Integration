@@ -283,7 +283,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
         .from('animais')
         .select(`
           id, brinco, raca, sexo, status, lote_id, peso_entrada,
-          lotes ( nome ).eq('tenant_id', activeTenantId),
+          lotes ( nome ),
           pesagens ( peso, data_pesagem )
         `)
         .eq('tenant_id', activeTenantId)

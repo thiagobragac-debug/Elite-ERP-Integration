@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Filter,
@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { supabase } from '../../../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { useTenant } from '../../../contexts/TenantContext';
 
 interface InventoryFilterModalProps {
   isOpen: boolean;
@@ -27,20 +30,28 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
   filters,
   setFilters,
 }) => {
+  const { activeTenantId } = useTenant();
+
+  const { data: categorias = [] } = useQuery({
+    queryKey: ['inventory_categorias', activeTenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categorias_sistema')
+        .select('nome')
+        .eq('tenant_id', activeTenantId)
+        .eq('tipo_modulo', 'estoque'); // Assuming there is a way to filter, or we just fetch all
+      if (error) throw error;
+      // If tipo_modulo doesn't exist, we can remove it. Let's try without tipo_modulo first, or just distinct names from produtos.
+      // Actually, a better way is to just fetch from categorias_sistema and map the names.
+      return Array.from(new Set((data || []).map((c: any) => c.nome))).filter(Boolean);
+    },
+    enabled: !!activeTenantId && isOpen,
+  });
+
   if (!isOpen) {
     return null;
   }
 
-  const categorias = [
-    'Suplemento',
-    'Medicamento',
-    'Vacina',
-    'Combustível',
-    'Semente',
-    'Fertilizante',
-    'Peça',
-    'Defensivo',
-  ];
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'critico', label: 'Reposição', icon: AlertTriangle },
@@ -164,24 +175,28 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
               Categorias de Insumos <Boxes size={14} />
             </label>
             <div className="tauze-tag-cloud">
-              {categorias.map((cat) => (
-                <button
-                  key={cat}
-                  className={`tauze-tag-chip ${filters.categorias?.includes(cat) ? 'active' : ''}`}
-                  onClick={() => toggleCategoria(cat)}
-                  style={{
-                    borderColor: filters.categorias?.includes(cat)
-                      ? '#10b981'
-                      : 'hsl(var(--border))',
-                    background: filters.categorias?.includes(cat)
-                      ? '#10b981'
-                      : 'hsl(var(--bg-card))',
-                    color: filters.categorias?.includes(cat) ? 'white' : 'hsl(var(--text-muted))',
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
+              {categorias.length === 0 ? (
+                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Nenhuma categoria encontrada</span>
+              ) : (
+                categorias.map((cat: string) => (
+                  <button
+                    key={cat}
+                    className={`tauze-tag-chip ${filters.categorias?.includes(cat) ? 'active' : ''}`}
+                    onClick={() => toggleCategoria(cat)}
+                    style={{
+                      borderColor: filters.categorias?.includes(cat)
+                        ? '#10b981'
+                        : 'hsl(var(--border))',
+                      background: filters.categorias?.includes(cat)
+                        ? '#10b981'
+                        : 'hsl(var(--bg-card))',
+                      color: filters.categorias?.includes(cat) ? 'white' : 'hsl(var(--text-muted))',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 

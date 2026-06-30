@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { AsyncSearchableSelect } from './AsyncSearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { DateInput } from '../../components/Form/DateInput';
 import { ConsumptionCart } from './ConsumptionCart';
@@ -62,6 +63,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({
         .toISOString()
         .split('T')[0],
       origem_destino: '', // Text for In/Transfer
+      motivo: 'Ajuste de Estoque',
+      observacao: '',
       centro_custo: '', // Select for Out
       responsavel: '',
       deposito_origem_id: '', // Used only for transfers now
@@ -128,17 +131,15 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     if (isOpen && activeFarm) {
       fetchProducts();
       fetchWarehouses();
-      fetchAnimais();
-      fetchLotes();
     }
   }, [isOpen, activeFarm]);
 
   const fetchProducts = async () => {
     let query = supabase.from('produtos').select(`
-        id, nome, unidade, custo_medio, categoria_id,
+        id, nome, unidade, custo_medio, categoria_id, ncm,
         categorias_sistema (
           nome
-        ).eq('tenant_id', activeTenantId)
+        )
       `);
     query = applyTenantFilter(query);
     const { data, error } = await query;
@@ -168,72 +169,81 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     }
   };
 
-  const fetchAnimais = async () => {
-    let query = supabase
+  // Animais e Lotes agora usarão busca assíncrona (debounce), removendo limite de 500 no carregamento inicial
+  const loadAnimaisELotesOptions = async (inputValue: string) => {
+    const term = inputValue.trim();
+    if (term.length < 2) return [];
+
+    const isNumeric = /^\d+$/.test(term);
+
+    // Fetch Lotes
+    let queryLotes = supabase
+      .from('lotes')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('status', 'ativo')
+      .ilike('nome', `%${term}%`);
+    queryLotes = applyFarmFilter(queryLotes);
+    
+    // Fetch Animais
+    let queryAnimais = supabase
       .from('animais')
-      .select('id, brinco, nome, raca').eq('tenant_id', activeTenantId)
+      .select('id, brinco, nome, raca')
+      .eq('tenant_id', activeTenantId)
       .neq('status', 'vendido')
       .neq('status', 'morto');
-    query = applyFarmFilter(query);
-    const { data } = await query.limit(500);
-    if (data) {
-      setAnimais(
-        data.map((a) => ({ value: a.id, label: `${a.brinco} - ${a.nome || a.raca || 'Sem Nome'}` }))
-      );
+    queryAnimais = applyFarmFilter(queryAnimais);
+
+    if (isNumeric) {
+      queryAnimais = queryAnimais.ilike('brinco', `%${term}%`);
+    } else {
+      queryAnimais = queryAnimais.or(`brinco.ilike.%${term}%,nome.ilike.%${term}%,raca.ilike.%${term}%`);
     }
+
+    const [resLotes, resAnimais] = await Promise.all([
+      queryLotes.limit(10),
+      queryAnimais.limit(20)
+    ]);
+
+    const opts: any[] = [];
+    if (resLotes.data) {
+      opts.push(...resLotes.data.map((l: any) => ({
+        value: `LOTE_${l.id}`,
+        label: `Lote: ${l.nome}`,
+      })));
+    }
+    if (resAnimais.data) {
+      opts.push(...resAnimais.data.map((a: any) => ({
+        value: `ANIMAL_${a.id}`,
+        label: `Animal: ${a.brinco} - ${a.nome || a.raca || 'Sem Nome'}`,
+      })));
+    }
+    return opts;
   };
 
-  const fetchLotes = async () => {
-    let query = supabase.from('lotes').select('id, nome').eq('tenant_id', activeTenantId).eq('status', 'ativo');
-    query = applyFarmFilter(query);
-    const { data } = await query;
-    if (data) {
-      setLotes(data.map((l) => ({ value: l.id, label: l.nome })));
-    }
-  };
 
   const isMedicament = (prodId: string) => {
     const prod = products.find((p) => p.id === prodId);
-    if (!prod || !prod.categoria) {
-      return false;
-    }
-    const cat = prod.categoria.toLowerCase();
-    return (
-      cat.includes('medicamento') ||
-      cat.includes('saúde') ||
-      cat.includes('saude') ||
-      cat.includes('vacina') ||
-      cat.includes('veterinário')
-    );
+    if (!prod || !prod.ncm) return false;
+    const ncm = String(prod.ncm).trim();
+    // NCM Capítulo 30 (Produtos farmacêuticos)
+    return ncm.startsWith('30');
   };
 
   const isAgroDefensive = (prodId: string) => {
     const prod = products.find((p) => p.id === prodId);
-    if (!prod || !prod.categoria) {
-      return false;
-    }
-    const cat = prod.categoria.toLowerCase();
-    return (
-      cat.includes('defensivo') ||
-      cat.includes('agrotóxico') ||
-      cat.includes('herbicida') ||
-      cat.includes('fungicida') ||
-      cat.includes('inseticida')
-    );
+    if (!prod || !prod.ncm) return false;
+    const ncm = String(prod.ncm).trim();
+    // NCM 3808 (Inseticidas, rodenticidas, fungicidas, herbicidas, etc)
+    return ncm.startsWith('3808');
   };
 
   const isSeedOrFertilizer = (prodId: string) => {
     const prod = products.find((p) => p.id === prodId);
-    if (!prod || !prod.categoria) {
-      return false;
-    }
-    const cat = prod.categoria.toLowerCase();
-    return (
-      cat.includes('semente') ||
-      cat.includes('adubo') ||
-      cat.includes('nutrição') ||
-      cat.includes('fertilizante')
-    );
+    if (!prod || !prod.ncm) return false;
+    const ncm = String(prod.ncm).trim();
+    // NCM Capítulo 31 (Adubos/Fertilizantes), Capítulo 10 (Cereais), Capítulo 12 (Sementes)
+    return ncm.startsWith('31') || ncm.startsWith('10') || ncm.startsWith('12');
   };
 
   const requiresReceipt = items.some((item) => isAgroDefensive(item.produto_id));
@@ -265,15 +275,15 @@ export const MovementForm: React.FC<MovementFormProps> = ({
       return;
     }
 
-    // Validate IN values
-    if (formData.tipo === 'in') {
-      const missingValue = items.some(
-        (item) => !item.valor_unitario || parseFloat(item.valor_unitario) <= 0
-      );
-      if (missingValue) {
-        showValidationAlert('Preencha o Valor Unitário para entrada de todos os itens.');
-        return;
-      }
+    // Fill missing deposit ids with the default destination or origin if set
+    if (formData.tipo === 'in' && formData.destino_deposito_id) {
+      items.forEach((item) => {
+        if (!item.deposito_id) item.deposito_id = formData.destino_deposito_id;
+      });
+    } else if ((formData.tipo === 'out' || formData.tipo === 'transfer') && formData.deposito_origem_id) {
+      items.forEach((item) => {
+        if (!item.deposito_id) item.deposito_id = formData.deposito_origem_id;
+      });
     }
 
     // Validate Depots
@@ -287,19 +297,19 @@ export const MovementForm: React.FC<MovementFormProps> = ({
 
     // Validate stock for out/transfer
     if (formData.tipo === 'out' || formData.tipo === 'transfer') {
-      // Assuming mock available stock = 150 for all items right now.
-      for (const item of items) {
-        if (parseFloat(item.quantidade || '0') > 150) {
-          const prodName = products.find((p) => p.id === item.produto_id)?.nome || 'Produto';
-          toast.error(`Quantidade de "${prodName}" é maior que o saldo disponível em estoque!`);
-          return;
-        }
-      }
+      // Validation should ideally be done against real backend stock balance, 
+      // avoiding race conditions. This will be handled by the backend RPC.
+      // But we can add a basic front-end check if we had current_stock fetched.
+      // Removed the 150 mock validation.
     }
+
+    const finalOrigemDestino = (formData.tipo === 'in' || formData.tipo === 'out' || formData.tipo === 'transfer')
+      ? `${formData.motivo || ''} ${formData.observacao ? '| ' + formData.observacao : ''}`.trim()
+      : formData.origem_destino;
 
     setLoading(true);
     try {
-      await onSubmit({ ...formData, items });
+      await onSubmit({ ...formData, origem_destino: finalOrigemDestino, items });
       clearDraft();
     } finally {
       setLoading(false);
@@ -345,16 +355,16 @@ export const MovementForm: React.FC<MovementFormProps> = ({
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
+          <div className="tauze-section-badge">INFORMAÇÕES GERAIS</div>
           <h4 className="tauze-section-title">Dados da Movimentação</h4>
         </div>
 
         <div className="tauze-input-grid grid-col-2">
-          {/* If Transfer, we keep the Origin Depot at the top level */}
-          {formData.tipo === 'transfer' && (
+          {/* Origin Depot is used for Out and Transfer */}
+          {(formData.tipo === 'transfer' || formData.tipo === 'out') && (
             <div className="tauze-field-group">
               <label className="tauze-label">
-                <Building2 size={14} /> Depósito de Origem
+                <Building2 size={14} /> Depósito de Origem (Padrão)
               </label>
               <SearchableSelect
                 value={formData.deposito_origem_id}
@@ -365,45 +375,66 @@ export const MovementForm: React.FC<MovementFormProps> = ({
             </div>
           )}
 
-          {/* If Transfer, we keep Destination Depot at the top level */}
+          {/* Motivo for Transfer and Out */}
+          {(formData.tipo === 'transfer' || formData.tipo === 'out') && (
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <FileText size={14} /> Motivo da {formData.tipo === 'transfer' ? 'Transferência' : 'Saída'}
+              </label>
+              <SearchableSelect
+                value={formData.motivo || ''}
+                onChange={(val) => setFormData({ ...formData, motivo: val })}
+                options={
+                  formData.tipo === 'transfer'
+                    ? [
+                        { value: 'Remanejamento Estratégico', label: 'Remanejamento Estratégico' },
+                        { value: 'Abastecimento Avançado', label: 'Abastecimento Avançado' },
+                        { value: 'Devolução Interna', label: 'Devolução Interna' },
+                      ]
+                    : [
+                        { value: 'Consumo Interno', label: 'Consumo Interno' },
+                        { value: 'Perda / Quebra', label: 'Perda / Quebra' },
+                        { value: 'Ajuste de Estoque', label: 'Ajuste de Estoque' },
+                        { value: 'Doação', label: 'Doação' },
+                        { value: 'Vencimento', label: 'Vencimento' },
+                      ]
+                }
+                placeholder="Selecione o motivo..."
+              />
+            </div>
+          )}
+
+          {/* Destination Depot only for Transfer */}
           {formData.tipo === 'transfer' && (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label">
-                  <ArrowRightLeft size={14} /> Depósito de Destino
-                </label>
-                <SearchableSelect
-                  value={formData.destino_deposito_id}
-                  onChange={(val) => setFormData({ ...formData, destino_deposito_id: val })}
-                  options={warehouses
-                    .filter((w) => w.id !== formData.deposito_origem_id)
-                    .map((w) => ({ value: w.id, label: w.nome }))}
-                  placeholder="Selecione o local de destino..."
-                />
-              </div>
-              <div
-                className="tauze-field-group"
-                style={{
-                  gridColumn: 'span 2',
-                  background: '#f8fafc',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px dashed #cbd5e1',
-                }}
-              >
-                <label className="tauze-label" style={{ color: '#0f172a' }}>
-                  <FileText size={14} /> Motivo da Transferência (Justificativa)
-                </label>
-                <input
-                  type="text"
-                  className="tauze-input"
-                  placeholder="Ex: Remanejamento para plantio no Talhão 02..."
-                  value={formData.origem_destino}
-                  onChange={(e) => setFormData({ ...formData, origem_destino: e.target.value })}
-                  required
-                />
-              </div>
-            </>
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <ArrowRightLeft size={14} /> Depósito de Destino
+              </label>
+              <SearchableSelect
+                value={formData.destino_deposito_id}
+                onChange={(val) => setFormData({ ...formData, destino_deposito_id: val })}
+                options={warehouses
+                  .filter((w) => w.id !== formData.deposito_origem_id)
+                  .map((w) => ({ value: w.id, label: w.nome }))}
+                placeholder="Selecione o local de destino..."
+              />
+            </div>
+          )}
+          
+          {/* Observacoes applied to Out and Transfer */}
+          {(formData.tipo === 'transfer' || formData.tipo === 'out') && (
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label">
+                <FileText size={14} /> Observações
+              </label>
+              <textarea
+                className="tauze-input"
+                style={{ minHeight: '80px', resize: 'vertical' }}
+                placeholder="Detalhes adicionais..."
+                value={formData.observacao || ''}
+                onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+              />
+            </div>
           )}
 
           <div className="tauze-field-group">
@@ -420,19 +451,47 @@ export const MovementForm: React.FC<MovementFormProps> = ({
           </div>
 
           {formData.tipo === 'in' && (
-            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-              <label className="tauze-label">
-                <FileText size={14} /> Motivo / Observação
-              </label>
-              <input
-                type="text"
-                className="tauze-input"
-                placeholder="Ex: Entrada manual de estoque, ajuste, doação..."
-                value={formData.origem_destino}
-                onChange={(e) => setFormData({ ...formData, origem_destino: e.target.value })}
-                required
-              />
-            </div>
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <FileText size={14} /> Motivo da Entrada
+                </label>
+                <SearchableSelect
+                  value={formData.motivo || 'Ajuste de Estoque'}
+                  onChange={(val) => setFormData({ ...formData, motivo: val })}
+                  options={[
+                    { value: 'Compra sem NF', label: 'Compra sem NF' },
+                    { value: 'Ajuste de Estoque', label: 'Ajuste de Estoque' },
+                    { value: 'Doação', label: 'Doação' },
+                    { value: 'Devolução', label: 'Devolução' },
+                  ]}
+                  placeholder="Selecione o motivo..."
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">
+                  <Building2 size={14} /> Depósito de Destino (Padrão)
+                </label>
+                <SearchableSelect
+                  value={formData.destino_deposito_id}
+                  onChange={(val) => setFormData({ ...formData, destino_deposito_id: val })}
+                  options={warehouses.map((w) => ({ value: w.id, label: w.nome }))}
+                  placeholder="Local principal de armazenagem..."
+                />
+              </div>
+              <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                <label className="tauze-label">
+                  <FileText size={14} /> Observações
+                </label>
+                <textarea
+                  className="tauze-input"
+                  style={{ minHeight: '80px', resize: 'vertical' }}
+                  placeholder="Detalhes adicionais sobre a entrada..."
+                  value={formData.observacao || ''}
+                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                />
+              </div>
+            </>
           )}
 
           {formData.tipo === 'out' && (
@@ -508,17 +567,17 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                 <div
                   className="tauze-field-group"
                   style={{
-                    background: '#fffbeb',
+                    background: 'hsl(var(--bg-warning) / 0.3)',
                     padding: '16px',
                     borderRadius: '8px',
-                    border: '1px dashed #fde68a',
+                    border: '1px dashed hsl(var(--border))',
                     gridColumn: 'span 2',
                   }}
                 >
-                  <label className="tauze-label" style={{ color: '#92400e', marginBottom: '8px' }}>
+                  <label className="tauze-label" style={{ color: 'hsl(var(--text-warning))', marginBottom: '8px' }}>
                     <Hash size={14} /> Destinação na Bovinocultura (Busca Inteligente)
                   </label>
-                  <SearchableSelect
+                  <AsyncSearchableSelect
                     value={
                       formData.apropriar_custo
                         ? formData.apropriar_tipo === 'lote'
@@ -526,21 +585,9 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                           : `ANIMAL_${formData.animal_id}`
                         : formData.sub_centro_custo
                     }
-                    onChange={(val) => {
-                      const allOptions = [
-                        ...lotes.map((l) => ({
-                          value: `LOTE_${l.value}`,
-                          label: `Lote: ${l.label}`,
-                        })),
-                        ...animais.map((a) => ({
-                          value: `ANIMAL_${a.value}`,
-                          label: `Animal: ${a.label}`,
-                        })),
-                      ];
-
+                    onChange={(val, label) => {
                       if (val.startsWith('LOTE_')) {
                         const id = val.replace('LOTE_', '');
-                        const label = allOptions.find((o) => o.value === val)?.label || val;
                         setFormData({
                           ...formData,
                           apropriar_custo: true,
@@ -551,7 +598,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                         });
                       } else if (val.startsWith('ANIMAL_')) {
                         const id = val.replace('ANIMAL_', '');
-                        const label = allOptions.find((o) => o.value === val)?.label || val;
                         setFormData({
                           ...formData,
                           apropriar_custo: true,
@@ -566,21 +612,12 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                           apropriar_custo: false,
                           animal_id: '',
                           lote_pecuario_id: '',
-                          sub_centro_custo: val,
+                          sub_centro_custo: label,
                         });
                       }
                     }}
-                    options={[
-                      ...lotes.map((l) => ({
-                        value: `LOTE_${l.value}`,
-                        label: `Lote: ${l.label}`,
-                      })),
-                      ...animais.map((a) => ({
-                        value: `ANIMAL_${a.value}`,
-                        label: `Animal: ${a.label}`,
-                      })),
-                    ]}
-                    placeholder="Digite um lote, animal, ou texto livre..."
+                    loadOptions={loadAnimaisELotesOptions}
+                    placeholder="Digite o brinco, lote ou texto livre..."
                     creatable={true}
                   />
                   <div
@@ -612,15 +649,18 @@ export const MovementForm: React.FC<MovementFormProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <Users size={14} /> Responsável
+              <Users size={14} /> Solicitante / Recebedor
             </label>
-            <input
-              type="text"
-              className="tauze-input"
-              placeholder="Nome de quem realizou..."
+            <SearchableSelect
               value={formData.responsavel}
-              onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })}
-              required
+              onChange={(val) => setFormData({ ...formData, responsavel: val })}
+              options={[
+                { value: 'usuario_1', label: 'Operador Principal' },
+                { value: 'usuario_2', label: 'Gerente da Fazenda' },
+                { value: formData.responsavel, label: formData.responsavel }
+              ].filter((v, i, a) => a.findIndex(t => t.value === v.value) === i)}
+              placeholder="Selecione o responsável..."
+              creatable={true}
             />
           </div>
         </div>
@@ -628,9 +668,9 @@ export const MovementForm: React.FC<MovementFormProps> = ({
 
       <section className="tauze-form-section">
         <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
+          <div className="tauze-section-badge">ITENS DA MOVIMENTAÇÃO</div>
           <h4 className="tauze-section-title">
-            {initialData ? 'Item da Movimentação' : 'Adicionar Insumos'}
+            {initialData ? 'Detalhes do Insumo' : 'Insumos'}
           </h4>
         </div>
 
@@ -727,7 +767,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                 <div className="tauze-field-group">
                   <label className="tauze-label">
                     <DollarSign size={14} />{' '}
-                    {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Valor Unitário'}
+                    {formData.tipo === 'out' ? 'Custo Estimado (Referência)' : 'Valor Unitário'}
                   </label>
                   <input
                     type="number"
@@ -794,6 +834,36 @@ export const MovementForm: React.FC<MovementFormProps> = ({
                 </div>
               </div>
             )}
+
+            <div className="tauze-input-grid grid-col-2">
+              <div className="tauze-field-group">
+                <label className="tauze-label">Lote (Opcional)</label>
+                <input
+                  type="text"
+                  className="tauze-input"
+                  value={items[0]?.lote || ''}
+                  onChange={(e) => {
+                    const newItems = [...items];
+                    newItems[0].lote = e.target.value.toUpperCase();
+                    setItems(newItems);
+                  }}
+                  placeholder="Ex: LOTE001"
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label">Validade (Opcional)</label>
+                <input
+                  type="date"
+                  className="tauze-input"
+                  value={items[0]?.data_validade || ''}
+                  onChange={(e) => {
+                    const newItems = [...items];
+                    newItems[0].data_validade = e.target.value;
+                    setItems(newItems);
+                  }}
+                />
+              </div>
+            </div>
           </div>
         )}
 

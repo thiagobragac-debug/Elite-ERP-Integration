@@ -325,18 +325,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({
         </div>
       </section>
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Itens do Inventário (Ajuste Manual)</h4>
-        </div>
-        <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '16px' }}>
-          Se você quiser lançar os ajustes de quantidade diretamente na abertura da auditoria,
-          adicione-os abaixo. Se a quantidade adicionada for diferente do saldo do sistema, será
-          tratado como divergência.
-        </p>
-        <ConsumptionCart items={items} onChange={setItems} mode="consumption" hideDeposit={true} />
-      </section>
     </SidePanel>
   );
 };

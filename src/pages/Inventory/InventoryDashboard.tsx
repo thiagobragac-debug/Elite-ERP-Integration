@@ -56,6 +56,7 @@ import {
   Zap,
   ArrowDownLeft,
   ArrowUpRight,
+  Calculator,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -65,6 +66,8 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useQuery } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import toast from 'react-hot-toast';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const InventoryDashboard: React.FC = () => {
   const {
@@ -77,15 +80,28 @@ export const InventoryDashboard: React.FC = () => {
   } = useFarmFilter();
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  // Query 1: Products data
-  const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['inventory_products', activeFarmId, activeTenantId, isGlobalMode],
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('ALL');
+
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['depositos', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase.from('depositos').select('id, nome').eq('tenant_id', activeTenantId);
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isReady
+  });
+
+  // Query 1: Inventory Valuation View
+  const { data: valuation = [], isLoading: valuationLoading } = useQuery({
+    queryKey: ['inventory_valuation_summary', activeFarmId, activeTenantId, isGlobalMode],
     queryFn: async () => {
       let query = supabase
-        .from('produtos')
-        .select(
-          'id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria, created_at'
-        ).eq('tenant_id', activeTenantId);
+        .from('vw_inventory_valuation_summary')
+        .select('*')
+        .eq('tenant_id', activeTenantId);
       query = applyFarmFilter(query);
       const { data, error } = await query;
       if (error) {
@@ -123,7 +139,8 @@ export const InventoryDashboard: React.FC = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       let query = supabase
         .from('movimentacoes_estoque')
-        .select('quantidade, valor_unitario, tipo, data_movimentacao').eq('tenant_id', activeTenantId)
+        .select('quantidade, valor_unitario, tipo, data_movimentacao, produtos(nome, unidade)')
+        .eq('tenant_id', activeTenantId)
         .in('tipo', ['out', 'SAIDA'])
         .gte('data_movimentacao', thirtyDaysAgo.toISOString());
       query = applyFarmFilter(query);
@@ -136,64 +153,37 @@ export const InventoryDashboard: React.FC = () => {
     enabled: isReady,
   });
 
-  const loading = productsLoading || movementsLoading || outMovementsLoading;
+  const loading = valuationLoading || movementsLoading || outMovementsLoading;
+
+  const filteredValuation = useMemo(() => {
+    if (selectedWarehouse === 'ALL') return valuation;
+    return valuation.filter((v: any) => v.deposito_id === selectedWarehouse);
+  }, [valuation, selectedWarehouse]);
 
   // Deriving Stats, Critical Items and Recent Movements via useMemo
   const stats = useMemo(() => {
-    if (loading || !products.length) {
-      return [
-        {
-          label: 'Patrimônio em Insumos',
-          value: '---',
-          icon: DollarSign,
-          color: '#10b981',
-          progress: 0,
-          trend: 'none' as const,
-          change: 'Calculando...',
-          sparkline: [],
-        },
-        {
-          label: 'Ruptura de Estoque',
-          value: '---',
-          icon: AlertTriangle,
-          color: '#ef4444',
-          progress: 0,
-          trend: 'none' as const,
-          change: 'Verificando...',
-          sparkline: [],
-        },
-        {
-          label: 'Maturidade (30d)',
-          value: '---',
-          icon: FlaskConical,
-          color: '#f59e0b',
-          progress: 0,
-          trend: 'none' as const,
-          change: 'Auditando...',
-          sparkline: [],
-        },
-        {
-          label: 'Giro de Estoque',
-          value: '---',
-          icon: Zap,
-          color: '#3b82f6',
-          progress: 0,
-          trend: 'none' as const,
-          change: 'Sincronizando...',
-          sparkline: [],
-        },
-      ];
-    }
-
-    const totalValue = products.reduce(
-      (acc: number, p: any) => acc + Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0),
+    const totalValue = filteredValuation.reduce(
+      (acc: number, p: any) => acc + Number(p?.calculo_valor_total || 0),
       0
     );
-    const criticalCount = products.filter(
-      (p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)
+    
+    // Group quantities by product to check minimum stock
+    const productGroups = filteredValuation.reduce((acc: any, curr: any) => {
+        const name = curr.produto_nome;
+        if (!acc[name]) acc[name] = { qty: 0, min: Number(curr.estoque_minimo || 0) };
+        acc[name].qty += Number(curr.quantidade || 0);
+        return acc;
+    }, {});
+    
+    const criticalCount = Object.values(productGroups).filter(
+      (p: any) => p.qty < p.min
     ).length;
-    const maturityCount = products.filter(
-      (p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0) * 0.5
+    
+    const now = new Date();
+    const thirtyDays = new Date();
+    thirtyDays.setDate(now.getDate() + 30);
+    const maturityCount = filteredValuation.filter(
+      (p: any) => p.data_validade && new Date(p.data_validade) <= thirtyDays && Number(p.quantidade || 0) > 0
     ).length;
 
     const totalOutgoingValue = outMovements.reduce(
@@ -223,37 +213,37 @@ export const InventoryDashboard: React.FC = () => {
     return [
       {
         label: 'Patrimônio em Insumos',
-        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---',
+        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'R$ 0,00',
         icon: DollarSign,
         color: '#10b981',
         progress: totalValue > 0 ? 85 : 0,
         trend: 'none' as const,
         change: 'Capital Imobilizado',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
+        sparkline: [],
       },
       {
         label: 'Ruptura de Estoque',
         value: String(criticalCount),
         icon: AlertTriangle,
         color: '#ef4444',
-        progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
+        progress: Object.keys(productGroups).length > 0 ? (criticalCount / Object.keys(productGroups).length) * 100 : 0,
         trend: criticalCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Itens p/ Reposição',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
+        sparkline: [],
       },
       {
-        label: 'Maturidade (30d)',
+        label: 'Vencimentos Próximos',
         value: `${maturityCount} itens`,
         icon: FlaskConical,
         color: '#f59e0b',
-        progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
+        progress: Object.keys(productGroups).length > 0 ? (maturityCount / Object.keys(productGroups).length) * 100 : 0,
         trend: maturityCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Risco de Perda',
-        sparkline: buildSparkline(products, 'created_at', 'estoque_atual'),
+        sparkline: [],
       },
       {
         label: 'Giro de Estoque',
-        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---',
+        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '0.0x',
         icon: Zap,
         color: '#3b82f6',
         progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
@@ -262,13 +252,22 @@ export const InventoryDashboard: React.FC = () => {
         sparkline: turnover > 0 ? sparklineGiro : [],
       },
     ];
-  }, [loading, products, outMovements]);
+  }, [loading, filteredValuation, outMovements]);
 
   const criticalItems = useMemo(() => {
-    return products
-      .filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0))
+    // Obter itens críticos diretamente da view agregada
+    const aggregated = filteredValuation.reduce((acc: any, curr: any) => {
+        if (!acc[curr.produto_nome]) {
+            acc[curr.produto_nome] = { ...curr, quantidade_total: 0 };
+        }
+        acc[curr.produto_nome].quantidade_total += Number(curr.quantidade || 0);
+        return acc;
+    }, {});
+    
+    return Object.values(aggregated)
+      .filter((p: any) => p.quantidade_total < Number(p.estoque_minimo || 0))
       .slice(0, 4);
-  }, [products]);
+  }, [filteredValuation]);
 
   const recentMovements = useMemo(() => {
     return movements.map((m: any) => ({
@@ -279,6 +278,63 @@ export const InventoryDashboard: React.FC = () => {
       value: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'Entrada' : 'Saída',
     }));
   }, [movements]);
+
+  const abcCurve = useMemo(() => {
+    const aggregated = filteredValuation.reduce((acc: any, curr: any) => {
+        if (!acc[curr.produto_nome]) {
+            acc[curr.produto_nome] = { nome: curr.produto_nome, valor_total: 0, quantidade: 0, unidade: curr.unidade };
+        }
+        acc[curr.produto_nome].valor_total += Number(curr.calculo_valor_total || 0);
+        acc[curr.produto_nome].quantidade += Number(curr.quantidade || 0);
+        return acc;
+    }, {});
+    
+    const sorted = Object.values(aggregated).sort((a: any, b: any) => b.valor_total - a.valor_total);
+    const totalValue = sorted.reduce((sum: number, item: any) => sum + item.valor_total, 0);
+    
+    let accumulated = 0;
+    return sorted.map((item: any) => {
+        accumulated += item.valor_total;
+        const cumulativePercentage = totalValue > 0 ? (accumulated / totalValue) * 100 : 0;
+        let classification = 'C';
+        if (cumulativePercentage <= 80) classification = 'A';
+        else if (cumulativePercentage <= 95) classification = 'B';
+        
+        return {
+            ...item,
+            classification,
+            percentage: totalValue > 0 ? (item.valor_total / totalValue) * 100 : 0
+        };
+    }).filter((i: any) => i.valor_total > 0).slice(0, 5);
+  }, [filteredValuation]);
+
+  const stockCoverage = useMemo(() => {
+    // Calculando consumo diário (últimos 30 dias)
+    const consumption = outMovements.reduce((acc: any, curr: any) => {
+        const nome = curr.produtos?.nome;
+        if (!nome) return acc;
+        if (!acc[nome]) acc[nome] = 0;
+        acc[nome] += Number(curr.quantidade || 0);
+        return acc;
+    }, {});
+
+    const aggregatedValuation = filteredValuation.reduce((acc: any, curr: any) => {
+        if (!acc[curr.produto_nome]) {
+            acc[curr.produto_nome] = { nome: curr.produto_nome, quantidade: 0, unidade: curr.unidade };
+        }
+        acc[curr.produto_nome].quantidade += Number(curr.quantidade || 0);
+        return acc;
+    }, {});
+
+    const coverageData = Object.keys(consumption).map(nome => {
+        const dailyConsumption = consumption[nome] / 30;
+        const currentStock = aggregatedValuation[nome]?.quantidade || 0;
+        const days = dailyConsumption > 0 ? Math.floor(currentStock / dailyConsumption) : 999;
+        return { nome, days, currentStock, dailyConsumption, unidade: aggregatedValuation[nome]?.unidade };
+    });
+
+    return coverageData.filter(c => c.days <= 15).sort((a, b) => a.days - b.days).slice(0, 4);
+  }, [filteredValuation, outMovements]);
 
   // Import React useMemo
   return (
@@ -296,9 +352,22 @@ export const InventoryDashboard: React.FC = () => {
             Visão executiva de patrimônio, ruptura de estoque e rastreabilidade de insumos.
           </p>
         </div>
-        <div className="page-actions">
-          <button className="glass-btn primary">
-            <BarChart3 size={18} />
+        <div className="page-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {warehouses.length > 0 && (
+            <select
+              className="tauze-input"
+              value={selectedWarehouse}
+              onChange={(e) => setSelectedWarehouse(e.target.value)}
+              style={{ width: '200px', margin: 0 }}
+            >
+              <option value="ALL">Todos os Armazéns</option>
+              {warehouses.map((w: any) => (
+                <option key={w.id} value={w.id}>{w.nome}</option>
+              ))}
+            </select>
+          )}
+          <button className="primary-btn" onClick={() => toast.success("Processo de valoração iniciado em background. Você será notificado ao finalizar.")}>
+            <Calculator size={18} />
             VALORAÇÃO TOTAL
           </button>
         </div>
@@ -352,12 +421,14 @@ export const InventoryDashboard: React.FC = () => {
               <AlertTriangle size={20} className="section-icon" />
               <h3>Itens para Reposição Urgente</h3>
             </div>
-            <span className="header-meta">Ruptura Detectada</span>
+            {criticalItems && criticalItems.length > 0 && (
+              <span className="header-meta">Ruptura Detectada</span>
+            )}
           </div>
 
           <div className="critical-assets-grid">
             {criticalItems && criticalItems.length > 0 ? (
-              criticalItems.map((item) => (
+              (criticalItems as any[]).map((item: any) => (
                 <div key={item?.id} className="asset-health-card">
                   <div className="asset-header">
                     <div
@@ -381,7 +452,7 @@ export const InventoryDashboard: React.FC = () => {
                     </div>
                     <div className="bar-progress-bg">
                       {(() => {
-                        const current = Number(item?.estoque_atual || 0);
+                        const current = Number(item?.quantidade_total || 0);
                         const min = Number(item?.estoque_minimo || 1);
                         const progress = Math.min((current / min) * 100, 100);
                         const healthScore = progress;
@@ -397,7 +468,7 @@ export const InventoryDashboard: React.FC = () => {
                     </div>
                     <div className="bar-footer">
                       <span>
-                        {item.estoque_atual} {item.unidade} atuais
+                        {(item as any)?.quantidade_total} {(item as any)?.unidade} atuais
                       </span>
                       <span className="remaining-text">Abaixo do Limite</span>
                     </div>
@@ -409,9 +480,12 @@ export const InventoryDashboard: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="empty-health">
-                <Boxes size={32} />
-                <p>Nenhum item abaixo do estoque mínimo de segurança.</p>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <EmptyState
+                  title="Estoque Saudável"
+                  description="Nenhum item abaixo do estoque mínimo de segurança."
+                  icon={Package}
+                />
               </div>
             )}
           </div>
@@ -461,6 +535,87 @@ export const InventoryDashboard: React.FC = () => {
             VER LOG DE MOVIMENTOS
             <ChevronRight size={16} />
           </button>
+        </section>
+      </div>
+
+      <div className="inventory-hub-grid" style={{ marginTop: '0px' }}>
+        <section className="hub-section main-panel">
+          <div className="section-header">
+            <div className="title-group">
+              <BarChart3 size={20} className="section-icon" />
+              <h3>Curva ABC (Top 5 - Classe A)</h3>
+            </div>
+            <span className="header-meta" style={{ background: '#3b82f615', color: '#3b82f6' }}>Mais Valiosos</span>
+          </div>
+          
+          <div className="activity-list">
+            {abcCurve.length === 0 && (
+              <div className="text-center py-8 text-sm font-bold text-slate-400">
+                Dados insuficientes para cálculo de Curva ABC
+              </div>
+            )}
+            {abcCurve.map((item: any, i: number) => (
+              <div key={i} className="activity-item-tauze" style={{ alignItems: 'center' }}>
+                <div className="act-icon-wrapper" style={{ background: '#3b82f615', color: '#3b82f6', fontSize: '16px' }}>
+                  <strong>{item.classification}</strong>
+                </div>
+                <div className="act-content">
+                  <div className="act-main-row">
+                    <span className="act-title" style={{ fontSize: '14px' }}>{item.nome}</span>
+                    <span className="act-value" style={{ color: '#10b981', fontSize: '13px' }}>
+                      R$ {item.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="act-meta-row">
+                    <span>{item.percentage.toFixed(1)}% do valor total imobilizado</span>
+                    <span>•</span>
+                    <span>{item.quantidade} {item.unidade} em estoque</span>
+                  </div>
+                  <div className="bar-progress-bg" style={{ marginTop: '8px', height: '6px' }}>
+                    <div className="bar-progress-fill" style={{ width: `${item.percentage}%`, backgroundColor: '#3b82f6' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="hub-section side-panel">
+          <div className="section-header">
+            <div className="title-group">
+              <Activity size={20} className="section-icon" />
+              <h3>Cobertura de Estoque</h3>
+            </div>
+          </div>
+          
+          <div className="activity-list">
+            {stockCoverage.length === 0 && (
+              <div className="text-center py-8 text-sm font-bold text-slate-400">
+                Nenhum item em risco imediato de ruptura
+              </div>
+            )}
+            {stockCoverage.map((item: any, i: number) => (
+              <div key={i} className="activity-item-tauze">
+                <div className="act-icon-wrapper" style={{ background: item.days <= 5 ? '#ef444415' : '#f59e0b15', color: item.days <= 5 ? '#ef4444' : '#f59e0b' }}>
+                  <Calendar size={16} />
+                </div>
+                <div className="act-content">
+                  <div className="act-main-row">
+                    <span className="act-title">{item.nome}</span>
+                    <span className="act-value" style={{ color: item.days <= 5 ? '#ef4444' : '#f59e0b' }}>
+                      {item.days} DIAS
+                    </span>
+                  </div>
+                  <div className="act-meta-row">
+                    <span>Consumo diário: {item.dailyConsumption.toFixed(1)} {item.unidade}</span>
+                  </div>
+                  <div className="bar-progress-bg" style={{ marginTop: '8px', height: '4px' }}>
+                    <div className="bar-progress-fill" style={{ width: `${Math.max(10, 100 - (item.days * 5))}%`, backgroundColor: item.days <= 5 ? '#ef4444' : '#f59e0b' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
 

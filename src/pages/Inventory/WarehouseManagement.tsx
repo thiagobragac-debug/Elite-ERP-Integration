@@ -24,6 +24,8 @@ import {
   Thermometer,
   Zap,
   UserCheck,
+  MapPin,
+  Warehouse,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -94,14 +96,27 @@ export const WarehouseManagement: React.FC = () => {
 
   // Track selected structure type to show dynamic fields
   const [selectedType, setSelectedType] = useState<string>('Galpão');
+  const [selectedUnit, setSelectedUnit] = useState<string>('m²');
 
   useEffect(() => {
     if (selectedWarehouse) {
       setSelectedType(selectedWarehouse.tipo || 'Galpão');
+      setSelectedUnit(selectedWarehouse.unidade_capacidade || 'un');
     } else {
       setSelectedType('Galpão');
+      setSelectedUnit('m²');
     }
   }, [selectedWarehouse]);
+
+  useEffect(() => {
+    if (!selectedWarehouse) {
+      if (selectedType === 'Silo') setSelectedUnit('ton');
+      else if (selectedType === 'Tanque') setSelectedUnit('L');
+      else if (selectedType === 'Câmara Fria') setSelectedUnit('m³');
+      else if (selectedType === 'Galpão') setSelectedUnit('m²');
+      else setSelectedUnit('un');
+    }
+  }, [selectedType, selectedWarehouse]);
 
   const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
@@ -114,17 +129,14 @@ export const WarehouseManagement: React.FC = () => {
         .select(
           `
           *,
-          movimentacoes_estoque (
+          saldos_estoque (
             quantidade,
-            tipo,
-            produto_id,
-            produtos (
-              custo_medio
-            ).eq('tenant_id', activeTenantId)
+            valor_total
           )
         `,
           { count: 'exact' }
         )
+        .is('deleted_at', null)
         .order('nome', { ascending: true });
       query = applyFarmFilter(query);
       const range = getRange();
@@ -137,26 +149,18 @@ export const WarehouseManagement: React.FC = () => {
       }
 
       return (data || []).map((w: any) => {
+        let saldo = 0;
         let valorTotal = 0;
-        const saldo =
-          w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
-            const qty = Number(curr.quantidade);
-            const tipoUpper = (curr.tipo || '').toUpperCase();
-            const isEntry = tipoUpper === 'IN' || tipoUpper === 'ENTRADA';
-            const prodValue = (curr.produtos?.custo_medio || 0) * qty;
-
-            if (isEntry) {
-              valorTotal += prodValue;
-              return acc + qty;
-            }
-            valorTotal -= prodValue;
-            return acc - qty;
-          }, 0) || 0;
+        
+        w.saldos_estoque?.forEach((s: any) => {
+           saldo += Number(s.quantidade || 0);
+           valorTotal += Number(s.valor_total || 0);
+        });
 
         return {
           ...w,
           saldo_atual: saldo,
-          valor_total: Math.max(0, valorTotal),
+          valor_total: valorTotal,
         };
       }) as any[];
     },
@@ -231,7 +235,7 @@ export const WarehouseManagement: React.FC = () => {
 
   const deleteWarehouseMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('depositos').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.from('depositos').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('tenant_id', activeTenantId);
       if (error) {
         throw error;
       }
@@ -269,19 +273,13 @@ export const WarehouseManagement: React.FC = () => {
     // Check if inactivating and verify balance
     if (selectedWarehouse && payload.status === 'inativo' && selectedWarehouse.status === 'ativo') {
       const { data: balanceData, error: balanceError } = await supabase
-        .from('movimentacoes_estoque')
-        .select('quantidade, tipo', { count: 'exact' }).eq('tenant_id', activeTenantId)
+        .from('saldos_estoque')
+        .select('quantidade')
+        .eq('tenant_id', activeTenantId)
         .eq('deposito_id', selectedWarehouse.id);
 
       if (!balanceError && balanceData) {
-        const totalBalance = balanceData.reduce((acc, curr) => {
-          return (
-            acc +
-            (curr.tipo === 'IN' || curr.tipo === 'in'
-              ? Number(curr.quantidade)
-              : -Number(curr.quantidade))
-          );
-        }, 0);
+        const totalBalance = balanceData.reduce((acc, curr) => acc + Number(curr.quantidade || 0), 0);
 
         if (totalBalance > 0) {
           toast.error(
@@ -1240,15 +1238,15 @@ export const WarehouseManagement: React.FC = () => {
         }}
         onSubmit={handleSubmit}
         title={selectedWarehouse ? 'Editar Depósito' : 'Novo Depósito'}
-        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.name || 'ativa'}`}
+        subtitle="Preencha as informações para registrar um novo local de armazenagem."
         icon={Package}
-        submitLabel={selectedWarehouse ? 'Salvar Alterações' : 'Confirmar Cadastro'}
+        submitLabel={selectedWarehouse ? 'Salvar Alterações' : 'Salvar Depósito'}
         size="medium"
       >
         <div className="form-grid">
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label">
-              <Plus size={14} /> NOME DO DEPÓSITO
+              <Warehouse size={14} className="text-muted" /> NOME DO DEPÓSITO
             </label>
             <input
               name="nome"
@@ -1262,7 +1260,7 @@ export const WarehouseManagement: React.FC = () => {
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <Layout size={14} /> TIPO DE ESTRUTURA
+              <Layout size={14} className="text-muted" /> TIPO DE ESTRUTURA
             </label>
             <select
               name="tipo"
@@ -1408,7 +1406,7 @@ export const WarehouseManagement: React.FC = () => {
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <Scale size={14} /> CAPACIDADE MÁXIMA
+              <Scale size={14} className="text-muted" /> CAPACIDADE MÁXIMA
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -1423,7 +1421,8 @@ export const WarehouseManagement: React.FC = () => {
                 name="unidade_capacidade"
                 className="tauze-input"
                 style={{ width: '75px' }}
-                defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}
+                value={selectedUnit}
+                onChange={(e) => setSelectedUnit(e.target.value)}
               >
                 {unidades.length > 0 ? (
                   unidades.map((u) => (
@@ -1446,26 +1445,39 @@ export const WarehouseManagement: React.FC = () => {
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <Layout size={14} /> FAZENDA VINCULADA
+              <Layout size={14} className="text-muted" /> FAZENDA VINCULADA
             </label>
-            <select
-              name="fazenda_id"
-              className="tauze-input"
-              defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id}
-              required
-            >
-              <option value="">Selecione...</option>
-              {farms.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nome}
-                </option>
-              ))}
-            </select>
+            {activeFarm ? (
+              <>
+                <input
+                  type="text"
+                  className="tauze-input"
+                  value={activeFarm.nome}
+                  disabled
+                  style={{ backgroundColor: 'var(--bg-muted, #f1f5f9)', color: 'var(--text-muted, #64748b)' }}
+                />
+                <input type="hidden" name="fazenda_id" value={activeFarm.id} />
+              </>
+            ) : (
+              <select
+                name="fazenda_id"
+                className="tauze-input"
+                defaultValue={selectedWarehouse?.fazenda_id || activeFarmId}
+                required
+              >
+                <option value="">Selecione...</option>
+                {farms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nome}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <Activity size={14} /> STATUS DO ATIVO
+              <Activity size={14} className="text-muted" /> STATUS DO ATIVO
             </label>
             <select
               name="status"
@@ -1480,7 +1492,7 @@ export const WarehouseManagement: React.FC = () => {
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label">
-              <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
+              <MapPin size={14} className="text-muted" /> LOCALIZAÇÃO TÉCNICA / GPS
             </label>
             <input
               name="localizacao_tecnica"
