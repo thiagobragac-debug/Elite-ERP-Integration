@@ -384,34 +384,27 @@ export const MovementManagement: React.FC = () => {
     
     confirm({
         title: 'Confirmar Estorno Contábil',
-        description: `Deseja gerar uma movimentação reversa para o item ${move.produtos?.nome || 'Geral'}? Esta ação não pode ser desfeita e afetará o custo médio.`,
+        description: `Deseja estornar a movimentação do item ${move.produtos?.nome || 'Geral'}? Esta ação reverterá o saldo no Lote específico (FEFO) e bloqueará a operação caso o lote já tenha sido consumido.`,
         confirmText: 'Confirmar Estorno',
         cancelText: 'Cancelar',
         variant: 'danger',
         onConfirm: async () => {
             try {
-                const toastId = toast.loading('Processando estorno...');
-                const reverseType = move.tipo === 'ENTRADA' ? 'SAIDA' : move.tipo === 'SAIDA' ? 'ENTRADA' : 'TRANSFERENCIA';
+                const toastId = toast.loading('Processando estorno e recompondo lotes...');
+                const { data, error } = await supabase.rpc('estornar_movimentacao', {
+                    p_movimentacao_id: move.id,
+                    p_tenant_id: activeTenantId
+                });
                 
-                const reversePayload = {
-                    produto_id: move.produto_id,
-                    tipo: reverseType,
-                    quantidade: move.quantidade,
-                    deposito_id: move.deposito_id,
-                    custo_unitario: move.custo_unitario,
-                    data_movimentacao: new Date().toISOString(),
-                    origem_destino: `[ESTORNO ref: ${move.id?.slice(0,8)}]`,
-                    responsavel: move.responsavel,
-                    lote: move.lote || null,
-                    data_validade: move.data_validade || null,
-                    fazenda_id: move.fazenda_id,
-                    tenant_id: move.tenant_id,
-                };
+                if (error || (data && !data.success)) {
+                    throw error || new Error(data?.error || 'Erro ao processar estorno');
+                }
                 
-                await movementMutation.mutateAsync({ payloads: [reversePayload], isEdit: false });
-                toast.success('Movimentação estornada com sucesso!', { id: toastId });
+                queryClient.invalidateQueries({ queryKey: ['movements'] });
+                refetchMovements();
+                toast.success('Estorno realizado e saldos recompostos com sucesso!', { id: toastId });
             } catch (err: any) {
-                toast.error(`Erro ao estornar: ${err.message}`);
+                toast.error(`❌ Erro ao estornar: ${err.message}`);
             }
         }
     });
@@ -568,7 +561,7 @@ export const MovementManagement: React.FC = () => {
 
 
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
-    const loadingToast = toast.loading('Gerando exportação...');
+    const loadingToast = toast.loading('Gerando exportação server-side...');
     
     let query = supabase.from('movimentacoes_estoque').select(`
       *,
@@ -586,6 +579,25 @@ export const MovementManagement: React.FC = () => {
 
     if (searchTerm) {
       query = query.or(`responsavel.ilike.%${searchTerm}%,origem_destino.ilike.%${searchTerm}%`);
+    }
+
+    const _tab = String(activeTab);
+    if (_tab === 'in') query = query.in('tipo', ['ENTRADA', 'in']);
+    else if (_tab === 'out') query = query.in('tipo', ['SAIDA', 'out']);
+    else if (_tab === 'transfer') query = query.in('tipo', ['TRANSFERENCIA', 'transfer']);
+
+    if (filterValues.type !== 'all') {
+      query = query.eq('tipo', filterValues.type);
+    }
+
+    if (filterValues.dateStart) {
+      query = query.gte('data_movimentacao', filterValues.dateStart);
+    }
+    
+    if (filterValues.dateEnd) {
+      const end = new Date(filterValues.dateEnd);
+      end.setHours(23, 59, 59, 999);
+      query = query.lte('data_movimentacao', end.toISOString());
     }
 
     const { data, error } = await query.order('data_movimentacao', { ascending: false });
@@ -607,29 +619,11 @@ export const MovementManagement: React.FC = () => {
     }));
 
     const filteredData = mapped.filter((m) => {
-      const _tab = String(activeTab);
-      const matchesTab =
-        _tab === 'all'
-          ? true
-          : _tab === 'in'
-            ? m.tipo === 'ENTRADA'
-            : _tab === 'out'
-              ? m.tipo === 'SAIDA'
-              : _tab === 'LOG'
-                ? true
-                : m.tipo === 'TRANSFERENCIA';
-
-      const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
       const amount = Number(m.quantidade) * Number(m.custo_unitario || 0);
       const matchesAmount =
         filterValues.maxAmount >= 1000000 ||
         (amount >= filterValues.minAmount && amount <= filterValues.maxAmount);
-      const matchesDate =
-        (!filterValues.dateStart ||
-          new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
-        (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
-
-      return matchesTab && matchesType && matchesAmount && matchesDate;
+      return matchesAmount;
     });
 
     const exportData = filteredData.map((item) => ({

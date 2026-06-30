@@ -94,20 +94,16 @@ export const InventoryDashboard: React.FC = () => {
     enabled: isReady
   });
 
-  // Query 1: Inventory Valuation View
-  const { data: valuation = [], isLoading: valuationLoading } = useQuery({
-    queryKey: ['inventory_valuation_summary', activeFarmId, activeTenantId, isGlobalMode],
+  // Query 1: Dashboard Stats (Replaces valuation for KPIs)
+  const { data: dashboardData, isLoading: dashboardStatsLoading } = useQuery({
+    queryKey: ['inventory_dashboard_stats', activeTenantId, activeFarmId, isGlobalMode, selectedWarehouse],
     queryFn: async () => {
-      let query = supabase
-        .from('vw_inventory_valuation_summary')
-        .select('*')
-        .eq('tenant_id', activeTenantId);
-      query = applyFarmFilter(query);
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      return (data || []) as any[];
+      const { data, error } = await supabase.rpc('get_inventory_dashboard_stats', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: isGlobalMode ? null : activeFarmId,
+      });
+      if (error) throw error;
+      return data;
     },
     enabled: isReady,
   });
@@ -118,102 +114,84 @@ export const InventoryDashboard: React.FC = () => {
     queryFn: async () => {
       let query = supabase
         .from('movimentacoes_estoque')
-        .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)').eq('tenant_id', activeTenantId)
+        .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)')
+        .eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(6);
       query = applyFarmFilter(query);
       const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      return (data || []) as any[];
+      if (error) throw error;
+      return data || [];
     },
     enabled: isReady,
   });
 
-  // Query 3: Outgoing Movements of last 30 days
-  const { data: outMovements = [], isLoading: outMovementsLoading } = useQuery({
-    queryKey: ['inventory_outgoing_movements', activeFarmId, activeTenantId, isGlobalMode],
+  // Query 3: ABC Curve (Server-side)
+  const { data: abcCurve = [], isLoading: abcLoading } = useQuery({
+    queryKey: ['inventory_abc_curve', activeFarmId, activeTenantId, isGlobalMode, selectedWarehouse],
     queryFn: async () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      let query = supabase
-        .from('movimentacoes_estoque')
-        .select('quantidade, valor_unitario, tipo, data_movimentacao, produtos(nome, unidade)')
-        .eq('tenant_id', activeTenantId)
-        .in('tipo', ['out', 'SAIDA'])
-        .gte('data_movimentacao', thirtyDaysAgo.toISOString());
-      query = applyFarmFilter(query);
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      return (data || []) as any[];
+      const { data, error } = await supabase.rpc('get_abc_curve', {
+        p_tenant_id: activeTenantId,
+        p_warehouse_id: selectedWarehouse === 'ALL' ? null : selectedWarehouse,
+      });
+      if (error) throw error;
+      return data || [];
     },
     enabled: isReady,
   });
 
-  const loading = valuationLoading || movementsLoading || outMovementsLoading;
+  // Query 4: Stock Coverage (Server-side)
+  const { data: stockCoverage = [], isLoading: coverageLoading } = useQuery({
+    queryKey: ['inventory_stock_coverage', activeFarmId, activeTenantId, isGlobalMode, selectedWarehouse],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_stock_coverage', {
+        p_tenant_id: activeTenantId,
+        p_warehouse_id: selectedWarehouse === 'ALL' ? null : selectedWarehouse,
+      });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isReady,
+  });
 
-  const filteredValuation = useMemo(() => {
-    if (selectedWarehouse === 'ALL') return valuation;
-    return valuation.filter((v: any) => v.deposito_id === selectedWarehouse);
-  }, [valuation, selectedWarehouse]);
+  // Query 5: Critical Items (Server-side)
+  const { data: criticalItems = [], isLoading: criticalLoading } = useQuery({
+    queryKey: ['inventory_critical_items', activeFarmId, activeTenantId, isGlobalMode, selectedWarehouse],
+    queryFn: async () => {
+      let query = supabase
+        .from('vw_inventory_valuation_summary')
+        .select('*')
+        .eq('tenant_id', activeTenantId)
+        .eq('status_estoque', 'CRITICO');
+      query = applyFarmFilter(query);
+      const { data, error } = await query.limit(4);
+      if (error) throw error;
+      
+      return (data || []).map((p: any) => ({
+        ...p,
+        nome: p.produto_nome,
+        categoria: p.categoria_nome,
+        quantidade_total: p.estoque_total,
+        estoque_minimo: p.estoque_minimo || 0
+      }));
+    },
+    enabled: isReady,
+  });
 
-  // Deriving Stats, Critical Items and Recent Movements via useMemo
+  const loading = dashboardStatsLoading || movementsLoading || abcLoading || coverageLoading || criticalLoading;
+
   const stats = useMemo(() => {
-    const totalValue = filteredValuation.reduce(
-      (acc: number, p: any) => acc + Number(p?.calculo_valor_total || 0),
-      0
-    );
-    
-    // Group quantities by product to check minimum stock
-    const productGroups = filteredValuation.reduce((acc: any, curr: any) => {
-        const name = curr.produto_nome;
-        if (!acc[name]) acc[name] = { qty: 0, min: Number(curr.estoque_minimo || 0) };
-        acc[name].qty += Number(curr.quantidade || 0);
-        return acc;
-    }, {});
-    
-    const criticalCount = Object.values(productGroups).filter(
-      (p: any) => p.qty < p.min
-    ).length;
-    
-    const now = new Date();
-    const thirtyDays = new Date();
-    thirtyDays.setDate(now.getDate() + 30);
-    const maturityCount = filteredValuation.filter(
-      (p: any) => p.data_validade && new Date(p.data_validade) <= thirtyDays && Number(p.quantidade || 0) > 0
-    ).length;
-
-    const totalOutgoingValue = outMovements.reduce(
-      (acc: number, m: any) => acc + Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0),
-      0
-    );
-    const calculatedTurnover = totalValue > 0 ? totalOutgoingValue / totalValue : 0;
-    const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
-
-    const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - 30 + i + 1);
-      const dayStr = d.toISOString().split('T')[0];
-      const dayTotal = outMovements
-        .filter((m: any) => m.data_movimentacao?.startsWith(dayStr))
-        .reduce(
-          (acc: number, m: any) =>
-            acc + Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0),
-          0
-        );
-      return {
-        value: dayTotal || 0,
-        label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-      };
-    });
+    // get_inventory_dashboard_stats returns array or object
+    const data = Array.isArray(dashboardData) ? dashboardData[0] : (dashboardData || {});
+    const totalValue = data.capital_imobilizado || 0;
+    const criticalCount = data.itens_ruptura || 0;
+    const maturityCount = data.itens_maturidade || 0;
+    const turnover = 0; // Requires specific Turnover KPI in DB
 
     return [
       {
         label: 'Patrimônio em Insumos',
-        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'R$ 0,00',
+        value: totalValue > 0 ? \`R$ \${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\` : 'R$ 0,00',
         icon: DollarSign,
         color: '#10b981',
         progress: totalValue > 0 ? 85 : 0,
@@ -226,115 +204,43 @@ export const InventoryDashboard: React.FC = () => {
         value: String(criticalCount),
         icon: AlertTriangle,
         color: '#ef4444',
-        progress: Object.keys(productGroups).length > 0 ? (criticalCount / Object.keys(productGroups).length) * 100 : 0,
+        progress: criticalCount > 0 ? 100 : 0,
         trend: criticalCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Itens p/ Reposição',
         sparkline: [],
       },
       {
         label: 'Vencimentos Próximos',
-        value: `${maturityCount} itens`,
+        value: \`\${maturityCount} itens\`,
         icon: FlaskConical,
         color: '#f59e0b',
-        progress: Object.keys(productGroups).length > 0 ? (maturityCount / Object.keys(productGroups).length) * 100 : 0,
+        progress: maturityCount > 0 ? 100 : 0,
         trend: maturityCount > 0 ? ('up' as const) : ('none' as const),
         change: 'Risco de Perda',
         sparkline: [],
       },
       {
         label: 'Giro de Estoque',
-        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '0.0x',
+        value: turnover > 0 ? \`\${turnover.toFixed(1)}x\` : '0.0x',
         icon: Zap,
         color: '#3b82f6',
-        progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
+        progress: 0,
         trend: turnover > 1.0 ? ('up' as const) : ('none' as const),
         change: 'Eficiência Logística',
-        sparkline: turnover > 0 ? sparklineGiro : [],
+        sparkline: [],
       },
     ];
-  }, [loading, filteredValuation, outMovements]);
-
-  const criticalItems = useMemo(() => {
-    // Obter itens críticos diretamente da view agregada
-    const aggregated = filteredValuation.reduce((acc: any, curr: any) => {
-        if (!acc[curr.produto_nome]) {
-            acc[curr.produto_nome] = { ...curr, quantidade_total: 0 };
-        }
-        acc[curr.produto_nome].quantidade_total += Number(curr.quantidade || 0);
-        return acc;
-    }, {});
-    
-    return Object.values(aggregated)
-      .filter((p: any) => p.quantidade_total < Number(p.estoque_minimo || 0))
-      .slice(0, 4);
-  }, [filteredValuation]);
+  }, [dashboardData]);
 
   const recentMovements = useMemo(() => {
     return movements.map((m: any) => ({
       type: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'in' : 'out',
       date: m?.data_movimentacao || new Date().toISOString(),
       title: m?.produtos?.nome || 'Item',
-      subtitle: `${m?.quantidade || 0} ${m?.produtos?.unidade || ''} • ${m?.responsavel || 'N/A'}`,
+      subtitle: \`\${m?.quantidade || 0} \${m?.produtos?.unidade || ''} • \${m?.responsavel || 'N/A'}\`,
       value: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'Entrada' : 'Saída',
     }));
   }, [movements]);
-
-  const abcCurve = useMemo(() => {
-    const aggregated = filteredValuation.reduce((acc: any, curr: any) => {
-        if (!acc[curr.produto_nome]) {
-            acc[curr.produto_nome] = { nome: curr.produto_nome, valor_total: 0, quantidade: 0, unidade: curr.unidade };
-        }
-        acc[curr.produto_nome].valor_total += Number(curr.calculo_valor_total || 0);
-        acc[curr.produto_nome].quantidade += Number(curr.quantidade || 0);
-        return acc;
-    }, {});
-    
-    const sorted = Object.values(aggregated).sort((a: any, b: any) => b.valor_total - a.valor_total);
-    const totalValue = sorted.reduce((sum: number, item: any) => sum + item.valor_total, 0);
-    
-    let accumulated = 0;
-    return sorted.map((item: any) => {
-        accumulated += item.valor_total;
-        const cumulativePercentage = totalValue > 0 ? (accumulated / totalValue) * 100 : 0;
-        let classification = 'C';
-        if (cumulativePercentage <= 80) classification = 'A';
-        else if (cumulativePercentage <= 95) classification = 'B';
-        
-        return {
-            ...item,
-            classification,
-            percentage: totalValue > 0 ? (item.valor_total / totalValue) * 100 : 0
-        };
-    }).filter((i: any) => i.valor_total > 0).slice(0, 5);
-  }, [filteredValuation]);
-
-  const stockCoverage = useMemo(() => {
-    // Calculando consumo diário (últimos 30 dias)
-    const consumption = outMovements.reduce((acc: any, curr: any) => {
-        const nome = curr.produtos?.nome;
-        if (!nome) return acc;
-        if (!acc[nome]) acc[nome] = 0;
-        acc[nome] += Number(curr.quantidade || 0);
-        return acc;
-    }, {});
-
-    const aggregatedValuation = filteredValuation.reduce((acc: any, curr: any) => {
-        if (!acc[curr.produto_nome]) {
-            acc[curr.produto_nome] = { nome: curr.produto_nome, quantidade: 0, unidade: curr.unidade };
-        }
-        acc[curr.produto_nome].quantidade += Number(curr.quantidade || 0);
-        return acc;
-    }, {});
-
-    const coverageData = Object.keys(consumption).map(nome => {
-        const dailyConsumption = consumption[nome] / 30;
-        const currentStock = aggregatedValuation[nome]?.quantidade || 0;
-        const days = dailyConsumption > 0 ? Math.floor(currentStock / dailyConsumption) : 999;
-        return { nome, days, currentStock, dailyConsumption, unidade: aggregatedValuation[nome]?.unidade };
-    });
-
-    return coverageData.filter(c => c.days <= 15).sort((a, b) => a.days - b.days).slice(0, 4);
-  }, [filteredValuation, outMovements]);
 
   // Import React useMemo
   return (

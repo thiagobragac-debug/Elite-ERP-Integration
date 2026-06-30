@@ -385,7 +385,7 @@ export const InventoryManagement: React.FC = () => {
   };
 
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
-    const loadingToast = toast.loading('Gerando exportação...');
+    const loadingToast = toast.loading('Gerando exportação server-side...');
     
     let query = supabase
       .from('produtos')
@@ -396,7 +396,8 @@ export const InventoryManagement: React.FC = () => {
         ),
         unidade, estoque_atual, estoque_minimo, custo_medio, marca, localizacao, tipo
       `)
-      .eq('tenant_id', activeTenantId);
+      .eq('tenant_id', activeTenantId)
+      .is('deleted_at', null);
 
     if (!isGlobalMode && activeFarmId) {
       query = query.eq('fazenda_id', activeFarmId);
@@ -408,6 +409,12 @@ export const InventoryManagement: React.FC = () => {
     if (searchTerm) {
       query = query.ilike('nome', `%${searchTerm}%`);
     }
+
+    if (filterValues.minStock > 0) query = query.gte('estoque_atual', filterValues.minStock);
+    if (filterValues.maxStock < 1000000) query = query.lte('estoque_atual', filterValues.maxStock);
+    
+    if (filterValues.minPrice > 0) query = query.gte('custo_medio', filterValues.minPrice);
+    if (filterValues.maxPrice < 1000000) query = query.lte('custo_medio', filterValues.maxPrice);
 
     const { data, error } = await query;
     toast.dismiss(loadingToast);
@@ -431,17 +438,7 @@ export const InventoryManagement: React.FC = () => {
           ? Number(p.estoque_atual) <= Number(p.estoque_minimo)
           : Number(p.estoque_atual) > Number(p.estoque_minimo));
 
-      const stock = Number(p.estoque_atual || 0);
-      const matchesStock =
-        filterValues.maxStock >= 1000000 ||
-        (stock >= filterValues.minStock && stock <= filterValues.maxStock);
-
-      const price = Number(p.custo_medio || 0);
-      const matchesPrice =
-        filterValues.maxPrice >= 1000000 ||
-        (price >= filterValues.minPrice && price <= filterValues.maxPrice);
-
-      return matchesCategorias && matchesStatus && matchesStock && matchesPrice;
+      return matchesCategorias && matchesStatus;
     });
 
     const exportData = filteredData.map((item) => ({
