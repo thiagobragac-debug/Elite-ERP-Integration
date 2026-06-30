@@ -58,8 +58,14 @@ export const MaintenanceManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relatório de Manutenção');
   };
 
-  const handleConfirmCloseOS = (data: { orderId: string, finalCost: number, closingDate: string }) => {
-    saveOrder({ id: data.orderId, custo: data.finalCost, status: 'COMPLETED' }, {
+  const handleConfirmCloseOS = async (data: { orderId: string, finalCost: number, closingDate: string, horometroFinal: number, responsavel: string }) => {
+    saveOrder({ 
+      id: data.orderId, 
+      custo: data.finalCost, 
+      data_fim: data.closingDate,
+      responsavel: data.responsavel,
+      status: 'COMPLETED' 
+    }, {
       onSuccess: () => {
         setIsClosingPanelOpen(false);
         setClosingOrder(null);

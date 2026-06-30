@@ -143,7 +143,7 @@ export const FuelManagement: React.FC = () => {
         .from('abastecimentos')
         .select('*, maquinas:maquina_id(nome, consumo_estimado)').eq('tenant_id', activeTenantId)
         .order('data', { ascending: false })
-        .limit(500);
+        .limit(1000);
 
       query = applyFarmFilter(query);
       const { data, error } = await query;
@@ -177,7 +177,7 @@ export const FuelManagement: React.FC = () => {
       const prevLog = grouped[id][grouped[id].length - 1];
       
       let consumoLocal = 0;
-      if (prevLog && log.valor_medidor && prevLog.valor_medidor) {
+      if (prevLog && log.valor_medidor && prevLog.valor_medidor && log.tanque_cheio) {
          const delta = Number(log.valor_medidor) - Number(prevLog.valor_medidor);
          if (delta > 0) {
             consumoLocal = Number(log.litros) / delta;
@@ -320,6 +320,7 @@ export const FuelManagement: React.FC = () => {
         valor_total: parseFloat(formData.total_cost),
         valor_medidor: parseFloat(formData.meter_value),
         tipo_combustivel: formData.fuel_type,
+        origem_abastecimento: formData.origem_abastecimento || 'externo',
         responsavel: formData.responsible,
         fazenda_id: activeFarm?.id,
         tenant_id: activeTenantId,
@@ -533,8 +534,13 @@ export const FuelManagement: React.FC = () => {
     {
       header: 'Performance Telemetria',
       accessor: (item: any) => {
-        const consumoEstimado = item.maquinas?.consumo_estimado || 0;
         const consumoReal = item.consumoLocal || 0;
+        
+        // Calcular Baseline Dinâmico (Média histórica da máquina)
+        const machineLogs = logs.filter(l => l.maquina_id === item.maquina_id && l.consumoLocal > 0);
+        const consumoEstimado = machineLogs.length > 0 
+          ? machineLogs.reduce((acc, l) => acc + l.consumoLocal, 0) / machineLogs.length 
+          : (item.maquinas?.consumo_estimado || 0);
         
         if (consumoEstimado === 0 || consumoReal === 0) {
           return (
@@ -544,6 +550,7 @@ export const FuelManagement: React.FC = () => {
           );
         }
 
+        // Desvio percentual do Baseline histórico
         const diff = ((consumoReal - consumoEstimado) / consumoEstimado) * 100;
         const isEfficient = diff <= 10;
         
@@ -551,9 +558,9 @@ export const FuelManagement: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <span 
               className={`status-pill ${isEfficient ? 'active' : 'stopped'}`}
-              title={`Consumo esperado: ${consumoEstimado} L/h | Real deste abastecimento: ${consumoReal.toFixed(2)} L/h`}
+              title={`Baseline Histórico: ${consumoEstimado.toFixed(2)} L/un | Real: ${consumoReal.toFixed(2)} L/un | Desvio: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`}
             >
-              {isEfficient ? 'Alta Eficiência' : 'Alto Consumo'}
+              {isEfficient ? 'Dentro da Média' : 'Consumo Elevado'}
             </span>
           </div>
         );

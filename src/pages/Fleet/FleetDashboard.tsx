@@ -77,7 +77,7 @@ export const FleetDashboard: React.FC = () => {
     queryFn: async () => {
       const queries = [
         applyFarmFilter(
-          supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at').eq('tenant_id', activeTenantId).limit(500)
+          supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at, valor_compra, vida_util_anos, hodometro_atual, intervalo_revisao').eq('tenant_id', activeTenantId).limit(500)
         ),
         applyFarmFilter(
           supabase
@@ -93,11 +93,11 @@ export const FleetDashboard: React.FC = () => {
             .order('data_inicio', { ascending: false })
             .limit(5)
         ),
-        supabase.rpc('calculate_fleet_consumption', {
+        supabase.rpc('calculate_fleet_kpis', {
           p_tenant_id: activeTenantId || '',
           p_fazenda_id: isGlobalMode ? null : activeFarmId,
         }),
-        applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status').eq('tenant_id', activeTenantId)),
+        applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status, tipo_manutencao, data_inicio, data_fim').eq('tenant_id', activeTenantId)),
       ];
 
       const [machRes, fuelRes, maintRes, consumptionRes, maintStatsRes] =
@@ -129,7 +129,7 @@ export const FleetDashboard: React.FC = () => {
         machines: transformedMachines,
         fuelings: fuelRes.data || [],
         maintenance: maintRes.data || [],
-        consumption: consumptionRes.data || { total_litros: 0, total_custo: 0, media_litros: 0 },
+        consumption: consumptionRes.data?.[0] || { total_fuel_cost: 0, avg_fuel_consumption: 0, uptime_percentage: 0, mtbf_hours: 0, total_maint_cost: 0 },
         maintStats: maintStatsRes.data || [],
       };
     },
@@ -233,31 +233,20 @@ export const FleetDashboard: React.FC = () => {
     const { machines, fuelings, maintenance, consumption, maintStats } = dashboardData;
     const total = machines.length;
 
-    const inMaintIds = new Set(
-      maintStats
-        .filter(
-          (m: any) =>
-            m.status !== 'CONCLUIDO' && m.status !== 'completed' && m.status !== 'FINALIZADO'
-        )
-        .map((m: any) => m.maquina_id)
-    );
+    const availability = Number(consumption?.uptime_percentage || 0);
 
-    const inField = machines.filter(
-      (m: any) => m.status === 'ATIVO' && !inMaintIds.has(m.id)
-    ).length;
-    const availability = total > 0 ? (inField / total) * 100 : 0;
+    const totalFuelCost = Number(consumption?.total_fuel_cost || 0);
+    const totalMaintCost = Number(consumption?.total_maint_cost || 0);
+    const depreciacaoAnual = machines.reduce((acc: number, cur: any) => {
+      const valor = Number(cur.valor_compra || 0);
+      const vidaUtil = Number(cur.vida_util_anos || 5);
+      return acc + (vidaUtil > 0 ? valor / vidaUtil : 0);
+    }, 0);
+    const depreciacaoMensal = depreciacaoAnual / 12;
+    const totalTCO = totalFuelCost + totalMaintCost + depreciacaoMensal;
 
-    const totalFuelCost = Number(consumption?.total_custo || 0);
-    const totalMaintCost = maintStats.reduce(
-      (acc: number, cur: any) => acc + Number(cur.custo || 0),
-      0
-    );
-    const totalTCO = totalFuelCost + totalMaintCost;
-
-    const failures = maintStats.length;
-    const mtbf = failures > 0 ? Math.round((total * 720) / failures) : 0;
-
-    const avgDiesel = Number(consumption?.media_litros || 0);
+    const mtbf = Number(consumption?.mtbf_hours || 0);
+    const avgDiesel = Number(consumption?.avg_fuel_consumption || 0);
 
     return [
       {
@@ -291,7 +280,7 @@ export const FleetDashboard: React.FC = () => {
         color: '#10b981',
         progress: mtbf > 0 ? Math.min(100, (mtbf / 1000) * 100) : 0,
         trend: mtbf > 0 ? 'up' : 'none',
-        change: mtbf > 0 ? `${failures} ocorrências registradas` : 'Sem manutenções',
+        change: mtbf > 0 ? `Calculado pelo servidor` : 'Sem manutenções',
         periodLabel: 'Ciclo Falhas',
         sparkline: buildSparkline(maintenance, 'data_inicio', 'custo'),
         isEmpty: mtbf === 0,

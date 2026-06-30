@@ -53,6 +53,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
     is_interno: true,
     fornecedor_id: '',
     numero_recibo: '',
+    tanque_cheio: false,
   };
 
   const { formData, setFormData, clearDraft } = useFormDraft({
@@ -86,6 +87,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({
       is_interno: initialData.is_interno ?? true,
       fornecedor_id: initialData.fornecedor_id || '',
       numero_recibo: initialData.numero_recibo || '',
+      tanque_cheio: initialData.tanque_cheio ?? false,
     });
   }, [initialData, isOpen, actionId]);
 
@@ -428,6 +430,21 @@ export const FuelForm: React.FC<FuelFormProps> = ({
                         <AlertCircle size={12} /> Valor deve ser maior que {lastMeterValue}!
                       </div>
                     )}
+                </div>
+
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-checkbox-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.tanque_cheio}
+                      onChange={(e) => setFormData({ ...formData, tanque_cheio: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 600, fontSize: '14px' }}>Completou o Tanque? (Tanque Cheio)</span>
+                      <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Marque se o abastecimento encheu a capacidade total do veículo. Isso é crucial para o cálculo exato de autonomia.</span>
+                    </div>
+                  </label>
                 </div>
 
                 <div className="tauze-field-group">

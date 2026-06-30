@@ -23,6 +23,7 @@ export type Database = {
           litros: number
           maquina_id: string | null
           responsavel: string | null
+          tanque_cheio: boolean | null
           tenant_id: string | null
           tipo_combustivel: string | null
           valor_medidor: number | null
@@ -36,6 +37,7 @@ export type Database = {
           litros: number
           maquina_id?: string | null
           responsavel?: string | null
+          tanque_cheio?: boolean | null
           tenant_id?: string | null
           tipo_combustivel?: string | null
           valor_medidor?: number | null
@@ -49,6 +51,7 @@ export type Database = {
           litros?: number
           maquina_id?: string | null
           responsavel?: string | null
+          tanque_cheio?: boolean | null
           tenant_id?: string | null
           tipo_combustivel?: string | null
           valor_medidor?: number | null
@@ -1625,6 +1628,7 @@ export type Database = {
           tenant_id: string | null
           tipo: string | null
           tipo_medidor: string | null
+          ultimo_medidor_revisao: number | null
           valor_compra: number | null
         }
         Insert: {
@@ -1653,6 +1657,7 @@ export type Database = {
           tenant_id?: string | null
           tipo?: string | null
           tipo_medidor?: string | null
+          ultimo_medidor_revisao?: number | null
           valor_compra?: number | null
         }
         Update: {
@@ -1681,6 +1686,7 @@ export type Database = {
           tenant_id?: string | null
           tipo?: string | null
           tipo_medidor?: string | null
+          ultimo_medidor_revisao?: number | null
           valor_compra?: number | null
         }
         Relationships: [

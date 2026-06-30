@@ -28,7 +28,7 @@ export const useMaintenanceData = (filterValues: any, activeTab: string, searchT
       let query = supabase
         .from('manutencao_frota')
         .select(
-          'id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)',
+          'id, maquina_id, tipo, descricao, data_inicio, data_fim, tipo_manutencao, estoque_id, custo, responsavel, status, created_at, maquinas:maquina_id (nome)',
           { count: 'exact' }
         )
         .eq('tenant_id', activeTenantId)
@@ -92,6 +92,9 @@ export const useMaintenanceData = (filterValues: any, activeTab: string, searchT
         tipo: data.tipo,
         descricao: data.descricao,
         data_inicio: data.data_inicio,
+        data_fim: data.data_fim || null,
+        tipo_manutencao: data.tipo_manutencao || 'corretiva',
+        estoque_id: data.estoque_id || null,
         custo: parseFloat(data.custo) || 0,
         responsavel: data.responsavel,
         status: data.status,

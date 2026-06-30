@@ -7,7 +7,7 @@ interface OSClosingPanelProps {
   isOpen: boolean;
   order: any;
   onClose: () => void;
-  onConfirm: (data: { orderId: string; finalCost: number; closingDate: string }) => void;
+  onConfirm: (data: { orderId: string; finalCost: number; closingDate: string; horometroFinal: number; responsavel: string }) => void;
   isSaving: boolean;
 }
 
@@ -20,6 +20,8 @@ export const OSClosingPanel: React.FC<OSClosingPanelProps> = ({
 }) => {
   const [finalCost, setFinalCost] = useState(order?.custo?.toString() || '0');
   const [closingDate, setClosingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [horometroFinal, setHorometroFinal] = useState('');
+  const [responsavel, setResponsavel] = useState('');
 
   if (!order) return null;
 
@@ -29,6 +31,8 @@ export const OSClosingPanel: React.FC<OSClosingPanelProps> = ({
       orderId: order.id,
       finalCost: parseFloat(finalCost) || 0,
       closingDate,
+      horometroFinal: parseFloat(horometroFinal) || 0,
+      responsavel,
     });
   };
 
@@ -70,6 +74,38 @@ export const OSClosingPanel: React.FC<OSClosingPanelProps> = ({
                   className="tauze-input"
                   value={closingDate}
                   onChange={(e) => setClosingDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="tauze-input-group">
+              <label>Horômetro Final (h)</label>
+              <div className="input-with-icon">
+                <Wrench size={16} className="input-icon" />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  className="tauze-input"
+                  placeholder="Ex: 1250.5"
+                  value={horometroFinal}
+                  onChange={(e) => setHorometroFinal(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="tauze-input-group">
+              <label>Responsável Pelo Fechamento</label>
+              <div className="input-with-icon">
+                <Check size={16} className="input-icon" />
+                <input
+                  type="text"
+                  className="tauze-input"
+                  placeholder="Nome do encarregado"
+                  value={responsavel}
+                  onChange={(e) => setResponsavel(e.target.value)}
                   required
                 />
               </div>

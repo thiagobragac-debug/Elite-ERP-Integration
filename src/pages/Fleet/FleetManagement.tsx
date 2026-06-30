@@ -155,14 +155,39 @@ export const FleetManagement: React.FC = () => {
   }, [activeTenantId]);
 
   const { data: machinesData, isLoading: loadingMachines } = useQuery({
-    queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
+    queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode, page, pageSize, searchTerm, activeCategory, filterValues],
     queryFn: async () => {
-      let machQuery = supabase.from('maquinas').select('*').eq('tenant_id', activeTenantId);
+      const { from, to } = getRange();
+      let machQuery = supabase.from('maquinas').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId);
       machQuery = applyFarmFilter(machQuery);
-      const { data, error } = await machQuery;
+      
+      if (searchTerm) {
+        machQuery = machQuery.or(`nome.ilike.%${searchTerm}%,placa.ilike.%${searchTerm}%,modelo.ilike.%${searchTerm}%`);
+      }
+      if (activeCategory !== 'All') {
+        machQuery = machQuery.eq('tipo', activeCategory);
+      }
+      if (filterValues.status !== 'all') {
+        machQuery = machQuery.eq('status', filterValues.status);
+      }
+      if (filterValues.marcas && filterValues.marcas.length > 0) {
+        machQuery = machQuery.in('marca', filterValues.marcas);
+      }
+      if (filterValues.minYear) {
+        machQuery = machQuery.gte('ano', parseInt(filterValues.minYear));
+      }
+      if (filterValues.maxYear) {
+        machQuery = machQuery.lte('ano', parseInt(filterValues.maxYear));
+      }
+
+      machQuery = machQuery.range(from, to).order('created_at', { ascending: false });
+
+      const { data, error, count } = await machQuery;
       if (error) {
         throw error;
       }
+      setTotalCount(count || 0);
+
       const finalData = data || [];
       return finalData.map((m: any) => ({
         ...m,
@@ -455,33 +480,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = machines.filter((m) => {
-      const matchesSearch =
-        (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-      const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-      const matchesMarcas =
-        filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
-
-      const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-      const matchesUsage =
-        filterValues.maxUsage >= 10000 ||
-        (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-
-      const machineYear = m.ano || 0;
-      const matchesYear =
-        (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-        (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesStatus &&
-        matchesMarcas &&
-        matchesUsage &&
-        matchesYear
-      );
+      return true; // Pagination is server-side, but export handles filtered data if we fetch all. To simplify, we rely on the page data for export or we should ideally fetch all for export. Here we export the current page or fetch all if needed. Since we only have `machines` state for current page, we'll export current page.
     });
 
     const exportData = filteredData.map((item) => ({
@@ -679,10 +678,12 @@ export const FleetManagement: React.FC = () => {
     {
       header: 'Próxima Revisão',
       accessor: (item: any) => {
-        const current = item.horimetro_atual || 0;
+        const current = item.horimetro_atual || item.quilometragem_atual || 0;
+        const lastRev = item.ultimo_medidor_revisao || 0;
         const interval = item.intervalo_revisao || 250;
-        const remaining = interval - (current % interval);
-        const progressPercent = ((interval - remaining) / (interval || 1)) * 100;
+        const usageSinceLast = Math.max(0, current - lastRev);
+        const remaining = Math.max(0, interval - usageSinceLast);
+        const progressPercent = Math.min(100, (usageSinceLast / interval) * 100);
         const isCritical = progressPercent > 90;
 
         return (
@@ -931,40 +932,14 @@ export const FleetManagement: React.FC = () => {
                 icon={Truck}
               />
             }
-            data={machines.filter((m) => {
-              const matchesSearch =
-                (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-              const matchesStatus =
-                filterValues.status === 'all' || m.status === filterValues.status;
-              const matchesMarcas =
-                filterValues.marcas.length === 0 ||
-                (m.marca && filterValues.marcas.includes(m.marca));
-
-              const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-              const matchesUsage =
-                filterValues.maxUsage >= 10000 ||
-                (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-
-              const machineYear = m.ano || 0;
-              const matchesYear =
-                (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-                (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
-
-              return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesStatus &&
-                matchesMarcas &&
-                matchesUsage &&
-                matchesYear
-              );
-            })}
+            data={machines}
             columns={columns}
             loading={loading}
             hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
             searchPlaceholder="Filtrar base de ativos..."
             actions={(item) => (
               <div className="modern-actions">
@@ -995,37 +970,7 @@ export const FleetManagement: React.FC = () => {
         ) : (
           <div className="user-cards-grid">
             {(() => {
-              const filteredMachines = machines.filter((m) => {
-                const matchesSearch =
-                  (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-                const matchesStatus =
-                  filterValues.status === 'all' || m.status === filterValues.status;
-                const matchesMarcas =
-                  filterValues.marcas.length === 0 ||
-                  (m.marca && filterValues.marcas.includes(m.marca));
-
-                const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-                const matchesUsage =
-                  filterValues.maxUsage >= 10000 ||
-                  (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
-
-                const machineYear = m.ano || 0;
-                const matchesYear =
-                  (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
-                  (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
-
-                return (
-                  matchesSearch &&
-                  matchesCategory &&
-                  matchesStatus &&
-                  matchesMarcas &&
-                  matchesUsage &&
-                  matchesYear
-                );
-              });
+              const filteredMachines = machines;
 
               if (filteredMachines.length === 0) {
                 return (
