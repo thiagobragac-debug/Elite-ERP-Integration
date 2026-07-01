@@ -20,6 +20,7 @@ import { LoadingSkeleton } from './components/Feedback/LoadingSkeleton';
 import { MFAGuard } from './components/Guards/MFAGuard';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
 import { TrialExpirationGuard } from './components/Guards/TrialExpirationGuard';
+import { OnboardingGuard } from './components/Guards/OnboardingGuard';
 
 // Navigation
 import { CommandPalette } from './components/Navigation/CommandPalette';
@@ -45,6 +46,7 @@ import { Login } from './pages/Auth/Login';
 // ── Lazy loaded (Auth & SaaS) ─────────────────────────────────────────────────
 const LandingPage = React.lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
 const TenantRegistration = React.lazy(() => import('./pages/Auth/TenantRegistration').then((m) => ({ default: m.TenantRegistration })));
+const OnboardingWizard = React.lazy(() => import('./pages/Onboarding/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard })));
 const RoleSelector = React.lazy(() => import('./pages/Auth/RoleSelector').then((m) => ({ default: m.RoleSelector })));
 const MFAEnroll = React.lazy(() => import('./pages/Auth/MFAEnroll').then((m) => ({ default: m.MFAEnroll })));
 const Reports = React.lazy(() => import('./pages/Reports/Reports').then((m) => ({ default: m.Reports })));
@@ -163,7 +165,8 @@ function AppRoutes() {
         <Routes>
           {/* ── Auth routes ────────────────────────────────────────────── */}
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
-          <Route path="/cadastro" element={!isAuthenticated ? (<React.Suspense fallback={<LoadingSkeleton variant="form" fullScreen={true} message="Carregando cadastro..." />}><TenantRegistration /></React.Suspense>) : (<Navigate to="/" replace />)} />
+          <Route path="/cadastro" element={<React.Suspense fallback={<LoadingSkeleton variant="form" fullScreen={true} message="Carregando cadastro..." />}><TenantRegistration /></React.Suspense>} />
+          <Route path="/onboarding" element={isAuthenticated ? (<React.Suspense fallback={<LoadingSkeleton variant="form" fullScreen={true} message="Preparando onboarding..." />}><OnboardingWizard /></React.Suspense>) : (<Navigate to="/login" replace />)} />
           <Route path="/mfa-enroll" element={isAuthenticated ? (<React.Suspense fallback={<LoadingSkeleton variant="form" fullScreen={true} message="Carregando MFA..." />}><MFAEnroll /></React.Suspense>) : (<Navigate to="/login" replace />)} />
           <Route path="/select-role" element={isAuthenticated ? (<MFAGuard><React.Suspense fallback={<LoadingSkeleton variant="card" fullScreen={true} message="Carregando seleção de perfil..." />}><RoleSelector /></React.Suspense></MFAGuard>) : (<Navigate to="/login" replace />)} />
 
@@ -171,7 +174,7 @@ function AppRoutes() {
           <Route path="/saas/*" element={isAuthenticated ? (<MFAGuard><SuperAdminGuard><React.Suspense fallback={<LoadingSkeleton variant="table" fullScreen={true} message="Carregando painel SaaS..." />}><SaaSLayout><SaaSAdminPanel /></SaaSLayout></React.Suspense></SuperAdminGuard></MFAGuard>) : (<Navigate to="/login" replace />)} />
 
           {/* ── Main app (with Layout) ──────────────────────────────────── */}
-          <Route path="/" element={isAuthenticated ? (<MFAGuard><TrialExpirationGuard><Layout /></TrialExpirationGuard></MFAGuard>) : (<Outlet />)}>
+          <Route path="/" element={isAuthenticated ? (<MFAGuard><OnboardingGuard><TrialExpirationGuard><Layout /></TrialExpirationGuard></OnboardingGuard></MFAGuard>) : (<Outlet />)}>
             <Route index element={<RootIndex />} />
 
             <Route element={isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />}>

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
+import { useTenant } from '../../../../contexts/TenantContext';
 
 interface UsersTabProps {
   filteredUsers: any[];
@@ -39,6 +40,9 @@ export const UsersTab: React.FC<UsersTabProps> = ({
   handleOpenEditUser,
   handleDeleteUser,
 }) => {
+  const { userProfile } = useTenant();
+  const isSaasAdmin = userProfile?.role === 'SAAS_ADMIN';
+
   return (
     <>
       {viewMode === 'list' ? (
@@ -82,9 +86,37 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                 <Edit2 size={18} />
               </button>
               <button
-                className="action-dot delete"
-                onClick={() => handleDeleteUser(item)}
-                title="Excluir"
+                className={`action-dot delete ${
+                  !isSaasAdmin &&
+                  (item.base_role?.toUpperCase() === 'ADMIN' ||
+                    item.profile?.toLowerCase().includes('admin'))
+                    ? 'disabled'
+                    : ''
+                }`}
+                style={
+                  !isSaasAdmin &&
+                  (item.base_role?.toUpperCase() === 'ADMIN' ||
+                    item.profile?.toLowerCase().includes('admin'))
+                    ? { opacity: 0.3, cursor: 'not-allowed' }
+                    : {}
+                }
+                onClick={() => {
+                  if (
+                    !isSaasAdmin &&
+                    (item.base_role?.toUpperCase() === 'ADMIN' ||
+                      item.profile?.toLowerCase().includes('admin'))
+                  ) {
+                    return;
+                  }
+                  handleDeleteUser(item);
+                }}
+                title={
+                  !isSaasAdmin &&
+                  (item.base_role?.toUpperCase() === 'ADMIN' ||
+                    item.profile?.toLowerCase().includes('admin'))
+                    ? 'Apenas Admin SaaS pode excluir administradores'
+                    : 'Excluir'
+                }
               >
                 <XCircle size={18} />
               </button>
@@ -197,7 +229,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                   {(() => {
                     const isUserAdmin =
                       user.profile?.toLowerCase().includes('admin') ||
-                      user.role?.toLowerCase() === 'admin';
+                      user.base_role?.toUpperCase() === 'ADMIN';
                     return (
                       <div className={`card-avatar ${isUserAdmin ? 'admin-avatar' : ''}`}>
                         {isUserAdmin ? (
@@ -312,9 +344,37 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                         <History size={14} />
                       </button>
                       <button
-                        className="action-icon-btn delete"
-                        onClick={() => handleDeleteUser(user)}
-                        title="Excluir"
+                        className={`action-icon-btn delete ${
+                          !isSaasAdmin &&
+                          (user.base_role?.toUpperCase() === 'ADMIN' ||
+                            user.profile?.toLowerCase().includes('admin'))
+                            ? 'disabled'
+                            : ''
+                        }`}
+                        style={
+                          !isSaasAdmin &&
+                          (user.base_role?.toUpperCase() === 'ADMIN' ||
+                            user.profile?.toLowerCase().includes('admin'))
+                            ? { opacity: 0.3, cursor: 'not-allowed' }
+                            : {}
+                        }
+                        onClick={() => {
+                          if (
+                            !isSaasAdmin &&
+                            (user.base_role?.toUpperCase() === 'ADMIN' ||
+                              user.profile?.toLowerCase().includes('admin'))
+                          ) {
+                            return;
+                          }
+                          handleDeleteUser(user);
+                        }}
+                        title={
+                          !isSaasAdmin &&
+                          (user.base_role?.toUpperCase() === 'ADMIN' ||
+                            user.profile?.toLowerCase().includes('admin'))
+                            ? 'Apenas Admin SaaS pode excluir administradores'
+                            : 'Excluir'
+                        }
                       >
                         <XCircle size={14} />
                       </button>

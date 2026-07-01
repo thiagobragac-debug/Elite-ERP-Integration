@@ -37,6 +37,7 @@ import {
   Tag,
   Edit3,
   BarChart3,
+  Layout,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -245,6 +246,11 @@ export const useSaaSAdminState = () => {
       title: 'Analytics & Business Intelligence',
       subtitle: 'Visão histórica de MRR, tendências de churn, cohort analysis e métricas de crescimento.',
       icon: BarChart3,
+    },
+    landing: {
+      title: 'Configurações da Landing Page',
+      subtitle: 'Gerencie o conteúdo, SEO, perguntas frequentes e depoimentos do site principal.',
+      icon: Layout,
     },
   };
 

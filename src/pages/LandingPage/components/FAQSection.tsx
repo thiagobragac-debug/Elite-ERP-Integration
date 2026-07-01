@@ -61,8 +61,24 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
     ? settings.landing_testimonials
     : defaultTestimonials;
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.a,
+      },
+    })),
+  };
+
   return (
     <>
+      <script type="application/ld+json">
+        {JSON.stringify(faqSchema)}
+      </script>
       {/* ──── TESTIMONIALS ──── */}
       <section style={{ padding: '100px 40px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>

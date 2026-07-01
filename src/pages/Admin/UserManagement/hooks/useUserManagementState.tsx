@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { supabase } from '../../../../lib/supabase';
 import { useTenant } from '../../../../contexts/TenantContext';
 import { useFarmFilter } from '../../../../hooks/useFarmFilter';
@@ -740,6 +741,16 @@ export function useUserManagementState() {
   };
 
   const handleDeleteUser = async (user: any) => {
+    const isTargetAdmin =
+      user.base_role?.toUpperCase() === 'ADMIN' ||
+      user.profile?.toLowerCase().includes('admin');
+    const isSaasAdmin = userProfile?.role === 'SAAS_ADMIN';
+
+    if (isTargetAdmin && !isSaasAdmin) {
+      toast.error('Usuários administradores só podem ser removidos pelo Administrador do SaaS.');
+      return;
+    }
+
     const isConfirmed = await confirm({
       title: 'Remover Usuário',
       description: `Tem certeza que deseja remover ${user.name || user.email} da organização?`,
@@ -784,7 +795,7 @@ export function useUserManagementState() {
       header: 'Usuário',
       accessor: (item: any) => {
         const isUserAdmin =
-          item.profile?.toLowerCase().includes('admin') || item.role?.toLowerCase() === 'admin';
+          item.profile?.toLowerCase().includes('admin') || item.base_role?.toUpperCase() === 'ADMIN';
         return (
           <div className="table-cell-title">
             <div className="flex items-center gap-3">

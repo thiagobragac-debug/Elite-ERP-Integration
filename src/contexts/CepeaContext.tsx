@@ -33,7 +33,7 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .eq('indicator', INDICATOR)
         .order('date', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;

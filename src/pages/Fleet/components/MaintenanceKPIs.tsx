@@ -53,10 +53,10 @@ export const MaintenanceKPIs: React.FC<MaintenanceKPIsProps> = ({ orders, loadin
   const stats = useMemo(() => {
     if (!orders || orders.length === 0) {
       return [
-        { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '' },
-        { label: 'Custo Manutenção', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '' },
-        { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '' },
-        { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '' },
+        { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '', trend: undefined, sparkline: [] },
+        { label: 'Custo Manutencao', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '', trend: undefined, sparkline: [] },
+        { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '', trend: undefined, sparkline: [] },
+        { label: 'MTTR (Eficiencia)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '', trend: undefined, sparkline: [] },
       ];
     }
     const abertas = orders.filter(
@@ -162,3 +162,4 @@ export const MaintenanceKPIs: React.FC<MaintenanceKPIsProps> = ({ orders, loadin
     </div>
   );
 };
+

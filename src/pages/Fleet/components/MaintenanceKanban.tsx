@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Wrench, CheckCircle2, Calendar, History, Edit3, Trash2, ArrowRight } from 'lucide-react';
 import { EmptyState } from '../../../components/Feedback/EmptyState';
-import { MaintenanceStatus } from '../hooks/useMaintenanceData';
+import { type MaintenanceStatus } from '../hooks/useMaintenanceData';
 
 interface MaintenanceKanbanProps {
   orders: any[];
   searchTerm: string;
-  onUpdateStatus: (orderId: string, status: MaintenanceStatus) => void;
+  onUpdateStatus: (data: { orderId: string, status: MaintenanceStatus }) => void;
   onOpenClosingPanel: (order: any) => void;
   onViewDetails: (order: any) => void;
   onEdit: (order: any) => void;
@@ -182,3 +182,5 @@ export const MaintenanceKanban: React.FC<MaintenanceKanbanProps> = ({
     </div>
   );
 };
+
+

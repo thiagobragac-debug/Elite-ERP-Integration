@@ -40,12 +40,12 @@ export function useSuperAdmin(): UseSuperAdminReturn {
         }
 
         const role = data?.role?.toLowerCase();
-        setIsSuperAdmin(role === 'admin' || role === 'superadmin' || role === 'saas_admin');
+        setIsSuperAdmin(role === 'superadmin' || role === 'saas_admin');
       } catch {
         // Fallback para role local do contexto
         const localRole = (user as any)?.role?.toLowerCase();
         setIsSuperAdmin(
-          localRole === 'admin' || localRole === 'superadmin' || localRole === 'saas_admin'
+          localRole === 'superadmin' || localRole === 'saas_admin'
         );
       } finally {
         setLoading(false);

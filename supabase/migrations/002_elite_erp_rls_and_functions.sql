@@ -91,6 +91,7 @@ DROP POLICY IF EXISTS "pedidos_compra_tenant" ON public.pedidos_compra;
 CREATE POLICY "pedidos_compra_tenant" ON public.pedidos_compra FOR ALL USING (tenant_id = auth_helpers.get_auth_tenant());
 
 -- ── RPCs ────────────────────────────────────────────────
+DROP FUNCTION IF EXISTS public.get_banking_consolidated_balance(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.get_banking_consolidated_balance(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT jsonb_build_object('saldo_total', COALESCE(SUM(saldo_atual),0), 'contas_ativas', COUNT(*))
@@ -98,24 +99,28 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
   WHERE tenant_id = p_tenant_id AND (p_fazenda_id IS NULL OR fazenda_id = p_fazenda_id);
 $$;
 
+DROP FUNCTION IF EXISTS public.calculate_fleet_consumption(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.calculate_fleet_consumption(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT jsonb_build_object('total_litros', COALESCE(SUM(litros),0), 'total_custo', COALESCE(SUM(valor_total),0), 'media_litros', COALESCE(AVG(litros),0))
   FROM public.abastecimentos WHERE tenant_id = p_tenant_id AND (p_fazenda_id IS NULL OR fazenda_id = p_fazenda_id);
 $$;
 
+DROP FUNCTION IF EXISTS public.get_inventory_health(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.get_inventory_health(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT jsonb_build_object('total_patrimonio', COALESCE(SUM(estoque_atual*custo_medio),0), 'itens_falta', COUNT(*) FILTER (WHERE estoque_atual <= estoque_minimo), 'acuracidade', 98.5)
   FROM public.produtos WHERE tenant_id = p_tenant_id AND (p_fazenda_id IS NULL OR fazenda_id = p_fazenda_id);
 $$;
 
+DROP FUNCTION IF EXISTS public.get_purchase_summary(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.get_purchase_summary(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT jsonb_build_object('total_compras', COALESCE(SUM(valor_total),0), 'pedidos_pendentes', COUNT(*) FILTER (WHERE status='PENDENTE'), 'media_pedido', COALESCE(AVG(valor_total),0))
   FROM public.pedidos_compra WHERE tenant_id = p_tenant_id AND (p_fazenda_id IS NULL OR fazenda_id = p_fazenda_id);
 $$;
 
+DROP FUNCTION IF EXISTS public.calculate_herd_gmd(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.calculate_herd_gmd(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT COALESCE(AVG(peso),0)/30.0 FROM public.pesagens
@@ -123,6 +128,7 @@ RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
     AND data_pesagem >= (CURRENT_DATE - INTERVAL '30 days');
 $$;
 
+DROP FUNCTION IF EXISTS public.get_herd_total_weight(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.get_herd_total_weight(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT COALESCE(SUM(p.peso),0) FROM public.pesagens p
@@ -130,6 +136,7 @@ RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
     AND p.data_pesagem = (SELECT MAX(p2.data_pesagem) FROM public.pesagens p2 WHERE p2.animal_id = p.animal_id);
 $$;
 
+DROP FUNCTION IF EXISTS public.get_sanitary_coverage(uuid, uuid);
 CREATE OR REPLACE FUNCTION public.get_sanitary_coverage(p_tenant_id uuid, p_fazenda_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT jsonb_build_object('cobertura', 98.5, 'aplicacoes_mes', COUNT(*) FILTER (WHERE data_manejo >= date_trunc('month',CURRENT_DATE)), 'custo_ua', COALESCE(AVG(custo),0))
@@ -162,3 +169,5 @@ GRANT EXECUTE ON FUNCTION public.get_herd_total_weight(uuid,uuid) TO authenticat
 GRANT EXECUTE ON FUNCTION public.get_sanitary_coverage(uuid,uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_paddock_lotation_summary(uuid,uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_reproductive_stats(uuid,uuid) TO authenticated;
+
+

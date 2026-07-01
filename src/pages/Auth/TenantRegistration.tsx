@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 // ─── Tauze SVG Logo ────────────────────────────────────────────────────────────
@@ -154,7 +154,17 @@ export const TenantRegistration: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
-  const { loginWithGoogle, registerTenant } = useAuth(); // We might use signUp if it exists, otherwise just mock it
+  const { isAuthenticated, loginWithGoogle, registerTenant } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedPlan = searchParams.get('plan');
+
+  // Auto-redirect se já estiver logado (e não estiver no meio do cadastro)
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !isGoogleLoading && !successMessage) {
+      navigate('/');
+    }
+  }, [isAuthenticated, isLoading, isGoogleLoading, successMessage, navigate]);
 
   // Animate KPI values slightly over time
   useEffect(() => {
@@ -185,6 +195,7 @@ export const TenantRegistration: React.FC = () => {
         password,
         fullName: fullName.trim(),
         companyName: companyName.trim(),
+        planName: requestedPlan || undefined,
       });
 
       if (error) {
@@ -216,9 +227,10 @@ export const TenantRegistration: React.FC = () => {
 
         setErrorMessage(errorMsg);
       } else {
-        setSuccessMessage(
-          'Conta criada com sucesso! Verifique seu e-mail ou faça login para acessar seu ERP.'
-        );
+        setSuccessMessage('Conta criada com sucesso! Preparando seu ambiente...');
+        setTimeout(() => {
+          window.location.href = '/painel';
+        }, 1500);
       }
     } catch (err: any) {
       setErrorMessage('Erro inesperado ao criar a conta. Por favor, tente novamente.');
@@ -532,8 +544,9 @@ import { usePersistentState } from '../../hooks/usePersistentState';
                 marginBottom: 36,
               }}
             >
-              O ERP que o agronegócio merece. Acompanhe rebanho, frota e finanças, sem cartão de
-              crédito exigido.
+              {requestedPlan 
+                ? <>Iniciando seu teste de 14 dias para o plano: <strong style={{ color: '#00b865' }}>{requestedPlan}</strong>. Sem cartão de crédito exigido.</>
+                : 'O ERP que o agronegócio merece. Acompanhe rebanho, frota e finanças, sem cartão de crédito exigido.'}
             </p>
           </motion.div>
 

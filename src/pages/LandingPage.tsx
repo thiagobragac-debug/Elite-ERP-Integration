@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLandingPageData } from './LandingPage/hooks/useLandingPageData';
 import { TickerSection } from './LandingPage/components/TickerSection';
 import { HeroSection } from './LandingPage/components/HeroSection';
@@ -30,6 +30,28 @@ export const LandingPage: React.FC = () => {
     tickerData,
     handleWeigh,
   } = useLandingPageData();
+
+  useEffect(() => {
+    if (settings.landing_seo_description) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'description');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', settings.landing_seo_description);
+    }
+
+    if (settings.landing_seo_keywords) {
+      let meta = document.querySelector('meta[name="keywords"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'keywords');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', settings.landing_seo_keywords);
+    }
+  }, [settings.landing_seo_description, settings.landing_seo_keywords]);
 
   return (
     <div

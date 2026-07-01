@@ -155,9 +155,7 @@ export const Login: React.FC = () => {
   const { login, loginWithGoogle } = useAuth();
   const { settings } = useSystemSettings();
   
-  // Track failed attempts
-  const [failedAttempts, setFailedAttempts] = usePersistentState('Login_failedAttempts', 0);
-  const [blockedUntil, setBlockedUntil] = usePersistentState<number | null>('Login_blockedUntil', null);
+
 
   // Animate KPI values slightly over time
   useEffect(() => {
@@ -167,43 +165,12 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if currently blocked
-    if (blockedUntil && Date.now() < blockedUntil) {
-      const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / 60000);
-      setErrorMessage(`Múltiplas falhas detectadas. Dispositivo bloqueado por segurança. Tente novamente em ${remainingMinutes} minuto(s).`);
-      return;
-    } else if (blockedUntil && Date.now() >= blockedUntil) {
-      // Unblock if time passed
-      setBlockedUntil(null);
-      setFailedAttempts(0);
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
     try {
       const { error } = await login(email, password);
       if (error) {
-        const newAttempts = failedAttempts + 1;
-        setFailedAttempts(newAttempts);
-
-        if (newAttempts >= 3) {
-          // Block for 30 minutes
-          setBlockedUntil(Date.now() + 30 * 60 * 1000);
-          setErrorMessage('System Guard: 3 tentativas falhas. Seu acesso foi temporariamente bloqueado por 30 minutos.');
-        } else {
-          if (error.message?.toLowerCase().includes('invalid login credentials')) {
-            setErrorMessage(
-              `E-mail ou senha incorretos. Tentativa ${newAttempts}/3.`
-            );
-          } else {
-            setErrorMessage(error.message);
-          }
-        }
-      } else {
-        // Success, reset attempts
-        setFailedAttempts(0);
-        setBlockedUntil(null);
+        setErrorMessage(error.message || 'Falha no login. Verifique suas credenciais.');
       }
     } catch (err: any) {
       setErrorMessage('Erro inesperado ao acessar o sistema.');

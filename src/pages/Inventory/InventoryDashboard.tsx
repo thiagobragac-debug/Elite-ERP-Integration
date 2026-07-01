@@ -191,7 +191,7 @@ export const InventoryDashboard: React.FC = () => {
     return [
       {
         label: 'Patrimônio em Insumos',
-        value: totalValue > 0 ? \`R$ \${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\` : 'R$ 0,00',
+        value: totalValue > 0 ? `R$ \${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'R$ 0,00',
         icon: DollarSign,
         color: '#10b981',
         progress: totalValue > 0 ? 85 : 0,
@@ -211,7 +211,7 @@ export const InventoryDashboard: React.FC = () => {
       },
       {
         label: 'Vencimentos Próximos',
-        value: \`\${maturityCount} itens\`,
+        value: `\${maturityCount} itens`,
         icon: FlaskConical,
         color: '#f59e0b',
         progress: maturityCount > 0 ? 100 : 0,
@@ -221,7 +221,7 @@ export const InventoryDashboard: React.FC = () => {
       },
       {
         label: 'Giro de Estoque',
-        value: turnover > 0 ? \`\${turnover.toFixed(1)}x\` : '0.0x',
+        value: turnover > 0 ? `\${turnover.toFixed(1)}x` : '0.0x',
         icon: Zap,
         color: '#3b82f6',
         progress: 0,
@@ -237,7 +237,7 @@ export const InventoryDashboard: React.FC = () => {
       type: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'in' : 'out',
       date: m?.data_movimentacao || new Date().toISOString(),
       title: m?.produtos?.nome || 'Item',
-      subtitle: \`\${m?.quantidade || 0} \${m?.produtos?.unidade || ''} • \${m?.responsavel || 'N/A'}\`,
+      subtitle: `\${m?.quantidade || 0} \${m?.produtos?.unidade || ''} • \${m?.responsavel || 'N/A'}`,
       value: m?.tipo === 'ENTRADA' || m?.tipo === 'in' ? 'Entrada' : 'Saída',
     }));
   }, [movements]);

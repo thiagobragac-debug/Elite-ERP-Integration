@@ -24,6 +24,7 @@ interface AuthContextType {
     password: string;
     fullName: string;
     companyName: string;
+    planName?: string;
   }) => Promise<{ error: Error | AuthError | null }>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -84,7 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Listen for changes on auth state (logged in, signed out, etc.)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -93,17 +94,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           role: (session.user.user_metadata?.role as 'admin' | 'user') || 'user',
         });
 
-        // Fetch AAL asynchronously without blocking the gotrue-js lock manager
-        supabase.auth.mfa
-          .getAuthenticatorAssuranceLevel()
-          .then(({ data: aalData }) => {
-            if (aalData) {
-              setAal(aalData.currentLevel as 'aal1' | 'aal2' | null);
-            } else {
-              setAal('aal1');
-            }
-          })
-          .catch(console.error);
+        // Fetch AAL asynchronously but wait for it before dropping the loading shield
+        try {
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData) {
+            setAal(aalData.currentLevel as 'aal1' | 'aal2' | null);
+          } else {
+            setAal('aal1');
+          }
+        } catch (e) {
+          console.error(e);
+          setAal('aal1');
+        }
       } else {
         setUser(null);
         setAal(null);
@@ -148,14 +150,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     password: string;
     fullName: string;
     companyName: string;
-  }): Promise<{ error: Error | AuthError | null }> => {
+    planName?: string;
+  }) => {
     try {
-      // 1. Criar Auth
+      // 1. Criar usuário no auth auth (gera o UUID)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: payload.email,
         password: payload.password,
         options: {
-          data: { full_name: payload.fullName },
+          data: {
+            full_name: payload.fullName,
+          },
         },
       });
 
@@ -165,16 +170,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const newUserId = authData.user?.id;
       if (!newUserId) {
-        throw new Error('Não foi possível obter o ID do usuário.');
+        throw new Error('Falha ao criar usuário. ID não retornado.');
       }
 
       // 2. Chamar a RPC transacionada no banco para criar toda a estrutura do Tenant de forma atômica
-      const { error: rpcError } = await supabase.rpc('register_new_tenant', {
+      const rpcPayload: any = {
         p_user_id: newUserId,
         p_email: payload.email,
         p_full_name: payload.fullName,
         p_company_name: payload.companyName,
-      });
+      };
+
+      if (payload.planName) {
+        rpcPayload.p_plano = payload.planName;
+      }
+
+      const { error: rpcError } = await supabase.rpc('register_new_tenant', rpcPayload);
 
       if (rpcError) {
         throw rpcError;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import {
-  Search, Plus, Filter, FileText, List as ListIcon, LayoutGrid, Settings, Wrench, Calendar, Truck
+  Search, Plus, Edit3, Trash2, Filter, FileText, List as ListIcon, LayoutGrid, Settings, Wrench, Calendar, Truck
 } from 'lucide-react';
 
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
@@ -13,7 +13,7 @@ import { FormModal } from '../../components/Forms/FormModal'; // Assuming generi
 import { MaintenanceKanban } from './components/MaintenanceKanban';
 import { MaintenanceKPIs } from './components/MaintenanceKPIs';
 import { OSClosingPanel } from './components/OSClosingPanel';
-import { useMaintenanceData, MaintenanceStatus } from './hooks/useMaintenanceData';
+import { useMaintenanceData, type MaintenanceStatus } from './hooks/useMaintenanceData';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 export const MaintenanceManagement: React.FC = () => {
@@ -175,3 +175,5 @@ export const MaintenanceManagement: React.FC = () => {
     </div>
   );
 };
+
+

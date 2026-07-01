@@ -145,7 +145,7 @@ export const FleetManagement: React.FC = () => {
     minYear: '',
     maxYear: '',
   });
-  const [viewMode, setViewMode] = useViewMode('fleet-management', 'grid');
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'kanban'>('grid');
 
   // Auto-reabrir: restaura formulário se existe rascunho (usuário navegou sem cancelar)
   useEffect(() => {
@@ -1396,3 +1396,4 @@ export const FleetManagement: React.FC = () => {
     </div>
   );
 };
+

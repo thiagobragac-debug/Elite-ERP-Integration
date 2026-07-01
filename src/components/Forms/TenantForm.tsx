@@ -40,7 +40,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
     cnpj: '',
     email: '',
     phone: '',
-    plan: 'Starter',
+    plan: 'Plano Prenhez (Trial 14 Dias)',
     status: 'Ativo',
     adminName: '',
     adminEmail: '',
@@ -89,7 +89,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       cnpj: initialData.document || initialData.id || '',
       email: initialData.email || '',
       phone: initialData.phone || '',
-      plan: initialData.plan || 'Starter',
+      plan: initialData.plan || 'Plano Prenhez (Trial 14 Dias)',
       status: ['Ativo', 'Suspenso', 'Cancelado'].includes(normalizedStatus)
         ? normalizedStatus
         : 'Ativo',

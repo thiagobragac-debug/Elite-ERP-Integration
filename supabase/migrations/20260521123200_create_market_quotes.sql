@@ -16,6 +16,7 @@ ALTER TABLE public.market_quotes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de segurança
 -- Apenas leitura para usuários autenticados
+DROP POLICY IF EXISTS "Leitura permitida para usuários autenticados" ON public.market_quotes;
 CREATE POLICY "Leitura permitida para usuários autenticados" 
     ON public.market_quotes 
     FOR SELECT 
@@ -25,3 +26,4 @@ CREATE POLICY "Leitura permitida para usuários autenticados"
 -- A inserção só poderá ser feita via Edge Function que não sofre restrição de RLS usando service_role,
 -- mas podemos criar uma política temporária se a inserção for pelo app client-side. 
 -- Como vamos usar Edge Function (Opção B), não precisamos permitir INSERT para roles autenticadas normais.
+

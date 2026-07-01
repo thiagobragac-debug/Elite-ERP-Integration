@@ -568,7 +568,7 @@ export default function RomaneioManagement() {
           >
             <FileText size={14} />
           </button>
-          {can('bovinocultura', 'edit') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
+          {can(bovinocultura, 'write') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
             <button
               onClick={() => handleOpenEdit(row)}
               className="action-dot edit"
@@ -577,7 +577,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} style={{ transform: 'rotate(45deg)' }} />
             </button>
           )}
-          {can('bovinocultura', 'edit') && row.status === 'Pendente' && (
+          {can(bovinocultura, 'write') && row.status === 'Pendente' && (
             <button
               onClick={() => handleConfirmTransit(row)}
               className="action-dot"
@@ -587,7 +587,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} />
             </button>
           )}
-          {can('bovinocultura', 'edit') && row.status === 'Em Trânsito' && (
+          {can(bovinocultura, 'write') && row.status === 'Em Trânsito' && (
             <button
               onClick={() => handleConclude(row)}
               className="action-dot"
@@ -662,7 +662,7 @@ export default function RomaneioManagement() {
         </div>
 
         <div className="page-actions">
-          {can('bovinocultura', 'create') && (
+          {can(bovinocultura, 'write') && (
             <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
               <Plus size={18} />
               NOVO EMBARQUE
@@ -683,14 +683,12 @@ export default function RomaneioManagement() {
                 subtitle="Romaneios gerados no total"
                 icon={Truck}
                 color="#3b82f6"
-                color="#3b82f6"
               />
               <TauzeStatCard
                 label="Animais Despachados"
                 value={`${stats.totalAnimals} cbç`}
                 subtitle="Soma de todos os lotes"
                 icon={Activity}
-                color="hsl(var(--brand))"
                 color="hsl(var(--brand))"
               />
               <TauzeStatCard
@@ -703,14 +701,12 @@ export default function RomaneioManagement() {
                 subtitle="Faturamento estimado de vendas"
                 icon={TrendingUp}
                 color="#10b981"
-                color="#10b981"
               />
               <TauzeStatCard
                 label="Embarques Pendentes"
                 value={stats.pendentesCount.toString()}
                 subtitle="Aguardando liberação / NF-e"
                 icon={Calendar}
-                color="#f59e0b"
                 color="#f59e0b"
               />
             </>
@@ -873,3 +869,4 @@ export default function RomaneioManagement() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Smartphone,
@@ -355,11 +355,40 @@ export const MFAEnroll: React.FC = () => {
       </div>
 
       <style>{`
+        .mfa-enroll-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #0f172a;
+          color: white;
+          font-family: 'Inter', sans-serif;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .mfa-bg {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15), transparent 50%);
+          z-index: 0;
+        }
+
+        .mfa-container {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 480px;
+          padding: 24px;
         }
 
         .mfa-card {
-          background: rgba(30, 41, 59, 0.5);
-          backdrop-filter: blur(20px);
+          background: rgba(30, 41, 59, 0.7);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 32px;
           padding: 48px;

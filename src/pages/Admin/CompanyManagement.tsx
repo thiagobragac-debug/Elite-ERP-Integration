@@ -86,7 +86,8 @@ import { hasDraftForKey } from '../../hooks/useFormDraft';
 export const CompanyManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { confirm } = useConfirm();
-  const { activeFarm, tenant, activeTenantId } = useTenant();
+  const { activeFarm, tenant, activeTenantId, userProfile } = useTenant();
+  const isSaasAdmin = userProfile?.role === 'SAAS_ADMIN';
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'companies' | 'farms') || 'companies';
   const setActiveTab = (tab: string) => {
@@ -464,10 +465,12 @@ export const CompanyManagement: React.FC = () => {
     if (type === 'company') {
       const company = companies.find((c) => c.id === id);
       if (company?.tipo?.toUpperCase() === 'MATRIZ') {
-        toast.error(
-          'Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.'
-        );
-        return;
+        if (!isSaasAdmin) {
+          toast.error(
+            'Segurança de Governança: Apenas o Administrador do SaaS pode remover a Empresa Matriz do ecossistema.'
+          );
+          return;
+        }
       }
     }
 
@@ -1032,9 +1035,23 @@ export const CompanyManagement: React.FC = () => {
                               <Edit3 size={14} />
                             </button>
                             <button
-                              className="action-icon-btn delete"
-                              onClick={() => handleDelete('company', c.id)}
-                              title="Excluir"
+                              className={`action-icon-btn delete ${
+                                !isSaasAdmin && isMatriz ? 'disabled' : ''
+                              }`}
+                              style={
+                                !isSaasAdmin && isMatriz
+                                  ? { opacity: 0.3, cursor: 'not-allowed' }
+                                  : {}
+                              }
+                              onClick={() => {
+                                if (!isSaasAdmin && isMatriz) return;
+                                handleDelete('company', c.id);
+                              }}
+                              title={
+                                !isSaasAdmin && isMatriz
+                                  ? 'Apenas Admin SaaS pode excluir a Matriz'
+                                  : 'Excluir'
+                              }
                             >
                               <XCircle size={14} />
                             </button>

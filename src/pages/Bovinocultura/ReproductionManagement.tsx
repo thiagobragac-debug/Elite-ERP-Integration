@@ -97,7 +97,7 @@ export const ReproductionManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
   const [isTemplateFormOpen, setIsTemplateFormOpen] = useState(false);
-  const [formActionId, setFormActionId] = useState<'create' | 'edit' | null>(null);
+  const [formActionId, setFormActionId] = useState<number | undefined>(undefined);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState(
     'ReproductionManagement_isHistoryModalOpen',
@@ -542,21 +542,21 @@ export const ReproductionManagement: React.FC = () => {
           )}
           
           {activeTab === 'TEMPLATES' ? (
-            can('bovinocultura', 'create') && (
+            can(bovinocultura, 'write') && (
               <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
                 <Plus size={18} />
                 NOVO TEMPLATE
               </button>
             )
           ) : activeTab === 'PROTOCOLOS' ? (
-            can('bovinocultura', 'create') && (
+            can(bovinocultura, 'write') && (
               <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
                 <Plus size={18} />
                 NOVO PROTOCOLO
               </button>
             )
           ) : (
-            can('bovinocultura', 'create') && (
+            can(bovinocultura, 'write') && (
               <button className="primary-btn" onClick={handleOpenCreate}>
                 <Plus size={18} />
                 NOVO REGISTRO
@@ -688,7 +688,7 @@ export const ReproductionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('bovinocultura', 'edit') && (
+                {can(bovinocultura, 'write') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -745,3 +745,4 @@ export const ReproductionManagement: React.FC = () => {
     </div>
   );
 };
+

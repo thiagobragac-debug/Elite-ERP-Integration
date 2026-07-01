@@ -97,7 +97,7 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
     refetchOnWindowFocus: false,
   });
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
         {Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)}
@@ -573,7 +573,7 @@ const LotPerformanceView: React.FC<{ tenantId: string; lotId: string }> = ({ ten
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-            {topPerformers.map((item, idx) => (
+            {topPerformers.map((item: any, idx: number) => (
               <div
                 key={idx}
                 style={{
@@ -1178,7 +1178,7 @@ export const WeightManagement: React.FC = () => {
           >
             <Wifi size={20} />
           </button>
-          {can('bovinocultura', 'create') && (
+          {can(bovinocultura, 'write') && (
             <>
               <button
                 className="glass-btn secondary"
@@ -1261,7 +1261,7 @@ export const WeightManagement: React.FC = () => {
             >
               Todos os Lotes
             </option>
-            {lots.map((l) => (
+            {lots.map((l: any) => (
               <option
                 key={l.id}
                 value={l.id}
@@ -1374,7 +1374,7 @@ export const WeightManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can('bovinocultura', 'edit') && (
+                {can(bovinocultura, 'write') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}
@@ -1428,3 +1428,4 @@ export const WeightManagement: React.FC = () => {
     </div>
   );
 };
+
