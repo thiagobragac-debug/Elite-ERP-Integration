@@ -8,6 +8,7 @@ import { WorkflowSection } from './LandingPage/components/WorkflowSection';
 import { PricingSection } from './LandingPage/components/PricingSection';
 import { FAQSection } from './LandingPage/components/FAQSection';
 import { FooterSection } from './LandingPage/components/FooterSection';
+import { FloatingWhatsApp } from './LandingPage/components/FloatingWhatsApp';
 import { useSystemSettings } from '../contexts/SystemSettingsContext';
 import './LandingPage/LandingPage.css';
 
@@ -51,7 +52,49 @@ export const LandingPage: React.FC = () => {
       }
       meta.setAttribute('content', settings.landing_seo_keywords);
     }
-  }, [settings.landing_seo_description, settings.landing_seo_keywords]);
+
+    if (settings.landing_analytics_id) {
+      const existingGa = document.getElementById('ga-script');
+      if (!existingGa) {
+        const script = document.createElement('script');
+        script.id = 'ga-script';
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${settings.landing_analytics_id}`;
+        document.head.appendChild(script);
+
+        const scriptInline = document.createElement('script');
+        scriptInline.id = 'ga-inline';
+        scriptInline.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${settings.landing_analytics_id}');
+        `;
+        document.head.appendChild(scriptInline);
+      }
+    }
+
+    if (settings.landing_pixel_id) {
+      const existingPixel = document.getElementById('fb-pixel');
+      if (!existingPixel) {
+        const scriptInline = document.createElement('script');
+        scriptInline.id = 'fb-pixel';
+        scriptInline.innerHTML = `
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '${settings.landing_pixel_id}');
+          fbq('track', 'PageView');
+        `;
+        document.head.appendChild(scriptInline);
+      }
+    }
+  }, [settings.landing_seo_description, settings.landing_seo_keywords, settings.landing_analytics_id, settings.landing_pixel_id]);
 
   return (
     <div
@@ -181,6 +224,9 @@ export const LandingPage: React.FC = () => {
       )}
 
       <FooterSection />
+
+      {/* Botão de Contato Rápido (Exibido apenas se o número for cadastrado no Admin) */}
+      <FloatingWhatsApp phoneNumber={settings.landing_whatsapp || ''} />
     </div>
   );
 };

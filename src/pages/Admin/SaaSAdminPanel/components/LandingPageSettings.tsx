@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Plus, Trash2, Layout, Award, HelpCircle, FileText, Smartphone, Mail, AlertTriangle, Eye, Image as ImageIcon } from 'lucide-react';
+import { Save, Plus, Trash2, Layout, Award, HelpCircle, FileText, Smartphone, Mail, AlertTriangle, Eye, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { useSystemSettings } from '../../../../contexts/SystemSettingsContext';
 import { ToggleSwitch } from '../../../../components/UI/ToggleSwitch';
@@ -88,6 +88,7 @@ type BuilderSection = 'hero' | 'features' | 'testimonials' | 'faq' | 'seo';
 export const LandingPageSettings: React.FC = () => {
   const { settings, refreshSettings } = useSystemSettings();
   const [loading, setLoading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [activeSection, setActiveSection] = useState<BuilderSection>('hero');
 
   // Hero State
@@ -136,6 +137,33 @@ export const LandingPageSettings: React.FC = () => {
     setShowMockup(settings.landing_show_mockup ?? true);
     setShowFaq(settings.landing_show_faq ?? true);
   }, [settings]);
+
+  useEffect(() => {
+    const isDifferent = 
+      heroTitle !== (settings.landing_hero_title || '') ||
+      heroSubtitle !== (settings.landing_hero_subtitle || '') ||
+      heroCta !== (settings.landing_hero_cta || '') ||
+      JSON.stringify(testimonials) !== JSON.stringify(settings.landing_testimonials || []) ||
+      JSON.stringify(faqItems) !== JSON.stringify(settings.landing_faq_items || []) ||
+      seoDescription !== (settings.landing_seo_description || '') ||
+      seoKeywords !== (settings.landing_seo_keywords || '') ||
+      analyticsId !== (settings.landing_analytics_id || '') ||
+      pixelId !== (settings.landing_pixel_id || '') ||
+      whatsapp !== (settings.landing_whatsapp || '') ||
+      contactEmail !== (settings.landing_contact_email || '') ||
+      socialInstagram !== (settings.landing_social_instagram || '') ||
+      socialLinkedin !== (settings.landing_social_linkedin || '') ||
+      socialYoutube !== (settings.landing_social_youtube || '') ||
+      showTicker !== (settings.landing_show_ticker ?? true) ||
+      showMockup !== (settings.landing_show_mockup ?? true) ||
+      showFaq !== (settings.landing_show_faq ?? true);
+      
+    setIsDirty(isDifferent);
+  }, [
+    heroTitle, heroSubtitle, heroCta, testimonials, faqItems, seoDescription, seoKeywords, 
+    analyticsId, pixelId, whatsapp, contactEmail, socialInstagram, socialLinkedin, 
+    socialYoutube, showTicker, showMockup, showFaq, settings
+  ]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -240,7 +268,12 @@ export const LandingPageSettings: React.FC = () => {
                 <div key={idx} style={{ padding: 20, background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))' }}>DEPOIMENTO {idx + 1}</span>
-                    <button onClick={() => setTestimonials(testimonials.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}><Trash2 size={14} /></button>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button onClick={() => { if(idx > 0) { const nt = [...testimonials]; const temp = nt[idx]; nt[idx] = nt[idx-1]; nt[idx-1] = temp; setTestimonials(nt); } }} style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'rgba(255,255,255,0.1)' : 'hsl(var(--text-muted))' }} disabled={idx === 0}><ChevronUp size={14} /></button>
+                      <button onClick={() => { if(idx < testimonials.length-1) { const nt = [...testimonials]; const temp = nt[idx]; nt[idx] = nt[idx+1]; nt[idx+1] = temp; setTestimonials(nt); } }} style={{ background: 'none', border: 'none', cursor: idx === testimonials.length-1 ? 'default' : 'pointer', color: idx === testimonials.length-1 ? 'rgba(255,255,255,0.1)' : 'hsl(var(--text-muted))' }} disabled={idx === testimonials.length-1}><ChevronDown size={14} /></button>
+                      <div style={{ width: 1, height: 12, background: 'hsl(var(--border))', margin: '0 4px' }} />
+                      <button onClick={() => setTestimonials(testimonials.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}><Trash2 size={14} /></button>
+                    </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                     <input className="tauze-input" style={{ fontSize: 13 }} value={t.name} onChange={(e) => { const nt = [...testimonials]; nt[idx].name = e.target.value; setTestimonials(nt); }} placeholder="Nome (Ex: João Silva)" />
@@ -270,7 +303,12 @@ export const LandingPageSettings: React.FC = () => {
                 <div key={idx} style={{ padding: 20, background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))' }}>PERGUNTA {idx + 1}</span>
-                    <button onClick={() => setFaqItems(faqItems.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}><Trash2 size={14} /></button>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button onClick={() => { if(idx > 0) { const nf = [...faqItems]; const temp = nf[idx]; nf[idx] = nf[idx-1]; nf[idx-1] = temp; setFaqItems(nf); } }} style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'rgba(255,255,255,0.1)' : 'hsl(var(--text-muted))' }} disabled={idx === 0}><ChevronUp size={14} /></button>
+                      <button onClick={() => { if(idx < faqItems.length-1) { const nf = [...faqItems]; const temp = nf[idx]; nf[idx] = nf[idx+1]; nf[idx+1] = temp; setFaqItems(nf); } }} style={{ background: 'none', border: 'none', cursor: idx === faqItems.length-1 ? 'default' : 'pointer', color: idx === faqItems.length-1 ? 'rgba(255,255,255,0.1)' : 'hsl(var(--text-muted))' }} disabled={idx === faqItems.length-1}><ChevronDown size={14} /></button>
+                      <div style={{ width: 1, height: 12, background: 'hsl(var(--border))', margin: '0 4px' }} />
+                      <button onClick={() => setFaqItems(faqItems.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}><Trash2 size={14} /></button>
+                    </div>
                   </div>
                   <input className="tauze-input" style={{ fontSize: 13, marginBottom: 12 }} value={faq.q} onChange={(e) => { const nf = [...faqItems]; nf[idx].q = e.target.value; setFaqItems(nf); }} placeholder="Pergunta (Ex: Tem período de teste grátis?)" />
                   <textarea className="tauze-input" style={{ fontSize: 13, minHeight: 60 }} value={faq.a} onChange={(e) => { const nf = [...faqItems]; nf[idx].a = e.target.value; setFaqItems(nf); }} placeholder="Resposta..." />
@@ -308,7 +346,7 @@ export const LandingPageSettings: React.FC = () => {
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'hsl(var(--text-muted))', marginBottom: 8 }}>WHATSAPP DE VENDAS</label>
                   <div style={{ display: 'flex', alignItems: 'center', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 8, paddingLeft: 12 }}>
                     <Smartphone size={16} color="hsl(var(--text-muted))" />
-                    <input className="tauze-input" style={{ border: 'none', background: 'transparent' }} value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="Ex: 5511999999999" />
+                    <input className="tauze-input" style={{ border: 'none', background: 'transparent' }} value={whatsapp} onChange={e => setWhatsapp(e.target.value)} onBlur={() => { if(whatsapp) setWhatsapp(whatsapp.replace(/\D/g, '')) }} placeholder="Ex: 5511999999999" />
                   </div>
                 </div>
                 <div className="tauze-field-group">
@@ -322,15 +360,15 @@ export const LandingPageSettings: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div className="tauze-field-group">
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'hsl(var(--text-muted))', marginBottom: 8 }}>INSTAGRAM</label>
-                  <input className="tauze-input" value={socialInstagram} onChange={e => setSocialInstagram(e.target.value)} placeholder="https://instagram.com/..." />
+                  <input className="tauze-input" value={socialInstagram} onChange={e => setSocialInstagram(e.target.value)} onBlur={() => { if(socialInstagram && !socialInstagram.startsWith('http')) setSocialInstagram('https://' + socialInstagram.replace('@','')) }} placeholder="https://instagram.com/..." />
                 </div>
                 <div className="tauze-field-group">
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'hsl(var(--text-muted))', marginBottom: 8 }}>LINKEDIN</label>
-                  <input className="tauze-input" value={socialLinkedin} onChange={e => setSocialLinkedin(e.target.value)} placeholder="https://linkedin.com/..." />
+                  <input className="tauze-input" value={socialLinkedin} onChange={e => setSocialLinkedin(e.target.value)} onBlur={() => { if(socialLinkedin && !socialLinkedin.startsWith('http')) setSocialLinkedin('https://' + socialLinkedin) }} placeholder="https://linkedin.com/..." />
                 </div>
                 <div className="tauze-field-group">
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'hsl(var(--text-muted))', marginBottom: 8 }}>YOUTUBE</label>
-                  <input className="tauze-input" value={socialYoutube} onChange={e => setSocialYoutube(e.target.value)} placeholder="https://youtube.com/..." />
+                  <input className="tauze-input" value={socialYoutube} onChange={e => setSocialYoutube(e.target.value)} onBlur={() => { if(socialYoutube && !socialYoutube.startsWith('http')) setSocialYoutube('https://' + socialYoutube) }} placeholder="https://youtube.com/..." />
                 </div>
               </div>
             </div>
@@ -436,7 +474,16 @@ export const LandingPageSettings: React.FC = () => {
 
       {/* ── GLOBAL FOOTER (SAVE) ── */}
       <div style={{ position: 'sticky', bottom: 20, marginTop: 40 }}>
-        <div style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--brand))', boxShadow: '0 8px 32px rgba(0,184,101,0.2)', borderRadius: 16, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {isDirty && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '12px 20px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <AlertTriangle size={18} color="#ef4444" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>Você tem alterações não salvas</div>
+              <div style={{ fontSize: 12, color: 'rgba(239,68,68,0.8)' }}>Lembre-se de publicar suas alterações antes de sair desta página, caso contrário elas serão perdidas.</div>
+            </div>
+          </motion.div>
+        )}
+        <div style={{ background: 'hsl(var(--bg-card))', border: isDirty ? '1px solid #ef4444' : '1px solid hsl(var(--brand))', boxShadow: isDirty ? '0 8px 32px rgba(239,68,68,0.15)' : '0 8px 32px rgba(0,184,101,0.2)', borderRadius: 16, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.3s' }}>
           <div>
             <h4 style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--text-primary))', margin: 0 }}>Publicar Alterações</h4>
             <p style={{ fontSize: 12, color: 'hsl(var(--text-secondary))', margin: 0 }}>As modificações feitas na Landing Page serão refletidas imediatamente na página principal.</p>
@@ -444,12 +491,15 @@ export const LandingPageSettings: React.FC = () => {
           <button
             className="primary-btn"
             onClick={handleSave}
-            disabled={loading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', fontSize: 14 }}
+            disabled={loading || !isDirty}
+            style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', fontSize: 14,
+              opacity: (!isDirty && !loading) ? 0.5 : 1
+            }}
           >
             {loading
               ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Publicando...</>
-              : <><Save size={16} />Publicar Landing Page</>}
+              : <><Save size={16} />{isDirty ? 'Publicar Agora' : 'Página Atualizada'}</>}
           </button>
         </div>
       </div>
