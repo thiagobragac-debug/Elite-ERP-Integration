@@ -15,6 +15,7 @@ const ReproductionManagement = React.lazy(() => import('../pages/Bovinocultura/R
 const NutritionManagement = React.lazy(() => import('../pages/Bovinocultura/NutritionManagement').then((m) => ({ default: m.NutritionManagement })));
 const HealthManagement = React.lazy(() => import('../pages/Bovinocultura/HealthManagement').then((m) => ({ default: m.HealthManagement })));
 const ConfinementManagement = React.lazy(() => import('../pages/Bovinocultura/ConfinementManagement').then((m) => ({ default: m.ConfinementManagement })));
+const PurchaseManagement = React.lazy(() => import('../pages/Bovinocultura/PurchaseManagement').then((m) => ({ default: m.PurchaseManagement })));
 
 const S = (msg: string, variant: 'card' | 'table' | 'form' | 'chart' = 'table') => (
   <LoadingSkeleton variant={variant} fullScreen={true} message={msg} />
@@ -24,6 +25,7 @@ export const bovinoculturaRoutes = (
   <Route path="bovinocultura" element={<PermissionGuard permission="bovinocultura"><ModuleErrorBoundary moduleName="Bovinocultura"><Outlet /></ModuleErrorBoundary></PermissionGuard>}>
     <Route path="dashboard" element={<PermissionGuard permission="bovinocultura_dashboard"><React.Suspense fallback={S('Carregando dashboard...', 'card')}><LivestockDashboard /></React.Suspense></PermissionGuard>} />
     <Route path="animal" element={<PermissionGuard permission="bovinocultura_animais"><React.Suspense fallback={S('Carregando animais...')}><AnimalManagement /></React.Suspense></PermissionGuard>} />
+    <Route path="compras" element={<PermissionGuard permission="bovinocultura_animais"><React.Suspense fallback={S('Carregando compras...')}><PurchaseManagement /></React.Suspense></PermissionGuard>} />
     <Route path="romaneios" element={<PermissionGuard permission="bovinocultura_animais"><React.Suspense fallback={S('Carregando romaneios...')}><RomaneioManagement /></React.Suspense></PermissionGuard>} />
     <Route path="animal/:id" element={<PermissionGuard permission="bovinocultura_animais"><React.Suspense fallback={S('Carregando animal...', 'card')}><AnimalDetail /></React.Suspense></PermissionGuard>} />
     <Route path="lote" element={<PermissionGuard permission="bovinocultura_animais"><React.Suspense fallback={S('Carregando lotes...')}><LotManagement /></React.Suspense></PermissionGuard>} />

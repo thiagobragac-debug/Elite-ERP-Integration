@@ -93,6 +93,7 @@ export type Database = {
           finalidade: string | null
           id: string
           lote_id: string | null
+          lote_compra_id: string | null
           mae_brinco: string | null
           origem: string | null
           pai_brinco: string | null
@@ -108,6 +109,8 @@ export type Database = {
           tenant_id: string | null
           valor_compra: number | null
           valor_venda: number | null
+          tipo_parto: string | null
+          tipo_concepcao: string | null
           especie_id: string | null
           aptidao_id: string | null
         }
@@ -122,6 +125,7 @@ export type Database = {
           finalidade?: string | null
           id?: string
           lote_id?: string | null
+          lote_compra_id?: string | null
           mae_brinco?: string | null
           origem?: string | null
           pai_brinco?: string | null
@@ -151,6 +155,7 @@ export type Database = {
           finalidade?: string | null
           id?: string
           lote_id?: string | null
+          lote_compra_id?: string | null
           mae_brinco?: string | null
           origem?: string | null
           pai_brinco?: string | null
@@ -175,6 +180,13 @@ export type Database = {
             columns: ["fazenda_id"]
             isOneToOne: false
             referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "animais_lote_compra_id_fkey"
+            columns: ["lote_compra_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_compra"
             referencedColumns: ["id"]
           },
           {
@@ -1477,6 +1489,80 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      lotes_compra: {
+        Row: {
+          id: string
+          tenant_id: string
+          created_at: string
+          fornecedor_id: string | null
+          nota_fiscal: string | null
+          gta: string | null
+          data_compra: string
+          valor_total: number | null
+          quantidade_cabecas: number
+          fazenda_destino_id: string | null
+          status: string
+          nota_entrada_id: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          created_at?: string
+          fornecedor_id?: string | null
+          nota_fiscal?: string | null
+          gta?: string | null
+          data_compra: string
+          valor_total?: number | null
+          quantidade_cabecas: number
+          fazenda_destino_id?: string | null
+          status?: string
+          nota_entrada_id?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          created_at?: string
+          fornecedor_id?: string | null
+          nota_fiscal?: string | null
+          gta?: string | null
+          data_compra?: string
+          valor_total?: number | null
+          quantidade_cabecas?: number
+          fazenda_destino_id?: string | null
+          status?: string
+          nota_entrada_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_compra_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_compra_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_compra_fazenda_destino_id_fkey"
+            columns: ["fazenda_destino_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_compra_nota_entrada_id_fkey"
+            columns: ["nota_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "notas_entrada"
+            referencedColumns: ["id"]
+          }
         ]
       }
       manutencao_frota: {

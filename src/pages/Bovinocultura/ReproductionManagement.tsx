@@ -542,21 +542,21 @@ export const ReproductionManagement: React.FC = () => {
           )}
           
           {activeTab === 'TEMPLATES' ? (
-            can(bovinocultura, 'write') && (
+            can('bovinocultura', 'write') && (
               <button className="primary-btn" onClick={() => setIsTemplateFormOpen(true)}>
                 <Plus size={18} />
                 NOVO TEMPLATE
               </button>
             )
           ) : activeTab === 'PROTOCOLOS' ? (
-            can(bovinocultura, 'write') && (
+            can('bovinocultura', 'write') && (
               <button className="primary-btn" onClick={() => setIsProtocolModalOpen(true)}>
                 <Plus size={18} />
                 NOVO PROTOCOLO
               </button>
             )
           ) : (
-            can(bovinocultura, 'write') && (
+            can('bovinocultura', 'write') && (
               <button className="primary-btn" onClick={handleOpenCreate}>
                 <Plus size={18} />
                 NOVO REGISTRO
@@ -688,7 +688,7 @@ export const ReproductionManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can(bovinocultura, 'write') && (
+                {can('bovinocultura', 'write') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}

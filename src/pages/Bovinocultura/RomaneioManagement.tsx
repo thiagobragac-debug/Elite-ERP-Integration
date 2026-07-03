@@ -568,7 +568,7 @@ export default function RomaneioManagement() {
           >
             <FileText size={14} />
           </button>
-          {can(bovinocultura, 'write') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
+          {can('bovinocultura', 'write') && (row.status === 'Pendente' || row.status === 'Rascunho') && (
             <button
               onClick={() => handleOpenEdit(row)}
               className="action-dot edit"
@@ -577,7 +577,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} style={{ transform: 'rotate(45deg)' }} />
             </button>
           )}
-          {can(bovinocultura, 'write') && row.status === 'Pendente' && (
+          {can('bovinocultura', 'write') && row.status === 'Pendente' && (
             <button
               onClick={() => handleConfirmTransit(row)}
               className="action-dot"
@@ -587,7 +587,7 @@ export default function RomaneioManagement() {
               <Navigation size={14} />
             </button>
           )}
-          {can(bovinocultura, 'write') && row.status === 'Em Trânsito' && (
+          {can('bovinocultura', 'write') && row.status === 'Em Trânsito' && (
             <button
               onClick={() => handleConclude(row)}
               className="action-dot"
@@ -662,7 +662,7 @@ export default function RomaneioManagement() {
         </div>
 
         <div className="page-actions">
-          {can(bovinocultura, 'write') && (
+          {can('bovinocultura', 'write') && (
             <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
               <Plus size={18} />
               NOVO EMBARQUE

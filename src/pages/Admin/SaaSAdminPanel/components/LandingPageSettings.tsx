@@ -117,6 +117,7 @@ export const LandingPageSettings: React.FC = () => {
   const [showTicker, setShowTicker] = useState(settings.landing_show_ticker ?? true);
   const [showMockup, setShowMockup] = useState(settings.landing_show_mockup ?? true);
   const [showFaq, setShowFaq] = useState(settings.landing_show_faq ?? true);
+  const [defaultTheme, setDefaultTheme] = useState(settings.landing_default_theme || "dark");
 
   useEffect(() => {
     setHeroTitle(settings.landing_hero_title || '');
@@ -136,6 +137,7 @@ export const LandingPageSettings: React.FC = () => {
     setShowTicker(settings.landing_show_ticker ?? true);
     setShowMockup(settings.landing_show_mockup ?? true);
     setShowFaq(settings.landing_show_faq ?? true);
+      setDefaultTheme(settings.landing_default_theme || "dark");
   }, [settings]);
 
   useEffect(() => {
@@ -156,13 +158,14 @@ export const LandingPageSettings: React.FC = () => {
       socialYoutube !== (settings.landing_social_youtube || '') ||
       showTicker !== (settings.landing_show_ticker ?? true) ||
       showMockup !== (settings.landing_show_mockup ?? true) ||
-      showFaq !== (settings.landing_show_faq ?? true);
+      showFaq !== (settings.landing_show_faq ?? true) ||
+        defaultTheme !== (settings.landing_default_theme || "dark");
       
     setIsDirty(isDifferent);
   }, [
     heroTitle, heroSubtitle, heroCta, testimonials, faqItems, seoDescription, seoKeywords, 
     analyticsId, pixelId, whatsapp, contactEmail, socialInstagram, socialLinkedin, 
-    socialYoutube, showTicker, showMockup, showFaq, settings
+    socialYoutube, showTicker, showMockup, showFaq, defaultTheme, settings
   ]);
 
   const handleSave = async () => {
@@ -187,6 +190,7 @@ export const LandingPageSettings: React.FC = () => {
         landing_show_ticker: showTicker,
         landing_show_mockup: showMockup,
         landing_show_faq: showFaq,
+          landing_default_theme: defaultTheme,
         updated_at: new Date().toISOString(),
       };
       if (existing) {
@@ -232,6 +236,19 @@ export const LandingPageSettings: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--text-primary))' }}>Exibir Mockup do Sistema</span>
                   <ToggleSwitch checked={showMockup} onChange={setShowMockup} size="sm" />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid hsl(var(--border))' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--text-primary))' }}>Tema Padrão</span>
+                  <select
+                    className="tauze-input"
+                    style={{ width: 120, padding: '4px 8px' }}
+                    value={defaultTheme}
+                    onChange={e => setDefaultTheme(e.target.value as 'light' | 'dark')}
+                  >
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
                 </div>
               </div>
             </div>

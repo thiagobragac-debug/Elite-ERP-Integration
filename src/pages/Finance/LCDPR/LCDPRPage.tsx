@@ -170,7 +170,7 @@ export const LCDPRPage: React.FC = () => {
     console.error('[LCDPR] Error loading data:', errorLancamentos);
   }
 
-  // ─── KPIs Resumo ──────────────────────────────────────────────────────────
+  // âââ KPIs Resumo ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const kpis = useMemo(() => {
     const filtered = activeFarm?.id
       ? lancamentos.filter((l) => l.fazenda_id === activeFarm.id)
@@ -184,7 +184,7 @@ export const LCDPRPage: React.FC = () => {
     return { receitas, despesas, saldo: receitas - despesas, total: filtered.length };
   }, [lancamentos, activeFarm]);
 
-  // ─── Resumo Mensal ────────────────────────────────────────────────────────
+  // âââ Resumo Mensal ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const resumoMensal = useMemo(() => {
     let saldoAcum = 0;
     return MESES.map((mes, idx) => {
@@ -198,7 +198,7 @@ export const LCDPRPage: React.FC = () => {
     });
   }, [lancamentos]);
 
-  // ─── CRUD ─────────────────────────────────────────────────────────────────
+  // âââ CRUD âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const openNew = () => {
     setEditingItem(null);
     setForm({
@@ -260,11 +260,11 @@ export const LCDPRPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
       setIsModalOpen(false);
       toast.success(
-        editingItem ? 'Lan�amento atualizado com sucesso!' : 'Lan�amento adicionado com sucesso!'
+        editingItem ? 'Lançamento atualizado com sucesso!' : 'Lançamento adicionado com sucesso!'
       );
     },
     onError: (err: any) => {
-      toast.error(`❌ Erro ao salvar lan�amento: ${err.message}`);
+      toast.error(`â Erro ao salvar lançamento: ${err.message}`);
     },
   });
 
@@ -305,17 +305,17 @@ export const LCDPRPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
-      toast.success('Lan�amento exclu�do com sucesso!');
+      toast.success('Lançamento excluído com sucesso!');
     },
     onError: (err: any) => {
-      toast.error(`❌ Erro ao excluir lan�amento: ${err.message}`);
+      toast.error(`â Erro ao excluir lançamento: ${err.message}`);
     },
   });
 
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
-      title: 'Aten��o',
-      description: 'Excluir este lan�amento?',
+      title: 'Atenção',
+      description: 'Excluir este lançamento?',
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
       variant: 'danger',
@@ -398,7 +398,7 @@ export const LCDPRPage: React.FC = () => {
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
-      toast.success(`✅ ${count} lan�amentos importados do Financeiro!`);
+      toast.success(`â ${count} lançamentos importados do Financeiro!`);
     },
     onError: (err: any) => {
       console.error(err);
@@ -406,14 +406,14 @@ export const LCDPRPage: React.FC = () => {
     },
   });
 
-  // ─── Importar de Financeiro ───────────────────────────────────────────────
+  // âââ Importar de Financeiro âââââââââââââââââââââââââââââââââââââââââââââââ
   const handleImportFinanceiro = async () => {
     if (!tenant?.id) {
       return;
     }
     const isConfirmed = await confirm({
-      title: 'Aten��o',
-      description: `Importar contas PAGAS de ${anoCalendario} do m�dulo Financeiro para o LCDPR?`,
+      title: 'Atenção',
+      description: `Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`,
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
       variant: 'danger',
@@ -424,19 +424,19 @@ export const LCDPRPage: React.FC = () => {
     importFinanceiroMutation.mutate();
   };
 
-  // ─── Gerar Arquivo ────────────────────────────────────────────────────────
+  // âââ Gerar Arquivo ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const handleGerarArquivo = async () => {
     if (!unidadeMatriz) {
-      toast.error('Configure uma empresa Matriz com CPF/S�cio antes de gerar o arquivo.');
+      toast.error('Configure uma empresa Matriz com CPF/Sócio antes de gerar o arquivo.');
       return;
     }
     if (lancamentos.length === 0) {
-      toast.error('N�o h� lan�amentos para o ano selecionado.');
+      toast.error('Não há lançamentos para o ano selecionado.');
       return;
     }
     setGeneratingFile(true);
     try {
-      // Determinar CPF do produtor (s�cio se CNPJ, pr�prio documento se CPF)
+      // Determinar CPF do produtor (sócio se CNPJ, próprio documento se CPF)
       const docDigits = (unidadeMatriz.cnpj || unidadeMatriz.documento || '').replace(/\D/g, '');
       const cpfProdutor =
         docDigits.length === 14 ? (unidadeMatriz.socio_cpf || '').replace(/\D/g, '') : docDigits;
@@ -447,7 +447,7 @@ export const LCDPRPage: React.FC = () => {
 
       if (!cpfProdutor || cpfProdutor.length !== 11) {
         toast.error(
-          'CPF do produtor n�o encontrado. Preencha os dados do s�cio no cadastro da empresa Matriz.'
+          'CPF do produtor não encontrado. Preencha os dados do sócio no cadastro da empresa Matriz.'
         );
         return;
       }
@@ -462,7 +462,7 @@ export const LCDPRPage: React.FC = () => {
         crcContador: unidadeMatriz.contador_crc,
       };
 
-      // Montar im�veis a partir das fazendas
+      // Montar imóveis a partir das fazendas
       const imoveisList = fazendas.map((f, idx) => ({
         codImovel: f.nirf ? `FAZ${String(idx + 1).padStart(3, '0')}` : 'IMP001',
         nomeImovel: f.nome,
@@ -472,7 +472,7 @@ export const LCDPRPage: React.FC = () => {
         areaHa: Number(f.area_total || f.area_ha || 0),
       }));
 
-      // Se n�o h� fazendas com NIRF, adiciona im�vel gen�rico
+      // Se não há fazendas com NIRF, adiciona imóvel genérico
       if (imoveisList.length === 0) {
         imoveisList.push({
           codImovel: 'IMP001',
@@ -484,7 +484,7 @@ export const LCDPRPage: React.FC = () => {
         });
       }
 
-      const contasList = [{ codConta: '999', descricao: 'Numer�rio em Tr�nsito / Esp�cie' }];
+      const contasList = [{ codConta: '999', descricao: 'Numerário em Trânsito / Espécie' }];
 
       const lancsFormatted = lancamentos.map((l) => ({
         dataLancamento: l.data_lancamento,
@@ -530,7 +530,7 @@ export const LCDPRPage: React.FC = () => {
       accessor: (l: any) => {
         const faz = fazendas.find((f) => f.id === l.fazenda_id);
         return (
-          <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || '—'}</div>
+          <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || 'â'}</div>
         );
       },
       align: 'left' as const,
@@ -549,7 +549,7 @@ export const LCDPRPage: React.FC = () => {
               color: l.tipo === 'R' ? '#10b981' : '#ef4444',
             }}
           >
-            {l.tipo === 'R' ? '↑ RECEITA' : '↓ DESPESA'}
+            {l.tipo === 'R' ? 'â RECEITA' : 'â DESPESA'}
           </span>
         </div>
       ),
@@ -573,7 +573,7 @@ export const LCDPRPage: React.FC = () => {
       align: 'left' as const,
     },
     {
-      header: 'Descri��o',
+      header: 'Descrição',
       accessor: (l: any) => (
         <div
           style={{
@@ -585,7 +585,7 @@ export const LCDPRPage: React.FC = () => {
             color: 'hsl(var(--text-main))',
           }}
         >
-          {l.descricao || '—'}
+          {l.descricao || 'â'}
         </div>
       ),
       align: 'left' as const,
@@ -594,13 +594,13 @@ export const LCDPRPage: React.FC = () => {
       header: 'Participante',
       accessor: (l: any) => (
         <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>
-          {l.nome_participante || '—'}
+          {l.nome_participante || 'â'}
         </div>
       ),
       align: 'left' as const,
     },
     {
-      header: 'Valor L�quido',
+      header: 'Valor Líquido',
       accessor: (l: any) => (
         <div
           style={{
@@ -629,7 +629,7 @@ export const LCDPRPage: React.FC = () => {
 
           <h1 className="page-title">Livro Caixa Digital do Produtor Rural</h1>
           <p className="page-subtitle">
-            Escritura��o fiscal da atividade rural � Gera��o do arquivo para entrega � Receita
+            Escrituração fiscal da atividade rural · Geração do arquivo para entrega à Receita
             Federal
           </p>
         </div>
@@ -642,7 +642,7 @@ export const LCDPRPage: React.FC = () => {
             <RefreshCw size={15} /> Importar Financeiro
           </button>
           <button className="primary-btn" onClick={openNew}>
-            <Plus size={16} /> Novo Lan�amento
+            <Plus size={16} /> Novo Lançamento
           </button>
         </div>
       </header>
@@ -655,7 +655,7 @@ export const LCDPRPage: React.FC = () => {
             value: fmtBRL(kpis.receitas),
             color: '#10b981',
             Icon: ArrowUpRight,
-            sub: `${lancamentos.filter((l) => l.tipo === 'R').length} lan�amentos`,
+            sub: `${lancamentos.filter((l) => l.tipo === 'R').length} lançamentos`,
             sparkline: resumoMensal.map((m) => ({ value: m.rec, label: m.mes })),
           },
           {
@@ -663,19 +663,19 @@ export const LCDPRPage: React.FC = () => {
             value: fmtBRL(kpis.despesas),
             color: '#ef4444',
             Icon: ArrowDownRight,
-            sub: `${lancamentos.filter((l) => l.tipo === 'D').length} lan�amentos`,
+            sub: `${lancamentos.filter((l) => l.tipo === 'D').length} lançamentos`,
             sparkline: resumoMensal.map((m) => ({ value: m.desp, label: m.mes })),
           },
           {
-            label: 'Resultado L�quido',
+            label: 'Resultado Líquido',
             value: fmtBRL(kpis.saldo),
             color: kpis.saldo >= 0 ? '#10b981' : '#ef4444',
             Icon: BarChart3,
-            sub: kpis.saldo >= 0 ? 'Super�vit' : 'D�ficit',
+            sub: kpis.saldo >= 0 ? 'Superávit' : 'Déficit',
             sparkline: resumoMensal.map((m) => ({ value: m.rec - m.desp, label: m.mes })),
           },
           {
-            label: 'Total Lan�amentos',
+            label: 'Total Lançamentos',
             value: String(kpis.total),
             color: '#6366f1',
             Icon: FileText,
@@ -700,7 +700,7 @@ export const LCDPRPage: React.FC = () => {
         <div className="tauze-tab-group">
           {(
             [
-              ['lancamentos', 'Lan�amentos (Q100)'],
+              ['lancamentos', 'Lançamentos (Q100)'],
               ['resumo', 'Resumo Mensal (Q200)'],
               ['gerar', 'Gerar Arquivo'],
             ] as const
@@ -784,14 +784,14 @@ export const LCDPRPage: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                {t === 'R' ? '📈 Receitas' : t === 'D' ? '📉 Despesas' : 'Todos'}
+                {t === 'R' ? 'ð Receitas' : t === 'D' ? 'ð Despesas' : 'Todos'}
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Tab: Lan�amentos */}
+      {/* Tab: Lançamentos */}
       {activeTab === 'lancamentos' && (
         <div
           style={{
@@ -805,7 +805,7 @@ export const LCDPRPage: React.FC = () => {
             <LoadingSkeleton variant="table" rows={8} columns={6} fullScreen={false} />
           ) : filteredLancs.length === 0 ? (
             <EmptyState
-              title={`Nenhum lan�amento em ${anoCalendario}`}
+              title={`Nenhum lançamento em ${anoCalendario}`}
               description='Use "Importar Financeiro" ou adicione manualmente'
               icon={BookOpen}
             />
@@ -814,7 +814,7 @@ export const LCDPRPage: React.FC = () => {
               emptyState={
                 <EmptyState
                   title="Nenhum registro encontrado"
-                  description="Sua busca n�o retornou resultados."
+                  description="Sua busca não retornou resultados."
                   icon={Search}
                 />
               }
@@ -883,13 +883,13 @@ export const LCDPRPage: React.FC = () => {
                 }}
               >
                 {[
-                  'M�s',
+                  'Mês',
                   'Saldo Inicial',
                   '(+) Receitas',
                   '(-) Despesas',
                   'Resultado',
                   'Saldo Final',
-                  'Lan�amentos',
+                  'Lançamentos',
                 ].map((h) => (
                   <th
                     key={h}
@@ -1004,15 +1004,15 @@ export const LCDPRPage: React.FC = () => {
               }}
             >
               O arquivo <strong>.txt</strong> gerado segue o leiaute oficial da Receita Federal
-              (Blocos 0, Q e 9). Ap�s o download, assine digitalmente com certificado{' '}
+              (Blocos 0, Q e 9). Após o download, assine digitalmente com certificado{' '}
               <strong>ICP-Brasil</strong> e envie via programa ReceitaNet.
             </p>
 
-            {/* Status da configura��o */}
+            {/* Status da configuração */}
             {[
               { label: 'Empresa Matriz cadastrada', ok: !!unidadeMatriz },
               {
-                label: 'CPF do produtor / s�cio preenchido',
+                label: 'CPF do produtor / sócio preenchido',
                 ok: !!(
                   unidadeMatriz?.socio_cpf ||
                   (unidadeMatriz?.cnpj || '').replace(/\D/g, '').length === 11
@@ -1022,7 +1022,7 @@ export const LCDPRPage: React.FC = () => {
                 label: 'Contador informado',
                 ok: !!(unidadeMatriz?.contador_cpf && unidadeMatriz?.contador_nome),
               },
-              { label: `Lan�amentos em ${anoCalendario}`, ok: lancamentos.length > 0 },
+              { label: `Lançamentos em ${anoCalendario}`, ok: lancamentos.length > 0 },
               { label: 'Fazendas com NIRF', ok: fazendas.some((f) => f.nirf) },
             ].map(({ label, ok }) => (
               <div
@@ -1082,23 +1082,23 @@ export const LCDPRPage: React.FC = () => {
                 textAlign: 'center',
               }}
             >
-              ⚠️ O arquivo gerado n�o possui assinatura digital. Assine com certificado
-              ICP-Brasil antes de enviar � Receita Federal.
+              â ï¸ O arquivo gerado não possui assinatura digital. Assine com certificado
+              ICP-Brasil antes de enviar à Receita Federal.
             </p>
           </div>
         </div>
       )}
 
-      {/* Modal Lan�amento */}
+      {/* Modal Lançamento */}
       <SidePanel
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSave}
-        title={editingItem ? 'Editar Lan�amento' : 'Novo Lan�amento Q100'}
-        subtitle="Registro Q100 � Livro Caixa Digital"
+        title={editingItem ? 'Editar Lançamento' : 'Novo Lançamento Q100'}
+        subtitle="Registro Q100 · Livro Caixa Digital"
         icon={BookOpen}
         size="medium"
-        submitLabel={editingItem ? 'Salvar Altera��es' : 'Adicionar Lan�amento'}
+        submitLabel={editingItem ? 'Salvar Alterações' : 'Adicionar Lançamento'}
         iconSubmit={CheckCircle}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -1129,12 +1129,12 @@ export const LCDPRPage: React.FC = () => {
                       : 'hsl(var(--text-muted))',
                 }}
               >
-                {t === 'R' ? '↑ RECEITA' : '↓ DESPESA'}
+                {t === 'R' ? 'â RECEITA' : 'â DESPESA'}
               </button>
             ))}
           </div>
 
-          {/* 1. Identifica��o */}
+          {/* 1. Identificação */}
           <div>
             <h3
               style={{
@@ -1148,11 +1148,11 @@ export const LCDPRPage: React.FC = () => {
                 paddingBottom: 8,
               }}
             >
-              1. Identifica��o
+              1. Identificação
             </h3>
             <div className="tauze-input-grid">
               <div className="form-group">
-                <label>Data da Opera��o</label>
+                <label>Data da Operação</label>
                 <DateInput
                   type="date"
                   required
@@ -1175,17 +1175,17 @@ export const LCDPRPage: React.FC = () => {
                 </select>
               </div>
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>Conta Banc�ria (C�d. Q050) *Obrigat�rio</label>
+                <label>Conta Bancária (Cód. Q050) *Obrigatório</label>
                 <select
                   required
                   value={form.cod_conta_bancaria}
                   onChange={(e) => setForm((f) => ({ ...f, cod_conta_bancaria: e.target.value }))}
                 >
                   <option value="">Selecione a conta...</option>
-                  <option value="999">999 — Numer�rio em Tr�nsito / Esp�cie</option>
+                  <option value="999">999 â Numerário em Trânsito / Espécie</option>
                   {contas.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nome_banco} — Ag {c.agencia} / CC {c.conta}
+                      {c.nome_banco} â Ag {c.agencia} / CC {c.conta}
                     </option>
                   ))}
                 </select>
@@ -1211,7 +1211,7 @@ export const LCDPRPage: React.FC = () => {
             </h3>
             <div className="tauze-input-grid">
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>C�digo da Natureza da {form.tipo === 'R' ? 'Receita' : 'Despesa'}</label>
+                <label>Código da Natureza da {form.tipo === 'R' ? 'Receita' : 'Despesa'}</label>
                 <select
                   required
                   value={form.cod_natureza}
@@ -1219,16 +1219,16 @@ export const LCDPRPage: React.FC = () => {
                 >
                   {(form.tipo === 'R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map((n) => (
                     <option key={n.codigo} value={n.codigo}>
-                      {n.codigo} — {n.descricao}
+                      {n.codigo} â {n.descricao}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>Hist�rico (Descri��o)</label>
+                <label>Histórico (Descrição)</label>
                 <input
                   type="text"
-                  placeholder="Hist�rico resumido do lan�amento..."
+                  placeholder="Histórico resumido do lançamento..."
                   value={form.descricao}
                   onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
                 />
@@ -1281,7 +1281,7 @@ export const LCDPRPage: React.FC = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>N�mero do Documento</label>
+                <label>Número do Documento</label>
                 <input
                   type="text"
                   placeholder="Ex: 12345"
@@ -1293,7 +1293,7 @@ export const LCDPRPage: React.FC = () => {
                 <label>CPF/CNPJ do Participante</label>
                 <input
                   type="text"
-                  placeholder="Apenas n�meros..."
+                  placeholder="Apenas números..."
                   value={form.cpf_cnpj_participante}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, cpf_cnpj_participante: e.target.value }))
@@ -1304,7 +1304,7 @@ export const LCDPRPage: React.FC = () => {
                 <label>Nome do Participante</label>
                 <input
                   type="text"
-                  placeholder="Raz�o Social ou Nome F�sico..."
+                  placeholder="Razão Social ou Nome Físico..."
                   value={form.nome_participante}
                   onChange={(e) => setForm((f) => ({ ...f, nome_participante: e.target.value }))}
                 />

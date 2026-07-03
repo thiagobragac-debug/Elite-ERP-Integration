@@ -64,7 +64,7 @@ const animalSchema = z.object({
 
 // ─── Initial State ────────────────────────────────────────────────────────────
 // FIX #1 — moved to a constant so the form is always cleanly reset on open
-const INITIAL_FORM = {
+const getInitialForm = (tenantSettings?: any) => ({
   brinco: '',
   brinco_eletronico: '076',
   nome: '',                 // Nome/apelido do animal (opcional)
@@ -88,12 +88,14 @@ const INITIAL_FORM = {
   valor_compra: '',
   // Doação
   doador: '',
+  tipo_parto: '',
+  tipo_concepcao: '',
   // Zootécnica
   categoria: '',
   finalidade: 'Corte',
   especie_id: 'bovino',
   aptidao_id: 'corte',
-};
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AnimalFormProps {
@@ -139,21 +141,22 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
   initialData,
   loading: externalLoading,
 }) => {
+  const { activeTenantId, tenant } = useTenant();
+
   // FIX #1 — useState simples (sem persistência entre sessões)
-  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [formData, setFormData] = useState(() => getInitialForm(tenant?.settings));
 
   // FIX #4 — flag que protege a categoria de ser sobrescrita pelo auto-suggest
   const [categoriaEditadaManualmente, setCategoriaEditadaManualmente] = useState(false);
 
   // FIX #5 — estado de validação de brinco duplicado
   const [duplicateBrinco, setDuplicateBrinco] = useState(false);
-
-  const { activeTenantId } = useTenant();
   const [fazendas, setFazendas] = useState<any[]>([]);
   const [pastos, setPastos] = useState<any[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [fornecedores, setFornecedores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingFazendas, setLoadingFazendas] = useState(false);
   const [loadingPastos, setLoadingPastos] = useState(false);
@@ -287,7 +290,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
                     <button
                       onClick={() => {
                         clearDraft();
-                        setFormData(INITIAL_FORM);
+                        setFormData(getInitialForm(tenant?.settings));
                         setCategoriaEditadaManualmente(false);
                         toast.dismiss(t.id);
                       }}
@@ -323,7 +326,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
     }
 
     // Sem rascunho: iniciar form limpo
-    setFormData(INITIAL_FORM);
+    setFormData(getInitialForm(tenant?.settings));
     setCategoriaEditadaManualmente(false);
     setDuplicateBrinco(false);
   }, [isOpen, initialData, draftKey]);
@@ -334,6 +337,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       fetchFazendas();
       fetchRacas();
       fetchCategorias();
+      fetchFornecedores();
     }
   }, [isOpen, activeTenantId]);
 
@@ -410,7 +414,33 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       .eq('modulo', 'racas')
       .eq('is_active', true)
       .order('nome');
-    if (data) setRacas(data);
+    if (data) {
+      setRacas(data);
+      // Auto-preencher a raça padrão
+      const defaultId = (tenant?.settings as Record<string, any>)?.default_raca_id;
+      if (defaultId && !initialData) {
+        // Se a raça ainda estiver vazia no formulário, aplicamos o padrão
+        const defaultRaca = data.find(r => r.id === defaultId);
+        if (defaultRaca) {
+          setFormData(prev => {
+            if (!prev.raca) return { ...prev, raca: defaultRaca.nome };
+            return prev;
+          });
+        }
+      }
+    }
+  };
+
+  const fetchFornecedores = async () => {
+    if (!activeTenantId) return;
+    const { data } = await supabase
+      .from('parceiros')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('is_supplier', true)
+      .eq('status', 'Ativo')
+      .order('nome');
+    if (data) setFornecedores(data);
   };
 
   const fetchCategorias = async () => {
@@ -430,7 +460,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
     setFormData((prev) => {
       if (!meses) return { ...prev, idade_meses: '', data_nascimento: '' };
       const m = parseInt(meses);
-      if (isNaN(m)) return prev;
+      if (isNaN(m)) return { ...prev, idade_meses: meses };
       const date = new Date();
       date.setMonth(date.getMonth() - m);
       return { ...prev, idade_meses: meses, data_nascimento: date.toISOString().split('T')[0] };
@@ -440,12 +470,25 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
   const handleDataNascimentoChange = (dataStr: string) => {
     setFormData((prev) => {
       if (!dataStr) return { ...prev, data_nascimento: '', idade_meses: '' };
-      const birth = new Date(dataStr);
+      // Criar data ao meio-dia para evitar que fuso horário (ex: GMT-3) altere o dia para o mês anterior
+      const birth = new Date(dataStr + 'T12:00:00');
       const now = new Date();
+      
+      if (isNaN(birth.getTime())) {
+        return { ...prev, data_nascimento: dataStr };
+      }
+
       let months = (now.getFullYear() - birth.getFullYear()) * 12;
       months -= birth.getMonth();
       months += now.getMonth();
+      
+      // Subtrai um mês se o dia atual for anterior ao dia de nascimento
+      if (now.getDate() < birth.getDate()) {
+        months--;
+      }
+
       if (months < 0) months = 0;
+      
       return { ...prev, data_nascimento: dataStr, idade_meses: months.toString() };
     });
   };
@@ -665,7 +708,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({
       <section className="tauze-form-section">
         <SectionBadge step="PASSO 03" label="Origem e Genealogia" complete={sectionProgress.s3} />
 
-        <OriginSection formData={formData} setFormData={setFormData} custoArroba={custoArroba} />
+        <OriginSection formData={formData} setFormData={setFormData} custoArroba={custoArroba} fornecedores={fornecedores} />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════

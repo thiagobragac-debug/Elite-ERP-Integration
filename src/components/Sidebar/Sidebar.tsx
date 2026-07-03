@@ -92,6 +92,11 @@ const menuItems: NavItem[] = [
       { title: 'Reprodução', href: '/bovinocultura/reproducao', permission: 'bovinocultura_saude' },
       { title: 'Confinamento', href: '/bovinocultura/confinamento', permission: 'bovinocultura_animais' },
       {
+        title: 'Compras & Entrada',
+        href: '/bovinocultura/compras',
+        permission: 'bovinocultura_animais',
+      },
+      {
         title: 'Embarques & Romaneios',
         href: '/bovinocultura/romaneios',
         permission: 'bovinocultura_animais',

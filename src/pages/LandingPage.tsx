@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLandingPageData } from './LandingPage/hooks/useLandingPageData';
 import { TickerSection } from './LandingPage/components/TickerSection';
 import { HeroSection } from './LandingPage/components/HeroSection';
@@ -31,6 +31,16 @@ export const LandingPage: React.FC = () => {
     tickerData,
     handleWeigh,
   } = useLandingPageData();
+
+  const [theme, setTheme] = useState<'light'|'dark'>(() => {
+    const saved = localStorage.getItem('@tauze_landing_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return 'dark'; 
+  });
+
+  useEffect(() => {
+    localStorage.setItem('@tauze_landing_theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (settings.landing_seo_description) {
@@ -98,17 +108,19 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div
+      data-theme={theme}
       style={{
-        background: '#080d14',
+        background: 'rgb(var(--landing-bg-main))',
         minHeight: '100vh',
         fontFamily: "'Inter', sans-serif",
-        color: '#fff',
+        color: 'rgb(var(--landing-text-main))',
         overflowX: 'hidden',
+        transition: 'background 0.3s ease, color 0.3s ease'
       }}
     >
       {settings.landing_show_ticker && <TickerSection tickerData={tickerData} />}
 
-      <HeroSection scrolled={scrolled} />
+      <HeroSection scrolled={scrolled} theme={theme} setTheme={setTheme} />
 
       <FeaturesSection />
 
@@ -137,12 +149,12 @@ export const LandingPage: React.FC = () => {
       )}
 
       {settings.landing_show_mockup && settings.landing_mockup_type === 'video' && (
-        <section style={{ padding: '80px 40px', background: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <section style={{ padding: '80px 40px', background: 'var(--landing-glass-01)', borderTop: '1px solid var(--landing-glass-05)' }}>
           <div style={{ maxWidth: 1020, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgb(var(--landing-brand))', letterSpacing: '0.1em', marginBottom: 14 }}>
               DEMONSTRAÇÃO EM VÍDEO
             </div>
-            <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 38px)', fontWeight: 900, marginBottom: 30, letterSpacing: '-0.02em', color: '#fff' }}>
+            <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 38px)', fontWeight: 900, marginBottom: 30, letterSpacing: '-0.02em', color: 'rgb(var(--landing-text-main))' }}>
               Conheça o sistema em ação
             </h2>
             <div 
@@ -151,8 +163,8 @@ export const LandingPage: React.FC = () => {
                 padding: '16px', 
                 borderRadius: '24px', 
                 overflow: 'hidden', 
-                background: 'rgba(255, 255, 255, 0.015)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--landing-glass-015)',
+                border: '1px solid var(--landing-glass-08)',
                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
               }}
             >
@@ -175,12 +187,12 @@ export const LandingPage: React.FC = () => {
       )}
 
       {settings.landing_show_mockup && settings.landing_mockup_type === 'imagem' && (
-        <section style={{ padding: '80px 40px', background: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <section style={{ padding: '80px 40px', background: 'var(--landing-glass-01)', borderTop: '1px solid var(--landing-glass-05)' }}>
           <div style={{ maxWidth: 1020, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgb(var(--landing-brand))', letterSpacing: '0.1em', marginBottom: 14 }}>
               PREVIEW DA PLATAFORMA
             </div>
-            <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 38px)', fontWeight: 900, marginBottom: 30, letterSpacing: '-0.02em', color: '#fff' }}>
+            <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 38px)', fontWeight: 900, marginBottom: 30, letterSpacing: '-0.02em', color: 'rgb(var(--landing-text-main))' }}>
               Interface moderna e intuitiva
             </h2>
             <div 
@@ -188,8 +200,8 @@ export const LandingPage: React.FC = () => {
               style={{ 
                 padding: '12px', 
                 borderRadius: '24px', 
-                background: 'rgba(255, 255, 255, 0.015)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--landing-glass-015)',
+                border: '1px solid var(--landing-glass-08)',
                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
                 display: 'flex',
                 justifyContent: 'center',
@@ -203,7 +215,7 @@ export const LandingPage: React.FC = () => {
                   width: '100%', 
                   height: 'auto', 
                   borderRadius: '16px',
-                  border: '1px solid rgba(255, 255, 255, 0.06)'
+                  border: '1px solid var(--landing-glass-06)'
                 }} 
               />
             </div>

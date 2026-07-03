@@ -1178,7 +1178,7 @@ export const WeightManagement: React.FC = () => {
           >
             <Wifi size={20} />
           </button>
-          {can(bovinocultura, 'write') && (
+          {can('bovinocultura', 'write') && (
             <>
               <button
                 className="glass-btn secondary"
@@ -1374,7 +1374,7 @@ export const WeightManagement: React.FC = () => {
                 >
                   <History size={18} />
                 </button>
-                {can(bovinocultura, 'write') && (
+                {can('bovinocultura', 'write') && (
                   <button
                     className="action-dot edit"
                     onClick={() => handleOpenEdit(item)}

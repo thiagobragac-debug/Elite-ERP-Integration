@@ -54,8 +54,8 @@ export const LeadFormSection: React.FC = () => {
       id="lead-contact-form"
       style={{
         padding: '80px 40px',
-        background: 'rgba(255, 255, 255, 0.005)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        background: 'var(--landing-glass-005)',
+        borderTop: '1px solid var(--landing-glass-05)',
         position: 'relative',
       }}
     >
@@ -65,7 +65,7 @@ export const LeadFormSection: React.FC = () => {
             style={{
               fontSize: 11,
               fontWeight: 800,
-              color: '#00b865',
+              color: 'rgb(var(--landing-brand))',
               letterSpacing: '0.1em',
               marginBottom: 14,
             }}
@@ -77,13 +77,13 @@ export const LeadFormSection: React.FC = () => {
               fontSize: 'clamp(24px, 3vw, 36px)',
               fontWeight: 900,
               letterSpacing: '-0.02em',
-              color: '#fff',
+              color: 'rgb(var(--landing-text-main))',
               marginBottom: 12,
             }}
           >
             Pronto para impulsionar seus resultados?
           </h2>
-          <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'var(--landing-glass-50)', lineHeight: 1.6 }}>
             Preencha os campos abaixo e nosso especialista entrará em contato para agendar uma demonstração exclusiva com base nas necessidades da sua fazenda.
           </p>
         </div>
@@ -93,8 +93,8 @@ export const LeadFormSection: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             style={{
-              background: 'rgba(0, 184, 101, 0.08)',
-              border: '1px solid rgba(0, 184, 101, 0.2)',
+              background: 'rgba(var(--landing-brand), 0.08)',
+              border: '1px solid rgba(var(--landing-brand), 0.2)',
               borderRadius: '20px',
               padding: '40px',
               textAlign: 'center',
@@ -105,8 +105,8 @@ export const LeadFormSection: React.FC = () => {
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                background: 'rgba(0, 184, 101, 0.15)',
-                color: '#00b865',
+                background: 'rgba(var(--landing-brand), 0.15)',
+                color: 'rgb(var(--landing-brand))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -116,10 +116,10 @@ export const LeadFormSection: React.FC = () => {
             >
               ✓
             </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: 10 }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'rgb(var(--landing-text-main))', marginBottom: 10 }}>
               Mensagem Recebida!
             </h3>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 20 }}>
+            <p style={{ fontSize: 14, color: 'var(--landing-glass-70)', lineHeight: 1.6, marginBottom: 20 }}>
               Agradecemos seu contato. Nossa equipe técnica de consultoria agrícola e bovinocultura está analisando suas informações e entrará em contato por telefone ou e-mail muito em breve.
             </p>
             <button
@@ -141,15 +141,15 @@ export const LeadFormSection: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               gap: '20px',
-              background: 'rgba(255, 255, 255, 0.015)',
+              background: 'var(--landing-glass-015)',
               backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--landing-glass-05)',
               borderRadius: '24px',
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--landing-glass-70)' }}>
                   Nome Completo <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
@@ -159,22 +159,22 @@ export const LeadFormSection: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--landing-glass-03)',
+                    border: '1px solid var(--landing-glass-10)',
                     borderRadius: '12px',
                     padding: '12px 16px',
-                    color: '#fff',
+                    color: 'rgb(var(--landing-text-main))',
                     fontSize: '14px',
                     outline: 'none',
                     transition: 'border-color 0.2s',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'hsl(var(--brand))')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--landing-glass-10)')}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--landing-glass-70)' }}>
                   E-mail <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
@@ -184,24 +184,24 @@ export const LeadFormSection: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--landing-glass-03)',
+                    border: '1px solid var(--landing-glass-10)',
                     borderRadius: '12px',
                     padding: '12px 16px',
-                    color: '#fff',
+                    color: 'rgb(var(--landing-text-main))',
                     fontSize: '14px',
                     outline: 'none',
                     transition: 'border-color 0.2s',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'hsl(var(--brand))')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--landing-glass-10)')}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--landing-glass-70)' }}>
                   Celular / WhatsApp
                 </label>
                 <input
@@ -210,22 +210,22 @@ export const LeadFormSection: React.FC = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--landing-glass-03)',
+                    border: '1px solid var(--landing-glass-10)',
                     borderRadius: '12px',
                     padding: '12px 16px',
-                    color: '#fff',
+                    color: 'rgb(var(--landing-text-main))',
                     fontSize: '14px',
                     outline: 'none',
                     transition: 'border-color 0.2s',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'hsl(var(--brand))')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--landing-glass-10)')}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--landing-glass-70)' }}>
                   Nome da Fazenda ou Empresa
                 </label>
                 <input
@@ -234,23 +234,23 @@ export const LeadFormSection: React.FC = () => {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--landing-glass-03)',
+                    border: '1px solid var(--landing-glass-10)',
                     borderRadius: '12px',
                     padding: '12px 16px',
-                    color: '#fff',
+                    color: 'rgb(var(--landing-text-main))',
                     fontSize: '14px',
                     outline: 'none',
                     transition: 'border-color 0.2s',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'hsl(var(--brand))')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--landing-glass-10)')}
                 />
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--landing-glass-70)' }}>
                 Como podemos ajudar? (Mensagem)
               </label>
               <textarea
@@ -259,18 +259,18 @@ export const LeadFormSection: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--landing-glass-03)',
+                  border: '1px solid var(--landing-glass-10)',
                   borderRadius: '12px',
                   padding: '12px 16px',
-                  color: '#fff',
+                  color: 'rgb(var(--landing-text-main))',
                   fontSize: '14px',
                   outline: 'none',
                   resize: 'vertical',
                   transition: 'border-color 0.2s',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = 'hsl(var(--brand))')}
-                onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--landing-glass-10)')}
               />
             </div>
 

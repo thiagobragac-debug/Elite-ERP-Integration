@@ -33,7 +33,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = options.find((opt) => opt.value === value) || (creatable && value ? { value, label: value } : undefined);
   const displayPlaceholder = selectedOption ? selectedOption.label : placeholder;
 
   // Sync inputValue with the actual selected option label
@@ -169,6 +169,17 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             onFocus={() => {
               setIsOpen(true);
               setInputValue('');
+            }}
+            onBlur={() => {
+              // Give click events on dropdown options time to fire first
+              setTimeout(() => {
+                if (creatable && inputValue.trim().length > 0) {
+                  const exactMatch = options.find(
+                    (opt) => (opt.label || '').toString().toLowerCase() === inputValue.trim().toLowerCase()
+                  );
+                  onChange(exactMatch ? exactMatch.value : inputValue.trim());
+                }
+              }, 200);
             }}
             disabled={disabled}
             style={{

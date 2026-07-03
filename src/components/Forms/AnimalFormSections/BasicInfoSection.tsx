@@ -196,18 +196,19 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           <div style={{ display: 'flex', gap: '8px' }}>
             <DateInput
               className="tauze-input"
-              style={{ flex: '2', minWidth: 0 }}
+              style={{ flex: '1.5', minWidth: 0 }}
               type="date"
               title="Data de Nascimento"
               value={formData.data_nascimento}
               onChange={(e) => handleDataNascimentoChange(e.target.value)}
             />
-            <div style={{ position: 'relative', flex: '0.8', minWidth: 0 }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: 0 }}>
               <input
                 className="tauze-input"
-                style={{ width: '100%', paddingRight: '52px' }}
-                type="number"
-                min="0"
+                style={{ width: '100%', paddingRight: '40px' }}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="0"
                 title="Idade em Meses"
                 value={formData.idade_meses}
@@ -216,7 +217,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               <span
                 style={{
                   position: 'absolute',
-                  right: '10px',
+                  right: '8px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   fontSize: '10px',

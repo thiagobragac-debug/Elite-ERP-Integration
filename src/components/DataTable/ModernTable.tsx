@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-} from 'lucide-react';
+import { Search, Filter, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import './ModernTable.css';
 
 interface Column<T> {

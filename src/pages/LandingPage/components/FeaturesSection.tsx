@@ -46,7 +46,7 @@ export const FeaturesSection: React.FC = () => {
   const { settings } = useSystemSettings();
 
   const stats = [
-    { label: 'Fazendas Ativas', val: 430, suffix: '+', color: '#00b865' },
+    { label: 'Fazendas Ativas', val: 430, suffix: '+', color: 'rgb(var(--landing-brand))' },
     { label: 'Animais Monitorados', val: 280000, suffix: '+', color: '#3b82f6' },
     { label: 'Redução em Planilhas', val: 87, suffix: '%', color: '#8b5cf6' },
     { label: 'Horas Salvas / Mês', val: 240, suffix: 'h', color: '#f59e0b' },
@@ -106,9 +106,9 @@ export const FeaturesSection: React.FC = () => {
         id="resultados"
         style={{
           padding: '60px 40px',
-          background: 'rgba(0,184,101,0.04)',
-          borderTop: '1px solid rgba(0,184,101,0.08)',
-          borderBottom: '1px solid rgba(0,184,101,0.08)',
+          background: 'rgba(var(--landing-brand),0.04)',
+          borderTop: '1px solid rgba(var(--landing-brand),0.08)',
+          borderBottom: '1px solid rgba(var(--landing-brand),0.08)',
         }}
       >
         <div
@@ -126,7 +126,7 @@ export const FeaturesSection: React.FC = () => {
               style={{
                 textAlign: 'center',
                 padding: '20px 16px',
-                borderRight: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                borderRight: i < 3 ? '1px solid var(--landing-glass-06)' : 'none',
               }}
             >
               <div
@@ -143,7 +143,7 @@ export const FeaturesSection: React.FC = () => {
               <div
                 style={{
                   fontSize: 13,
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--landing-glass-40)',
                   fontWeight: 600,
                   marginTop: 8,
                 }}
@@ -163,7 +163,7 @@ export const FeaturesSection: React.FC = () => {
               style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: '#00b865',
+                color: 'rgb(var(--landing-brand))',
                 letterSpacing: '0.1em',
                 marginBottom: 14,
               }}
@@ -185,7 +185,7 @@ export const FeaturesSection: React.FC = () => {
             <p
               style={{
                 fontSize: 16,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--landing-glass-45)',
                 maxWidth: 520,
                 margin: '0 auto',
                 lineHeight: 1.7,
@@ -200,10 +200,10 @@ export const FeaturesSection: React.FC = () => {
             {features.map((f, i) => (
               <div key={i} className="feature-card">
                 <div style={{ fontSize: 28, marginBottom: 14 }}>{f.icon}</div>
-                <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 8, color: '#fff' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 8, color: 'rgb(var(--landing-text-main))' }}>
                   {f.title}
                 </h3>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
+                <p style={{ fontSize: 13, color: 'var(--landing-glass-45)', lineHeight: 1.65 }}>
                   {f.desc}
                 </p>
               </div>

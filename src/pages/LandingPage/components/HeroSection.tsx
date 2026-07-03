@@ -5,7 +5,7 @@ import { useSystemSettings } from '../../../contexts/SystemSettingsContext';
 // ─── TAUZE SVG LOGO ──────────────────────────────────────────────────────────
 export const TauzeLogo: React.FC<{ size?: number; color?: string }> = ({
   size = 32,
-  color = '#00b865',
+  color = 'rgb(var(--landing-brand))',
 }) => {
   const { settings } = useSystemSettings();
   
@@ -41,7 +41,7 @@ export const TauzeLogo: React.FC<{ size?: number; color?: string }> = ({
 // ─── SPARKLINE MINI CHART ─────────────────────────────────────────────────────
 const MiniSparkline: React.FC<{ data: number[]; color?: string }> = ({
   data,
-  color = '#00b865',
+  color = 'rgb(var(--landing-brand))',
 }) => {
   const max = Math.max(...data),
     min = Math.min(...data);
@@ -77,8 +77,8 @@ const FloatCard: React.FC<{
 }> = ({ label, value, spark, color, change, style }) => (
   <div
     style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: `1px solid rgba(255,255,255,0.08)`,
+      background: 'var(--landing-glass-04)',
+      border: `1px solid var(--landing-glass-08)`,
       borderRadius: 20,
       padding: '18px 20px',
       backdropFilter: 'blur(20px)',
@@ -89,7 +89,7 @@ const FloatCard: React.FC<{
     <div
       style={{
         fontSize: 11,
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--landing-glass-45)',
         fontWeight: 700,
         letterSpacing: '0.06em',
         marginBottom: 6,
@@ -97,7 +97,7 @@ const FloatCard: React.FC<{
     >
       {label}
     </div>
-    <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{value}</div>
+    <div style={{ fontSize: 24, fontWeight: 900, color: 'rgb(var(--landing-text-main))', marginBottom: 8 }}>{value}</div>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <MiniSparkline data={spark} color={color} />
       <span
@@ -118,9 +118,11 @@ const FloatCard: React.FC<{
 
 interface HeroSectionProps {
   scrolled: boolean;
+  theme?: 'light' | 'dark';
+  setTheme?: (t: 'light' | 'dark') => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled, theme = 'dark', setTheme }) => {
   const { settings } = useSystemSettings();
   
   return (
@@ -131,9 +133,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
           position: 'sticky',
           top: 0,
           zIndex: 1000,
-          background: scrolled ? 'rgba(8,13,20,0.92)' : 'transparent',
+          background: scrolled ? 'rgba(var(--landing-bg-main),0.92)' : 'transparent',
           backdropFilter: scrolled ? 'blur(24px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+          borderBottom: scrolled ? '1px solid var(--landing-glass-06)' : '1px solid transparent',
           transition: 'all 0.4s ease',
           padding: '0 40px',
         }}
@@ -170,7 +172,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
             </div>
             <div>
               <div
-                style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: '#fff' }}
+                style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: 'rgb(var(--landing-text-main))' }}
               >
                 {settings.system_name}
               </div>
@@ -178,7 +180,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'var(--landing-glass-30)',
                   letterSpacing: '0.1em',
                   marginTop: -2,
                 }}
@@ -203,6 +205,41 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
           </div>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {setTheme && (
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgb(var(--landing-text-main))',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 8,
+                  borderRadius: '50%',
+                }}
+                title="Alternar Tema"
+              >
+                {theme === 'dark' ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                )}
+              </button>
+            )}
             <Link to="/login" className="btn-ghost" style={{ padding: '10px 20px', fontSize: 13 }}>
               Entrar
             </Link>
@@ -236,7 +273,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
               left: '5%',
               width: 700,
               height: 700,
-              background: 'radial-gradient(circle, rgba(0,184,101,0.12) 0%, transparent 65%)',
+              background: 'radial-gradient(circle, rgba(var(--landing-brand),0.12) 0%, transparent 65%)',
               animation: 'glow-pulse 6s ease-in-out infinite',
             }}
           />
@@ -284,8 +321,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                background: 'rgba(0,184,101,0.1)',
-                border: '1px solid rgba(0,184,101,0.2)',
+                background: 'rgba(var(--landing-brand),0.1)',
+                border: '1px solid rgba(var(--landing-brand),0.2)',
                 borderRadius: 100,
                 padding: '6px 14px',
                 marginBottom: 28,
@@ -296,12 +333,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: '#00b865',
-                  boxShadow: '0 0 8px #00b865',
+                  background: 'rgb(var(--landing-brand))',
+                  boxShadow: '0 0 8px rgb(var(--landing-brand))',
                 }}
               />
               <span
-                style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.06em' }}
+                style={{ fontSize: 11, fontWeight: 800, color: 'rgb(var(--landing-brand))', letterSpacing: '0.06em' }}
               >
                 ERP RURAL NATIVO DO CAMPO
               </span>
@@ -324,7 +361,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
               className="fade-up d2"
               style={{
                 fontSize: 17,
-                color: 'rgba(255,255,255,0.55)',
+                color: 'var(--landing-glass-55)',
                 lineHeight: 1.75,
                 marginBottom: 36,
                 maxWidth: 480,
@@ -360,11 +397,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                     alignItems: 'center',
                     gap: 7,
                     fontSize: 13,
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'var(--landing-glass-50)',
                     fontWeight: 600,
                   }}
                 >
-                  <span style={{ color: '#00b865', fontSize: 16 }}>✓</span> {f}
+                  <span style={{ color: 'rgb(var(--landing-brand))', fontSize: 16 }}>✓</span> {f}
                 </div>
               ))}
             </div>
@@ -384,7 +421,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                 label="REBANHO ATIVO"
                 value="4.820 cab."
                 spark={[42, 44, 41, 45, 48, 47, 49, 52, 51, 54]}
-                color="#00b865"
+                color="rgb(var(--landing-brand))"
                 change="+3,2%"
               />
             </div>
@@ -457,7 +494,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                   width: 160,
                   height: 160,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(0,184,101,0.22) 0%, transparent 70%)',
+                  background: 'radial-gradient(circle, rgba(var(--landing-brand),0.22) 0%, transparent 70%)',
                   animation: 'glow-pulse 3s ease-in-out infinite',
                 }}
               />
@@ -468,7 +505,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                   width: 110,
                   height: 110,
                   borderRadius: '50%',
-                  border: '1.5px solid rgba(0,184,101,0.3)',
+                  border: '1.5px solid rgba(var(--landing-brand),0.3)',
                   animation: 'spin-slow 16s linear infinite',
                 }}
               >
@@ -481,8 +518,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: '#00b865',
-                    boxShadow: '0 0 14px #00b865, 0 0 30px rgba(0,184,101,0.7)',
+                    background: 'rgb(var(--landing-brand))',
+                    boxShadow: '0 0 14px rgb(var(--landing-brand)), 0 0 30px rgba(var(--landing-brand),0.7)',
                   }}
                 />
               </div>
@@ -493,7 +530,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                   width: 82,
                   height: 82,
                   borderRadius: '50%',
-                  border: '1px dashed rgba(0,184,101,0.2)',
+                  border: '1px dashed rgba(var(--landing-brand),0.2)',
                   animation: 'spin-slow 11s linear infinite reverse',
                 }}
               >
@@ -520,11 +557,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ scrolled }) => {
                   height: 60,
                   borderRadius: 18,
                   background: 'rgba(6,10,18,0.95)',
-                  border: '1.5px solid rgba(0,184,101,0.45)',
+                  border: '1.5px solid rgba(var(--landing-brand),0.45)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 0 40px rgba(0,184,101,0.3), inset 0 0 24px rgba(0,184,101,0.06)',
+                  boxShadow: '0 0 40px rgba(var(--landing-brand),0.3), inset 0 0 24px rgba(var(--landing-brand),0.06)',
                   backdropFilter: 'blur(20px)',
                 }}
               >

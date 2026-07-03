@@ -282,6 +282,13 @@ const COMMANDS: CommandItem[] = [
     category: 'Bovinocultura',
   },
   {
+    id: 'pec-compras',
+    title: 'Compras & Entrada',
+    icon: Activity,
+    path: '/bovinocultura/compras',
+    category: 'Bovinocultura',
+  },
+  {
     id: 'pec-romaneio',
     title: 'Embarques & Romaneios',
     icon: Activity,

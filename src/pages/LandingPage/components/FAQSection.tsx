@@ -87,7 +87,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
               style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: '#00b865',
+                color: 'rgb(var(--landing-brand))',
                 letterSpacing: '0.1em',
                 marginBottom: 14,
               }}
@@ -111,7 +111,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
                 <div
                   style={{
                     fontSize: 32,
-                    color: 'rgba(0,184,101,0.3)',
+                    color: 'rgba(var(--landing-brand),0.3)',
                     fontWeight: 900,
                     marginBottom: 16,
                     lineHeight: 1,
@@ -122,16 +122,16 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
                 <p
                   style={{
                     fontSize: 14,
-                    color: 'rgba(255,255,255,0.6)',
+                    color: 'var(--landing-glass-60)',
                     lineHeight: 1.8,
                     marginBottom: 24,
                   }}
                 >
                   {t.text}
                 </p>
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 18 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>
+                <div style={{ borderTop: '1px solid var(--landing-glass-06)', paddingTop: 18 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'rgb(var(--landing-text-main))' }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--landing-glass-35)', marginTop: 3 }}>
                     {t.role}
                   </div>
                 </div>
@@ -146,8 +146,8 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
         id="faq"
         style={{
           padding: '100px 40px',
-          background: 'rgba(255,255,255,0.015)',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--landing-glass-015)',
+          borderTop: '1px solid var(--landing-glass-05)',
         }}
       >
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
@@ -156,7 +156,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
               style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: '#00b865',
+                color: 'rgb(var(--landing-brand))',
                 letterSpacing: '0.1em',
                 marginBottom: 14,
               }}
@@ -182,7 +182,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
                   <span
                     style={{
                       fontSize: 20,
-                      color: 'rgba(255,255,255,0.3)',
+                      color: 'var(--landing-glass-30)',
                       flexShrink: 0,
                       transform: faqOpen === i ? 'rotate(45deg)' : 'none',
                       transition: 'transform 0.3s',
@@ -214,7 +214,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
               transform: 'translateX(-50%)',
               width: 800,
               height: 800,
-              background: 'radial-gradient(circle, rgba(0,184,101,0.1) 0%, transparent 65%)',
+              background: 'radial-gradient(circle, rgba(var(--landing-brand),0.1) 0%, transparent 65%)',
               animation: 'glow-pulse 5s ease-in-out infinite',
             }}
           />
@@ -226,8 +226,8 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
               width: 72,
               height: 72,
               borderRadius: 22,
-              background: 'rgba(0,184,101,0.12)',
-              border: '1px solid rgba(0,184,101,0.25)',
+              background: 'rgba(var(--landing-brand),0.12)',
+              border: '1px solid rgba(var(--landing-brand),0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -252,7 +252,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
           <p
             style={{
               fontSize: 16,
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--landing-glass-50)',
               lineHeight: 1.7,
               marginBottom: 40,
               maxWidth: 500,
@@ -293,14 +293,14 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqOpen, setFaqOpen }) =
                 key={t}
                 style={{
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'var(--landing-glass-30)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                 }}
               >
-                <span style={{ color: '#00b865' }}>✓</span> {t}
+                <span style={{ color: 'rgb(var(--landing-brand))' }}>✓</span> {t}
               </span>
             ))}
           </div>

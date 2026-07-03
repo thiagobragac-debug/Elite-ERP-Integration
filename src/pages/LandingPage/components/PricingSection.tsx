@@ -18,9 +18,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
       id="planos"
       style={{
         padding: '100px 40px',
-        background: 'rgba(0,184,101,0.01)',
-        borderTop: '1px solid rgba(255,255,255,0.03)',
-        borderBottom: '1px solid rgba(255,255,255,0.03)',
+        background: 'rgba(var(--landing-brand),0.01)',
+        borderTop: '1px solid var(--landing-glass-03)',
+        borderBottom: '1px solid var(--landing-glass-03)',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -29,7 +29,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             style={{
               fontSize: 11,
               fontWeight: 800,
-              color: '#00b865',
+              color: 'rgb(var(--landing-brand))',
               letterSpacing: '0.1em',
               marginBottom: 14,
             }}
@@ -49,7 +49,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           <p
             style={{
               fontSize: 16,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--landing-glass-45)',
               maxWidth: 500,
               margin: '0 auto',
             }}
@@ -84,7 +84,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   >
                     {activeCampaign.name}
                   </div>
-                  <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>
+                  <div style={{ fontSize: 14, color: 'rgb(var(--landing-text-main))', fontWeight: 600 }}>
                     {activeCampaign.discount_percentage}% OFF em todos os planos
                   </div>
                 </div>
@@ -96,7 +96,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
         </div>
 
         {loadingPlans ? (
-          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)', padding: '40px 0' }}>
+          <div style={{ textAlign: 'center', color: 'var(--landing-glass-60)', padding: '40px 0' }}>
             Carregando ofertas comerciais...
           </div>
         ) : (
@@ -111,15 +111,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 10,
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'var(--landing-glass-10)',
+                border: '1px solid var(--landing-glass-20)',
                 borderRadius: '50%',
                 width: 48,
                 height: 48,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
+                color: 'rgb(var(--landing-text-main))',
                 cursor: 'pointer',
                 backdropFilter: 'blur(10px)',
               }}
@@ -137,15 +137,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 10,
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'var(--landing-glass-10)',
+                border: '1px solid var(--landing-glass-20)',
                 borderRadius: '50%',
                 width: 48,
                 height: 48,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
+                color: 'rgb(var(--landing-text-main))',
                 cursor: 'pointer',
                 backdropFilter: 'blur(10px)',
               }}
@@ -173,14 +173,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   maxWidth: 380,
                   flex: '0 0 auto',
                   scrollSnapAlign: 'center',
-                  background: 'linear-gradient(135deg, rgba(0,184,101,0.15) 0%, rgba(8,13,20,0.8) 100%)',
-                  border: '2px solid #00b865',
+                  background: 'linear-gradient(135deg, rgba(var(--landing-brand),0.15) 0%, rgba(var(--landing-bg-main),0.8) 100%)',
+                  border: '2px solid rgb(var(--landing-brand))',
                   borderRadius: 24,
                   padding: '40px 32px',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  boxShadow: '0 0 50px rgba(0,184,101,0.2)',
+                  boxShadow: '0 0 50px rgba(var(--landing-brand),0.2)',
                   marginLeft: 10,
                   zIndex: 2,
                 }}
@@ -191,8 +191,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                     top: -14,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#00b865',
-                    color: '#fff',
+                    background: 'rgb(var(--landing-brand))',
+                      color: '#ffffff',
                     fontSize: 10,
                     fontWeight: 900,
                     padding: '4px 14px',
@@ -206,13 +206,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 </span>
 
                 <div style={{ marginBottom: 28 }}>
-                  <h3 style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 22, fontWeight: 900, color: 'rgb(var(--landing-text-main))', marginBottom: 8 }}>
                     Plano Prenhez
                   </h3>
-                  <p style={{ fontSize: 14, color: '#00b865', fontWeight: 700, marginBottom: 12 }}>
+                  <p style={{ fontSize: 14, color: 'rgb(var(--landing-brand))', fontWeight: 700, marginBottom: 12 }}>
                     TRIAL COMPLETO DE 14 DIAS
                   </p>
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 13, color: 'var(--landing-glass-60)', lineHeight: 1.5 }}>
                     Não tem certeza de qual plano escolher? Teste a plataforma completa sem limitações por 14 dias gratuitamente e decida depois.
                   </p>
                 </div>
@@ -226,16 +226,16 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                     marginBottom: 40,
                   }}
                 >
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: '#fff', fontWeight: 600 }}>
-                    <span style={{ color: '#00b865', fontWeight: 900 }}>✓</span>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'rgb(var(--landing-text-main))', fontWeight: 600 }}>
+                    <span style={{ color: 'rgb(var(--landing-brand))', fontWeight: 900 }}>✓</span>
                     <span>Todos os módulos liberados</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: '#fff', fontWeight: 600 }}>
-                    <span style={{ color: '#00b865', fontWeight: 900 }}>✓</span>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'rgb(var(--landing-text-main))', fontWeight: 600 }}>
+                    <span style={{ color: 'rgb(var(--landing-brand))', fontWeight: 900 }}>✓</span>
                     <span>Usuários e Animais Ilimitados no Trial</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: '#fff', fontWeight: 600 }}>
-                    <span style={{ color: '#00b865', fontWeight: 900 }}>✓</span>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'rgb(var(--landing-text-main))', fontWeight: 600 }}>
+                    <span style={{ color: 'rgb(var(--landing-brand))', fontWeight: 900 }}>✓</span>
                     <span>Sem cartão de crédito</span>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                     fontSize: 14,
                     fontWeight: 900,
                     textAlign: 'center',
-                    boxShadow: '0 10px 25px rgba(0,184,101,0.4)',
+                    boxShadow: '0 10px 25px rgba(var(--landing-brand),0.4)',
                   }}
                 >
                   COMEÇAR TESTE COMPLETO
@@ -267,15 +267,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   flex: '0 0 auto',
                   scrollSnapAlign: 'center',
                   background: plan.isPopular
-                    ? 'linear-gradient(135deg, rgba(0,184,101,0.08) 0%, rgba(8,13,20,0.6) 100%)'
-                    : 'rgba(255,255,255,0.02)',
-                  border: plan.isPopular ? '2px solid #00b865' : '1px solid rgba(255,255,255,0.07)',
+                    ? 'linear-gradient(135deg, rgba(var(--landing-brand),0.08) 0%, rgba(var(--landing-bg-main),0.6) 100%)'
+                    : 'var(--landing-glass-02)',
+                  border: plan.isPopular ? '2px solid rgb(var(--landing-brand))' : '1px solid var(--landing-glass-07)',
                   borderRadius: 24,
                   padding: '40px 32px',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  boxShadow: plan.isPopular ? '0 20px 40px rgba(0,184,101,0.15)' : 'none',
+                  boxShadow: plan.isPopular ? '0 20px 40px rgba(var(--landing-brand),0.15)' : 'none',
                   transition: 'all 0.3s',
                 }}
               >
@@ -286,8 +286,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       top: -14,
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      background: '#00b865',
-                      color: '#fff',
+                      background: 'rgb(var(--landing-brand))',
+                      color: '#ffffff',
                       fontSize: 10,
                       fontWeight: 900,
                       padding: '4px 14px',
@@ -301,7 +301,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 )}
 
                 <div style={{ marginBottom: 28 }}>
-                  <h3 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: 'rgb(var(--landing-text-main))', marginBottom: 12 }}>
                     {plan.name}
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -309,7 +309,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       <span
                         style={{
                           fontSize: 14,
-                          color: 'rgba(255,255,255,0.4)',
+                          color: 'var(--landing-glass-40)',
                           textDecoration: 'line-through',
                           fontWeight: 600,
                         }}
@@ -322,7 +322,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                         style={{
                           fontSize: 'clamp(32px, 4vw, 42px)',
                           fontWeight: 900,
-                          color: activeCampaign ? '#f59e0b' : '#fff',
+                          color: activeCampaign ? '#f59e0b' : 'rgb(var(--landing-text-main))',
                         }}
                       >
                         {plan.price === 0
@@ -333,7 +333,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       </span>
                       {plan.price !== 0 && (
                         <span
-                          style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}
+                          style={{ fontSize: 13, color: 'var(--landing-glass-40)', fontWeight: 600 }}
                         >
                           /mês
                         </span>
@@ -345,14 +345,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 {/* Limits badge/grid */}
                 <div
                   style={{
-                    background: 'rgba(255,255,255,0.02)',
+                    background: 'var(--landing-glass-02)',
                     borderRadius: 16,
                     padding: '16px 20px',
                     marginBottom: 28,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
-                    border: '1px solid rgba(255,255,255,0.04)',
+                    border: '1px solid var(--landing-glass-04)',
                   }}
                 >
                   <div
@@ -361,7 +361,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       alignItems: 'center',
                       gap: 10,
                       fontSize: 13,
-                      color: 'rgba(255,255,255,0.7)',
+                      color: 'var(--landing-glass-70)',
                       fontWeight: 700,
                     }}
                   >
@@ -379,7 +379,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       alignItems: 'center',
                       gap: 10,
                       fontSize: 13,
-                      color: 'rgba(255,255,255,0.7)',
+                      color: 'var(--landing-glass-70)',
                       fontWeight: 700,
                     }}
                   >
@@ -399,7 +399,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                       alignItems: 'center',
                       gap: 10,
                       fontSize: 13,
-                      color: 'rgba(255,255,255,0.7)',
+                      color: 'var(--landing-glass-70)',
                       fontWeight: 700,
                     }}
                   >
@@ -412,7 +412,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 
                 {/* Divider */}
                 <div
-                  style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 28 }}
+                  style={{ height: 1, background: 'var(--landing-glass-06)', marginBottom: 28 }}
                 />
 
                 {/* Features */}
@@ -433,11 +433,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                         gap: 10,
                         alignItems: 'flex-start',
                         fontSize: 13,
-                        color: 'rgba(255,255,255,0.65)',
+                        color: 'var(--landing-glass-65)',
                         lineHeight: 1.5,
                       }}
                     >
-                      <span style={{ color: '#00b865', fontWeight: 900 }}>✓</span>
+                      <span style={{ color: 'rgb(var(--landing-brand))', fontWeight: 900 }}>✓</span>
                       <span>{feat}</span>
                     </div>
                   ))}
@@ -460,7 +460,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   >
                     TESTE GRATUITO
                   </Link>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontWeight: 600 }}>
+                  <div style={{ fontSize: 11, color: 'var(--landing-glass-40)', textAlign: 'center', fontWeight: 600 }}>
                     14 dias de teste grátis (funcionalidades deste plano)
                   </div>
                 </div>

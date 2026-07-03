@@ -8,8 +8,8 @@ export const TickerSection: React.FC<TickerSectionProps> = ({ tickerData }) => {
   return (
     <div
       style={{
-        background: 'rgba(0,184,101,0.07)',
-        borderBottom: '1px solid rgba(0,184,101,0.12)',
+        background: 'rgba(var(--landing-brand),0.07)',
+        borderBottom: '1px solid rgba(var(--landing-brand),0.12)',
         overflow: 'hidden',
         height: 36,
       }}
@@ -40,7 +40,7 @@ export const TickerSection: React.FC<TickerSectionProps> = ({ tickerData }) => {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.55)',
+                  color: 'var(--landing-glass-55)',
                   whiteSpace: 'nowrap',
                   display: 'flex',
                   gap: 6,
@@ -48,11 +48,11 @@ export const TickerSection: React.FC<TickerSectionProps> = ({ tickerData }) => {
                 }}
               >
                 <span>{label}</span>
-                <span style={{ color: '#fff', fontWeight: 800 }}>{val}</span>
-                <span style={{ color: up ? '#00b865' : '#ef4444' }}>
+                <span style={{ color: 'rgb(var(--landing-text-main))', fontWeight: 800 }}>{val}</span>
+                <span style={{ color: up ? 'rgb(var(--landing-brand))' : '#ef4444' }}>
                   {chg}
                 </span>
-                <span style={{ color: 'rgba(255,255,255,0.15)', margin: '0 8px' }}>|</span>
+                <span style={{ color: 'var(--landing-glass-15)', margin: '0 8px' }}>|</span>
               </span>
             ))}
           </div>

@@ -34,13 +34,13 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
         'Cálculo automático de GMD e previsão de abate',
         'Gestão de lotes com entrada/saída e histórico completo',
       ],
-      color: '#00b865',
+      color: 'rgb(var(--landing-brand))',
       demo: (
         <div>
           <div
             style={{
-              background: 'rgba(0,184,101,0.06)',
-              border: '1px solid rgba(0,184,101,0.15)',
+              background: 'rgba(var(--landing-brand),0.06)',
+              border: '1px solid rgba(var(--landing-brand),0.15)',
               borderRadius: 16,
               padding: 20,
               marginBottom: 16,
@@ -49,7 +49,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             <div
               style={{
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--landing-glass-40)',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 marginBottom: 8,
@@ -61,18 +61,18 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               style={{
                 fontSize: 42,
                 fontWeight: 900,
-                color: '#fff',
+                color: 'rgb(var(--landing-text-main))',
                 display: 'flex',
                 alignItems: 'baseline',
                 gap: 8,
               }}
             >
-              <span style={{ color: weighing ? '#f59e0b' : '#00b865' }}>{weight.toFixed(1)}</span>
-              <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+              <span style={{ color: weighing ? '#f59e0b' : 'rgb(var(--landing-brand))' }}>{weight.toFixed(1)}</span>
+              <span style={{ fontSize: 16, color: 'var(--landing-glass-40)', fontWeight: 600 }}>
                 kg
               </span>
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'var(--landing-glass-40)', marginTop: 4 }}>
               Animal #BR-212 · Lote Pasto B · GMD: +1,22 kg/dia
             </div>
           </div>
@@ -88,23 +88,23 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               <div
                 key={l}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--landing-glass-03)',
                   borderRadius: 12,
                   padding: '12px 14px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--landing-glass-06)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 10,
-                    color: 'rgba(255,255,255,0.35)',
+                    color: 'var(--landing-glass-35)',
                     fontWeight: 700,
                     marginBottom: 4,
                   }}
                 >
                   {l}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{v}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'rgb(var(--landing-text-main))' }}>{v}</div>
               </div>
             ))}
           </div>
@@ -116,8 +116,8 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               borderRadius: 12,
               border: 'none',
               cursor: 'pointer',
-              background: weighing ? 'rgba(245,158,11,0.15)' : 'rgba(0,184,101,0.15)',
-              color: weighing ? '#f59e0b' : '#00b865',
+              background: weighing ? 'rgba(245,158,11,0.15)' : 'rgba(var(--landing-brand),0.15)',
+              color: weighing ? '#f59e0b' : 'rgb(var(--landing-brand))',
               fontWeight: 800,
               fontSize: 13,
               letterSpacing: '0.04em',
@@ -145,14 +145,14 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
         <div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--landing-glass-60)' }}>
                 Trator JD 8R #04 — Combustível
               </span>
               <span
                 style={{
                   fontSize: 14,
                   fontWeight: 900,
-                  color: fuelPct > 30 ? '#00b865' : '#ef4444',
+                  color: fuelPct > 30 ? 'rgb(var(--landing-brand))' : '#ef4444',
                 }}
               >
                 {fuelPct}%
@@ -161,7 +161,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             <div
               style={{
                 height: 10,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--landing-glass-06)',
                 borderRadius: 8,
                 overflow: 'hidden',
               }}
@@ -172,7 +172,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   width: `${fuelPct}%`,
                   background:
                     fuelPct > 30
-                      ? 'linear-gradient(90deg,#00b865,#34d399)'
+                      ? 'linear-gradient(90deg,rgb(var(--landing-brand)),#34d399)'
                       : 'linear-gradient(90deg,#ef4444,#f97316)',
                   borderRadius: 8,
                   transition: 'width 1s ease',
@@ -192,16 +192,16 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               <div
                 key={l}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--landing-glass-03)',
                   borderRadius: 12,
                   padding: '12px 14px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--landing-glass-06)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 10,
-                    color: 'rgba(255,255,255,0.35)',
+                    color: 'var(--landing-glass-35)',
                     fontWeight: 700,
                     marginBottom: 4,
                   }}
@@ -212,7 +212,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   style={{
                     fontSize: 14,
                     fontWeight: 800,
-                    color: l === 'Status' ? '#00b865' : '#fff',
+                    color: l === 'Status' ? 'rgb(var(--landing-brand))' : 'rgb(var(--landing-text-main))',
                   }}
                 >
                   {v}
@@ -231,7 +231,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             <div style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', marginBottom: 4 }}>
               ⚠ Alerta Preditivo
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+            <div style={{ fontSize: 12, color: 'var(--landing-glass-60)' }}>
               Revisão de filtros de ar em 38h. OS gerada automaticamente.
             </div>
           </div>
@@ -269,8 +269,8 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                 alignItems: 'center',
                 gap: 12,
                 padding: '14px 16px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--landing-glass-03)',
+                border: '1px solid var(--landing-glass-06)',
                 borderRadius: 12,
                 marginBottom: 8,
               }}
@@ -281,13 +281,13 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   height: 8,
                   borderRadius: '50%',
                   flexShrink: 0,
-                  background: r.status === 'paired' ? '#00b865' : '#f59e0b',
-                  boxShadow: r.status === 'paired' ? '0 0 8px #00b86580' : '0 0 8px #f59e0b80',
+                  background: r.status === 'paired' ? 'rgb(var(--landing-brand))' : '#f59e0b',
+                  boxShadow: r.status === 'paired' ? '0 0 8px rgb(var(--landing-brand))80' : '0 0 8px #f59e0b80',
                 }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{r.desc}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'rgb(var(--landing-text-main))' }}>{r.desc}</div>
+                <div style={{ fontSize: 10, color: 'var(--landing-glass-35)', marginTop: 2 }}>
                   {r.date}
                 </div>
               </div>
@@ -296,7 +296,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   style={{
                     fontSize: 13,
                     fontWeight: 800,
-                    color: r.val.startsWith('-') ? '#ef4444' : '#00b865',
+                    color: r.val.startsWith('-') ? '#ef4444' : 'rgb(var(--landing-brand))',
                   }}
                 >
                   {r.val}
@@ -305,7 +305,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   style={{
                     fontSize: 9,
                     fontWeight: 700,
-                    color: r.status === 'paired' ? '#00b865' : '#f59e0b',
+                    color: r.status === 'paired' ? 'rgb(var(--landing-brand))' : '#f59e0b',
                     textAlign: 'right',
                   }}
                 >
@@ -319,16 +319,16 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               display: 'flex',
               justifyContent: 'space-between',
               padding: '12px 16px',
-              background: 'rgba(0,184,101,0.06)',
-              border: '1px solid rgba(0,184,101,0.15)',
+              background: 'rgba(var(--landing-brand),0.06)',
+              border: '1px solid rgba(var(--landing-brand),0.15)',
               borderRadius: 12,
               marginTop: 4,
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--landing-glass-60)' }}>
               Taxa de Conciliação Automática
             </span>
-            <span style={{ fontSize: 14, fontWeight: 900, color: '#00b865' }}>94,7%</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: 'rgb(var(--landing-brand))' }}>94,7%</span>
           </div>
         </div>
       ),
@@ -367,12 +367,12 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: purchaseStep >= i ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
+                    background: purchaseStep >= i ? '#8b5cf6' : 'var(--landing-glass-05)',
                     border:
-                      purchaseStep >= i ? '2px solid #8b5cf6' : '2px solid rgba(255,255,255,0.08)',
+                      purchaseStep >= i ? '2px solid #8b5cf6' : '2px solid var(--landing-glass-08)',
                     fontSize: 13,
                     fontWeight: 900,
-                    color: purchaseStep >= i ? '#fff' : 'rgba(255,255,255,0.2)',
+                    color: purchaseStep >= i ? 'rgb(var(--landing-text-main))' : 'var(--landing-glass-20)',
                     transition: 'all 0.4s',
                   }}
                 >
@@ -382,7 +382,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: purchaseStep >= i ? '#fff' : 'rgba(255,255,255,0.2)',
+                    color: purchaseStep >= i ? 'rgb(var(--landing-text-main))' : 'var(--landing-glass-20)',
                     textAlign: 'center',
                   }}
                 >
@@ -393,8 +393,8 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
           </div>
           <div
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--landing-glass-03)',
+              border: '1px solid var(--landing-glass-06)',
               borderRadius: 14,
               padding: 16,
               marginBottom: 12,
@@ -403,7 +403,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             <div
               style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--landing-glass-35)',
                 fontWeight: 700,
                 marginBottom: 8,
               }}
@@ -411,7 +411,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               FERTILIZANTE NPK — 12 TONELADAS
             </div>
             {purchaseStep === 0 && (
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+              <div style={{ fontSize: 13, color: 'var(--landing-glass-60)' }}>
                 Aguardando consulta de fornecedores...
               </div>
             )}
@@ -428,17 +428,17 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '8px 0',
-                      borderBottom: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      borderBottom: i === 0 ? '1px solid var(--landing-glass-06)' : 'none',
                     }}
                   >
-                    <div style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>
+                    <div style={{ fontSize: 12, color: 'rgb(var(--landing-text-main))', fontWeight: 700 }}>
                       {n as string}{' '}
                       {best ? (
                         <span
                           style={{
                             fontSize: 9,
-                            background: '#00b86520',
-                            color: '#00b865',
+                            background: 'rgba(var(--landing-brand), 0.15)',
+                            color: 'rgb(var(--landing-brand))',
                             padding: '2px 6px',
                             borderRadius: 4,
                           }}
@@ -453,7 +453,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                       style={{
                         fontSize: 13,
                         fontWeight: 900,
-                        color: best ? '#00b865' : 'rgba(255,255,255,0.4)',
+                        color: best ? 'rgb(var(--landing-brand))' : 'var(--landing-glass-40)',
                       }}
                     >
                       {v as string}
@@ -463,7 +463,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               </div>
             )}
             {purchaseStep === 2 && (
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#00b865', marginTop: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'rgb(var(--landing-brand))', marginTop: 8 }}>
                 ✓ Ordem de Compra Gerada — NF-e importada
               </div>
             )}
@@ -476,8 +476,8 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
               borderRadius: 12,
               border: 'none',
               cursor: 'pointer',
-              background: purchaseStep === 2 ? 'rgba(0,184,101,0.15)' : 'rgba(139,92,246,0.15)',
-              color: purchaseStep === 2 ? '#00b865' : '#8b5cf6',
+              background: purchaseStep === 2 ? 'rgba(var(--landing-brand),0.15)' : 'rgba(139,92,246,0.15)',
+              color: purchaseStep === 2 ? 'rgb(var(--landing-brand))' : '#8b5cf6',
               fontWeight: 800,
               fontSize: 12,
               letterSpacing: '0.04em',
@@ -499,7 +499,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
       id="demo"
       style={{
         padding: '100px 40px',
-        background: 'linear-gradient(180deg, transparent, rgba(0,184,101,0.04), transparent)',
+        background: 'linear-gradient(180deg, transparent, rgba(var(--landing-brand),0.04), transparent)',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -508,7 +508,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             style={{
               fontSize: 11,
               fontWeight: 800,
-              color: '#00b865',
+              color: 'rgb(var(--landing-brand))',
               letterSpacing: '0.1em',
               marginBottom: 14,
             }}
@@ -528,7 +528,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
           <p
             style={{
               fontSize: 16,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--landing-glass-45)',
               maxWidth: 480,
               margin: '0 auto',
             }}
@@ -561,11 +561,11 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             <div
               style={{
                 padding: '14px 20px',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: '1px solid var(--landing-glass-06)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                background: 'rgba(255,255,255,0.02)',
+                background: 'var(--landing-glass-02)',
               }}
             >
               <div style={{ display: 'flex', gap: 7 }}>
@@ -582,7 +582,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   textAlign: 'center',
                   fontSize: 11,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'var(--landing-glass-30)',
                   letterSpacing: '0.04em',
                 }}
               >
@@ -593,8 +593,8 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: 'rgba(0,184,101,0.1)',
-                  border: '1px solid rgba(0,184,101,0.2)',
+                  background: 'rgba(var(--landing-brand),0.1)',
+                  border: '1px solid rgba(var(--landing-brand),0.2)',
                   borderRadius: 6,
                   padding: '3px 10px',
                 }}
@@ -604,15 +604,15 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    background: '#00b865',
-                    boxShadow: '0 0 6px #00b865',
+                    background: 'rgb(var(--landing-brand))',
+                    boxShadow: '0 0 6px rgb(var(--landing-brand))',
                   }}
                 />
                 <span
                   style={{
                     fontSize: 9,
                     fontWeight: 800,
-                    color: '#00b865',
+                    color: 'rgb(var(--landing-brand))',
                     letterSpacing: '0.06em',
                   }}
                 >
@@ -624,12 +624,12 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
             {/* content */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
               {/* Demo pane */}
-              <div style={{ padding: 28, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ padding: 28, borderRight: '1px solid var(--landing-glass-06)' }}>
                 <div
                   style={{
                     fontSize: 10,
                     fontWeight: 800,
-                    color: 'rgba(255,255,255,0.3)',
+                    color: 'var(--landing-glass-30)',
                     letterSpacing: '0.08em',
                     marginBottom: 20,
                   }}
@@ -671,7 +671,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                 <p
                   style={{
                     fontSize: 14,
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'var(--landing-glass-50)',
                     lineHeight: 1.75,
                     marginBottom: 24,
                   }}
@@ -687,11 +687,11 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                         alignItems: 'flex-start',
                         gap: 10,
                         fontSize: 13,
-                        color: 'rgba(255,255,255,0.65)',
+                        color: 'var(--landing-glass-65)',
                       }}
                     >
                       <span
-                        style={{ color: '#00b865', fontWeight: 900, marginTop: 1, flexShrink: 0 }}
+                        style={{ color: 'rgb(var(--landing-brand))', fontWeight: 900, marginTop: 1, flexShrink: 0 }}
                       >
                         ✓
                       </span>
@@ -703,7 +703,7 @@ export const InteractiveAppMockup: React.FC<InteractiveAppMockupProps> = ({
                   style={{
                     marginTop: 28,
                     paddingTop: 20,
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    borderTop: '1px solid var(--landing-glass-06)',
                   }}
                 >
                   <Link

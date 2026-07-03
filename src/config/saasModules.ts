@@ -51,6 +51,7 @@ export const SAAS_MODULES: SaasModule[] = [
       { id: 'Bovinocultura:Sanidade', label: 'Sanidade' },
       { id: 'Bovinocultura:Reprodução', label: 'Reprodução' },
       { id: 'Bovinocultura:Confinamento', label: 'Confinamento' },
+      { id: 'Bovinocultura:Compras & Entrada', label: 'Compras & Entrada' },
       { id: 'Bovinocultura:Embarques & Romaneios', label: 'Embarques & Romaneios' },
     ],
   },

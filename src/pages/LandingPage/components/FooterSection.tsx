@@ -60,7 +60,7 @@ export const FooterSection: React.FC = () => {
   const { settings } = useSystemSettings();
 
   return (
-    <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px' }}>
+    <footer style={{ borderTop: '1px solid var(--landing-glass-06)', padding: '48px 40px' }}>
       <div
         style={{
           maxWidth: 1280,
@@ -93,10 +93,10 @@ export const FooterSection: React.FC = () => {
             )}
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: 'rgb(var(--landing-text-main))' }}>
               {settings.system_name.toLowerCase()}
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+            <div style={{ fontSize: 10, color: 'var(--landing-glass-30)', fontWeight: 600 }}>
               Sistemas de Gestão Rural
             </div>
           </div>
@@ -108,14 +108,14 @@ export const FooterSection: React.FC = () => {
               to="/login"
               style={{
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--landing-glass-35)',
                 fontWeight: 600,
                 textDecoration: 'none',
                 transition: 'color 0.2s',
               }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = '#fff')}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = 'rgb(var(--landing-text-main))')}
               onMouseLeave={(e) =>
-                ((e.target as HTMLElement).style.color = 'rgba(255,255,255,0.35)')
+                ((e.target as HTMLElement).style.color = 'var(--landing-glass-35)')
               }
             >
               {l}
@@ -128,9 +128,9 @@ export const FooterSection: React.FC = () => {
               href={settings.landing_social_instagram}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'rgba(255,255,255,0.35)', transition: 'color 0.2s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+              style={{ color: 'var(--landing-glass-35)', transition: 'color 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(var(--landing-text-main))')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--landing-glass-35)')}
             >
               <InstagramIcon size={18} />
             </a>
@@ -140,9 +140,9 @@ export const FooterSection: React.FC = () => {
               href={settings.landing_social_linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'rgba(255,255,255,0.35)', transition: 'color 0.2s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+              style={{ color: 'var(--landing-glass-35)', transition: 'color 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(var(--landing-text-main))')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--landing-glass-35)')}
             >
               <LinkedinIcon size={18} />
             </a>
@@ -152,14 +152,14 @@ export const FooterSection: React.FC = () => {
               href={settings.landing_social_youtube}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'rgba(255,255,255,0.35)', transition: 'color 0.2s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+              style={{ color: 'var(--landing-glass-35)', transition: 'color 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(var(--landing-text-main))')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--landing-glass-35)')}
             >
               <YoutubeIcon size={18} />
             </a>
           )}
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', marginLeft: '8px' }}>
+          <span style={{ fontSize: 12, color: 'var(--landing-glass-20)', marginLeft: '8px' }}>
             © 2026 {settings.system_name} · Todos os direitos reservados
           </span>
         </div>

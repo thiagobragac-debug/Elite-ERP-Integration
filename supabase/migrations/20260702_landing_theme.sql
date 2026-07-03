@@ -1,0 +1,1 @@
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS landing_default_theme text DEFAULT 'dark';

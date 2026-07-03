@@ -13,6 +13,7 @@ import {
   CheckCircle,
   XCircle,
   Database,
+  Star,
 } from 'lucide-react';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { useTenant } from '../../contexts/TenantContext';
@@ -41,7 +42,7 @@ export const CategorySettingsTab: React.FC<{
   searchTerm: string;
   triggerCreate: number;
 }> = ({ modulo, searchTerm, triggerCreate }) => {
-  const { tenant } = useTenant();
+  const { tenant, refreshData } = useTenant();
   const { confirm } = useConfirm();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
@@ -649,7 +650,7 @@ export const CategorySettingsTab: React.FC<{
       variant: 'danger',
     });
     if (isConfirmed) {
-      const { error } = await supabase.from('categorias_sistema').delete().eq('id', id).eq('tenant_id', activeTenantId);
+      const { error } = await supabase.from('categorias_sistema').delete().eq('id', id).eq('tenant_id', tenant.id);
 
       if (error) {
         toast.error(
@@ -658,6 +659,24 @@ export const CategorySettingsTab: React.FC<{
       } else {
         fetchCategorias();
       }
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    if (!tenant) return;
+    const currentSettings = (tenant.settings as Record<string, any>) || {};
+    const newSettings = { ...currentSettings, default_raca_id: id };
+
+    const { error } = await supabase
+      .from('tenants')
+      .update({ settings: newSettings })
+      .eq('id', tenant.id);
+
+    if (error) {
+      toast.error('Erro ao definir raça padrão.');
+    } else {
+      toast.success('Raça padrão definida com sucesso!');
+      await refreshData();
     }
   };
 
@@ -694,6 +713,21 @@ export const CategorySettingsTab: React.FC<{
               }}
             >
               SISTEMA
+            </span>
+          )}
+          {modulo === 'racas' && (tenant?.settings as Record<string, any>)?.default_raca_id === cat.id && (
+            <span
+              style={{
+                fontSize: '10px',
+                background: 'rgba(245, 158, 11, 0.1)',
+                color: '#f59e0b',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+              }}
+            >
+              PADRÃO
             </span>
           )}
         </div>
@@ -849,8 +883,23 @@ export const CategorySettingsTab: React.FC<{
           columns={columns}
           loading={loading}
           hideHeader={true}
-          actions={(cat: Categoria) => (
+          actions={(cat: Categoria) => {
+            const isDefault = modulo === 'racas' && (tenant?.settings as Record<string, any>)?.default_raca_id === cat.id;
+            return (
             <>
+              {modulo === 'racas' && (
+                <button
+                  className="icon-btn-secondary"
+                  title={isDefault ? "Raça Padrão" : "Definir como Padrão"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDefault) handleSetDefault(cat.id);
+                  }}
+                  style={{ color: isDefault ? '#f59e0b' : undefined }}
+                >
+                  <Star size={16} fill={isDefault ? '#f59e0b' : 'none'} />
+                </button>
+              )}
               <button
                 className="icon-btn-secondary"
                 onClick={(e) => {
@@ -872,7 +921,7 @@ export const CategorySettingsTab: React.FC<{
                 </button>
               )}
             </>
-          )}
+          )}}
         />
       </main>
 

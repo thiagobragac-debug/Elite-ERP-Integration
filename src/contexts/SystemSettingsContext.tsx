@@ -30,6 +30,7 @@ interface SystemSettings {
   landing_mockup_type: string;
   landing_mockup_image_url: string | null;
   landing_mockup_video_embed: string | null;
+  landing_default_theme: 'light' | 'dark';
   broadcast_active: boolean;
   broadcast_message: string;
   bloquear_embarque_carencia: boolean;
@@ -80,6 +81,7 @@ const defaultSettings: SystemSettings = {
   landing_mockup_type: 'image',
   landing_mockup_image_url: null,
   landing_mockup_video_embed: null,
+  landing_default_theme: 'dark',
   broadcast_active: false,
   broadcast_message: '',
   bloquear_embarque_carencia: false,
@@ -198,6 +200,7 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
           landing_mockup_type: data.landing_mockup_type || 'simulador',
           landing_mockup_image_url: data.landing_mockup_image_url || null,
           landing_mockup_video_embed: data.landing_mockup_video_embed || null,
+          landing_default_theme: data.landing_default_theme || 'dark',
           broadcast_active: data.broadcast_active ?? false,
           broadcast_message: data.broadcast_message || '',
           bloquear_embarque_carencia: data.bloquear_embarque_carencia ?? false,

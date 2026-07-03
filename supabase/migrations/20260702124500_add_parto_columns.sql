@@ -1,0 +1,1 @@
+ALTER TABLE public.animais ADD COLUMN tipo_parto text, ADD COLUMN tipo_concepcao text;

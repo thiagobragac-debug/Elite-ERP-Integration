@@ -258,6 +258,8 @@ export const AnimalManagement: React.FC = () => {
       origem: formData.origem,
       mae_brinco: formData.mae_brinco,
       pai_brinco: formData.pai_brinco,
+      tipo_parto: formData.tipo_parto || null,
+      tipo_concepcao: formData.tipo_concepcao || null,
       valor_compra: parseFloat(formData.valor_compra) || 0,
       valor_venda: parseFloat(formData.valor_venda) || 0,
       categoria: formData.categoria,
@@ -419,20 +421,16 @@ export const AnimalManagement: React.FC = () => {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+              <span className="main-text" style={{ fontWeight: 800 }}>
                 #{item.brinco}
               </span>
               {item.status === 'Ativo' && item.computedWeight > 500 && (
-                <span className="status-chip warning">
-                  <div className="dot" />
+                <span className="status-pill warning" style={{ fontSize: '9px', padding: '2px 6px' }}>
                   PRONTO
                 </span>
               )}
             </div>
-            <span
-              className="sub-meta"
-              style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}
-            >
+            <span className="sub-meta">
               {item.raca} • {item.computedCategory}
             </span>
           </div>
@@ -444,18 +442,10 @@ export const AnimalManagement: React.FC = () => {
       header: 'Lote / Rastreabilidade',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+          <span className="main-text" style={{ fontWeight: 600 }}>
             Lote: {item.lote || 'N/A'}
           </span>
-          <span
-            className="sub-meta"
-            style={{
-              fontSize: '9px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              color: '#94a3b8',
-            }}
-          >
+          <span className="sub-meta" style={{ textTransform: 'uppercase', letterSpacing: '0.03em' }}>
             Origem: {item.origem || 'Interna'}
           </span>
         </div>
@@ -467,16 +457,8 @@ export const AnimalManagement: React.FC = () => {
       accessor: (item: any) => {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{item.computedAgeStr}</span>
-            <span
-              className="sub-meta"
-              style={{
-                fontSize: '9px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                color: '#94a3b8',
-              }}
-            >
+            <span className="main-text" style={{ fontWeight: 600 }}>{item.computedAgeStr}</span>
+            <span className="sub-meta" style={{ textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               {item.computedDaysOnFarm} dias na fazenda
             </span>
           </div>

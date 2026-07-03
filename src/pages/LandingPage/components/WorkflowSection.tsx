@@ -11,7 +11,7 @@ export const WorkflowSection: React.FC = () => {
               style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: '#00b865',
+                color: 'rgb(var(--landing-brand))',
                 letterSpacing: '0.1em',
                 marginBottom: 14,
               }}
@@ -31,7 +31,7 @@ export const WorkflowSection: React.FC = () => {
             <p
               style={{
                 fontSize: 16,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--landing-glass-45)',
                 maxWidth: 500,
                 margin: '0 auto',
               }}
@@ -49,7 +49,7 @@ export const WorkflowSection: React.FC = () => {
                 left: 28,
                 right: 28,
                 height: 2,
-                background: 'linear-gradient(90deg, #00b865, #3b82f6, #8b5cf6, #f59e0b)',
+                background: 'linear-gradient(90deg, rgb(var(--landing-brand)), #3b82f6, #8b5cf6, #f59e0b)',
                 borderRadius: 2,
                 opacity: 0.3,
               }}
@@ -91,8 +91,8 @@ export const WorkflowSection: React.FC = () => {
                       width: 56,
                       height: 56,
                       borderRadius: 18,
-                      background: 'rgba(0,184,101,0.1)',
-                      border: '1px solid rgba(0,184,101,0.2)',
+                      background: 'rgba(var(--landing-brand),0.1)',
+                      border: '1px solid rgba(var(--landing-brand),0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -106,17 +106,17 @@ export const WorkflowSection: React.FC = () => {
                     style={{
                       fontSize: 10,
                       fontWeight: 800,
-                      color: 'rgba(255,255,255,0.25)',
+                      color: 'var(--landing-glass-25)',
                       letterSpacing: '0.08em',
                       marginBottom: 6,
                     }}
                   >
                     PASSO {s.step}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'rgb(var(--landing-text-main))', marginBottom: 8 }}>
                     {s.label}
                   </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>
+                  <div style={{ fontSize: 12, color: 'var(--landing-glass-40)', lineHeight: 1.65 }}>
                     {s.desc}
                   </div>
                 </div>
@@ -130,9 +130,9 @@ export const WorkflowSection: React.FC = () => {
       <section
         style={{
           padding: '100px 40px',
-          background: 'rgba(255,255,255,0.015)',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--landing-glass-015)',
+          borderTop: '1px solid var(--landing-glass-05)',
+          borderBottom: '1px solid var(--landing-glass-05)',
         }}
       >
         <div
@@ -150,7 +150,7 @@ export const WorkflowSection: React.FC = () => {
               style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: '#00b865',
+                color: 'rgb(var(--landing-brand))',
                 letterSpacing: '0.1em',
                 marginBottom: 14,
               }}
@@ -170,7 +170,7 @@ export const WorkflowSection: React.FC = () => {
             <p
               style={{
                 fontSize: 16,
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--landing-glass-50)',
                 lineHeight: 1.75,
                 marginBottom: 36,
               }}
@@ -200,8 +200,8 @@ export const WorkflowSection: React.FC = () => {
                       width: 28,
                       height: 28,
                       borderRadius: 8,
-                      background: 'rgba(0,184,101,0.12)',
-                      border: '1px solid rgba(0,184,101,0.2)',
+                      background: 'rgba(var(--landing-brand),0.12)',
+                      border: '1px solid rgba(var(--landing-brand),0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -209,13 +209,13 @@ export const WorkflowSection: React.FC = () => {
                       marginTop: 2,
                     }}
                   >
-                    <span style={{ color: '#00b865', fontSize: 14, fontWeight: 900 }}>✓</span>
+                    <span style={{ color: 'rgb(var(--landing-brand))', fontSize: 14, fontWeight: 900 }}>✓</span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'rgb(var(--landing-text-main))', marginBottom: 4 }}>
                       {t}
                     </div>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 13, color: 'var(--landing-glass-45)', lineHeight: 1.6 }}>
                       {d}
                     </div>
                   </div>
@@ -250,15 +250,15 @@ export const WorkflowSection: React.FC = () => {
               <div
                 key={i}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--landing-glass-03)',
+                  border: '1px solid var(--landing-glass-06)',
                   borderRadius: 18,
                   padding: 22,
                 }}
               >
                 <div style={{ fontSize: 28, marginBottom: 12 }}>{c.icon}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{c.title}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: 'var(--landing-glass-40)', lineHeight: 1.6 }}>
                   {c.desc}
                 </div>
               </div>
